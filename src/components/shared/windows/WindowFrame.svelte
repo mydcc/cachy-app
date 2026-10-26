@@ -842,6 +842,9 @@
 {/if}
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- A modal or dialog keeps the manager's reserved top band even when the
+     responsive rule maximizes it; maximizedZIndex would drop it into the
+     windowMax band. -->
 <div
     bind:this={frameEl}
     class={extraClasses}
@@ -889,7 +892,11 @@
         : win.isMaximized
           ? "100vh"
           : `${win.height}px`}
-    style:z-index={win.isMaximized ? win.maximizedZIndex : win.zIndex}
+    style:z-index={win.isMaximized &&
+    win.windowType !== "modal" &&
+    win.windowType !== "dialog"
+        ? win.maximizedZIndex
+        : win.zIndex}
     style:opacity={win.opacity}
     style:transition={win.fitContentOnce && !fitApplied ? "none" : undefined}
     onpointerdown={handlePointerDown}
@@ -1176,6 +1183,46 @@
                             ? $_("windows.aria.unpin")
                             : $_("windows.aria.pin")}
                     >{win.isPinned ? "📌" : "📍"}</Button>
+                </div>
+            {/if}
+
+            {#if !win.isMinimized && win.windowType !== "modal" && win.windowType !== "dialog" && win.windowType !== "symbolpicker"}
+                <div class="control-group">
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        ariaPressed={win.isKeepAbove}
+                        onClick={() => {
+                            win.toggleKeepAbove();
+                            // The pointerdown that led to this click already
+                            // raised the window in its old band; re-stack it
+                            // so the new flag takes effect immediately.
+                            windowManager.bringToFront(win.id);
+                        }}
+                        ondblclick={(e) => e.stopPropagation()}
+                        title={win.isKeepAbove
+                            ? $_("windows.aria.keepAboveOff")
+                            : $_("windows.aria.keepAbove")}
+                        ariaLabel={win.isKeepAbove
+                            ? $_("windows.aria.keepAboveOff")
+                            : $_("windows.aria.keepAbove")}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill={win.isKeepAbove ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path d="M4 4h16" />
+                            <path d="M12 20V8" />
+                            <path d="m6 14 6-6 6 6" />
+                        </svg>
+                    </Button>
                 </div>
             {/if}
 

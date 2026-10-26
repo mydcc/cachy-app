@@ -18,6 +18,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { WindowBase, normalizeDoubleClickBehavior } from "./WindowBase.svelte";
+import { Z_LAYERS } from "./zLayers";
 
 class TestWindow extends WindowBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -316,6 +317,63 @@ describe("WindowBase maximizedZIndex (FEAT-0044)", () => {
         // fresh refresh it would remain stuck behind winB.
         winA.refreshMaximizedZIndex();
         expect(winA.maximizedZIndex).toBeGreaterThan(winB.maximizedZIndex);
+    });
+});
+
+describe("WindowBase keep-above (FEAT-0741)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it("defaults to off and persists the toggled flag with the window snapshot", () => {
+        const id = `keep-above-${nextTestId++}`;
+        const win = new TestWindow({ id });
+        expect(win.isKeepAbove).toBe(false);
+
+        win.toggleKeepAbove();
+        expect(win.isKeepAbove).toBe(true);
+
+        const restored = new TestWindow({ id });
+        expect(restored.isKeepAbove).toBe(true);
+    });
+
+    it("ignores a persisted flag that is not a literal boolean", () => {
+        const id = `keep-above-bogus-${nextTestId++}`;
+        localStorage.setItem(
+            `cachy_win_${id}`,
+            JSON.stringify({ isKeepAbove: "yes" }),
+        );
+
+        const win = new TestWindow({ id });
+
+        expect(win.isKeepAbove).toBe(false);
+    });
+
+    it("puts a maximized keep-above window into the keep-above band", () => {
+        const win = makeTestWindow();
+        win.isKeepAbove = true;
+
+        win.maximize();
+
+        expect(win.maximizedZIndex).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowKeepAbove,
+        );
+        expect(win.maximizedZIndex).toBeLessThan(Z_LAYERS.modal);
+    });
+
+    it("returns a maximized window to the normal band when the flag is cleared", () => {
+        const win = makeTestWindow();
+        win.isKeepAbove = true;
+        win.maximize();
+        expect(win.maximizedZIndex).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowKeepAbove,
+        );
+
+        win.isKeepAbove = false;
+        win.refreshMaximizedZIndex();
+
+        expect(win.maximizedZIndex).toBeGreaterThanOrEqual(Z_LAYERS.windowMax);
+        expect(win.maximizedZIndex).toBeLessThan(Z_LAYERS.windowKeepAbove);
     });
 });
 

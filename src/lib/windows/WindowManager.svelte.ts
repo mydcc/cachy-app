@@ -21,7 +21,7 @@
 */
 
 import type { WindowBase } from "./WindowBase.svelte";
-import { Z_LAYERS } from "./zLayers";
+import { Z_LAYERS, WINDOW_STACK_Z_SPAN } from "./zLayers";
 import { WINDOW_SWITCHER_CLASS } from "./windowSwitcher";
 import { ModalWindow } from "./implementations/ModalWindow.svelte";
 import { IframeWindow } from "./implementations/IframeWindow.svelte";
@@ -36,6 +36,17 @@ const MAX_SAFE_Z_INDEX = 1000000;
  * them however long a session runs.
  */
 const MODAL_Z_SPAN = 1000;
+
+/**
+ * Windows that own the reserved top band and must stay above keep-above
+ * windows: a blocking modal and a promise dialog (confirm/prompt). The dialog
+ * band is shared with modals even though dialogs are not swept like modals;
+ * keeping a confirm behind a keep-above calculator would make it unanswerable
+ * (FEAT-0741).
+ */
+function usesModalBand(win: WindowBase): boolean {
+    return win.windowType === "modal" || win.windowType === "dialog";
+}
 // Shared with WindowFrame.svelte's own geometry-save debounce (BUG-0042) so
 // there is one save cadence for window state, not two independent ones.
 export const SAVE_DEBOUNCE_MS = 500;
@@ -425,11 +436,16 @@ class WindowManager {
      * a modal"; `sweepCloseOnBlur` overrides that reading if a caller ever
      * needs to.
      *
-     * Modals also render in their own reserved band (`Z_LAYERS.modal`, above
-     * every ordinary window including a maximized one). A counter z-index let
-     * a maximized settings pane (≈1_020_000) draw over a compact dialog
-     * (~11_000) — the reported symptom on a viewport narrow enough for the
-     * pane to maximize itself.
+     * Modals and promise dialogs also render in their own reserved band
+     * (`Z_LAYERS.modal`, above every ordinary window including a maximized
+     * one). A counter z-index let a maximized settings pane (≈1_020_000) draw
+     * over a compact dialog (~11_000) — the reported symptom on a viewport
+     * narrow enough for the pane to maximize itself.
+     *
+     * FEAT-0741 adds a second reserved band: a window with `isKeepAbove` takes
+     * an ordinal in `Z_LAYERS.windowKeepAbove`, so focusing an ordinary window
+     * can never draw over it, while modals stay above it. A maximized
+     * keep-above window refreshes `maximizedZIndex` into the same band.
      */
     bringToFront(id: string, options: { sweepCloseOnBlur?: boolean } = {}) {
         const win = this._windows.find(w => w.id === id);
@@ -441,10 +457,17 @@ class WindowManager {
             }
 
             const ordinal = this._nextZIndex++;
-            win.zIndex =
-                win.windowType === "modal"
-                    ? Z_LAYERS.modal + (ordinal % MODAL_Z_SPAN)
-                    : ordinal;
+            if (usesModalBand(win)) {
+                win.zIndex = Z_LAYERS.modal + (ordinal % MODAL_Z_SPAN);
+            } else if (win.isKeepAbove) {
+                // FEAT-0741: a keep-above window stays above the ordinary
+                // counter and the maximized band, but below a modal. Its own
+                // ordinals keep focus order among keep-above windows.
+                win.zIndex =
+                    Z_LAYERS.windowKeepAbove + (ordinal % WINDOW_STACK_Z_SPAN);
+            } else {
+                win.zIndex = ordinal;
+            }
             if (win.isMaximized) {
                 // .window-frame.maximized binds to maximizedZIndex, not
                 // zIndex directly (FEAT-0044) -- refresh it too, or focusing
@@ -491,14 +514,23 @@ class WindowManager {
         // Reset base counter
         this._nextZIndex = BASE_Z_INDEX;
 
-        // Reassign new sequential Z-Indices. Modals keep their own band: the
-        // sort puts them last, so reassigning them from BASE_Z_INDEX would
-        // drop every dialog back under a maximized window (BUG-0667).
+        // Reassign new sequential Z-Indices. Modals and dialogs keep their own
+        // band: the sort puts them last, so reassigning them from BASE_Z_INDEX
+        // would drop every dialog back under a maximized window (BUG-0667).
+        // FEAT-0741: keep-above windows have their own band too, preserving
+        // their relative order while staying above the ordinary counter.
         let modalOrdinal = 0;
+        let keepAboveOrdinal = 0;
         for (const win of sorted) {
             if (win.id === excludeId) continue;
-            if (win.windowType === "modal") {
+            if (usesModalBand(win)) {
                 win.zIndex = Z_LAYERS.modal + modalOrdinal++;
+                continue;
+            }
+            if (win.isKeepAbove) {
+                win.zIndex =
+                    Z_LAYERS.windowKeepAbove +
+                    (keepAboveOrdinal++ % WINDOW_STACK_Z_SPAN);
                 continue;
             }
             win.zIndex = this._nextZIndex++;

@@ -28,16 +28,32 @@
  * grows per focus event, normalizing back to that base once it approaches
  * MAX_SAFE_WINDOW_Z_INDEX. Every layer above `window` sits far enough past
  * that ceiling that the counter's growth can never cross into it.
+ *
+ * `windowKeepAbove` (FEAT-0741) sits above the maximized band so a keep-above
+ * window cannot be covered by a maximized ordinary window, and below `modal`
+ * so a blocking dialog still owns the top of the stack. `WINDOW_STACK_Z_SPAN`
+ * bounds both the maximized and the keep-above ordinals inside their gap.
  */
 export const Z_LAYERS = {
     window: 11000,
     windowDock: 1_010_000,
     windowMax: 1_020_000,
+    windowKeepAbove: 1_025_000,
     modal: 1_030_000,
     switcher: 1_035_000,
     toast: 1_040_000,
     fx: 1_050_000,
 } as const;
+
+/**
+ * Room for ordering windows inside one stacking band. The maximized band uses
+ * it for relative order among maximized windows; the keep-above band uses the
+ * same span for ordinary and maximized keep-above windows. It must stay small
+ * enough for `windowMax + WINDOW_STACK_Z_SPAN` to remain below
+ * `windowKeepAbove` and for `windowKeepAbove + WINDOW_STACK_Z_SPAN` to remain
+ * below `modal` -- zLayers.test.ts asserts both.
+ */
+export const WINDOW_STACK_Z_SPAN = 4_000;
 
 /** Must stay below Z_LAYERS.windowDock. See WindowManager.svelte.ts's own MAX_SAFE_Z_INDEX. */
 export const MAX_SAFE_WINDOW_Z_INDEX = 1_000_000;

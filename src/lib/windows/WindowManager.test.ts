@@ -110,6 +110,118 @@ describe("WindowManager.bringToFront and maximized windows (FEAT-0044)", () => {
     });
 });
 
+describe("WindowManager keep-above stacking (FEAT-0741)", () => {
+    it("keeps a keep-above window above a normal window focused later", () => {
+        const keep = openTestWindow();
+        keep.isKeepAbove = true;
+        windowManager.bringToFront(keep.id);
+
+        const normal = openTestWindow();
+
+        expect(normal.isFocused).toBe(true);
+        expect(keep.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.windowKeepAbove);
+        expect(keep.zIndex).toBeLessThan(Z_LAYERS.modal);
+        expect(keep.zIndex).toBeGreaterThan(normal.zIndex);
+    });
+
+    it("keeps a keep-above window above a maximized ordinary window", () => {
+        const keep = openTestWindow();
+        keep.isKeepAbove = true;
+        windowManager.bringToFront(keep.id);
+
+        const maximized = openTestWindow();
+        maximized.maximize();
+        windowManager.bringToFront(maximized.id);
+
+        expect(maximized.maximizedZIndex).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowMax,
+        );
+        expect(keep.zIndex).toBeGreaterThan(maximized.maximizedZIndex);
+    });
+
+    it("still orders two keep-above windows by focus", () => {
+        const first = openTestWindow();
+        const second = openTestWindow();
+        first.isKeepAbove = true;
+        second.isKeepAbove = true;
+
+        windowManager.bringToFront(first.id);
+        windowManager.bringToFront(second.id);
+        expect(second.zIndex).toBeGreaterThan(first.zIndex);
+
+        windowManager.bringToFront(first.id);
+        expect(first.zIndex).toBeGreaterThan(second.zIndex);
+        expect(first.zIndex).toBeLessThan(Z_LAYERS.modal);
+    });
+
+    it("keeps a modal above a keep-above window", () => {
+        const keep = openTestWindow();
+        keep.isKeepAbove = true;
+        windowManager.bringToFront(keep.id);
+
+        const modal = new TestWindow({
+            id: `manager-test-modal-${nextTestId++}`,
+            windowType: "modal",
+        });
+        modal.allowMultipleInstances = true;
+        windowManager.open(modal);
+        openedIds.push(modal.id);
+
+        windowManager.bringToFront(keep.id);
+
+        expect(keep.zIndex).toBeLessThan(modal.zIndex);
+        expect(modal.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.modal);
+    });
+
+    it("keeps a promise dialog above a keep-above window", () => {
+        const keep = openTestWindow();
+        keep.isKeepAbove = true;
+        windowManager.bringToFront(keep.id);
+
+        const dialog = new TestWindow({
+            id: `manager-test-dialog-${nextTestId++}`,
+            windowType: "dialog",
+        });
+        dialog.allowMultipleInstances = true;
+        windowManager.open(dialog);
+        openedIds.push(dialog.id);
+
+        windowManager.bringToFront(keep.id);
+
+        expect(keep.zIndex).toBeLessThan(dialog.zIndex);
+        expect(dialog.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.modal);
+    });
+
+    it("returns to the normal band once the flag is turned off", () => {
+        const win = openTestWindow();
+        win.isKeepAbove = true;
+        windowManager.bringToFront(win.id);
+        expect(win.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.windowKeepAbove);
+
+        win.isKeepAbove = false;
+        windowManager.bringToFront(win.id);
+
+        expect(win.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.window);
+        expect(win.zIndex).toBeLessThan(Z_LAYERS.windowDock);
+    });
+
+    it("preserves the keep-above band when the counter is normalized", () => {
+        const normal = openTestWindow();
+        const keep = openTestWindow();
+        keep.isKeepAbove = true;
+        windowManager.bringToFront(keep.id);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (windowManager as any)._nextZIndex = MAX_SAFE_WINDOW_Z_INDEX + 1;
+        windowManager.bringToFront(normal.id);
+
+        expect(keep.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.windowKeepAbove);
+        expect(keep.zIndex).toBeLessThan(Z_LAYERS.modal);
+        expect(normal.zIndex).toBeLessThan(Z_LAYERS.windowDock);
+        expect(keep.zIndex).toBeGreaterThan(normal.zIndex);
+    });
+});
+
 describe("WindowManager.openAcademy (FEAT-0045)", () => {
     afterEach(() => {
         windowManager.close("academy");

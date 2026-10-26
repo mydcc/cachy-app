@@ -23,7 +23,7 @@
 import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
-import { Z_LAYERS } from "./zLayers";
+import { Z_LAYERS, WINDOW_STACK_Z_SPAN } from "./zLayers";
 import { computeSnapGeometry, readShellInsets, isSnapZone } from "./snapping";
 import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
@@ -153,6 +153,12 @@ export abstract class WindowBase {
     isTransparent = $state(false);
     /** Tiling/Pinning state (active if pinSide != 'none') */
     isPinned = $state(false);
+    /**
+     * FEAT-0741: keeps this window above ordinary and maximized windows while
+     * another window owns focus. The flag only records intent; the stacking
+     * band itself is assigned by WindowManager.bringToFront().
+     */
+    isKeepAbove = $state(false);
 
     /** Storage for dimensions prior to maximization or pinning. */
     private lastX = 0;
@@ -251,23 +257,26 @@ export abstract class WindowBase {
     /**
      * Shared across every WindowBase instance so relative focus order among
      * maximized windows survives regardless of which instance last called
-     * refreshMaximizedZIndex() -- see maximizedZIndex above. Bounded well
-     * inside the --z-window-max..--z-modal gap (FEAT-0041's layer contract)
-     * so it can never grow into the next layer.
+     * refreshMaximizedZIndex() -- see maximizedZIndex above. Bounded by
+     * WINDOW_STACK_Z_SPAN, which keeps both the windowMax and windowKeepAbove
+     * bands inside FEAT-0041's layer contract (FEAT-0741).
      */
     private static nextMaximizedOffset = 0;
-    private static readonly MAX_MAXIMIZED_OFFSET = 9000;
+    private static readonly MAX_MAXIMIZED_OFFSET = WINDOW_STACK_Z_SPAN;
 
     /**
-     * Bumps this window to the front of the maximized-window stacking order.
-     * Called when a window maximizes and again whenever an already-maximized
-     * window is focused, so bringToFront() has an effect on maximized
-     * windows too (FEAT-0044).
+     * Bumps this window to the front of its maximized stacking band. Called
+     * when a window maximizes and again whenever an already-maximized window
+     * is focused, so bringToFront() has an effect on maximized windows too
+     * (FEAT-0044). A keep-above window uses the higher band (FEAT-0741).
      */
     refreshMaximizedZIndex() {
         WindowBase.nextMaximizedOffset =
             (WindowBase.nextMaximizedOffset + 1) % WindowBase.MAX_MAXIMIZED_OFFSET;
-        this.maximizedZIndex = Z_LAYERS.windowMax + WindowBase.nextMaximizedOffset;
+        const base = this.isKeepAbove
+            ? Z_LAYERS.windowKeepAbove
+            : Z_LAYERS.windowMax;
+        this.maximizedZIndex = base + WindowBase.nextMaximizedOffset;
     }
 
     /** Tracks if the current maximization was forced by responsive rules. */
@@ -462,6 +471,7 @@ export abstract class WindowBase {
             isMaximized: this.isMaximized,
             isMinimized: this.isMinimized,
             isPinned: this.isPinned,
+            isKeepAbove: this.isKeepAbove,
             pinSide: this.pinSide,
             pinRestore: this.pinRestore,
             opacity: this.opacity,
@@ -492,6 +502,10 @@ export abstract class WindowBase {
                 this.isMaximized = state.isMaximized ?? false;
                 this.isMinimized = state.isMinimized ?? false;
                 this.isPinned = state.isPinned ?? false;
+                // Only a literal boolean restores the flag; a legacy snapshot
+                // has no field and a hand-edited truthy value must not lift a
+                // window above the others.
+                this.isKeepAbove = state.isKeepAbove === true;
                 const pinSide = state.pinSide;
                 if (pinSide === "none") {
                     this.pinSide = "none";
@@ -804,6 +818,17 @@ export abstract class WindowBase {
         this.y = geometry.y;
         this.width = geometry.width;
         this.height = geometry.height;
+        this.saveState();
+    }
+
+    /**
+     * FEAT-0741: flips the keep-above intent and persists it with the window's
+     * existing snapshot. The caller that wants the window to move bands must
+     * ask WindowManager to re-stack it; this class cannot reach the singleton
+     * without a module cycle.
+     */
+    toggleKeepAbove() {
+        this.isKeepAbove = !this.isKeepAbove;
         this.saveState();
     }
 

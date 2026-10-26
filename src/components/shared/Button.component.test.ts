@@ -111,6 +111,12 @@ describe("FEAT-0346 — Button forwards its label and honours disabled", () => {
 
         expect(button().classList.contains("my-custom-class")).toBe(true);
     });
+
+    it("forwards aria-pressed for a toggle button", () => {
+        render({ ariaLabel: "Keep window above others", ariaPressed: true });
+
+        expect(button().getAttribute("aria-pressed")).toBe("true");
+    });
 });
 
 describe("FEAT-0610 — variants, sizes and events", () => {

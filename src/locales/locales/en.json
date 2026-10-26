@@ -12,7 +12,9 @@
       "decreaseFont": "Decrease Font Size",
       "increaseFont": "Increase Font Size",
       "unpin": "Unpin window",
-      "pin": "Pin window"
+      "pin": "Pin window",
+      "keepAbove": "Keep window above others",
+      "keepAboveOff": "Stop keeping window above others"
     },
     "contextMenu": {
       "closeWindow": "Close Window",
