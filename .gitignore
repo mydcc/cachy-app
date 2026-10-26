@@ -152,12 +152,13 @@ info/
 #
 # .claude/hooks/ is the exception: evals/hook-guard.eval.test.ts loads
 # pre-tool-use-guard.mjs through a relative path, so it is source code
-# under test, not machine config.
+# under test, not machine config. Everything else in the directory is
+# local state.
 .agents/skills/
-.claude/skills/
-.claude/commands/
-.claude/settings.json
-.claude/launch.json
+.claude/*
+!.claude/hooks/
+.claude/hooks/*
+!.claude/hooks/pre-tool-use-guard.mjs
 .jules/
 .gemini/
 .opencode/
