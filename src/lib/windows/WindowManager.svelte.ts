@@ -22,6 +22,7 @@
 
 import type { WindowBase } from "./WindowBase.svelte";
 import { Z_LAYERS, WINDOW_STACK_Z_SPAN } from "./zLayers";
+import { isReservedBandWindow } from "./windowBands";
 import { WINDOW_SWITCHER_CLASS } from "./windowSwitcher";
 import { ModalWindow } from "./implementations/ModalWindow.svelte";
 import { IframeWindow } from "./implementations/IframeWindow.svelte";
@@ -39,13 +40,14 @@ const MODAL_Z_SPAN = 1000;
 
 /**
  * Windows that own the reserved top band and must stay above keep-above
- * windows: a blocking modal and a promise dialog (confirm/prompt). The dialog
- * band is shared with modals even though dialogs are not swept like modals;
- * keeping a confirm behind a keep-above calculator would make it unanswerable
- * (FEAT-0741).
+ * windows: a blocking modal, a promise dialog (alert/confirm/prompt) and the
+ * promise-based symbol picker. The band is shared with modals even though,
+ * unlike modals, dialogs and pickers are not exempt from the close-on-blur
+ * sweep; keeping a confirm behind a keep-above journal or alert panel would
+ * make it unanswerable (FEAT-0741).
  */
 function usesModalBand(win: WindowBase): boolean {
-    return win.windowType === "modal" || win.windowType === "dialog";
+    return isReservedBandWindow(win.windowType);
 }
 // Shared with WindowFrame.svelte's own geometry-save debounce (BUG-0042) so
 // there is one save cadence for window state, not two independent ones.
@@ -73,6 +75,14 @@ class WindowManager {
     private _windows = $state<WindowBase[]>([]);
     /** Internal counter for global stacking order. Incremented on every focus event. */
     private _nextZIndex = BASE_Z_INDEX;
+    /**
+     * Monotonic ordinal inside the keep-above band (FEAT-0741). A per-band
+     * counter keeps focus order intact across the global counter's growth;
+     * normalizeZIndices() rewrites it before it reaches the band's span.
+     */
+    private _nextKeepAboveOrdinal = 0;
+    /** Monotonic "most recently focused" sequence for the keyboard switcher. */
+    private _nextFocusOrder = 0;
     /** Timer for debounced session saving. */
     private _saveSessionTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -444,8 +454,9 @@ class WindowManager {
      *
      * FEAT-0741 adds a second reserved band: a window with `isKeepAbove` takes
      * an ordinal in `Z_LAYERS.windowKeepAbove`, so focusing an ordinary window
-     * can never draw over it, while modals stay above it. A maximized
-     * keep-above window refreshes `maximizedZIndex` into the same band.
+     * can never draw over it, while modals stay above it. A keep-above window
+     * renders that manager ordinal even while maximized, so the band has one
+     * focus sequence.
      */
     bringToFront(id: string, options: { sweepCloseOnBlur?: boolean } = {}) {
         const win = this._windows.find(w => w.id === id);
@@ -462,9 +473,13 @@ class WindowManager {
             } else if (win.isKeepAbove) {
                 // FEAT-0741: a keep-above window stays above the ordinary
                 // counter and the maximized band, but below a modal. Its own
-                // ordinals keep focus order among keep-above windows.
+                // monotonic ordinal keeps focus order among keep-above windows;
+                // rewrite the band before the ordinal leaves its span.
+                if (this._nextKeepAboveOrdinal >= WINDOW_STACK_Z_SPAN) {
+                    this.normalizeZIndices(id);
+                }
                 win.zIndex =
-                    Z_LAYERS.windowKeepAbove + (ordinal % WINDOW_STACK_Z_SPAN);
+                    Z_LAYERS.windowKeepAbove + this._nextKeepAboveOrdinal++;
             } else {
                 win.zIndex = ordinal;
             }
@@ -497,6 +512,7 @@ class WindowManager {
             this._windows.forEach(w => {
                 w.isFocused = (w.id === id);
             });
+            win.lastFocusOrder = ++this._nextFocusOrder;
         }
     }
 
@@ -535,6 +551,9 @@ class WindowManager {
             }
             win.zIndex = this._nextZIndex++;
         }
+        // The next keep-above raise continues after the ordinals just handed
+        // out; a later overflow normalizes again.
+        this._nextKeepAboveOrdinal = keepAboveOrdinal;
     }
 
 

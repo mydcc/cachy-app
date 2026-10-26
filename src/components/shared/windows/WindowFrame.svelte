@@ -36,6 +36,7 @@
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
     import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
     import { computeFittedHeight } from "../../../lib/windows/fitContentHeight";
+    import { isReservedBandWindow } from "../../../lib/windows/windowBands";
     import {
         computeSnapGeometry,
         detectSnapZone,
@@ -841,10 +842,11 @@
     ></div>
 {/if}
 
+<!-- A keep-above, modal, dialog or symbolpicker window always uses the
+     manager's zIndex. Only an ordinary maximized window uses maximizedZIndex;
+     mixing the two sequences inside the keep-above band would make focus order
+     disagree with the rendered order. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<!-- A modal or dialog keeps the manager's reserved top band even when the
-     responsive rule maximizes it; maximizedZIndex would drop it into the
-     windowMax band. -->
 <div
     bind:this={frameEl}
     class={extraClasses}
@@ -893,8 +895,8 @@
           ? "100vh"
           : `${win.height}px`}
     style:z-index={win.isMaximized &&
-    win.windowType !== "modal" &&
-    win.windowType !== "dialog"
+    !win.isKeepAbove &&
+    !isReservedBandWindow(win.windowType)
         ? win.maximizedZIndex
         : win.zIndex}
     style:opacity={win.opacity}
@@ -1186,7 +1188,7 @@
                 </div>
             {/if}
 
-            {#if !win.isMinimized && win.windowType !== "modal" && win.windowType !== "dialog" && win.windowType !== "symbolpicker"}
+            {#if !win.isMinimized && !win.closeOnBlur && !isReservedBandWindow(win.windowType)}
                 <div class="control-group">
                     <Button
                         variant="ghost-muted" size="xs"
@@ -1202,9 +1204,7 @@
                         title={win.isKeepAbove
                             ? $_("windows.aria.keepAboveOff")
                             : $_("windows.aria.keepAbove")}
-                        ariaLabel={win.isKeepAbove
-                            ? $_("windows.aria.keepAboveOff")
-                            : $_("windows.aria.keepAbove")}
+                        ariaLabel={$_("windows.aria.keepAbove")}
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

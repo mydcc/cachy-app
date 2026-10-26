@@ -84,6 +84,24 @@ describe("generated TranslationKey union", () => {
     });
 });
 
+describe("windows.aria DE/EN parity (FEAT-0741)", () => {
+    it("carries the same window aria keys in both languages", () => {
+        const prefix = "windows.aria.";
+        const enKeys = (
+            flattenKeys(en as Record<string, unknown>) as string[]
+        )
+            .filter((key) => key.startsWith(prefix))
+            .sort();
+        const deKeys = (
+            flattenKeys(de as Record<string, unknown>) as string[]
+        )
+            .filter((key) => key.startsWith(prefix))
+            .sort();
+        expect(enKeys.length).toBeGreaterThan(0);
+        expect(deKeys).toEqual(enKeys);
+    });
+});
+
 describe("academy.structure DE/EN parity (FEAT-0679 AC5)", () => {
     it("carries the same structure keys in both languages", () => {
         const prefix = "academy.structure.";

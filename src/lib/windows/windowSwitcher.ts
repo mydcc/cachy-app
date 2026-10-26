@@ -23,6 +23,13 @@
 export interface SwitchableWindow {
     windowType: string;
     zIndex: number;
+    /**
+     * Monotonic focus sequence assigned by `WindowManager.bringToFront()`.
+     * The switcher must not sort by `zIndex`: a keep-above window always
+     * carries a higher z-index than an ordinary one, which would make the
+     * list band-first instead of most-recently-focused-first (FEAT-0741).
+     */
+    lastFocusOrder: number;
 }
 
 /** Shared with `WindowManager`'s background-click guard and the overlay. */
@@ -45,5 +52,5 @@ export function getWindowSwitcherEntries<T extends SwitchableWindow>(
 ): T[] {
     return windows
         .filter(isSwitchableWindow)
-        .sort((a, b) => b.zIndex - a.zIndex);
+        .sort((a, b) => b.lastFocusOrder - a.lastFocusOrder);
 }

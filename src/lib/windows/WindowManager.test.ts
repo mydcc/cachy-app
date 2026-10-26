@@ -20,7 +20,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { windowManager, SAVE_DEBOUNCE_MS } from "./WindowManager.svelte";
 import { WindowBase } from "./WindowBase.svelte";
 import { ChartWindow } from "./implementations/ChartWindow.svelte";
-import { Z_LAYERS, MAX_SAFE_WINDOW_Z_INDEX } from "./zLayers";
+import { Z_LAYERS, MAX_SAFE_WINDOW_Z_INDEX, WINDOW_STACK_Z_SPAN } from "./zLayers";
 
 class TestWindow extends WindowBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -154,6 +154,61 @@ describe("WindowManager keep-above stacking (FEAT-0741)", () => {
         expect(first.zIndex).toBeLessThan(Z_LAYERS.modal);
     });
 
+    it("raises a maximized keep-above window above a floating keep-above window", () => {
+        const maximized = openTestWindow();
+        maximized.isKeepAbove = true;
+        maximized.maximize();
+
+        const floating = openTestWindow();
+        floating.isKeepAbove = true;
+
+        windowManager.bringToFront(floating.id);
+        windowManager.bringToFront(maximized.id);
+
+        expect(maximized.isMaximized).toBe(true);
+        expect(maximized.zIndex).toBeGreaterThan(floating.zIndex);
+
+        windowManager.bringToFront(floating.id);
+        expect(floating.zIndex).toBeGreaterThan(maximized.zIndex);
+    });
+
+    it("keeps focus order across the keep-above ordinal wrap", () => {
+        const first = openTestWindow();
+        first.isKeepAbove = true;
+        windowManager.bringToFront(first.id);
+
+        // Force the next keep-above raise across the band's span. The manager
+        // must rewrite the band rather than let the ordinal wrap to the bottom.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (windowManager as any)._nextKeepAboveOrdinal = WINDOW_STACK_Z_SPAN;
+
+        const second = openTestWindow();
+        second.isKeepAbove = true;
+        windowManager.bringToFront(second.id);
+
+        expect(second.zIndex).toBeGreaterThan(first.zIndex);
+        expect(second.zIndex).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowKeepAbove,
+        );
+        expect(second.zIndex).toBeLessThan(Z_LAYERS.modal);
+        expect(first.zIndex).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowKeepAbove,
+        );
+    });
+
+    it("records a focus recency independent of the z-band", () => {
+        const keep = openTestWindow();
+        keep.isKeepAbove = true;
+        windowManager.bringToFront(keep.id);
+
+        const normal = openTestWindow();
+        windowManager.bringToFront(normal.id);
+        expect(normal.lastFocusOrder).toBeGreaterThan(keep.lastFocusOrder);
+
+        windowManager.bringToFront(keep.id);
+        expect(keep.lastFocusOrder).toBeGreaterThan(normal.lastFocusOrder);
+    });
+
     it("keeps a modal above a keep-above window", () => {
         const keep = openTestWindow();
         keep.isKeepAbove = true;
@@ -203,6 +258,61 @@ describe("WindowManager keep-above stacking (FEAT-0741)", () => {
 
         expect(win.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.window);
         expect(win.zIndex).toBeLessThan(Z_LAYERS.windowDock);
+    });
+
+    it("keeps a symbol picker above a keep-above window", () => {
+        const keep = openTestWindow();
+        keep.isKeepAbove = true;
+        windowManager.bringToFront(keep.id);
+
+        const picker = new TestWindow({
+            id: `manager-test-picker-${nextTestId++}`,
+            windowType: "symbolpicker",
+        });
+        picker.allowMultipleInstances = true;
+        windowManager.open(picker);
+        openedIds.push(picker.id);
+
+        windowManager.bringToFront(keep.id);
+
+        expect(keep.zIndex).toBeLessThan(picker.zIndex);
+        expect(picker.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.modal);
+    });
+
+    it("keeps a dialog in the reserved band through normalization", () => {
+        const normal = openTestWindow();
+        const dialog = new TestWindow({
+            id: `manager-test-dialog-normalize-${nextTestId++}`,
+            windowType: "dialog",
+        });
+        dialog.allowMultipleInstances = true;
+        windowManager.open(dialog);
+        openedIds.push(dialog.id);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (windowManager as any)._nextZIndex = MAX_SAFE_WINDOW_Z_INDEX + 1;
+        windowManager.bringToFront(normal.id);
+
+        expect(dialog.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.modal);
+    });
+
+    it("keeps the focus order of two keep-above windows through normalization", () => {
+        const normal = openTestWindow();
+        const first = openTestWindow();
+        const second = openTestWindow();
+        first.isKeepAbove = true;
+        second.isKeepAbove = true;
+        windowManager.bringToFront(first.id);
+        windowManager.bringToFront(second.id);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (windowManager as any)._nextZIndex = MAX_SAFE_WINDOW_Z_INDEX + 1;
+        windowManager.bringToFront(normal.id);
+
+        expect(second.zIndex).toBeGreaterThan(first.zIndex);
+        expect(first.zIndex).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowKeepAbove,
+        );
     });
 
     it("preserves the keep-above band when the counter is normalized", () => {
