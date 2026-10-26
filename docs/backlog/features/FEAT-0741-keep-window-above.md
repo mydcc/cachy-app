@@ -2,7 +2,7 @@
 id: FEAT-0741
 title: Keep a floating window above the other windows
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0741-keep-above
 priority: P3
