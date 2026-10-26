@@ -30,7 +30,11 @@ import TabBar from "./TabBar.svelte";
 type Props = ComponentProps<typeof TabBar>;
 
 const TABS = [
-    { id: "alpha", label: "Alpha", icon: '<path d="M1 1h1"/>' },
+    {
+        id: "alpha",
+        label: "Alpha",
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M1 1h1"/></svg>',
+    },
     { id: "beta", label: "Beta" },
     { id: "gamma", label: "Gamma" },
 ];

@@ -34,8 +34,13 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import {
+  getSettingsTabEntries,
+  getSettingsTabId,
+} from "../../lib/navigation/settings-tabs";
 
 const CONTENT = "src/components/settings/SettingsContent.svelte";
+const SETTINGS_TAB_BAR = "src/components/settings/SettingsTabBar.svelte";
 const VISUALS = "src/components/settings/tabs/VisualsTab.svelte";
 const TRADING = "src/components/settings/tabs/TradingTab.svelte";
 const AI = "src/components/settings/tabs/AiTab.svelte";
@@ -45,7 +50,6 @@ const INDICATORS = "src/components/settings/tabs/IndicatorSettings.svelte";
 
 /** The tab list each file owns, pinned so a dropped tab cannot pass. */
 const TAB_LISTS: Array<[file: string, ids: string[]]> = [
-  [CONTENT, ["trading", "automation", "chart", "visuals", "ai", "connections", "system", "cloud"]],
   [VISUALS, ["appearance", "layout", "background", "duck"]],
   [TRADING, ["market", "chart", "risk", "paper", "audit"]],
   [AI, ["intelligence", "behavior", "agents"]],
@@ -128,5 +132,44 @@ describe("settings tab wiring (FEAT-0607)", () => {
     expect(source).toContain("<ActiveTab />");
     // The chain the rewrite replaced: reinstating it would bypass the array.
     expect(source).not.toMatch(/\{#if active(Sub)?Tab ===/);
+  });
+});
+
+describe("settings rail registry (FEAT-0735)", () => {
+  const de = locale("src/locales/locales/de.json");
+  const en = locale("src/locales/locales/en.json");
+
+  it("labels every registry rail tab in DE and EN", () => {
+    for (const entry of getSettingsTabEntries()) {
+      expect(
+        hasLabel(de, entry.labels.label),
+        `${entry.labels.label} missing in de`,
+      ).toBe(true);
+      expect(
+        hasLabel(en, entry.labels.label),
+        `${entry.labels.label} missing in en`,
+      ).toBe(true);
+    }
+  });
+
+  it("renders the registry rail through SettingsTabBar", () => {
+    expect(read(CONTENT)).toContain("<SettingsTabBar");
+    expect(read(SETTINGS_TAB_BAR)).toContain("<TabBar");
+    // The rail labels come from the registry; a fallback would hide a missing
+    // key behind a plausible string.
+    expect(read(SETTINGS_TAB_BAR)).not.toMatch(/\$_\([^)]*\)\s*\|\|/);
+  });
+
+  it("keeps the content map in sync with the registry ids", () => {
+    const source = read(CONTENT);
+    const block =
+      source.match(
+        /const SETTINGS_TAB_CONTENT[^=]*=\s*\{([\s\S]*?)\n\s*\};/,
+      )?.[1] ?? "";
+    const ids = [...block.matchAll(/^\s*([a-z]+):/gm)].map(
+      (match) => match[1],
+    );
+
+    expect(ids).toEqual(getSettingsTabEntries().map(getSettingsTabId));
   });
 });

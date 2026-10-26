@@ -152,9 +152,9 @@ shortcut; the journal condition repeats its `visibleWhen` because the shortcut
 is selected exactly while it is offered.
 
 Surfaces whose placements are all condition-free share
-`STATIC_ENTRY_CONTEXT` (the header and the journal tab strip). The registry
-tests pin that list, so a condition added to one of those surfaces fails there
-before it can silently read zeroed values.
+`STATIC_ENTRY_CONTEXT` (the header, the journal tab strip and the settings
+rail). The registry tests pin that list, so a condition added to one of those
+surfaces fails there before it can silently read zeroed values.
 
 ## Keyboard contract
 
@@ -250,9 +250,11 @@ always visible; `tab-order`.
 | `settings.system` | `settings.tabs.system` | `settings-system` | `system` |
 | `settings.cloud` | `settings.tabs.cloud` | `settings-cloud` | `cloud` |
 
-`settings-*` icon keys correspond to the inline SVG paths currently inside
-`SettingsContent`; migration lifts them into the central icon map. Journal tab
-icons already exist in `icons`.
+`settings-*` icon keys live in the central icon map as full `<svg>` elements
+lifted from `SettingsContent`; `TabBar` renders the resolved markup directly.
+The rail executes selection through `openEntry(entry, { selectTab })`, like
+the journal tab strip. `SettingsContent` keeps only the id → content-component
+map, which is not destination data.
 
 ## Surface mapping
 
