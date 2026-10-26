@@ -54,6 +54,44 @@ export interface WindowSerializedState {
     title: string;
 }
 
+/** Geometry a pinned window returns to when explicitly unpinned. */
+interface PinRestore {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/**
+ * A persisted restore rectangle larger than this is not a real layout; it is
+ * a corrupt or hand-edited snapshot. The bound keeps a finite-but-absurd size
+ * from creating an unusable window before the viewport clamp runs.
+ */
+const MAX_RESTORE_DIMENSION = 100_000;
+
+/**
+ * Validates a persisted pin-restore rectangle. A zero/negative size would
+ * bypass the window's minWidth/minHeight floor, and `Number.isFinite` alone
+ * would accept it. The position may be negative; `updatePosition` clamps it
+ * to the current viewport at unpin time.
+ */
+function isPinRestore(value: unknown): value is PinRestore {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return false;
+    }
+    const candidate = value as Record<string, unknown>;
+    return (
+        ["x", "y", "width", "height"].every((key) => {
+            const number = candidate[key];
+            return typeof number === "number" && Number.isFinite(number);
+        }) &&
+        (candidate.width as number) > 0 &&
+        (candidate.height as number) > 0 &&
+        (candidate.width as number) <= MAX_RESTORE_DIMENSION &&
+        (candidate.height as number) <= MAX_RESTORE_DIMENSION
+    );
+}
+
 /**
  * `doubleClickBehavior` used to admit `'minimize'` before its type narrowed.
  * The value never lived in the window snapshot (`persistedSnapshot` has no
@@ -122,7 +160,7 @@ export abstract class WindowBase {
     private lastWidth = 640;
     private lastHeight = 480;
     /** Floating geometry to return to when a pinned window is unpinned. */
-    private pinRestore: { x: number; y: number; width: number; height: number } | null = null;
+    private pinRestore = $state<PinRestore | null>(null);
 
     // --- CONFIG FLAGS (Usually set via Registry Defaults) ---
     allowZoom = $state(false);
@@ -425,6 +463,7 @@ export abstract class WindowBase {
             isMinimized: this.isMinimized,
             isPinned: this.isPinned,
             pinSide: this.pinSide,
+            pinRestore: this.pinRestore,
             opacity: this.opacity,
             fontSize: this.fontSize,
             zoomLevel: this.zoomLevel,
@@ -453,7 +492,19 @@ export abstract class WindowBase {
                 this.isMaximized = state.isMaximized ?? false;
                 this.isMinimized = state.isMinimized ?? false;
                 this.isPinned = state.isPinned ?? false;
-                this.pinSide = state.pinSide ?? this.pinSide;
+                const pinSide = state.pinSide;
+                if (
+                    pinSide === "left" ||
+                    pinSide === "right" ||
+                    pinSide === "top" ||
+                    pinSide === "bottom" ||
+                    pinSide === "none"
+                ) {
+                    this.pinSide = pinSide;
+                }
+                this.pinRestore = isPinRestore(state.pinRestore)
+                    ? state.pinRestore
+                    : null;
                 this.opacity = state.opacity ?? this.opacity;
                 // Through the setter: it owns the clamp, so a hand-edited or
                 // legacy size cannot reach the window's type scale unbounded —
@@ -761,15 +812,28 @@ export abstract class WindowBase {
 
     /** Pinning logic (experimental tiling). */
     togglePin() {
-        if (this.pinSide === 'none') return;
+        // A restored legacy snapshot can say isPinned without a known side;
+        // it still needs the unpin path, otherwise the header control is inert.
+        if (!this.isPinned && this.pinSide === 'none') return;
 
         if (this.isPinned) {
             this.isPinned = false;
+            this.isMaximized = false;
             if (this.pinRestore) {
                 this.x = this.pinRestore.x;
                 this.y = this.pinRestore.y;
                 this.width = this.pinRestore.width;
                 this.height = this.pinRestore.height;
+                // The rectangle was persisted; the viewport may have changed
+                // since. Run it through the same size/position floors as
+                // restore(), so a smaller screen cannot leave it off-screen
+                // and a hand-edited snapshot cannot bypass minWidth/minHeight.
+                this.updateSize(this.width, this.height);
+                this.updatePosition(this.x, this.y);
+                if (this.clampToViewport) {
+                    this.applyViewportClamp();
+                    this.updatePosition(this.x, this.y);
+                }
                 this.pinRestore = null;
             }
             this.saveState();
@@ -785,6 +849,23 @@ export abstract class WindowBase {
         // for configurations that declare it without a vertical tiler.
         this.isPinned = true;
         this.isMaximized = false;
+        this.saveState();
+    }
+
+    /**
+     * Releases a pinned window for a drag without jumping back to the
+     * pre-snap rectangle. The window keeps the tiled geometry it was grabbed
+     * at; `togglePin()` remains the explicit "undo the snap" path that
+     * restores the floating rectangle. `pinSide` is kept so a later pin
+     * (the header control, double-click on the assistant) can return to the
+     * last side. A re-snap after this detach records the dragged rectangle as
+     * the new restore target; the old pre-detach rectangle is intentionally
+     * discarded because the user moved the window.
+     */
+    detachPin() {
+        if (!this.isPinned) return;
+        this.isPinned = false;
+        this.pinRestore = null;
         this.saveState();
     }
 

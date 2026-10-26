@@ -10,7 +10,9 @@
       "zoomOut": "Verkleinern",
       "zoomIn": "Vergrößern",
       "decreaseFont": "Schriftgröße verkleinern",
-      "increaseFont": "Schriftgröße vergrößern"
+      "increaseFont": "Schriftgröße vergrößern",
+      "unpin": "Fenster lösen",
+      "pin": "Fenster anheften"
     },
     "contextMenu": {
       "closeWindow": "Fenster schließen",

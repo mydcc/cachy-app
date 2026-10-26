@@ -35,7 +35,7 @@
  * the one key the control group does not swallow.
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import en from "../../../locales/locales/en.json";
 
@@ -112,6 +112,13 @@ function mountFrame(win: WindowBase = new ProbeWindow()): {
     content();
     return { content, win };
 }
+
+beforeEach(() => {
+    // The frame persists geometry under the window's own key. A fresh window
+    // must not inherit the previous case's pinned snapshot, or the pin-restore
+    // assertions become order-dependent.
+    localStorage.clear();
+});
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -433,6 +440,592 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
         expect(win.isPinned).toBe(true);
         expect(win.pinSide).toBe("right");
         expect(win.x).toBe(window.innerWidth / 2);
+    });
+
+    it("detaches a pinned window on the first drag movement", () => {
+        const oldWidth = window.innerWidth;
+        const oldHeight = window.innerHeight;
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+
+        try {
+            const { win } = mountFrame();
+            win.x = 120;
+            win.y = 90;
+            win.width = 600;
+            win.height = 480;
+            win.snapToSide("left");
+            flushSync();
+
+            expect(win.isPinned).toBe(true);
+            expect(win.width).toBe(512);
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            expect(header).not.toBeNull();
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 200,
+                    clientY: 50,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 400,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(false);
+            // The drag keeps the tiled width and follows the pointer; it does
+            // not jump back to the pre-snap rectangle.
+            expect(win.x).toBe(200);
+            expect(win.width).toBe(512);
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 400,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(false);
+        } finally {
+            Object.defineProperty(window, "innerWidth", {
+                value: oldWidth,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: oldHeight,
+                configurable: true,
+            });
+        }
+    });
+
+    it("keeps a pinned window pinned on a click without movement", () => {
+        const { win } = mountFrame();
+        win.snapToSide("left");
+        flushSync();
+
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        header!.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 200,
+                clientY: 50,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        header!.dispatchEvent(
+            new PointerEvent("pointerup", {
+                pointerId: 1,
+                clientX: 200,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(true);
+    });
+
+    it.each([
+        [3, true, 0],
+        [4, true, 0],
+        [5, false, 5],
+    ])(
+        "detaches only beyond the 4 px threshold (%i px)",
+        (dx, staysPinned, expectedX) => {
+            const oldWidth = window.innerWidth;
+            const oldHeight = window.innerHeight;
+            Object.defineProperty(window, "innerWidth", {
+                value: 1024,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: 768,
+                configurable: true,
+            });
+
+            try {
+                const { win } = mountFrame();
+                win.snapToSide("left");
+                flushSync();
+                expect(win.width).toBe(512);
+
+                const header =
+                    host!.querySelector<HTMLElement>(".window-header");
+                header!.dispatchEvent(
+                    new PointerEvent("pointerdown", {
+                        pointerId: 1,
+                        clientX: 200,
+                        clientY: 50,
+                        bubbles: true,
+                        cancelable: true,
+                    }),
+                );
+                header!.dispatchEvent(
+                    new PointerEvent("pointermove", {
+                        pointerId: 1,
+                        clientX: 200 + dx,
+                        clientY: 50,
+                        bubbles: true,
+                    }),
+                );
+                flushSync();
+
+                expect(win.isPinned).toBe(staysPinned);
+                expect(win.x).toBe(expectedX);
+
+                header!.dispatchEvent(
+                    new PointerEvent("pointerup", {
+                        pointerId: 1,
+                        clientX: 200 + dx,
+                        clientY: 50,
+                        bubbles: true,
+                    }),
+                );
+                flushSync();
+            } finally {
+                Object.defineProperty(window, "innerWidth", {
+                    value: oldWidth,
+                    configurable: true,
+                });
+                Object.defineProperty(window, "innerHeight", {
+                    value: oldHeight,
+                    configurable: true,
+                });
+            }
+        },
+    );
+
+    it("keeps the pin when pointercancel arrives before the threshold", () => {
+        const { win } = mountFrame();
+        win.snapToSide("left");
+        flushSync();
+
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        header!.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 200,
+                clientY: 50,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        header!.dispatchEvent(
+            new PointerEvent("pointermove", {
+                pointerId: 1,
+                clientX: 203,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        header!.dispatchEvent(
+            new PointerEvent("pointercancel", {
+                pointerId: 1,
+                clientX: 203,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(true);
+        expect(host!.querySelector(".dragging")).toBeNull();
+    });
+
+    it("keeps a detach when pointercancel arrives after the threshold", () => {
+        const oldWidth = window.innerWidth;
+        const oldHeight = window.innerHeight;
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+
+        try {
+            const { win } = mountFrame();
+            win.snapToSide("left");
+            flushSync();
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 200,
+                    clientY: 50,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 206,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointercancel", {
+                    pointerId: 1,
+                    clientX: 206,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(false);
+            expect(win.x).toBe(6);
+            expect(host!.querySelector(".dragging")).toBeNull();
+        } finally {
+            Object.defineProperty(window, "innerWidth", {
+                value: oldWidth,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: oldHeight,
+                configurable: true,
+            });
+        }
+    });
+
+    it("offers a pin toggle while pinned and restores the floating geometry", () => {
+        const { win } = mountFrame();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        const unpin = host!.querySelector<HTMLButtonElement>(
+            `[aria-label="${lookup("windows.aria.unpin")}"]`,
+        );
+        expect(unpin, "the pinned window rendered no unpin control").not.toBeNull();
+
+        unpin!.click();
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.y).toBe(90);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
+        // The control stays mounted as the pin action; removing it between
+        // the two clicks of a double-click would hand the second click to a
+        // neighbour control.
+        expect(frame!.style.left).toBe("120px");
+        expect(frame!.style.width).toBe("600px");
+        const pin = host!.querySelector<HTMLButtonElement>(
+            `[aria-label="${lookup("windows.aria.pin")}"]`,
+        );
+        expect(pin, "the unpinned window lost its pin control").not.toBeNull();
+
+        pin!.click();
+        flushSync();
+        expect(win.isPinned).toBe(true);
+
+        // The second click of a double-click must not toggle a third time.
+        pin!.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, detail: 2 }),
+        );
+        pin!.dispatchEvent(
+            new MouseEvent("dblclick", { bubbles: true, detail: 2 }),
+        );
+        flushSync();
+        expect(win.isPinned).toBe(true);
+        expect(win.isMaximized).toBe(false);
+    });
+
+    it("does not start a drag when the pin control is pressed", () => {
+        const { win } = mountFrame();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const pin = host!.querySelector<HTMLButtonElement>(
+            `[aria-label="${lookup("windows.aria.unpin")}"]`,
+        );
+        expect(pin).not.toBeNull();
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+
+        pin!.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 20,
+                clientY: 50,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        pin!.dispatchEvent(
+            new PointerEvent("pointermove", {
+                pointerId: 1,
+                clientX: 220,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(true);
+        expect(win.x).toBe(0);
+        expect(frame!.classList.contains("dragging")).toBe(false);
+    });
+
+    it("suppresses the double-click that follows a drag that moved the window", () => {
+        const oldWidth = window.innerWidth;
+        const oldHeight = window.innerHeight;
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+
+        try {
+            const { win } = mountFrame();
+            win.snapToSide("left");
+            flushSync();
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 200,
+                    clientY: 50,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 206,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 206,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(false);
+            expect(win.x).toBe(6);
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 2,
+                    clientX: 206,
+                    clientY: 50,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 2,
+                    clientX: 206,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new MouseEvent("dblclick", {
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(false);
+            expect(win.isMaximized).toBe(false);
+            expect(win.x).toBe(6);
+        } finally {
+            Object.defineProperty(window, "innerWidth", {
+                value: oldWidth,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: oldHeight,
+                configurable: true,
+            });
+        }
+    });
+
+    it("unpins on double-click in the title area too", () => {
+        const { win } = mountFrame();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const title = host!.querySelector<HTMLElement>(".header-content");
+        title!.dispatchEvent(
+            new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.width).toBe(600);
+    });
+
+    it("still maximizes an unpinned window on double-click", () => {
+        const { win } = mountFrame();
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        header!.dispatchEvent(
+            new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.isMaximized).toBe(true);
+    });
+
+    it("renders the persisted pin state and unpins from the restored snapshot", () => {
+        localStorage.setItem(
+            "cachy_win_guide",
+            JSON.stringify({
+                x: 0,
+                y: 0,
+                width: 512,
+                height: 768,
+                isMaximized: false,
+                isMinimized: false,
+                isPinned: true,
+                pinSide: "left",
+                pinRestore: { x: 120, y: 90, width: 600, height: 480 },
+                opacity: 1,
+                fontSize: 14,
+                zoomLevel: 1,
+                showPriceInTitle: false,
+                symbol: "",
+            }),
+        );
+
+        const { win } = mountFrame();
+        expect(win.isPinned).toBe(true);
+
+        const unpin = host!.querySelector<HTMLButtonElement>(
+            `[aria-label="${lookup("windows.aria.unpin")}"]`,
+        );
+        expect(unpin).not.toBeNull();
+        unpin!.click();
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.y).toBe(90);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
+    });
+
+    it("hides the pin control while the window is minimized", () => {
+        const { win } = mountFrame();
+        win.snapToSide("left");
+        win.isMinimized = true;
+        flushSync();
+
+        expect(
+            host!.querySelector(`[aria-label="${lookup("windows.aria.unpin")}"]`),
+        ).toBeNull();
+    });
+
+    it("keeps a pinned non-draggable window releasable from the header", () => {
+        const { win } = mountFrame();
+        win.isDraggable = false;
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        header!.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 200,
+                clientY: 50,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        header!.dispatchEvent(
+            new PointerEvent("pointermove", {
+                pointerId: 1,
+                clientX: 400,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+        expect(win.isPinned).toBe(true);
+
+        header!.dispatchEvent(
+            new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+    });
+
+    it("unpins on double-click while pinned", () => {
+        const { win } = mountFrame();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        header!.dispatchEvent(
+            new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.width).toBe(600);
     });
 });
 

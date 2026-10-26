@@ -29,6 +29,8 @@ export type TranslationKey =
   | "windows.aria.zoomIn"
   | "windows.aria.decreaseFont"
   | "windows.aria.increaseFont"
+  | "windows.aria.unpin"
+  | "windows.aria.pin"
   | "windows.contextMenu.closeWindow"
   | "windows.contextMenu.showPriceInTitle"
   | "app.title"
