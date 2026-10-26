@@ -22,6 +22,7 @@ import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
 import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
 import { isStatusError } from "../../../utils/server/httpErrors";
+import { marketDataErrorResponse } from "../../../utils/server/marketDataError";
 import { sanitizeSymbolList } from "../../../utils/server/symbolParam";
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
@@ -87,17 +88,11 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
     return json(data);
   } catch (error: unknown) {
-    if (isStatusError(error)) {
-      return new Response(error.message, {
-        status: error.status,
-      });
+    // 404 is our own "unknown symbol" answer, not upstream text; clients render
+    // it directly. Every other status goes through the generic boundary.
+    if (isStatusError(error) && error.status === 404) {
+      return new Response("Symbol not found", { status: 404 });
     }
-
-    const message =
-      error instanceof Error ? error.message : "An unknown error occurred.";
-    return json(
-      { message: `Internal server error: ${message}` },
-      { status: 500 },
-    );
+    return marketDataErrorResponse(error, "tickers");
   }
 };

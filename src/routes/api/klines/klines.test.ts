@@ -143,7 +143,7 @@ describe('GET /api/klines', () => {
     const json = await response.json();
 
     expect(response.status).toBe(504);
-    expect(json.error).toMatch(/timed out/i);
+    expect(json.message).toMatch(/timed out/i);
     vi.useRealTimers();
   });
 

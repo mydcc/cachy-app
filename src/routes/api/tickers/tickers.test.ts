@@ -64,7 +64,9 @@ describe('GET /api/tickers', () => {
     const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(502);
-    expect(await response.text()).toBe('bad gateway');
+    const body = await response.json();
+    expect(body.message).toBe('Upstream market data request failed');
+    expect(JSON.stringify(body)).not.toContain('bad gateway');
   });
 
   it('reports a Bitget non-2xx with its own upstream status, not 404', async () => {

@@ -96,6 +96,44 @@ t1,2023-01-01,12:00,BTCUSDT,Long,Breakeven,50000,49000`;
         expect(trade.status).toBe("Closed");
     });
 
+    it('accepts buy/sell as aliases for long/short (BUG-0727 review)', () => {
+        const csvContent = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss
+t1,2023-01-01,12:00,BTCUSDT,Buy,CLOSED,50000,49000
+t2,2023-01-02,12:00,BTCUSDT,Sell,CLOSED,50000,49000`;
+
+        const result = csvService.parseCSVContent(csvContent, {
+            useUtcDateParsing: true,
+        });
+
+        expect(result.map((trade) => trade.tradeType)).toEqual(["long", "short"]);
+    });
+
+    it('drops a row whose trade type is not long or short (BUG-0727)', () => {
+        const csvContent = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss
+t1,2023-01-01,12:00,BTCUSDT,Sideways,CLOSED,50000,49000`;
+
+        const result = csvService.parseCSVContent(csvContent, {
+            useUtcDateParsing: true,
+        });
+
+        expect(result).toHaveLength(0);
+    });
+
+    it('drops non-http(s) screenshot URLs but keeps https (BUG-0727)', () => {
+        const header = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss,Screenshot`;
+        const rows = `t1,2023-01-01,12:00,BTCUSDT,Long,CLOSED,50000,49000,javascript:alert(1)
+t2,2023-01-02,12:00,BTCUSDT,Long,CLOSED,50000,49000,data:image/png;base64,AAAA
+t3,2023-01-03,12:00,BTCUSDT,Long,CLOSED,50000,49000,https://example.com/chart.png`;
+
+        const result = csvService.parseCSVContent(`${header}\n${rows}`, {
+            useUtcDateParsing: true,
+        });
+
+        expect(result[0].screenshot).toBeUndefined();
+        expect(result[1].screenshot).toBeUndefined();
+        expect(result[2].screenshot).toBe("https://example.com/chart.png");
+    });
+
     it('backfills exitDate from the row date for closed rows only', () => {
         const csvContent = `${header}
 t1,2023-01-01,12:00,BTCUSDT,Long,Won,50000,49000

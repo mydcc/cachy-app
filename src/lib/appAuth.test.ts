@@ -29,21 +29,54 @@ describe("appAuthHeaders", () => {
 
   it("attaches x-app-access-token when a token is configured", () => {
     settingsState.appAccessToken = "secret-token";
-    expect(appAuthHeaders()["x-app-access-token"]).toBe("secret-token");
+    expect(appAuthHeaders(undefined, "/api/balance")["x-app-access-token"]).toBe(
+      "secret-token",
+    );
   });
 
   it("omits the header rather than sending it empty", () => {
     settingsState.appAccessToken = "";
-    expect(appAuthHeaders()).not.toHaveProperty("x-app-access-token");
+    expect(appAuthHeaders(undefined, "/api/balance")).not.toHaveProperty(
+      "x-app-access-token",
+    );
   });
 
   it("merges with caller-provided headers instead of replacing them", () => {
     settingsState.appAccessToken = "secret-token";
-    const headers = appAuthHeaders({ "Content-Type": "application/json" });
+    const headers = appAuthHeaders({ "Content-Type": "application/json" }, "/api/balance");
     expect(headers).toEqual({
       "Content-Type": "application/json",
       "x-app-access-token": "secret-token",
     });
+  });
+
+  it("attaches the token to a relative or same-origin request", () => {
+    settingsState.appAccessToken = "secret-token";
+
+    expect(appAuthHeaders(undefined, "/api/balance")["x-app-access-token"]).toBe(
+      "secret-token",
+    );
+    expect(
+      appAuthHeaders(undefined, `${window.location.origin}/api/balance`)[
+        "x-app-access-token"
+      ],
+    ).toBe("secret-token");
+  });
+
+  it("does not attach the token to a cross-origin URL (BUG-0727)", () => {
+    settingsState.appAccessToken = "secret-token";
+
+    for (const target of [
+      "https://evil.example/collect",
+      "//evil.example/collect",
+      " https://evil.example/collect",
+      "\thttps://evil.example/collect",
+      "\\\\evil.example\\collect",
+    ]) {
+      expect(appAuthHeaders(undefined, target)).not.toHaveProperty(
+        "x-app-access-token",
+      );
+    }
   });
 });
 
@@ -54,6 +87,14 @@ describe("appFetch", () => {
   beforeEach(() => {
     settingsState.appAccessToken = "secret-token";
     globalThis.fetch = vi.fn().mockResolvedValue(new Response("{}"));
+  });
+
+  it("passes the URL to the guard, so a foreign target gets no token", async () => {
+    await appFetch("https://evil.example/collect");
+
+    const [, init] = vi.mocked(globalThis.fetch).mock.calls[0];
+    const headers = new Headers(init?.headers as HeadersInit);
+    expect(headers.has("x-app-access-token")).toBe(false);
   });
 
   afterEach(() => {

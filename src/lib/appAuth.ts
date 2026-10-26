@@ -32,15 +32,52 @@ import { settingsState } from "../stores/settings.svelte";
  */
 
 /**
+ * Whether the request target belongs to this origin (BUG-0727).
+ *
+ * A relative path and a network-path reference are resolved against the current
+ * location; an absolute URL is compared by origin. When no location exists
+ * (SSR), an absolute URL cannot be verified and is treated as foreign.
+ */
+function isSameOriginRequest(input: string): boolean {
+  // Resolve before classifying. A raw-string check misses leading whitespace,
+  // tabs and backslashes, all of which the URL parser normalises into a
+  // cross-origin target (BUG-0727 review).
+  const base = globalThis.location?.href;
+  if (base) {
+    try {
+      return new URL(input, base).origin === new URL(base).origin;
+    } catch {
+      return false;
+    }
+  }
+
+  // SSR has no location to resolve against: only a clearly relative path is
+  // safe. `//host` and `\\host` are network-path references, not paths.
+  const trimmed = input.trim();
+  return (
+    !/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed) &&
+    !trimmed.startsWith("//") &&
+    !trimmed.startsWith("\\\\")
+  );
+}
+
+/**
  * Headers for a request to a guarded route, merged over `extra`.
  *
  * The token is omitted when empty rather than sent as an empty string. An empty
  * header is not a credential, and `settingsState` holds `""` both before the
  * user has configured a token and while the settings are locked — neither is a
  * request worth labelling as authenticated.
+ *
+ * `requestUrl` is the URL about to be fetched and is required: the token is
+ * only attached to a same-origin target, because a caller can pass an absolute
+ * URL (exchange/proxy helper, user-configured base URL) and a bearer token must
+ * not follow it off-origin. Making the argument required turns a forgotten
+ * guard into a compile error rather than a silent leak.
  */
 export function appAuthHeaders(
-  extra?: HeadersInit,
+  extra: HeadersInit | undefined,
+  requestUrl: string,
 ): Record<string, string> {
   const headers: Record<string, string> = {};
 
@@ -53,7 +90,7 @@ export function appAuthHeaders(
   }
 
   const token = settingsState.appAccessToken;
-  if (token) {
+  if (token && isSameOriginRequest(requestUrl)) {
     headers["x-app-access-token"] = token;
   }
 
@@ -148,7 +185,10 @@ export async function appFetch(
   }
 
   beforeAttempt?.();
-  const response = await fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
+  const response = await fetch(input, {
+    ...init,
+    headers: appAuthHeaders(init.headers, input),
+  });
   if (response.status !== 401) return response;
 
   let body: unknown;
@@ -161,5 +201,8 @@ export async function appFetch(
 
   await issueAccessToken();
   beforeAttempt?.();
-  return fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
+  return fetch(input, {
+    ...init,
+    headers: appAuthHeaders(init.headers, input),
+  });
 }

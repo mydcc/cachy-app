@@ -30,6 +30,46 @@ import {
 } from "../lib/journalStatus";
 import { Decimal } from "decimal.js";
 
+/**
+ * CSV import validation (BUG-0727).
+ *
+ * The journal only has two directions; anything else would render as "short"
+ * in the table while carrying an arbitrary string. The screenshot becomes an
+ * `<img src>`, so a `javascript:` or `data:` URL must not survive the import.
+ */
+// Common export spellings are accepted; the journal itself only knows the two
+// canonical directions (BUG-0727 review).
+const TRADE_TYPE_ALIASES: Record<string, string> = {
+  long: "long",
+  buy: "long",
+  short: "short",
+  sell: "short",
+};
+
+function normalizeTradeType(raw: string): string {
+  const value = raw.trim().toLowerCase();
+  const normalized = TRADE_TYPE_ALIASES[value];
+  if (!normalized) {
+    throw new Error(`Invalid trade type: ${raw}`);
+  }
+  return normalized;
+}
+
+function safeScreenshotUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const value = raw.trim();
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    // Store the normalized form whose scheme was checked, not the raw spelling.
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const csvService = {
   /**
    * Generates a CSV string from an array of JournalEntry objects.
@@ -302,7 +342,7 @@ export const csvService = {
 
     const entries = lines
       .slice(1)
-      .map((line) => {
+      .map((line, lineIndex) => {
         const values = this.splitCSV(line);
         const entry: Record<string, string> = {};
 
@@ -392,7 +432,7 @@ export const csvService = {
               ? rowDate
               : undefined,
             symbol: entry.Symbol,
-            tradeType: entry.Typ.toLowerCase(),
+            tradeType: normalizeTradeType(entry.Typ),
             status: rowStatus,
             accountSize: parseDecimal(entry["Konto Guthaben"] || "0"),
             riskPercentage: parseDecimal(entry["Risiko %"] || "0"),
@@ -421,7 +461,7 @@ export const csvService = {
                 .map((t) => t.trim())
                 .filter(Boolean)
               : [],
-            screenshot: entry.Screenshot || undefined,
+            screenshot: safeScreenshotUrl(entry.Screenshot),
             targets: targets,
             // HARDENING: Always store original large ID in tradeId (string)
             tradeId:
@@ -440,7 +480,9 @@ export const csvService = {
           };
           return normalizeJournalEntry(importedTrade);
         } catch (err) {
-          console.warn("Error parsing CSV line:", entry, err);
+          // Row number only: the entry object can contain notes and screenshot
+          // URLs that should not be copied into a log (BUG-0727 review).
+          console.warn(`Skipping CSV row ${lineIndex + 2}:`, err);
           return null;
         }
       })

@@ -28,6 +28,7 @@
   import { onMount, type Component } from "svelte";
   import { initAutoBackup, autoBackupState } from "../services/autoBackupService.svelte";
   import { initFileTargets } from "../services/fileTargetBackupService.svelte";
+  import { serializeJsonLd } from "../utils/jsonLd";
   import { initAlertEngine } from "../stores/alerts.svelte";
 import { afterNavigate } from "$app/navigation";
   import { page } from "$app/state";
@@ -569,7 +570,7 @@ import { afterNavigate } from "$app/navigation";
 
   const jsonLdTag = $derived(
     JSON_LD_OPEN +
-      JSON.stringify({
+      serializeJsonLd({
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         name: "Cachy",

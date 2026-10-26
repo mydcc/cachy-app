@@ -1,3 +1,15 @@
+# Secrets and key material (BUG-0727). Credentials belong in .env / a secret
+# manager; these patterns keep an accidental file from being committed.
+*.pem
+*.key
+*.crt
+*.p12
+credentials.json
+id_rsa*
+/secrets.*
+*.pfx
+*.p8
+
 # Logs & Backups
 logs/
 backups/
