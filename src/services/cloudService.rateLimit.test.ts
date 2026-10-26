@@ -33,6 +33,7 @@ import {
   type GlobalMessageRecord,
   type MessageDb,
 } from "../../server/spacetimedb/src/rateLimit";
+import { sanitizeChatText } from "../lib/utils/chatText";
 
 /**
  * FEAT-0375: Rate-limiting the send_message reducer in Global Chat.
@@ -287,23 +288,99 @@ describe("FEAT-0375: send_message rate limiting reducer integration", () => {
     expect(sanitizeMessageText("a\tb\nc")).toBe("a b c");
   });
 
-  it("rejects invisible-only and bidi-only messages (BUG-0726 review)", () => {
-    const memDb = createInMemoryDb();
+  const INVISIBLE_MESSAGES: Array<[string, string]> = [
+    ["zero-width space", "\u200B"],
+    ["bidi override", "\u202E"],
+    ["braille blank", "\u2800"],
+    ["Hangul choseong filler", "\u115F"],
+    ["Hangul jungseong filler", "\u1160"],
+    ["Arabic letter mark", "\u061C"],
+    ["word joiner", "\u2060"],
+    ["soft hyphen", "\u00AD"],
+    ["Mongolian vowel separator", "\u180E"],
+    ["halfwidth Hangul filler", "\uFFA0"],
+    ["Hangul filler", "\u3164"],
+    ["BOM", "\uFEFF"],
+    ["line separator", "\u2028"],
+    ["control character", "\u0000"],
+    ["Egyptian full blank", "\u{13441}"],
+    ["Egyptian half blank", "\u{13442}"],
+    ["musical null notehead", "\u{1D159}"],
+    ["object replacement", "\uFFFC"],
+    ["emoji modifier", "\u{1F3FB}"],
+    ["gap filler 1", "\u{11C44}"],
+    ["gap filler 2", "\u{11C45}"],
+    ["gap filler 3", "\u{1144E}"],
+    ["gap filler 4", "\u{11945}"],
+    ["placeholder mark 1", "\u{1ECAC}"],
+    ["placeholder mark 2", "\uA837"],
+    ["tag character", "\u{E0061}"],
+    ["musical format control", "\u{1D173}"],
+    ["Egyptian format control", "\u{13430}"],
+    ["prepended concatenation mark", "\u0600"],
+    ["combining grapheme joiner", "\u034F"],
+    ["Mongolian free variation selector", "\u180B"],
+    ["variation selector", "\uFE0F"],
+  ];
 
-    expect(() =>
-      handleSendMessage(memDb.db, "sender", 1_000_000, " \u200B "),
-    ).toThrow("Message cannot be empty");
-    expect(() =>
-      handleSendMessage(memDb.db, "sender", 1_000_000, "\u202E"),
-    ).toThrow("Message cannot be empty");
+  it.each(INVISIBLE_MESSAGES)(
+    "rejects a message made only of %s (BUG-0726 review)",
+    (_name, text) => {
+      const memDb = createInMemoryDb();
 
-    expect(memDb.globalMessage).toHaveLength(0);
+      expect(() =>
+        handleSendMessage(memDb.db, "sender", 1_000_000, text),
+      ).toThrow("Message cannot be empty");
+      expect(sanitizeMessageText(text)).toBe("");
+      expect(memDb.globalMessage).toHaveLength(0);
+    },
+  );
+
+  it("keeps visible text while removing formatting marks and spacing blank glyphs", () => {
+    expect(sanitizeMessageText("a\u2800b")).toBe("a b");
+    expect(sanitizeMessageText("a\u115Fb")).toBe("a b");
+    expect(sanitizeMessageText("a\u200Bb")).toBe("a b");
+    expect(sanitizeMessageText("a\u00ADb")).toBe("ab");
+    expect(sanitizeMessageText("a\u061Cb")).toBe("ab");
+    expect(sanitizeMessageText("a\u2060b")).toBe("ab");
+    expect(sanitizeMessageText("a\u{E0061}b")).toBe("ab");
+    expect(sanitizeMessageText("Silben\u00ADtrennung")).toBe("Silbentrennung");
+    // ZWJ is deliberately preserved so emoji clusters survive.
+    expect(sanitizeMessageText("👨\u200D👩")).toBe("👨\u200D👩");
+    // A modifier after a base emoji survives; a bare modifier does not.
+    expect(sanitizeMessageText("👍🏽")).toBe("👍🏽");
+    expect(sanitizeMessageText("a\u0301")).toBe("a\u0301");
   });
 
   it("strips bidi overrides but keeps the visible text around them (BUG-0726 review)", () => {
-    expect(sanitizeMessageText("ab\u202Ecd")).toBe("ab cd");
-    // ZWJ is deliberately preserved so emoji clusters survive.
-    expect(sanitizeMessageText("👨\u200D👩")).toBe("👨\u200D👩");
+    expect(sanitizeMessageText("ab\u202Ecd")).toBe("abcd");
+  });
+
+  it("keeps the client-side sanitizer in lockstep with the reducer across the BMP", () => {
+    const mismatches: string[] = [];
+
+    for (let codePoint = 0; codePoint <= 0xffff; codePoint += 1) {
+      const input = String.fromCharCode(codePoint);
+      if (sanitizeChatText(input) !== sanitizeMessageText(input)) {
+        mismatches.push(`U+${codePoint.toString(16).padStart(4, "0")}`);
+      }
+    }
+
+    for (const input of [
+      "\u{E0001}",
+      "\u{E0020}",
+      "\u{E007F}",
+      "\u{E0100}",
+      "👨\u200D👩",
+      "👍🏽",
+      "a\u2800b",
+    ]) {
+      if (sanitizeChatText(input) !== sanitizeMessageText(input)) {
+        mismatches.push(JSON.stringify(input));
+      }
+    }
+
+    expect(mismatches).toEqual([]);
   });
 
   it("rejects an oversized raw payload before the sanitizer runs (BUG-0726 review)", () => {

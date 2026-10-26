@@ -17,14 +17,27 @@ import {
 describe("cloudHostSecurityIssue (BUG-0726)", () => {
   it("accepts an https host", () => {
     expect(cloudHostSecurityIssue("https://chat.cachy.app")).toBeNull();
+    expect(cloudHostSecurityIssue("HTTPS://chat.cachy.app")).toBeNull();
   });
 
   it("accepts plain http only on loopback", () => {
     expect(cloudHostSecurityIssue("http://127.0.0.1:3000")).toBeNull();
     expect(cloudHostSecurityIssue("http://127.0.0.2:3000")).toBeNull();
+    expect(cloudHostSecurityIssue("http://127.0.0.255:3000")).toBeNull();
     expect(cloudHostSecurityIssue("http://localhost:3000")).toBeNull();
     expect(cloudHostSecurityIssue("http://localhost.:3000")).toBeNull();
     expect(cloudHostSecurityIssue("http://[::1]:3000")).toBeNull();
+  });
+
+  it("refuses host-confusion and userinfo forms", () => {
+    expect(cloudHostIssue("http://127.0.0.1.evil.com")).toBe("insecure_transport");
+    expect(cloudHostIssue("http://localhost.evil.com")).toBe("insecure_transport");
+    expect(cloudHostIssue("http://localhost@evil.com")).toBe("insecure_transport");
+    expect(cloudHostIssue("http://evil.com#@127.0.0.1")).toBe("insecure_transport");
+  });
+
+  it("refuses an IPv4-mapped loopback address as a deliberate fail-closed policy", () => {
+    expect(cloudHostIssue("http://[::ffff:127.0.0.1]")).toBe("insecure_transport");
   });
 
   it("accepts wss as a secure transport", () => {

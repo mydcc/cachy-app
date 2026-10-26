@@ -35,6 +35,7 @@ const { mockCloud } = vi.hoisted(() => ({
     subscribeMessages: vi.fn(),
     subscribeStatus: vi.fn(),
     connect: vi.fn(),
+    disconnect: vi.fn(),
     isConnected: vi.fn(() => false),
     status: vi.fn(() => ({
       connected: false,

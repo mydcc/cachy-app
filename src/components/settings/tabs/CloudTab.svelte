@@ -24,6 +24,10 @@
     import Button from "../../shared/Button.svelte";
   import { cloudService, type CloudStatus } from '../../../services/cloudService';
   import { cloudHostIssue } from '../../../services/cloudHost';
+  import {
+    hasVisibleChatText,
+    MAX_CHAT_MESSAGE_LENGTH,
+  } from '../../../lib/utils/chatText';
   import { settingsState } from '../../../stores/settings.svelte';
   import { _ } from '../../../locales/i18n';
   import type { Infer } from 'spacetimedb';
@@ -67,8 +71,19 @@
     }
   }
 
+  function setCloudEnabled(enabled: boolean) {
+    settingsState.cloudEnabled = enabled;
+    if (!enabled) {
+      // This tab is where the opt-in is switched off, and it may be the only
+      // mounted surface. Call disconnect unconditionally: it is idempotent and
+      // also invalidates a handshake that has not completed yet. The chat store
+      // is loaded lazily with the Assistant window and may not be mounted.
+      cloudService.disconnect();
+    }
+  }
+
   async function send() {
-    if (!messageText.trim()) return;
+    if (!hasVisibleChatText(messageText)) return;
     try {
       await cloudService.sendMessage(messageText);
       messageText = "";
@@ -116,7 +131,11 @@
     </p>
 
     <label class="cloud-toggle">
-      <input type="checkbox" bind:checked={settingsState.cloudEnabled} />
+      <input
+        type="checkbox"
+        checked={settingsState.cloudEnabled}
+        onchange={(event) => setCloudEnabled(event.currentTarget.checked)}
+      />
       <span>{$_("cloud.enableLabel")}</span>
     </label>
 
@@ -222,7 +241,7 @@
     </div>
 
     <div class="cloud-log">
-      {#each messages as msg}
+      {#each messages as msg (msg.sender + ':' + msg.sentAt)}
         <div class="cloud-log-row">
           <span class="cloud-log-sender">
             {typeof msg.sender === 'string' ? msg.sender.substring(0, 8) : 'Unknown'}:
@@ -245,6 +264,7 @@
       <input
         bind:value={messageText}
         placeholder={$_("cloud.placeholder")}
+        maxlength={MAX_CHAT_MESSAGE_LENGTH}
         disabled={!connected}
         class="cloud-input flex-1"
       />

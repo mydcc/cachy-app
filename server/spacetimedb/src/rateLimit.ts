@@ -28,6 +28,10 @@ export const CLEANUP_INTERVAL_MICROS = 60n * 60n * 1_000_000n; // hourly
 export const RATE_LIMIT_WINDOW_MS = 10_000; // 10-second fixed window
 export const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per fixed window
 
+/** Throttles the public cleanup reducer; see `handleDeleteExpiredMessages`. */
+export const CLEANUP_ACTIVITY_SENDER = '__cleanup__';
+export const CLEANUP_MIN_INTERVAL_MS = Number(CLEANUP_INTERVAL_MICROS / 1000n);
+
 /**
  * Global floor (BUG-0726). SpacetimeDB issues an identity to any connection,
  * so a per-sender limit is bypassed by reconnecting. This one is keyed on a
@@ -35,15 +39,11 @@ export const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per fixed window
  *
  * The key cannot collide with a real sender: identities are 64 hex characters.
  */
-/** Throttles the public cleanup reducer; see `handleDeleteExpiredMessages`. */
-export const CLEANUP_ACTIVITY_SENDER = '__cleanup__';
-export const CLEANUP_MIN_INTERVAL_MS = Number(CLEANUP_INTERVAL_MICROS / 1000n);
-
 export const GLOBAL_RATE_LIMIT_WINDOW_MS = 60_000;
-// 180/min, not 60: a 60 ceiling is only twelve per-sender windows, so two
-// identities could starve every other user for a minute with one message per
-// second. This still bounds a flood while leaving room for normal multi-user
-// traffic. The availability trade-off is documented in docs/GLOBAL-CHAT.md §8.
+// 180 per fixed minute, not 60: a 60 ceiling is only twelve per-sender windows,
+// so two identities could starve every other user with one message per second.
+// This still bounds a flood while leaving room for normal multi-user traffic.
+// The availability trade-off is documented in docs/GLOBAL-CHAT.md §8.
 export const GLOBAL_RATE_LIMIT_MAX_MESSAGES = 180;
 export const GLOBAL_RATE_LIMIT_SENDER = '__global__';
 
@@ -116,25 +116,57 @@ export const MAX_MESSAGE_LENGTH = 1000;
 /**
  * One-line chat text (BUG-0726).
  *
- * Control characters and invisible format characters become a space, runs of
- * whitespace collapse, and the edges are trimmed. The invisible set is explicit
- * rather than all of `\p{Cf}`: ZWJ/ZWNJ (U+200C/U+200D) must survive so emoji
- * clusters and joining scripts still render.
+ * Formatting marks are removed so a soft hyphen, word joiner or bidi control
+ * cannot split or reorder a word. Separators and blank glyphs become a space,
+ * runs of whitespace collapse and the edges are trimmed. ZWJ/ZWNJ
+ * (U+200C/U+200D) survive so emoji clusters and joining scripts still render.
  *
- * Bidi overrides (U+202A–U+202E, U+2066–U+2069) are removed because they let a
- * sender reorder or spoof the visible text. A result with no visible character
- * is returned as an empty string, which the caller rejects.
+ * The blank-glyph list covers the codepoints that render as nothing or as a
+ * placeholder despite being `Lo`/`So`/`Po`/`Sk`; a class check alone would
+ * accept them. The visible check rejects a result made only of whitespace,
+ * controls, combining marks, bare emoji modifiers or one of those glyphs.
  */
-const INVISIBLE_OR_CONTROL =
-  /[\p{Cc}\u200B\u200E\u200F\u202A-\u202E\u2028\u2029\u2066-\u2069\u3164\uFEFF\uFFA0]/gu;
+const ZERO_WIDTH_SPACE = /\u200B/gu;
+
+/**
+ * Formatting marks and other code points that render as nothing. They are
+ * removed rather than replaced so a soft hyphen, word joiner or bidi control
+ * cannot split a word. ZWJ/ZWNJ are preserved; `\p{Cs}` drops lone surrogates,
+ * which are not valid text.
+ */
+const INVISIBLE_MARKS =
+  /[\p{Cf}\p{Cs}\u034F\u180B-\u180D\u180F\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu;
+
+/**
+ * Code points that render as blank or as a placeholder, not as text. They are
+ * replaced with a space so a message made only of them collapses to empty.
+ * The visible check below uses the same list; keep the two in sync.
+ */
+const BLANK_GLYPHS =
+  /[\u2800\u115F\u1160\u3164\uFFA0\u{13441}\u{13442}\u{1D159}\uFFFC\u{11C44}\u{11C45}\u{1144E}\u{11945}\u{1ECAC}\uA837]/gu;
+
+/**
+ * At least one glyph a reader can see. Whitespace, controls, combining marks
+ * and the listed blank glyphs do not count; neither do bare emoji modifiers
+ * (skin-tone selectors), which only make sense after a base emoji.
+ */
+// The modifier range is deliberate: a bare skin-tone selector renders blank,
+// while the same selector after a base emoji must pass.
+const VISIBLE_CHARACTER =
+  // eslint-disable-next-line no-misleading-character-class
+  /[^\p{Z}\p{C}\p{M}\u2800\u115F\u1160\u3164\uFFA0\u{13441}\u{13442}\u{1D159}\uFFFC\u{1F3FB}-\u{1F3FF}\u{11C44}\u{11C45}\u{1144E}\u{11945}\u{1ECAC}\uA837]/u;
 
 export function sanitizeMessageText(text: string): string {
   const collapsed = text
-    .replace(INVISIBLE_OR_CONTROL, ' ')
+    .replace(ZERO_WIDTH_SPACE, ' ')
+    .replace(INVISIBLE_MARKS, (ch) =>
+      ch === '\u200C' || ch === '\u200D' ? ch : '',
+    )
+    .replace(BLANK_GLYPHS, ' ')
+    .replace(/\p{Cc}/gu, ' ')
     .replace(/\s+/gu, ' ')
     .trim();
-  if (!/[\p{L}\p{N}\p{P}\p{S}]/u.test(collapsed)) return '';
-  return collapsed;
+  return VISIBLE_CHARACTER.test(collapsed) ? collapsed : '';
 }
 
 export interface GlobalMessageRecord {
@@ -159,24 +191,33 @@ export interface MessageDb {
 }
 
 /**
- * Handles message validation, rate limiting, and insertion into the database.
- * Thrown errors are surfaced to the caller (e.g. SenderError in SpacetimeDB).
+ * Writes a non-rejecting decision. Both callers check for `reject` first, so
+ * the throw below is a defensive assertion, not a reachable path; it keeps a
+ * future caller from dropping a rejection silently.
  */
 function applyActivity(db: MessageDb, decision: RateLimitDecision): void {
-  if (decision.action === 'reject') return;
+  if (decision.action === 'reject') {
+    throw new Error(decision.error);
+  }
   if (decision.action === 'insert') db.senderActivity.insert(decision.record);
   else db.senderActivity.update(decision.record);
 }
 
+/**
+ * Handles message validation, rate limiting, and insertion into the database.
+ * Thrown errors are surfaced to the caller (e.g. SenderError in SpacetimeDB).
+ */
 export function handleSendMessage(
   db: MessageDb,
   senderId: string,
   timestamp: number,
   text: string,
 ): void {
-  // Cheap early bound before the regex pass: a reducer argument far above the
-  // message cap cannot become a valid message, so it is rejected without
-  // scanning it character by character.
+  // Cheap DoS bound before the regex passes. It is deliberately four times the
+  // stored cap: a message may carry some padding, and the exact check runs on
+  // the sanitized text below. The bound is a resource guard, not a validity
+  // rule, so a pathological string that would sanitize below the cap can still
+  // be refused here.
   if (text.length > MAX_MESSAGE_LENGTH * 4) {
     throw new Error('Message too long');
   }
