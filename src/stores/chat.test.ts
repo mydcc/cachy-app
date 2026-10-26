@@ -47,6 +47,7 @@ const { mockCloud } = vi.hoisted(() => ({
 vi.mock("../services/cloudService", () => ({ cloudService: mockCloud }));
 
 import { chatState } from "./chat.svelte";
+import { settingsState } from "./settings.svelte";
 
 type Internals = {
   applyRows: (rows: { sender: string; text: string; sentAt: number }[]) => void;
@@ -158,6 +159,8 @@ describe("ChatManager (SpacetimeDB-backed)", () => {
 
   describe("sendMessage", () => {
     beforeEach(() => {
+      // BUG-0726: sending is gated on the opt-in, not only connecting.
+      settingsState.cloudEnabled = true;
       internals.applyStatus({
         connected: true,
         lastError: null,

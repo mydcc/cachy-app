@@ -13,27 +13,21 @@ import { describe, it, expect } from "vitest";
 /**
  * BUG-0726: chat text is remote input and must never be rendered as HTML.
  *
- * The current renderer uses `{msg.text}`, which escapes. This test exists so a
- * future "let messages contain links" change cannot silently introduce stored
- * XSS in the one place remote text is displayed.
+ * Both chat surfaces are listed. Checking only the settings tab would leave the
+ * main Assistant window unguarded, which is where users actually read messages.
+ * `innerHTML` is included because it is the same sink without Svelte syntax.
  */
+const RENDERERS = [
+  "../../components/settings/tabs/CloudTab.svelte",
+  "../../lib/windows/implementations/AssistantView.svelte",
+];
+
 describe("Global Chat rendering", () => {
-  it("renders message text through interpolation, not an HTML directive", () => {
-    const source = readFileSync(
-      new URL(
-        "../../components/settings/tabs/CloudTab.svelte",
-        import.meta.url,
-      ),
-      "utf8",
-    );
+  it.each(RENDERERS)("%s renders chat text as text", (path) => {
+    const source = readFileSync(new URL(path, import.meta.url), "utf8");
 
-    const start = source.indexOf('class="cloud-log"');
-    const end = source.indexOf("</div>", start);
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-
-    const chatLog = source.slice(start, end + "</div>".length);
-    expect(chatLog).toContain("{msg.text}");
-    expect(chatLog).not.toContain("{@html");
+    expect(source).toContain("{msg.text}");
+    expect(source).not.toContain("{@html");
+    expect(source).not.toContain("innerHTML");
   });
 });

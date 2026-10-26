@@ -12,34 +12,56 @@
  *
  * The token is a bearer credential: whoever sees it can speak as that identity.
  * Plain HTTP would put it on the wire in clear text, so remote hosts must use
- * `https://`. Loopback is exempt because a local SpacetimeDB during development
- * has no certificate and never leaves the machine.
+ * `https://` (or `wss://`, which is the same TLS transport). Loopback is exempt
+ * because a local SpacetimeDB during development has no certificate and never
+ * leaves the machine.
  */
+export type CloudHostIssue = "invalid_url" | "insecure_transport";
+
 export function isLoopbackHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
+  // URL normalises a trailing dot away in most cases; strip one defensively.
+  const host = hostname.toLowerCase().replace(/\.$/, "");
   return (
     host === "localhost" ||
-    host === "127.0.0.1" ||
+    // URL.hostname brackets IPv6; the bare form is accepted defensively for
+    // callers that pass a hostname rather than a parsed URL.
     host === "::1" ||
-    host === "[::1]"
+    host === "[::1]" ||
+    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)
   );
 }
 
 /**
- * Returns a human-readable reason the host is refused, or `null` when it is
- * acceptable. Shared by the service (authoritative) and the settings tab
- * (warning shown before the user clicks Connect).
+ * Returns the reason code, or `null` when the host is acceptable.
+ *
+ * A code rather than a message so the settings tab can render a translated
+ * explanation while the service throws the English one.
  */
-export function cloudHostSecurityIssue(raw: string): string | null {
+export function cloudHostIssue(raw: string): CloudHostIssue | null {
   let url: URL;
   try {
     url = new URL(raw);
   } catch {
-    return "Global Chat server address is not a valid URL.";
+    return "invalid_url";
   }
 
-  if (url.protocol === "https:") return null;
+  if (url.protocol === "https:" || url.protocol === "wss:") return null;
   if (url.protocol === "http:" && isLoopbackHost(url.hostname)) return null;
 
-  return "Global Chat requires https://; http:// is allowed only for localhost.";
+  return "insecure_transport";
+}
+
+export function cloudHostSecurityMessage(issue: CloudHostIssue): string {
+  return issue === "invalid_url"
+    ? "Global Chat server address is not a valid URL."
+    : "Global Chat requires https://; http:// is allowed only for localhost.";
+}
+
+/**
+ * Human-readable reason the host is refused, or `null` when it is acceptable.
+ * Used by `cloudService.connect()`; the settings tab maps `cloudHostIssue`.
+ */
+export function cloudHostSecurityIssue(raw: string): string | null {
+  const issue = cloudHostIssue(raw);
+  return issue ? cloudHostSecurityMessage(issue) : null;
 }

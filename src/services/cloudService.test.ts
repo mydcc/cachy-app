@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 type MockCallback = ((...args: unknown[]) => unknown) | undefined;
 
@@ -135,6 +135,11 @@ describe('CloudService', () => {
     mockCallbacks.onInsert = undefined;
   });
 
+  afterEach(() => {
+    // Restore the opt-in even when an assertion above failed.
+    settingsState.cloudEnabled = true;
+  });
+
 
   it('should throw an error if no token is provided', async () => {
     const host = 'http://localhost:3000';
@@ -146,7 +151,19 @@ describe('CloudService', () => {
     await expect(
       cloudService.connect('https://chat.example', 'cachy-server', 'token'),
     ).rejects.toThrow(/disabled/);
-    settingsState.cloudEnabled = true;
+  });
+
+  it('disconnects and refuses to send when the opt-in is turned off', async () => {
+    await cloudService.connect('http://localhost:3000', 'cachy-server', 'token');
+    mockCallbacks.onConnect!({}, { toHexString: () => 'abc123' });
+    expect(cloudService.isConnected()).toBe(true);
+
+    settingsState.cloudEnabled = false;
+
+    await expect(cloudService.sendMessage('hello')).rejects.toThrow(/disabled/);
+    cloudService.disconnect();
+    expect(cloudService.isConnected()).toBe(false);
+    expect(cloudService.status().mySenderId).toBeNull();
   });
 
   it('refuses plain http on a remote host before building a connection', async () => {

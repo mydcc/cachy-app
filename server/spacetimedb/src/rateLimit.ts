@@ -35,8 +35,16 @@ export const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per fixed window
  *
  * The key cannot collide with a real sender: identities are 64 hex characters.
  */
+/** Throttles the public cleanup reducer; see `handleDeleteExpiredMessages`. */
+export const CLEANUP_ACTIVITY_SENDER = '__cleanup__';
+export const CLEANUP_MIN_INTERVAL_MS = Number(CLEANUP_INTERVAL_MICROS / 1000n);
+
 export const GLOBAL_RATE_LIMIT_WINDOW_MS = 60_000;
-export const GLOBAL_RATE_LIMIT_MAX_MESSAGES = 60;
+// 180/min, not 60: a 60 ceiling is only twelve per-sender windows, so two
+// identities could starve every other user for a minute with one message per
+// second. This still bounds a flood while leaving room for normal multi-user
+// traffic. The availability trade-off is documented in docs/GLOBAL-CHAT.md §8.
+export const GLOBAL_RATE_LIMIT_MAX_MESSAGES = 180;
 export const GLOBAL_RATE_LIMIT_SENDER = '__global__';
 
 export interface SenderActivityRecord {
@@ -108,13 +116,25 @@ export const MAX_MESSAGE_LENGTH = 1000;
 /**
  * One-line chat text (BUG-0726).
  *
- * Strips C0/C1 control characters and the Unicode line/paragraph separators
- * that `JSON` and most loggers keep verbatim, so a message cannot forge a
- * second line in a log or in a future prompt-style consumer. Trims the edges;
- * a message that is only those characters becomes empty and is rejected.
+ * Control characters and invisible format characters become a space, runs of
+ * whitespace collapse, and the edges are trimmed. The invisible set is explicit
+ * rather than all of `\p{Cf}`: ZWJ/ZWNJ (U+200C/U+200D) must survive so emoji
+ * clusters and joining scripts still render.
+ *
+ * Bidi overrides (U+202A–U+202E, U+2066–U+2069) are removed because they let a
+ * sender reorder or spoof the visible text. A result with no visible character
+ * is returned as an empty string, which the caller rejects.
  */
+const INVISIBLE_OR_CONTROL =
+  /[\p{Cc}\u200B\u200E\u200F\u202A-\u202E\u2028\u2029\u2066-\u2069\u3164\uFEFF\uFFA0]/gu;
+
 export function sanitizeMessageText(text: string): string {
-  return text.replace(/[\p{Cc}\u2028\u2029]/gu, '').trim();
+  const collapsed = text
+    .replace(INVISIBLE_OR_CONTROL, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+  if (!/[\p{L}\p{N}\p{P}\p{S}]/u.test(collapsed)) return '';
+  return collapsed;
 }
 
 export interface GlobalMessageRecord {
@@ -154,6 +174,13 @@ export function handleSendMessage(
   timestamp: number,
   text: string,
 ): void {
+  // Cheap early bound before the regex pass: a reducer argument far above the
+  // message cap cannot become a valid message, so it is rejected without
+  // scanning it character by character.
+  if (text.length > MAX_MESSAGE_LENGTH * 4) {
+    throw new Error('Message too long');
+  }
+
   const sanitized = sanitizeMessageText(text);
   if (sanitized.length === 0) {
     throw new Error('Message cannot be empty');
@@ -200,7 +227,20 @@ export function handleSendMessage(
 export function handleDeleteExpiredMessages(
   db: MessageDb,
   nowMs: number,
+  minIntervalMs: number = CLEANUP_MIN_INTERVAL_MS,
 ): { deletedMessages: number; deletedActivities: number } {
+  // The reducer is public: any client can call it. Without this marker an
+  // attacker could force a full-table scan in a loop; with it, at most one
+  // scan per interval runs. The timestamp comes from `ctx.timestamp`, so a
+  // client cannot move it (BUG-0726 review).
+  const cleanupMarker = db.senderActivity.find(CLEANUP_ACTIVITY_SENDER);
+  if (
+    cleanupMarker &&
+    nowMs - cleanupMarker.last_sent_at < minIntervalMs
+  ) {
+    return { deletedMessages: 0, deletedActivities: 0 };
+  }
+
   const cutoff = nowMs - RETENTION_MS;
   let deletedMessages = 0;
   let deletedActivities = 0;
@@ -217,6 +257,19 @@ export function handleDeleteExpiredMessages(
       db.senderActivity.delete(activity);
       deletedActivities++;
     }
+  }
+
+  const marker: SenderActivityRecord = {
+    sender: CLEANUP_ACTIVITY_SENDER,
+    window_start: nowMs,
+    count: 1,
+    last_sent_at: nowMs,
+  };
+  // Re-read: the retention loop above may have deleted the old marker.
+  if (db.senderActivity.find(CLEANUP_ACTIVITY_SENDER)) {
+    db.senderActivity.update(marker);
+  } else {
+    db.senderActivity.insert(marker);
   }
 
   return { deletedMessages, deletedActivities };

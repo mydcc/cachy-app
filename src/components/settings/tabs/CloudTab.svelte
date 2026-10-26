@@ -23,7 +23,7 @@
 <script lang="ts">
     import Button from "../../shared/Button.svelte";
   import { cloudService, type CloudStatus } from '../../../services/cloudService';
-  import { cloudHostSecurityIssue } from '../../../services/cloudHost';
+  import { cloudHostIssue } from '../../../services/cloudHost';
   import { settingsState } from '../../../stores/settings.svelte';
   import { _ } from '../../../locales/i18n';
   import type { Infer } from 'spacetimedb';
@@ -38,7 +38,7 @@
 
   const connected = $derived(status.connected);
   // Shown before the user clicks Connect; `connect()` enforces the same rule.
-  const hostWarning = $derived(cloudHostSecurityIssue(settingsState.cloudHost));
+  const hostIssue = $derived(cloudHostIssue(settingsState.cloudHost));
 
   $effect(() => {
     const unsubMessages = cloudService.subscribeMessages((msgs) => {
@@ -144,11 +144,17 @@
           spellcheck="false"
           placeholder="http://127.0.0.1:3000"
           disabled={connected}
+          aria-describedby={hostIssue ? "cloud-host-warning" : undefined}
         />
       </label>
-      {#if hostWarning}
-        <p class="text-xs" style="color: var(--warning-color);">
-          {$_("cloud.insecureHostWarning")}
+      {#if hostIssue}
+        <p
+          id="cloud-host-warning"
+          class="text-xs"
+          style="color: var(--warning-color);"
+          aria-live="polite"
+        >
+          {$_(hostIssue === "invalid_url" ? "cloud.invalidHostWarning" : "cloud.insecureHostWarning")}
         </p>
       {/if}
 

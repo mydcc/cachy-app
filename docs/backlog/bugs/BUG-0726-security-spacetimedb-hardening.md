@@ -22,8 +22,8 @@ depends_on: []
 > 1. **Client-only auth** is inherent: SpacetimeDB issues an identity to every
 >    connection. Documented in `docs/GLOBAL-CHAT.md` §8 and at
 >    `clientConnected`; the global cap is the abuse mitigation.
-> 2. **Identity-rotation bypass** — a global cap of 60 messages/minute lives in
->    a reserved `__global__` row of the existing `sender_activity` table (no
+> 2. **Identity-rotation bypass** — a global cap of 180 messages/minute lives
+>    in a reserved `__global__` row of the existing `sender_activity` table (no
 >    schema change). Per-sender and global decisions are evaluated before
 >    either counter is written.
 > 3. **Empty/whitespace** — `sanitizeMessageText` trims, strips C0/C1 and
@@ -40,13 +40,25 @@ depends_on: []
 > 7. **Scheduled reducer** — documented as public; it only deletes rows past
 >    the retention window, so an early call is a no-op.
 >
-> Residual: server-side authentication is impossible in the current module
-> model; the global cap reduces flooding but is not access control. The reducer
-> change needs a module republish, not a schema migration.
+> Review round: turning the opt-in off now closes a live connection and refuses
+> sends/erasure; invisible format characters and bidi overrides are stripped and
+> a message with no visible character is rejected; the cleanup reducer is
+> throttled to one scan per hour by a `__cleanup__` marker; the public cleanup
+> wording states its cost; both chat renderers are pinned; host warnings map
+> the actual reason and expose it via `aria-describedby`; `wss://`, trailing-dot
+> loopback and `127.0.0.0/8` are accepted; an oversized raw payload is rejected
+> before the sanitizer runs; tests assert that a rejection consumes neither
+> counter and that erasure leaves the aggregate rows.
 >
-> Verification: 52 tests across the reducer, host policy, cloud service and
-> chat rendering; `tsc --noEmit` clean; ESLint clean; translation check passes;
-> `npm run backlog:check` — 613 items valid.
+> Residual: server-side authentication is impossible in the current module
+> model; the 180/min global cap reduces flooding but can be occupied by two
+> determined identities (availability trade-off, documented). The first cleanup
+> run after a fresh module still performs a full scan. The reducer change needs
+> a module republish, not a schema migration.
+>
+> Verification: 62 tests across the reducer, host policy, cloud service, chat
+> store and chat rendering; `tsc --noEmit` clean; ESLint clean; translation
+> check passes; `npm run backlog:check` — 613 items valid.
 
 ## Symptom
 

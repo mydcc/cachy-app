@@ -8,7 +8,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { cloudHostSecurityIssue, isLoopbackHost } from "./cloudHost";
+import {
+  cloudHostIssue,
+  cloudHostSecurityIssue,
+  isLoopbackHost,
+} from "./cloudHost";
 
 describe("cloudHostSecurityIssue (BUG-0726)", () => {
   it("accepts an https host", () => {
@@ -17,8 +21,20 @@ describe("cloudHostSecurityIssue (BUG-0726)", () => {
 
   it("accepts plain http only on loopback", () => {
     expect(cloudHostSecurityIssue("http://127.0.0.1:3000")).toBeNull();
+    expect(cloudHostSecurityIssue("http://127.0.0.2:3000")).toBeNull();
     expect(cloudHostSecurityIssue("http://localhost:3000")).toBeNull();
+    expect(cloudHostSecurityIssue("http://localhost.:3000")).toBeNull();
     expect(cloudHostSecurityIssue("http://[::1]:3000")).toBeNull();
+  });
+
+  it("accepts wss as a secure transport", () => {
+    expect(cloudHostSecurityIssue("wss://chat.cachy.app")).toBeNull();
+  });
+
+  it("returns the reason code the settings tab translates", () => {
+    expect(cloudHostIssue("not a url")).toBe("invalid_url");
+    expect(cloudHostIssue("http://chat.cachy.app")).toBe("insecure_transport");
+    expect(cloudHostIssue("https://chat.cachy.app")).toBeNull();
   });
 
   it("refuses plain http on a remote host, where the token would travel in clear text", () => {

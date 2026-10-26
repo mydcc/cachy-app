@@ -42,7 +42,11 @@ vi.mock("../lib/spacetimedb", () => ({
 }));
 vi.mock("../lib/spacetimedb/global_message_type", () => ({ default: {} }));
 vi.mock("../stores/settings.svelte", () => ({
-  settingsState: { cloudHost: "http://127.0.0.1:3000", cloudDbName: "cachy" },
+  settingsState: {
+    cloudEnabled: true,
+    cloudHost: "http://127.0.0.1:3000",
+    cloudDbName: "cachy",
+  },
 }));
 
 import { cloudService } from "./cloudService";

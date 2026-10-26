@@ -102,6 +102,26 @@ class CloudService {
   }
 
   /**
+   * Closes the connection (BUG-0726 review).
+   *
+   * The opt-in switch is not only a connect-time gate: turning Global Chat off
+   * must stop the Class B traffic that is already running. The chat store calls
+   * this from the same effect that opens the connection.
+   */
+  disconnect(): void {
+    const connection = this.conn as unknown as { disconnect?: () => void } | null;
+    try {
+      connection?.disconnect?.();
+    } catch (e) {
+      logger.error('network', 'Failed to disconnect SpacetimeDB:', e);
+    }
+    this.conn = null;
+    this.connected = false;
+    this.mySenderId = null;
+    this.notifyStatusSubscribers(this.status());
+  }
+
+  /**
    * Connects to the Global Chat module.
    *
    * `host` and `dbName` come from settings (`cloudHost`, `cloudDbName`) rather
@@ -220,10 +240,17 @@ class CloudService {
   }
 
   async sendMessage(text: string): Promise<void> {
+    // The opt-in switch also gates sending, not just connecting: a connection
+    // that survived the switch being turned off must not keep transmitting
+    // (BUG-0726 review).
+    if (!settingsState.cloudEnabled) {
+      throw new Error('Global Chat is disabled. Enable it in Settings before sending.');
+    }
     // The reducer also rejects this, but refusing locally saves a round trip
-    // and gives the UI a legible message (BUG-0726).
+    // and gives the UI a legible message. The visible-character check mirrors
+    // the server's, so a zero-width-only message never leaves the device.
     const sanitized = text.trim();
-    if (sanitized.length === 0) {
+    if (sanitized.length === 0 || !/[\p{L}\p{N}\p{P}\p{S}]/u.test(sanitized)) {
       throw new Error('Message cannot be empty');
     }
     if (!this.connected) {
@@ -267,6 +294,9 @@ class CloudService {
    * anyone else's messages, and no argument is needed.
    */
   deleteMyMessages() {
+    if (!settingsState.cloudEnabled) {
+      throw new Error('Global Chat is disabled. Enable it in Settings before deleting messages.');
+    }
     if (!this.connected) {
       logger.warn('network', 'Cannot delete messages: Not connected');
       throw new Error('Not connected to Global Chat.');
