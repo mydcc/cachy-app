@@ -2,7 +2,7 @@
 id: FEAT-0731
 title: Add the entry-point registry data and surface resolver
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0731-registry-data
 priority: P3
