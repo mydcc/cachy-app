@@ -345,7 +345,7 @@ const GLOBAL_DESTINATIONS: Entry[] = [
             header(10),
             rail(60, "destinations", {
                 visibleWhen: { kind: "window", id: "journal", state: "minimized" },
-                activeWhen: { kind: "always" },
+                activeWhen: { kind: "window", id: "journal", state: "minimized" },
             }),
         ],
     },

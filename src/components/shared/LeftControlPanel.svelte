@@ -72,7 +72,13 @@
       },
       viewportWidth,
       ui: { showAssistant: uiState.showAssistant },
-      derived: {},
+      derived: {
+        // Available as a settings getter. `isTechnicalsVisible` is page-local
+        // state in `+page.svelte`; the rail cannot see it, which is part of
+        // why it deliberately ignores `enabled` (BUG-0715).
+        effectiveShowSidebarActivity:
+          settingsState.effectiveShowSidebarActivity,
+      },
       data: {},
     };
   });

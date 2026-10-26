@@ -19,6 +19,12 @@
  * The one side-effectful adapter between the registry's opener descriptors and
  * the window/settings/UI stores. Surfaces call `openEntry(entry)`; they never
  * map an entry to `uiState` or `windowManager` themselves.
+ *
+ * Each branch reproduces the rail's previous click handler exactly, including
+ * the surprising ones: the settings entry toggles its window closed on a
+ * second click (`WindowManager.toggle`), while the academy entry only raises
+ * an existing window. Unifying those two into "focus if open" would be a
+ * behaviour change, not a migration.
  */
 
 import { settingsState } from "../../stores/settings.svelte";
@@ -26,24 +32,40 @@ import { uiState } from "../../stores/ui.svelte";
 import { windowManager } from "../windows/WindowManager.svelte";
 import type { Entry, Opener } from "./entry-points";
 
-function openWindow(opener: Extract<Opener, { kind: "window" }>): void {
-    const existing = windowManager.windows.find(
+type WindowOpener = Extract<Opener, { kind: "window" }>;
+type ToggleTarget = Extract<Opener, { kind: "toggle" }>["target"];
+
+/**
+ * The journal shortcut only renders while a journal is minimized, so restore
+ * that window rather than raising whichever journal happens to be first.
+ */
+function restoreJournal(opener: WindowOpener): void {
+    const journals = windowManager.windows.filter(
         (win) => win.windowType === opener.windowType,
     );
-    if (existing) {
-        windowManager.bringToFront(existing.id);
-        if (existing.isMinimized) existing.restore();
+    const target =
+        journals.find((win) => win.isMinimized) ?? journals[0] ?? null;
+    if (!target) {
+        void uiState.toggleJournalModal(true);
         return;
     }
+    windowManager.bringToFront(target.id);
+    if (target.isMinimized) target.restore();
+}
 
+function openWindow(opener: WindowOpener): void {
     switch (opener.windowType) {
         case "journal":
-            void uiState.toggleJournalModal(true);
+            restoreJournal(opener);
             return;
         case "settings":
+            // `toggleSettingsModal(true)` closes an already open settings
+            // window. Keep the rail's second click doing what it did before.
             void uiState.toggleSettingsModal(true);
             return;
         case "academy":
+            // `openAcademy()` dedupes by window id inside `open()`; doing the
+            // lookup here as well would add a second, diverging rule.
             void windowManager.openAcademy();
             return;
         default:
@@ -55,7 +77,7 @@ function openWindow(opener: Extract<Opener, { kind: "window" }>): void {
     }
 }
 
-function toggle(target: Extract<Opener, { kind: "toggle" }>["target"]): void {
+function toggle(target: ToggleTarget): void {
     switch (target) {
         case "market-dashboard":
             uiState.toggleMarketDashboardModal(true);
@@ -81,7 +103,11 @@ function toggle(target: Extract<Opener, { kind: "toggle" }>["target"]): void {
     }
 }
 
-/** Executes one registry entry. Tab/route openers are not used by the rail. */
+/**
+ * Executes one registry entry. Only the opener kinds a migrated surface really
+ * uses are implemented; the rest fail loudly instead of rendering a dead
+ * control that silently swallows its click.
+ */
 export function openEntry(entry: Entry): void {
     switch (entry.opener.kind) {
         case "window":
@@ -92,6 +118,8 @@ export function openEntry(entry: Entry): void {
             return;
         case "tab":
         case "route":
-            return;
+            throw new Error(
+                `openEntry cannot execute a ${entry.opener.kind} opener yet (${entry.id})`,
+            );
     }
 }

@@ -218,6 +218,58 @@ describe("FEAT-0732: the rail renders the entry-point registry", () => {
     expect(settingsState.showTechnicals).toBe(true);
   });
 
+  it("opens settings through the store's toggle, as before", () => {
+    const el = render();
+    const toggleSettings = vi
+      .spyOn(uiState, "toggleSettingsModal")
+      .mockImplementation(async () => {});
+
+    try {
+      control(el, "settings.title")!.click();
+      flushSync();
+      expect(toggleSettings).toHaveBeenCalledWith(true);
+    } finally {
+      toggleSettings.mockRestore();
+    }
+  });
+
+  it("opens the academy through openAcademy", () => {
+    const el = render();
+    const openAcademy = vi
+      .spyOn(windowManager, "openAcademy")
+      .mockImplementation(async () => {});
+
+    try {
+      control(el, "academy.title")!.click();
+      flushSync();
+      expect(openAcademy).toHaveBeenCalledTimes(1);
+    } finally {
+      openAcademy.mockRestore();
+    }
+  });
+
+  it("keeps the previous destination order and gives every control an icon", () => {
+    const el = render();
+    const buttons = Array.from(
+      el.querySelectorAll<HTMLButtonElement>("button.control-btn"),
+    );
+
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      getNestedTranslation("app.marketDashboard.buttonTitle"),
+      getNestedTranslation("settings.title"),
+      getNestedTranslation("dashboard.alerts.panel.open"),
+      getNestedTranslation("academy.title"),
+      getNestedTranslation("sidePanel.aiAssistant"),
+      getNestedTranslation("settings.showTechnicals"),
+      getNestedTranslation("settings.toggleMarketTiles"),
+      getNestedTranslation("dashboard.marketActivity"),
+      getNestedTranslation("settings.toggleMarketSentiment"),
+    ]);
+    for (const button of buttons) {
+      expect(button.querySelector("svg")).not.toBeNull();
+    }
+  });
+
   it("keeps the existing active classes", () => {
     windowManager.open(
       new ModalWindow(EmptyStub, "Assistant", {

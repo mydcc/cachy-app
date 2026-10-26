@@ -78,15 +78,28 @@ imports `uiState` for opening, and the destination SVGs moved to
 The registry gained `Placement.activeWhen` and `SurfaceEntry.active` so the
 existing selected classes remain data-driven. Active conditions cover
 assistant, technicals, market overview, activity, sentiment and the
-minimized-journal shortcut. `LeftControlPanel` deliberately does not bind
-`disabled` from `enabled`: the old rail had no disabled state, and disabling a
-toggle when its underlying flag is off would make it impossible to turn on.
-BUG-0715 stays open.
+minimized-journal shortcut; the spec in `assets/FEAT-0618/` documents the new
+field and the rail's `destinations`/`panels` groups. `LeftControlPanel`
+deliberately does not bind `disabled` from `enabled`: the old rail had no
+disabled state, and disabling a toggle when its underlying flag is off would
+make it impossible to turn on. BUG-0715 stays open.
 
-Tests: 14 registry cases (including the active states) and 8 rail component
-cases (inventory, dashboard/toggle wiring, active classes, journal restore,
-accessible names, plus the existing FEAT-0389 bell cases). Targeted tests and
-`npm run check` pass; the header, journal strip and settings rail are untouched.
+The adapter keeps the old click handlers, including their asymmetries: settings
+routes through `uiState.toggleSettingsModal` (a second click closes the window),
+academy through `windowManager.openAcademy()`, and the journal shortcut
+restores the *minimized* journal. `tab`/`route` openers throw instead of
+no-oping, so a future entry cannot become a dead button silently.
+
+Two deltas are registry-owned rather than local: the journal shortcut's
+accessible name is now `app.journalButtonTitle` ("Open Trade Journal") instead
+of the window title, and its icon is `icons.book` instead of the local Feather
+book-open SVG. Both follow the entry data; no other label or icon changed.
+
+Tests: 14 registry cases (including the active states) and 11 rail component
+cases (inventory, DOM order, icon presence, dashboard/toggle wiring, settings
+and academy openers, active classes, journal restore, accessible names, plus
+the existing FEAT-0389 bell cases). Targeted tests and `npm run check` pass;
+the header, journal strip and settings rail are untouched.
 
 ## Out of scope
 

@@ -58,6 +58,12 @@ interface Placement {
   visibleWhen?: Condition;
   /** Allow interaction. Default: always. */
   enabledWhen?: Condition;
+  /**
+   * Visual selected state (an open panel, an active toggle). Default: not
+   * selected. This is a hint for the surface, never a substitute for
+   * `enabledWhen`; a selected entry can be disabled and must still render.
+   */
+  activeWhen?: Condition;
 }
 ```
 
@@ -129,6 +135,14 @@ expressed is a contract gap: add a token and its test, do not pass a closure
 from a surface. A closure would make the registry un-serializable and
 untestable, which is the current problem in a different place.
 
+`activeWhen` uses the same token language as `visibleWhen` and `enabledWhen`.
+It only drives the surface's selected styling; it never hides or disables the
+entry. `getSurfaceEntries` returns `active: false` for placements without the
+condition, so a surface does not need its own selected-state rules. The rail
+uses it for the assistant, the four panel toggles and the minimized-journal
+shortcut; the journal condition repeats its `visibleWhen` because the shortcut
+is selected exactly while it is offered.
+
 ## Keyboard contract
 
 Every entry has one `KeyboardRoute`:
@@ -183,6 +197,13 @@ should be filed once rather than patched in five surfaces.
 `LeftControlPanel`; migration lifts them into the central icon map. `icons.*`
 names are the existing constants and are reused as-is.
 
+Rail placements also declare `activeWhen`: `journal`
+`window("journal","minimized")`, `assistant` `state("showAssistant")`,
+`technicals` `setting("showTechnicals")`, `market-overview`
+`setting("showMarketOverview")`, `market-activity`
+`setting("showSidebarActivity")` and `market-sentiment`
+`setting("showMarketSentiment")`.
+
 ### Journal deep-dive tabs (5)
 
 Parent `journal`; opener `{ kind: "tab", tabId }`; surface `journal-tabs`;
@@ -220,7 +241,7 @@ icons already exist in `icons`.
 
 | Surface | View rule | Entries |
 | --- | --- | --- |
-| Left rail | `placements[].surface === "rail"`, grouped and ordered; only `window`/`toggle` openers | 10 global destinations |
+| Left rail | `placements[].surface === "rail"`, grouped and ordered; only `window`/`toggle` openers | 10 global destinations, groups `destinations` then `panels` |
 | Header | `placements[].surface === "header"` | `journal` only; its header placement is always visible |
 | Journal tab strip | `parent === "journal"` and `opener.kind === "tab"` | 5 deep-dive tabs |
 | Settings rail | `parent === "settings"` and `opener.kind === "tab"` | 8 rail tabs |
