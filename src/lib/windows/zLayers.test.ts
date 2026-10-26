@@ -27,6 +27,7 @@ describe("Z_LAYERS", () => {
       Z_LAYERS.windowDock,
       Z_LAYERS.windowMax,
       Z_LAYERS.modal,
+      Z_LAYERS.switcher,
       Z_LAYERS.toast,
       Z_LAYERS.fx,
     ];
@@ -55,6 +56,7 @@ describe("Z_LAYERS", () => {
     expect(readCssVar("z-window-dock")).toBe(Z_LAYERS.windowDock);
     expect(readCssVar("z-window-max")).toBe(Z_LAYERS.windowMax);
     expect(readCssVar("z-modal")).toBe(Z_LAYERS.modal);
+    expect(readCssVar("z-window-switcher")).toBe(Z_LAYERS.switcher);
     expect(readCssVar("z-toast")).toBe(Z_LAYERS.toast);
     expect(readCssVar("z-fx")).toBe(Z_LAYERS.fx);
   });

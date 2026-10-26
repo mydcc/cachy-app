@@ -19,6 +19,13 @@
       "showPriceInTitle": "Preis im Titel anzeigen"
     }
   },
+  "windowSwitcher": {
+    "title": "Fenster wechseln",
+    "hint": "↑↓/←→ auswählen · Enter wechseln · Esc abbrechen",
+    "current": "Aktiv",
+    "minimized": "Minimiert",
+    "empty": "Keine Fenster zum Wechseln"
+  },
   "app": {
     "title": "Cachy",
     "journalButton": "Journal",
@@ -1932,7 +1939,8 @@
         "toggleTechnicals": "Technik-Panel umschalten",
         "fetchPrice": "Preis abrufen",
         "openSymbolPicker": "Symbolauswahl öffnen",
-        "toggleAssistant": "Assistent umschalten"
+        "toggleAssistant": "Assistent umschalten",
+        "windowSwitcher": "Fensterwechsler"
       }
     },
     "chart": {

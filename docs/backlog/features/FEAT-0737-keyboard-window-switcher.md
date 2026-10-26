@@ -2,7 +2,7 @@
 id: FEAT-0737
 title: Add a keyboard window switcher
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0737-window-switcher
 priority: P2
@@ -33,8 +33,9 @@ in-app overlay, not a synthetic Alt+Tab.
   "UI & Navigation", default `Alt+W`, customizable through the existing hotkey
   settings. Map it in the safety and hybrid modes; direct mode stays without
   it because a bare `W` belongs to typing.
-- Add a small `windowSwitcherState` rune store (`open`/`close`/`toggle`) and a
-  `WindowSwitcher.svelte` overlay mounted in `WindowContainer`.
+- Add a small `windowSwitcherState` rune store (`open`/`close`) and a
+  `WindowSwitcher.svelte` overlay hosted at the root by
+  `WindowSwitcherHost.svelte`.
 - On open, snapshot the open non-modal windows ordered by z-index, most recent
   first. The default selection is the second entry (the next window); with only
   one window it is that window. Arrow keys cycle with wrap, Enter/Space and a
@@ -57,25 +58,61 @@ like a no-op. The switcher is for the ordinary overlapping windows.
 
 ## Acceptance criteria
 
-- [ ] `Alt+W` opens the switcher; the binding is listed in the hotkey settings
+- [x] `Alt+W` opens the switcher; the binding is listed in the hotkey settings
       and a custom binding replaces it.
-- [ ] Safety and hybrid modes bind it; direct mode does not.
-- [ ] The overlay lists every open non-modal window, most recent first, and
+- [x] Safety and hybrid modes bind it; direct mode does not.
+- [x] The overlay lists every open non-modal window, most recent first, and
       includes minimized windows.
-- [ ] The initial selection is the next window, not the currently focused one;
+- [x] The initial selection is the next window, not the currently focused one;
       with one window it is that window.
-- [ ] Arrow keys cycle with wrap; Enter/Space and a click commit; Escape and a
+- [x] Arrow keys cycle with wrap; Enter/Space and a click commit; Escape and a
       backdrop click cancel.
-- [ ] Committing restores a minimized window and focuses the selected frame;
+- [x] Committing restores a minimized window and focuses the selected frame;
       `data-window-id` and `tabindex="-1"` exist on every frame.
-- [ ] The overlay is a labelled dialog with a listbox and options, has a visible
+- [x] The overlay is a labelled dialog with a listbox and options, has a visible
       keyboard hint, and traps Tab.
-- [ ] The new z-layer is declared in `zLayers.ts` and `themes.css` and asserted
+- [x] The new z-layer is declared in `zLayers.ts` and `themes.css` and asserted
       by the existing layer test.
-- [ ] No hardcoded colours; every effect that registers a listener returns a
+- [x] No hardcoded colours; every effect that registers a listener returns a
       cleanup.
-- [ ] Targeted component/unit tests and `npm run check` pass; existing window
+- [x] Targeted component/unit tests and `npm run check` pass; existing window
       behaviour is unchanged.
+
+## Progress
+
+`Alt+W` now opens `WindowSwitcher.svelte` through `WindowSwitcherHost.svelte`
+in `+layout.svelte`. The host is deliberately outside `WindowContainer`: that
+container is a stacking context at `--z-window`, so an overlay inside it would
+paint below root-level modals even with a higher local z-index. The overlay
+snapshots the non-modal windows by z-index, preselects the window after the
+focused one, cycles with arrow keys, commits on Enter/Space or click, and
+cancels on Escape or the backdrop. Committing restores a minimized window,
+raises it through `windowManager.bringToFront` and focuses its frame; a
+window that closed while the list was frozen is skipped. Cancel returns focus
+to the opener.
+
+The list marks the currently focused window with a "Current" badge. The
+hotkey ignores auto-repeat, so holding `Alt+W` cannot reopen the overlay
+after Escape. The hotkey is a regular `HOTKEY_ACTIONS` entry (safety and
+hybrid modes, not direct mode), so the existing settings editor can rebind
+it. While a modal/dialog is open the hotkey does nothing: those windows own
+focus and switching behind them would be a no-op.
+
+The overlay has its own `Z_LAYERS.switcher` / `--z-window-switcher` slot
+between modal and toast. `WindowFrame` gained `data-window-id` and
+`tabindex="-1"` so the commit can focus the selected frame.
+`WindowManager`'s background-click guard ignores `.switcher-root`, so a click
+inside the overlay cannot close a `closeOnBlur` window.
+
+Tests: 18 unit cases (ordering/filter, store, z-layer, hotkey behaviour
+including mode/custom/repeat), 18 switcher component cases (order, default
+selection, one-window and wrap boundaries, Home/End, Space/click, restore,
+focus restoration, Escape isolation, Tab trap, dialog semantics, blocking
+window, overlay-click guard, closed-window skip, listener cleanup),
+3 host cases (closed/open/remount snapshot) and the 29 existing `WindowFrame`
+cases including the focus-target assertion. `npm run check` reports 0 errors
+and the existing 6 warnings. No production behaviour outside the window layer
+changed.
 
 ## Out of scope
 
@@ -97,5 +134,7 @@ None blocking. `Alt+W` is the default because the browser cannot own
 - `src/lib/windows/WindowManager.svelte.ts`
 - `src/lib/windows/WindowBase.svelte.ts`
 - `src/components/shared/windows/WindowContainer.svelte`
+- `src/components/shared/windows/WindowSwitcherHost.svelte`
+- `src/components/shared/windows/WindowSwitcher.svelte`
 - `src/components/shared/windows/WindowFrame.svelte`
 - `src/lib/windows/zLayers.ts`

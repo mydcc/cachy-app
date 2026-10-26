@@ -675,6 +675,8 @@
     bind:this={frameEl}
     class={extraClasses}
     aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
+    data-window-id={win.id}
+    tabindex="-1"
     onfocusin={handleFocusIn}
     class:window-frame={true}
     class:glass-panel={true}

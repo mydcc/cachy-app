@@ -48,6 +48,7 @@ import { afterNavigate } from "$app/navigation";
   import { effectsState } from "../stores/effects.svelte";
 
   import WindowContainer from "../components/shared/windows/WindowContainer.svelte";
+  import WindowSwitcherHost from "../components/shared/windows/WindowSwitcherHost.svelte";
   import GlobalTracker from "../components/shared/GlobalTracker.svelte";
   import LocaleSync from "../components/shared/LocaleSync.svelte";
 
@@ -633,6 +634,7 @@ import { afterNavigate } from "$app/navigation";
 {/if}
 
 <WindowContainer />
+<WindowSwitcherHost />
 <ToastContainer />
 <GlobalTracker />
 {#if FXOverlayComponent}

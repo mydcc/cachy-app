@@ -21,6 +21,8 @@ import { favoritesState } from "../stores/favorites.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { app } from "./app";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { getWindowSwitcherEntries } from "../lib/windows/windowSwitcher";
+import { windowSwitcherState } from "../stores/windowSwitcher.svelte";
 import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerWindow.svelte";
 import { CONSTANTS } from "../lib/constants";
 import type { TranslationKey } from "../locales/schema";
@@ -47,6 +49,8 @@ export interface HotkeyAction {
   labelKey: TranslationKey;
   category: HotkeyCategory;
   defaultKey: string; // Used as default for Custom mode
+  /** Ignore auto-repeat while the key is held (e.g. a toggle overlay). */
+  ignoreRepeat?: boolean;
   action: () => void;
 }
 
@@ -295,6 +299,30 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     defaultKey: "Alt+A",
     action: () => uiState.toggleAssistant(true),
   },
+  {
+    id: "WINDOW_SWITCHER",
+    labelKey: "settings.hotkeys.action.windowSwitcher",
+    category: "UI & Navigation",
+    defaultKey: "Alt+W",
+    ignoreRepeat: true,
+    action: () => {
+      // Do not open an empty overlay when every open window is a blocking
+      // modal/dialog. `getWindowSwitcherEntries` is the same filter the
+      // overlay uses, so the two cannot disagree. A blocking window also
+      // means switching behind it would look like a no-op, so the hotkey
+      // stays closed until the task is dismissed.
+      const windows = windowManager.windows;
+      const hasBlockingWindow = windows.some(
+        (win) => win.windowType === "modal" || win.windowType === "dialog",
+      );
+      if (
+        !hasBlockingWindow &&
+        getWindowSwitcherEntries(windows).length > 0
+      ) {
+        windowSwitcherState.open();
+      }
+    },
+  },
 ];
 
 // --- Legacy Mode Maps ---
@@ -344,6 +372,7 @@ export const MODE2_MAP: Record<string, string> = {
   TOGGLE_SETTINGS: "Alt+,",
   TOGGLE_SYMBOL_PICKER: "Alt+F",
   TOGGLE_ASSISTANT: "Alt+A",
+  WINDOW_SWITCHER: "Alt+W",
 };
 
 export const MODE3_MAP: Record<string, string> = {
@@ -369,6 +398,7 @@ export const MODE3_MAP: Record<string, string> = {
   TOGGLE_SETTINGS: ",",
   TOGGLE_SYMBOL_PICKER: "F",
   TOGGLE_ASSISTANT: "A",
+  WINDOW_SWITCHER: "Alt+W",
 };
 
 // --- Key Matching Logic ---
@@ -429,6 +459,8 @@ export function handleGlobalKeydown(event: KeyboardEvent) {
       map[action.id] || (mode === "custom" ? action.defaultKey : null);
 
     if (mappedKey && isMatch(event, mappedKey)) {
+      if (action.ignoreRepeat && event.repeat) continue;
+
       // --- Input Protection Logic ---
       const hasModifier = event.altKey || event.ctrlKey;
       const isFunctionKey = event.key.startsWith("F") && event.key.length > 1;

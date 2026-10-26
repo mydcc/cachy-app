@@ -17,16 +17,21 @@
  */
 
 import { migrateAccounts } from "../stores/settings/accounts";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as HotkeyModule from "./hotkeyService"; // Import as module to access exported function
 import { settingsState, type Settings } from "../stores/settings.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
+import { WindowBase } from "../lib/windows/WindowBase.svelte";
+import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { windowSwitcherState } from "../stores/windowSwitcher.svelte";
+import EmptyStub from "../tests/helpers/EmptyStub.svelte";
 
 // Mock dependencies
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
     hotkeyMode: "mode1",
+    customHotkeys: {},
     update: vi.fn((fn: (s: Settings) => Partial<Settings>) => Object.assign(settingsState, fn(settingsState as Settings))),
   },
 }));
@@ -245,5 +250,137 @@ describe("HotkeyService", () => {
     expect(preventDefaultSpy).toHaveBeenCalled();
     expect(document.getElementById).toHaveBeenCalledWith("entry-price-input");
     expect(mockElement.focus).toHaveBeenCalled();
+  });
+});
+
+describe("FEAT-0737 window switcher hotkey", () => {
+  it("registers the action and maps it in the safety and hybrid modes", () => {
+    const action = HotkeyModule.HOTKEY_ACTIONS.find(
+      (candidate) => candidate.id === "WINDOW_SWITCHER",
+    );
+
+    expect(action).toBeDefined();
+    expect(action?.defaultKey).toBe("Alt+W");
+    expect(action?.category).toBe("UI & Navigation");
+    expect(action?.labelKey).toBe(
+      "settings.hotkeys.action.windowSwitcher",
+    );
+
+    expect(HotkeyModule.MODE2_MAP.WINDOW_SWITCHER).toBe("Alt+W");
+    expect(HotkeyModule.MODE3_MAP.WINDOW_SWITCHER).toBe("Alt+W");
+    expect(HotkeyModule.MODE1_MAP.WINDOW_SWITCHER).toBeUndefined();
+  });
+});
+
+class SwitcherWindow extends WindowBase {
+  constructor(id: string, windowType: "chart" | "modal") {
+    super({ id, title: id, windowType });
+  }
+
+  get component() {
+    return EmptyStub;
+  }
+}
+
+function openSwitcherWindow(
+  id: string,
+  windowType: "chart" | "modal" = "chart",
+): SwitcherWindow {
+  const win = new SwitcherWindow(id, windowType);
+  windowManager.open(win);
+  return win;
+}
+
+function pressAlt(
+  key: string,
+  init: KeyboardEventInit = {},
+): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", {
+    key,
+    altKey: true,
+    ...init,
+  });
+  HotkeyModule.handleGlobalKeydown(event);
+  return event;
+}
+
+describe("FEAT-0737 switcher hotkey behaviour", () => {
+  beforeEach(() => {
+    windowSwitcherState.close();
+    localStorage.clear();
+    // @ts-expect-error -- document.activeElement is readonly; the handler
+    // only needs to see a non-input element.
+    global.document.activeElement = document.body;
+  });
+
+  afterEach(() => {
+    windowSwitcherState.close();
+    settingsState.hotkeyMode = "mode2";
+    settingsState.customHotkeys = {};
+    for (const win of [...windowManager.windows]) {
+      windowManager.close(win.id);
+    }
+    localStorage.clear();
+  });
+
+  it("opens on Alt+W in safety and hybrid modes", () => {
+    openSwitcherWindow("hotkey-a");
+
+    settingsState.hotkeyMode = "mode2";
+    pressAlt("w");
+    expect(windowSwitcherState.isOpen).toBe(true);
+
+    windowSwitcherState.close();
+    settingsState.hotkeyMode = "mode3";
+    pressAlt("w");
+    expect(windowSwitcherState.isOpen).toBe(true);
+  });
+
+  it("does not bind Alt+W in direct mode", () => {
+    openSwitcherWindow("hotkey-a");
+    settingsState.hotkeyMode = "mode1";
+
+    pressAlt("w");
+
+    expect(windowSwitcherState.isOpen).toBe(false);
+  });
+
+  it("honours a custom binding", () => {
+    openSwitcherWindow("hotkey-a");
+    settingsState.hotkeyMode = "custom";
+    settingsState.customHotkeys = { WINDOW_SWITCHER: "Alt+Q" };
+
+    pressAlt("w");
+    expect(windowSwitcherState.isOpen).toBe(false);
+
+    pressAlt("q");
+    expect(windowSwitcherState.isOpen).toBe(true);
+  });
+
+  it("does not open while a modal window is present", () => {
+    openSwitcherWindow("hotkey-a");
+    openSwitcherWindow("hotkey-modal", "modal");
+    settingsState.hotkeyMode = "mode2";
+
+    pressAlt("w");
+
+    expect(windowSwitcherState.isOpen).toBe(false);
+  });
+
+  it("does not open with no switchable windows", () => {
+    settingsState.hotkeyMode = "mode2";
+
+    pressAlt("w");
+
+    expect(windowSwitcherState.isOpen).toBe(false);
+  });
+
+  it("ignores auto-repeat", () => {
+    openSwitcherWindow("hotkey-a");
+    settingsState.hotkeyMode = "mode2";
+
+    pressAlt("w", { repeat: true });
+
+    expect(windowSwitcherState.isOpen).toBe(false);
   });
 });
