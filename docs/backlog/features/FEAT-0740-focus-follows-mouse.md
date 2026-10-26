@@ -2,7 +2,7 @@
 id: FEAT-0740
 title: Add optional focus-follows-mouse for floating windows
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0740-focus-follows-mouse
 priority: P3
@@ -43,22 +43,42 @@ comparison lists focus-follows-mouse as a deferred focus-policy item.
 
 ## Acceptance criteria
 
-- [ ] The setting exists in Visuals, defaults to off, and persists through the
+- [x] The setting exists in Visuals, defaults to off, and persists through the
       existing display schema.
-- [ ] With the setting off, hovering never raises or focuses a window.
-- [ ] With the setting on, a mouse hover for 120 ms raises and focuses the
+- [x] With the setting off, hovering never raises or focuses a window.
+- [x] With the setting on, a mouse hover for 120 ms raises and focuses the
       window; leaving before the delay cancels.
-- [ ] Pointerdown, unmount and turning the setting off before the delay cancel
+- [x] Pointerdown, unmount and turning the setting off before the delay cancel
       the pending focus.
-- [ ] Touch/pen hovers are ignored.
-- [ ] No focus change while a window is being dragged/resized or while a
+- [x] Touch/pen hovers are ignored.
+- [x] No focus change while a window is being dragged/resized or while a
       modal/dialog window is open.
-- [ ] A hover raise uses `sweepCloseOnBlur: false`, so a `closeOnBlur` window
+- [x] A hover raise uses `sweepCloseOnBlur: false`, so a `closeOnBlur` window
       stays open.
-- [ ] The frame root receives DOM focus after the raise.
-- [ ] Component tests cover delay/cancel/setting/modal/drag/touch and the
+- [x] The frame root receives DOM focus after the raise.
+- [x] Component tests cover delay/cancel/setting/modal/drag/touch and the
       closeOnBlur guard; settings persistence/default tests cover the new key.
-- [ ] `npm run check` stays at 0 errors; no hardcoded colours.
+- [x] `npm run check` stays at 0 errors; no hardcoded colours.
+
+## Progress
+
+Focus-follows-mouse is a display setting, default off, surfaced under
+Visuals → Window behavior and persisted through the display schema. When on,
+`WindowFrame` starts a 120 ms timer on a mouse `pointerenter`, then raises via
+`windowManager.bringToFront(id, { sweepCloseOnBlur: false })` and focuses the
+frame root.
+
+The timer is cancelled by `pointerleave`, any pointerdown (including a click
+on another window, via a one-shot capture listener), turning the setting off,
+or unmounting. The callback re-checks the setting, focus/minimized state,
+modal/dialog ownership, an active drag/resize (`.window-frame.interacting`) and
+document visibility. Touch and pen pointers are ignored.
+
+Tests: 76 `WindowFrame` component cases (66 previous + 10 focus-follows cases
+covering off, 119/120 ms boundary, leave, setting-off, pointerdown, touch/pen,
+modal, drag, closeOnBlur and unmount), 10 settings display/persistence cases
+and 6 reactivity-contract cases. `npm run check` reports 0 errors and the
+existing 6 warnings; ESLint is clean.
 
 ## Out of scope
 
