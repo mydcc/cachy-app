@@ -162,15 +162,11 @@ info/
 # opencode.json / ~/.claude. Untracked with `git rm --cached`, so the files
 # stay on disk and stop appearing on GitHub.
 #
-# .claude/hooks/ is the exception: evals/hook-guard.eval.test.ts loads
-# pre-tool-use-guard.mjs through a relative path, so it is source code
-# under test, not machine config. Everything else in the directory is
-# local state.
+# The shell guard that used to live under .claude/hooks/ is executable source
+# with an eval, so it moved to scripts/agent-hooks/ and is ignored here like
+# any other directory entry.
 .agents/skills/
-.claude/*
-!.claude/hooks/
-.claude/hooks/*
-!.claude/hooks/pre-tool-use-guard.mjs
+.claude/
 .jules/
 .gemini/
 .opencode/

@@ -34,7 +34,7 @@ npm run test:unit                # whole pure-logic project
 |---|---|---|
 | Position sizing + risk metrics | `src/lib/calculators/core.ts` (`calculateBaseMetrics`) | long, short, wide stop with MMR, per-leg maker/taker fees, zero-risk edge |
 | Take-profit aggregation | `src/lib/calculators/core.ts` (`calculateTotalMetrics`) | two take-profits |
-| PreToolUse shell guard | `.claude/hooks/pre-tool-use-guard.mjs` | blocked destructive commands, allowed safe commands, non-Bash passthrough, malformed payload |
+| PreToolUse shell guard | `scripts/agent-hooks/pre-tool-use-guard.mjs` | blocked destructive commands, allowed safe commands, non-Bash passthrough, malformed payload |
 
 The shell-guard eval spawns the hook as a child process and asserts its exit
 code, so the guard's behaviour is pinned the same way the arithmetic is. Its

@@ -37,7 +37,7 @@ through once the two commands were run separately: the push on its own was
 allowed, and the `gh pr create` on its own was never blocked by this rule. The
 PR that resulted is #3213, which supersedes #3212.
 
-The rule, at `.claude/hooks/pre-tool-use-guard.mjs:63`:
+The rule, at `scripts/agent-hooks/pre-tool-use-guard.mjs:63`:
 
 ```js
 /\bgit\s+push\b[^\n]*(?:\s|:)(?:develop|main|master)(?:\s|$)/.test(cmd)

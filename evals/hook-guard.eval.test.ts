@@ -13,7 +13,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const guardPath = fileURLToPath(
-  new URL("../.claude/hooks/pre-tool-use-guard.mjs", import.meta.url),
+  new URL("../scripts/agent-hooks/pre-tool-use-guard.mjs", import.meta.url),
 );
 
 const BLOCKED_COMMANDS = [
