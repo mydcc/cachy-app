@@ -561,6 +561,8 @@ export interface Settings {
   // Window Docking
   enableDockingCentered: boolean;
   dockingPosition: "top" | "bottom";
+  /** Raise and focus a floating window after a short mouse hover (FEAT-0740). */
+  focusFollowsMouse: boolean;
   autoTrading: boolean;
   multiAccount: boolean;
 }
@@ -857,4 +859,5 @@ export const defaultSettings: Settings = {
   multiAccount: false,
   enableDockingCentered: true,
   dockingPosition: "top",
+  focusFollowsMouse: false,
 };

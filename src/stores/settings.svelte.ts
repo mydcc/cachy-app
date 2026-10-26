@@ -1388,6 +1388,12 @@ export class SettingsManager {
   set dockingPosition(v: DisplaySettingsStore["dockingPosition"]) {
     this.display.dockingPosition = v;
   }
+  get focusFollowsMouse(): DisplaySettingsStore["focusFollowsMouse"] {
+    return this.display.focusFollowsMouse;
+  }
+  set focusFollowsMouse(v: DisplaySettingsStore["focusFollowsMouse"]) {
+    this.display.focusFollowsMouse = v;
+  }
 
   get marketMode(): CoreSettingsStore["marketMode"] {
     return this.core.marketMode;

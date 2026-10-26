@@ -77,4 +77,8 @@ describe("display sub-store inventory", () => {
         expect(display.duckNotifications).toBe(true);
         expect(display.duckReactToTrades).toBe(true);
     });
+
+    it("keeps focus-follows-mouse opt-in", () => {
+        expect(new DisplaySettingsStore().focusFollowsMouse).toBe(false);
+    });
 });

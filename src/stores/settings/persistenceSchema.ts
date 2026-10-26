@@ -270,6 +270,7 @@ export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = Object.freeze(([
     { key: "chartCountdownEnabled", save: "direct", load: "coalesce", section: "core" },
     { key: "enableDockingCentered", save: "direct", load: "coalesce", section: "display" },
     { key: "dockingPosition", save: "direct", load: "coalesce", section: "display" },
+    { key: "focusFollowsMouse", save: "direct", load: "coalesce", section: "display" },
     // Both levels (see the opening lines): the inner `.map(Object.freeze)`
     // freezes each row, the outer `Object.freeze` freezes the array itself.
     // The `as` keeps the rows contextually typed: without it the literal

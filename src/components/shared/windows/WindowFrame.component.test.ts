@@ -2285,3 +2285,221 @@ describe("FEAT-0739 — exclusions and edge priority", () => {
         }
     });
 });
+
+describe("FEAT-0740 — focus follows mouse", () => {
+    class FocusTargetWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "focus-target",
+                title: "Focus target",
+                windowType: "chart",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    class FocusModalWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "focus-modal",
+                title: "Focus modal",
+                windowType: "modal",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    const previousSetting = settingsState.focusFollowsMouse;
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        settingsState.focusFollowsMouse = true;
+        localStorage.clear();
+    });
+
+    afterEach(() => {
+        settingsState.focusFollowsMouse = previousSetting;
+        vi.useRealTimers();
+        for (const win of [...windowManager.windows]) {
+            windowManager.close(win.id);
+        }
+    });
+
+    function mountManagedFrame() {
+        const { win } = mountFrame();
+        windowManager.open(win);
+        win.isFocused = false;
+        flushSync();
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        if (!frame) throw new Error("the frame rendered no root");
+        return { win, frame };
+    }
+
+    function hover(frame: HTMLElement, pointerType = "mouse") {
+        frame.dispatchEvent(
+            new PointerEvent("pointerenter", {
+                pointerType,
+                bubbles: false,
+                cancelable: true,
+            }),
+        );
+    }
+
+    it("does nothing while the setting is off", () => {
+        settingsState.focusFollowsMouse = false;
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("raises and focuses after the hover delay", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(119);
+        flushSync();
+        expect(win.isFocused).toBe(false);
+
+        vi.advanceTimersByTime(1);
+        flushSync();
+        expect(win.isFocused).toBe(true);
+        expect(document.activeElement).toBe(frame);
+    });
+
+    it("cancels when the pointer leaves before the delay", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        frame.dispatchEvent(
+            new PointerEvent("pointerleave", {
+                pointerType: "mouse",
+                bubbles: false,
+                cancelable: true,
+            }),
+        );
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("cancels when the setting is turned off before the delay", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        settingsState.focusFollowsMouse = false;
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("cancels the pending hover on pointerdown", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        frame.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                pointerType: "mouse",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.isFocused).toBe(true);
+
+        // The immediate click focus is not proof the timer was cancelled:
+        // reset the model and advance past the delay to prove it.
+        win.isFocused = false;
+        vi.advanceTimersByTime(200);
+        flushSync();
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("ignores touch and pen pointers", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame, "touch");
+        hover(frame, "pen");
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("does not raise while a modal is open", () => {
+        const { win, frame } = mountManagedFrame();
+        const modal = new FocusModalWindow();
+        windowManager.open(modal);
+        win.isFocused = false;
+        flushSync();
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("does not raise while another window is being dragged", () => {
+        const { win, frame } = mountManagedFrame();
+        const blocker = document.createElement("div");
+        blocker.className = "window-frame interacting";
+        host!.appendChild(blocker);
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+        blocker.remove();
+    });
+
+    it("raises without sweeping a closeOnBlur window", () => {
+        const { win, frame } = mountManagedFrame();
+        const transient = new FocusTargetWindow();
+        transient.id = "focus-transient";
+        transient.closeOnBlur = true;
+        windowManager.open(transient);
+        win.isFocused = false;
+        flushSync();
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(true);
+        expect(
+            windowManager.windows.some((entry) => entry.id === transient.id),
+        ).toBe(true);
+    });
+
+    it("clears the hover timer when the frame unmounts", () => {
+        const { win, frame } = mountManagedFrame();
+        const bringToFront = vi.spyOn(windowManager, "bringToFront");
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        unmount(component as never);
+        component = null;
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(bringToFront).not.toHaveBeenCalled();
+        expect(win.isFocused).toBe(false);
+    });
+});
