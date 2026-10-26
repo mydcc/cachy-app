@@ -19,204 +19,151 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { quizState } from "../../stores/quiz.svelte";
-  import { _ } from "../../locales/i18n";
-  import { icons } from "../../lib/constants";
-  import Tooltip from "./Tooltip.svelte";
-  import { trackClick } from "../../actions/tracking";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
+  import { _ } from "../../locales/i18n";
+  import Tooltip from "./Tooltip.svelte";
+  import { trackClick, type TrackClickParams } from "../../actions/tracking";
+  import {
+    getSurfaceEntries,
+  } from "../../lib/navigation/entry-points";
+  import type {
+    Entry,
+    EntryContext,
+    SurfaceEntry,
+    WindowState,
+  } from "../../lib/navigation/entry-points";
+  import { resolveEntryIcon } from "../../lib/navigation/icons";
+  import { openEntry } from "../../lib/navigation/open-entry";
 
-  // Reactive state for finding a minimized Journal
-  let journalWindow = $derived(
-    windowManager.windows.find(
-      (w) => w.windowType === "journal" && w.isMinimized
-    )
+  let viewportWidth = $state(
+    typeof window === "undefined" ? 1280 : window.innerWidth,
   );
 
-  // Additional Icons not in constants (or defined locally for specificity)
-  const ICONS = {
-    dashboard: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>`,
-    overview: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/></svg>`,
-    sentiment: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`, // Activity/Lightning bolt for sentiment/energy
-    academy: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>`,
-    chartPatterns: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 3v18h18" /></svg>`,
-    assistant: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>`,
-    activity: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>`,
-    alerts: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>`,
-  };
+  function windowState(type: string): WindowState {
+    const win = windowManager.windows.find((entry) => entry.windowType === type);
+    if (!win) return "closed";
+    return win.isMinimized ? "minimized" : "open";
+  }
+
+  // Surface adapter: the registry stays pure; this is the only place that
+  // reads the stores for the rail's conditions.
+  let context = $derived.by((): EntryContext => {
+    const activeAccount = settingsState.accounts.find(
+      (account) => account.id === settingsState.activeAccountId,
+    );
+    return {
+      settings: {
+        showTechnicals: settingsState.showTechnicals,
+        showSidebars: settingsState.showSidebars,
+        showMarketOverview: settingsState.showMarketOverview,
+        showSidebarActivity: settingsState.showSidebarActivity,
+        showMarketSentiment: settingsState.showMarketSentiment,
+      },
+      entitlement: { pro: settingsState.entitlement.isPro },
+      accounts: {
+        activeId: settingsState.activeAccountId,
+        activeExchange: activeAccount?.exchange ?? null,
+        count: settingsState.accounts.length,
+      },
+      windows: {
+        journal: windowState("journal"),
+        settings: windowState("settings"),
+        academy: windowState("academy"),
+      },
+      viewportWidth,
+      ui: { showAssistant: uiState.showAssistant },
+      derived: {
+        // Available as a settings getter. `isTechnicalsVisible` is page-local
+        // state in `+page.svelte`; the rail cannot see it, which is part of
+        // why it deliberately ignores `enabled` (BUG-0715).
+        effectiveShowSidebarActivity:
+          settingsState.effectiveShowSidebarActivity,
+      },
+      data: {},
+    };
+  });
+
+  let railEntries = $derived(getSurfaceEntries("rail", context));
+  let destinationEntries = $derived(
+    railEntries.filter((item) => item.placement.group === "destinations"),
+  );
+  let panelEntries = $derived(
+    railEntries.filter((item) => item.placement.group === "panels"),
+  );
+
+  function label(entry: Entry): string {
+    return $_(entry.labels.title ?? entry.labels.label);
+  }
+
+  function track(entry: Entry): TrackClickParams | undefined {
+    return entry.telemetryName
+      ? {
+          category: "Navigation",
+          action: "Click",
+          name: entry.telemetryName,
+        }
+      : undefined;
+  }
 </script>
+
+<svelte:window onresize={() => (viewportWidth = window.innerWidth)} />
 
 <aside
   class="fixed left-0 z-50 flex flex-col gap-2 p-2 bg-[var(--bg-secondary)] rounded-r-2xl border-y border-r border-[var(--border-color)] shadow-xl transition-all duration-300"
   style="top: 38vh;"
 >
-  <!-- Dashboard Button -->
-  <button
-    class="control-btn"
-    onclick={() => uiState.toggleMarketDashboardModal(true)}
-    title={$_("app.marketDashboard.buttonTitle")}
-    aria-label={$_("app.marketDashboard.buttonTitle")}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "OpenMarketDashboard",
-    }}
-  >
-    {@html ICONS.dashboard}
-  </button>
-
-  <!-- Settings Button -->
-  <button
-    class="control-btn"
-    onclick={() => uiState.toggleSettingsModal(true)}
-    title={$_("settings.title")}
-    aria-label={$_("settings.title")}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "OpenSettings",
-    }}
-  >
-    {@html icons.settings}
-  </button>
-
-  <!-- Alerts Button -->
-  <button
-    class="control-btn"
-    onclick={() => uiState.toggleAlertsModal(true)}
-    title={$_("dashboard.alerts.panel.open")}
-    aria-label={$_("dashboard.alerts.panel.open")}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "OpenAlerts",
-    }}
-  >
-    {@html ICONS.alerts}
-  </button>
-
-  <!-- Academy Button -->
-  <div class="relative w-full flex justify-center">
+  {#snippet railControl(item: SurfaceEntry)}
     <button
       class="control-btn"
-      onclick={() => windowManager.openAcademy()}
-      title={$_("academy.title")}
-      aria-label={$_("academy.title")}
-      use:trackClick={{
-        category: "Navigation",
-        action: "Click",
-        name: "OpenAcademy",
-      }}
+      class:active={item.active}
+      onclick={() => openEntry(item.entry)}
+      title={label(item.entry)}
+      aria-label={label(item.entry)}
+      use:trackClick={track(item.entry)}
     >
-      {@html ICONS.academy}
+      {@html resolveEntryIcon(item.entry.icon)}
     </button>
-    <!-- Quiz Progress Bar -->
-    {#if quizState.questions.length > 0}
-      {@const progress = Math.min(
-        100,
-        (quizState.knownQuestionIds.size / 52) * 100,
-      )}
-      <div class="absolute -left-[0.25rem] top-1/2 -translate-y-1/2 z-10">
-        <Tooltip text="{quizState.knownQuestionIds.size}/52">
-          <div
-            class="flex flex-col h-[28px] w-[3px] rounded-full overflow-hidden shadow-sm"
-          >
-            <!-- Red Segment (Top) -->
-            <div
-              class="bg-[var(--danger-color)] w-full transition-all duration-500"
-              style:height="{100 - progress}%"
-            ></div>
-            <!-- Green Segment (Bottom) -->
-            <div
-              class="bg-[var(--success-color)] w-full transition-all duration-500"
-              style:height="{progress}%"
-            ></div>
+  {/snippet}
+
+  {#each destinationEntries as item (item.entry.id)}
+    {#if item.entry.id === "academy"}
+      <div class="relative w-full flex justify-center">
+        {@render railControl(item)}
+        {#if quizState.questions.length > 0}
+          {@const progress = Math.min(
+            100,
+            (quizState.knownQuestionIds.size / 52) * 100,
+          )}
+          <div class="absolute -left-[0.25rem] top-1/2 -translate-y-1/2 z-10">
+            <Tooltip text="{quizState.knownQuestionIds.size}/52">
+              <div
+                class="flex flex-col h-[28px] w-[3px] rounded-full overflow-hidden shadow-sm"
+              >
+                <div
+                  class="bg-[var(--danger-color)] w-full transition-all duration-500"
+                  style:height="{100 - progress}%"
+                ></div>
+                <div
+                  class="bg-[var(--success-color)] w-full transition-all duration-500"
+                  style:height="{progress}%"
+                ></div>
+              </div>
+            </Tooltip>
           </div>
-        </Tooltip>
+        {/if}
       </div>
+    {:else}
+      {@render railControl(item)}
     {/if}
-  </div>
+  {/each}
 
-  <!-- Assistant Button -->
-  <button
-    class="control-btn"
-    class:active={uiState.showAssistant}
-    onclick={() => uiState.toggleAssistant(!uiState.showAssistant)}
-    title={$_("sidePanel.aiAssistant")}
-    aria-label={$_("sidePanel.aiAssistant")}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "OpenAssistant",
-    }}
-  >
-    {@html ICONS.assistant}
-  </button>
-
-  {#if journalWindow}
-    <button
-      class="control-btn active"
-      onclick={() => {
-        windowManager.bringToFront(journalWindow.id);
-        journalWindow.restore();
-      }}
-      title={journalWindow.title}
-      aria-label={journalWindow.title}
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    </button>
+  {#if panelEntries.length > 0}
+    <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
   {/if}
 
-  <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
-
-  <!-- Technicals Toggle -->
-  <button
-    class="control-btn"
-    class:active={settingsState.showTechnicals}
-    onclick={() =>
-      (settingsState.showTechnicals = !settingsState.showTechnicals)}
-    title={$_("settings.showTechnicals")}
-    aria-label={$_("settings.showTechnicals")}
-  >
-    {@html icons.chart}
-  </button>
-
-  <!-- Market Overview Toggle -->
-  <button
-    class="control-btn"
-    class:active={settingsState.showMarketOverview}
-    onclick={() =>
-      (settingsState.showMarketOverview = !settingsState.showMarketOverview)}
-    title={$_("settings.toggleMarketTiles")}
-    aria-label={$_("settings.toggleMarketTiles")}
-  >
-    {@html ICONS.overview}
-  </button>
-
-  <!-- Market Activities Toggle -->
-  <button
-    class="control-btn"
-    class:active={settingsState.showSidebarActivity}
-    onclick={() =>
-      (settingsState.showSidebarActivity = !settingsState.showSidebarActivity)}
-    title={$_("dashboard.marketActivity")}
-    aria-label={$_("dashboard.marketActivity")}
-  >
-    {@html ICONS.activity}
-  </button>
-
-  <!-- Sentiment Toggle -->
-  <button
-    class="control-btn"
-    class:active={settingsState.showMarketSentiment}
-    onclick={() =>
-      (settingsState.showMarketSentiment = !settingsState.showMarketSentiment)}
-    title={$_("settings.toggleMarketSentiment")}
-    aria-label={$_("settings.toggleMarketSentiment")}
-  >
-    {@html ICONS.sentiment}
-  </button>
+  {#each panelEntries as item (item.entry.id)}
+    {@render railControl(item)}
+  {/each}
 </aside>
 
 <style>

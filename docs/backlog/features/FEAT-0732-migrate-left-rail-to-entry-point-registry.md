@@ -2,7 +2,7 @@
 id: FEAT-0732
 title: Migrate the left rail to the entry-point registry
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0732-left-rail-registry
 priority: P3
@@ -45,26 +45,61 @@ BUG-0715's hidden panel preconditions stay open.
 
 ## Acceptance criteria
 
-- [ ] The rail renders exactly the registry's `rail` placements: 9 entries
+- [x] The rail renders exactly the registry's `rail` placements: 9 entries
       normally and 10 while the journal is minimized.
-- [ ] Labels, titles, `aria-label`s and icons come from the entry/icon map;
+- [x] Labels, titles, `aria-label`s and icons come from the entry/icon map;
       `LeftControlPanel.svelte` has no destination list, literal label or
       inline destination SVG left.
-- [ ] Clicking each entry performs the previous action: opens the dashboard,
+- [x] Clicking each entry performs the previous action: opens the dashboard,
       settings, alerts, academy or assistant; restores a minimized journal;
       toggles technicals, market overview, activity or sentiment.
-- [ ] The active classes for assistant, technicals, market overview, activity
+- [x] The active classes for assistant, technicals, market overview, activity
       and sentiment match the previous behavior.
-- [ ] The Academy quiz-progress decoration still renders around the academy
+- [x] The Academy quiz-progress decoration still renders around the academy
       button.
-- [ ] Telemetry event names are unchanged.
-- [ ] Every rendered control is a native button with an accessible name and
+- [x] Telemetry event names are unchanged.
+- [x] Every rendered control is a native button with an accessible name and
       stays in DOM order; no pointer-only entry is introduced.
-- [ ] New component tests cover the surface inventory, one representative
+- [x] New component tests cover the surface inventory, one representative
       open/toggle per opener kind, the minimized-journal restore, the active
       classes and the accessible names.
-- [ ] No header, journal-strip, settings-rail or registry-surface behavior is
+- [x] No header, journal-strip, settings-rail or registry-surface behavior is
       changed.
+
+## Progress
+
+The rail is now a registry view. `LeftControlPanel` builds the `EntryContext`
+from the settings, entitlement, account, window and UI stores, then renders
+`getSurfaceEntries("rail", context)` in two groups (destinations, panels). The
+open calls moved into `src/lib/navigation/open-entry.ts`; the rail no longer
+imports `uiState` for opening, and the destination SVGs moved to
+`src/lib/navigation/icons.ts`.
+
+The registry gained `Placement.activeWhen` and `SurfaceEntry.active` so the
+existing selected classes remain data-driven. Active conditions cover
+assistant, technicals, market overview, activity, sentiment and the
+minimized-journal shortcut; the spec in `assets/FEAT-0618/` documents the new
+field and the rail's `destinations`/`panels` groups. `LeftControlPanel`
+deliberately does not bind `disabled` from `enabled`: the old rail had no
+disabled state, and disabling a toggle when its underlying flag is off would
+make it impossible to turn on. BUG-0715 stays open.
+
+The adapter keeps the old click handlers, including their asymmetries: settings
+routes through `uiState.toggleSettingsModal` (a second click closes the window),
+academy through `windowManager.openAcademy()`, and the journal shortcut
+restores the *minimized* journal. `tab`/`route` openers throw instead of
+no-oping, so a future entry cannot become a dead button silently.
+
+Two deltas are registry-owned rather than local: the journal shortcut's
+accessible name is now `app.journalButtonTitle` ("Open Trade Journal") instead
+of the window title, and its icon is `icons.book` instead of the local Feather
+book-open SVG. Both follow the entry data; no other label or icon changed.
+
+Tests: 14 registry cases (including the active states) and 11 rail component
+cases (inventory, DOM order, icon presence, dashboard/toggle wiring, settings
+and academy openers, active classes, journal restore, accessible names, plus
+the existing FEAT-0389 bell cases). Targeted tests and `npm run check` pass;
+the header, journal strip and settings rail are untouched.
 
 ## Out of scope
 
