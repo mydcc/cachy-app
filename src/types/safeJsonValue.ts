@@ -21,45 +21,64 @@ import { z } from "zod";
  * `constructor` and `prototype` are rejected for the same reason: the classic
  * payload is a `constructor.prototype` chain rather than a bare `__proto__`.
  *
- * Implemented as `z.custom` over the raw input rather than a recursive
- * `z.record`: zod's record parser rebuilds the object and loses an own
- * `__proto__` property before a refinement could see it, which is exactly the
- * key this guard exists for.
+ * The walk is iterative with an explicit depth cap. A recursive version threw
+ * `RangeError` on ~5 000 nested arrays — a 20 KB frame, far below the frame
+ * cap — which would make the guard itself the cheapest exception generator.
+ *
+ * Only plain JSON objects are accepted. `Date`, `Map`, `Blob` and class
+ * instances have no enumerable own keys and would otherwise validate as `{}`;
+ * a WebSocket payload is parsed JSON, so none of them is legitimate.
  */
 export const FORBIDDEN_JSON_KEYS = ["__proto__", "constructor", "prototype"] as const;
 
 const FORBIDDEN = new Set<string>(FORBIDDEN_JSON_KEYS);
 
-/**
- * `true` for a JSON-representable value with no forbidden key at any depth.
- *
- * Only JSON values are accepted: strings, finite numbers, booleans, null,
- * arrays and plain objects. `undefined`, functions and symbols cannot arrive
- * through `JSON.parse`, and accepting them would widen the boundary the
- * schemas are meant to keep.
- */
+/** Nesting beyond this is refused rather than walked (JSON.parse allows more). */
+export const MAX_JSON_DEPTH = 64;
+
 export function isSafeJsonValue(value: unknown): boolean {
-  if (value === null) return true;
-  switch (typeof value) {
-    case "string":
-    case "boolean":
-      return true;
-    case "number":
-      return Number.isFinite(value);
-    case "object":
-      break;
-    default:
-      return false;
+  const stack: Array<{ value: unknown; depth: number }> = [{ value, depth: 0 }];
+
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    const item = current.value;
+
+    if (item === null) continue;
+
+    switch (typeof item) {
+      case "string":
+      case "boolean":
+        continue;
+      case "number":
+        if (!Number.isFinite(item)) return false;
+        continue;
+      case "object":
+        break;
+      default:
+        return false;
+    }
+
+    if (current.depth >= MAX_JSON_DEPTH) return false;
+
+    if (Array.isArray(item)) {
+      for (const child of item) {
+        stack.push({ value: child, depth: current.depth + 1 });
+      }
+      continue;
+    }
+
+    const proto = Object.getPrototypeOf(item);
+    if (proto !== Object.prototype && proto !== null) return false;
+
+    for (const key of Object.keys(item as Record<string, unknown>)) {
+      if (FORBIDDEN.has(key)) return false;
+      stack.push({
+        value: (item as Record<string, unknown>)[key],
+        depth: current.depth + 1,
+      });
+    }
   }
 
-  if (Array.isArray(value)) {
-    return value.every(isSafeJsonValue);
-  }
-
-  for (const key of Object.keys(value as Record<string, unknown>)) {
-    if (FORBIDDEN.has(key)) return false;
-    if (!isSafeJsonValue((value as Record<string, unknown>)[key])) return false;
-  }
   return true;
 }
 

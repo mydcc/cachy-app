@@ -68,6 +68,21 @@ function isKlineRecord(value: unknown): boolean {
   return true;
 }
 
+/**
+ * The legacy path accepts Decimal-shaped strings as well as numbers, because
+ * the worker constructs `new Decimal(k.open)` from either.
+ */
+function isLegacyKline(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (typeof value.time !== "number" || !Number.isFinite(value.time)) return false;
+  for (const key of ["open", "high", "low", "close", "volume"] as const) {
+    const field = value[key];
+    const isNumber = typeof field === "number" && Number.isFinite(field);
+    if (!isNumber && typeof field !== "string") return false;
+  }
+  return true;
+}
+
 export type GuardedTechnicalsType = "CALCULATE" | "INITIALIZE" | "UPDATE" | "CLEANUP";
 
 export interface GuardedTechnicalsMessage {
@@ -106,7 +121,11 @@ export function readTechnicalsWorkerMessage(
     // The service has two shapes: SoA typed arrays or a legacy kline array.
     if (payload.times !== undefined) {
       if (!hasAlignedSeries(payload)) return null;
-    } else if (!Array.isArray(payload.klines) || payload.klines.length > MAX_WORKER_POINTS) {
+    } else if (
+      !Array.isArray(payload.klines) ||
+      payload.klines.length > MAX_WORKER_POINTS ||
+      !payload.klines.every(isLegacyKline)
+    ) {
       return null;
     }
   }

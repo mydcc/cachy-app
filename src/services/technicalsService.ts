@@ -155,8 +155,8 @@ class TechnicalsWorkerManager {
     this.pendingRejects.clear();
     this.worker?.terminate();
     this.worker = null;
-    this.consecutiveFailures = 0;
-    this.isDisabled = false;
+    // `isDisabled` is deliberately not reset: if the worker was crash-looping,
+    // a pagehide/teardown must not make the breaker retry it.
   }
 
   public async postMessage(message: { type: string; payload: Record<string, unknown> }, transfer: Transferable[] = []): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
@@ -167,7 +167,16 @@ class TechnicalsWorkerManager {
     return new Promise((resolve, reject) => {
       this.pendingResolves.set(id, resolve);
       this.pendingRejects.set(id, reject);
-      w.postMessage({ ...message, id }, transfer);
+      try {
+        w.postMessage({ ...message, id }, transfer);
+      } catch (error) {
+        // DataCloneError or a terminated worker: without this the two maps
+        // keep the entries forever because no timer was created (BUG-0725).
+        this.pendingResolves.delete(id);
+        this.pendingRejects.delete(id);
+        reject(error);
+        return;
+      }
 
       const timer = setTimeout(() => {
         if (this.pendingResolves.has(id)) {
@@ -182,7 +191,11 @@ class TechnicalsWorkerManager {
   }
   
   isHealthy(): boolean {
-      return !this.isDisabled && (this.worker !== null || !browser);
+      // Deliberately not `worker !== null`: after a `pagehide` teardown the
+      // next postMessage re-creates it through `getWorker()`. Reporting
+      // unhealthy here would silently keep every calculation on the main
+      // thread for the rest of a bfcache-restored session (BUG-0725 review).
+      return !this.isDisabled && browser;
   }
 }
 
@@ -192,7 +205,9 @@ const workerManager = new TechnicalsWorkerManager();
 // map alive. `pagehide` covers bfcache too, and `{ once: true }` keeps the
 // listener from piling up if the module is ever re-evaluated.
 if (browser && typeof window !== "undefined") {
-  window.addEventListener("pagehide", () => workerManager.terminate(), { once: true });
+  // No `once`: a bfcache-restored page re-creates the worker, and the next
+  // pagehide must terminate that one too.
+  window.addEventListener("pagehide", () => workerManager.terminate());
 }
 
 function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: IndicatorSettings): string {

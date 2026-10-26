@@ -41,13 +41,21 @@ export interface ParserContext {
   shouldThrottle: (key: string, commit?: boolean) => boolean;
 }
 
+/** One warning per minute; a hostile upstream can otherwise log every frame. */
+let lastUnsafeJsonWarn = 0;
+const UNSAFE_JSON_WARN_INTERVAL_MS = 60_000;
+
 export function parseMessage(message: Record<string, unknown>, context: ParserContext): ParseOutcome {
   // Checked before the fast path as well as in the fallback schema: a ticker
   // or depth payload takes the fast path and never reaches
   // `BitunixWSMessageSchema`, so validating only there would leave the hot
   // path open (BUG-0725).
   if (!isSafeJsonValue(message)) {
-    logger.warn("network", "[WebSocket] Rejected a message with a forbidden prototype key.");
+    const now = Date.now();
+    if (now - lastUnsafeJsonWarn > UNSAFE_JSON_WARN_INTERVAL_MS) {
+      lastUnsafeJsonWarn = now;
+      logger.warn("network", "[WebSocket] Rejected a message with a forbidden prototype key.");
+    }
     return { type: "ignore", reason: "unsafe_json" };
   }
 

@@ -19,12 +19,15 @@ class AggregatorService {
     private pendingResolves = new Map<string, (val: AnalysisResult) => void>();
     private pendingRejects = new Map<string, (err: Error) => void>();
     private pendingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+    private initFailed = false;
 
     constructor() {
         if (browser) {
             this.initWorker();
             // BUG-0725: the worker and its pending timers outlived the page.
-            window.addEventListener("pagehide", () => this.terminate(), { once: true });
+            // No `once`: a bfcache restore re-creates the worker, and the next
+            // pagehide must terminate that one too.
+            window.addEventListener("pagehide", () => this.terminate());
         }
     }
 
@@ -83,11 +86,17 @@ class AggregatorService {
                 this.worker = null;
             };
         } catch (e) {
+            this.initFailed = true;
             console.error("[AggregatorService] Failed to init worker", e);
         }
     }
 
     public async analyze(journal: JournalEntry[]): Promise<AnalysisResult> {
+        // Re-create after a pagehide teardown (BUG-0725 review). A failed
+        // creation is remembered so a broken Worker does not retry per call.
+        if (!this.worker && browser && !this.initFailed) {
+            this.initWorker();
+        }
         if (!this.worker) {
             // Fallback for SSR or if worker failed
             const { getJournalAnalysis } = await import("../lib/calculators/aggregator");
@@ -99,7 +108,14 @@ class AggregatorService {
             this.pendingResolves.set(id, resolve);
             this.pendingRejects.set(id, reject);
 
-            this.worker!.postMessage({ journal, id });
+            try {
+                this.worker!.postMessage({ journal, id });
+            } catch (error) {
+                this.pendingResolves.delete(id);
+                this.pendingRejects.delete(id);
+                reject(error instanceof Error ? error : new Error(String(error)));
+                return;
+            }
 
             // Timeout safety. Stored so a fast answer clears it instead of
             // leaving a timer holding the closure until it fires (BUG-0725).

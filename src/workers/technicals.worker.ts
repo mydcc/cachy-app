@@ -40,6 +40,16 @@ interface WorkerHistory {
 
 const historyCache = new Map<string, WorkerHistory>();
 
+/**
+ * Bound on the number of cached series (BUG-0725 review).
+ *
+ * The payload guard caps one message; without this cap a caller could post
+ * many INITIALIZE messages with distinct keys and grow the worker's retained
+ * Float64Arrays without limit. The live UI keeps one series per open chart,
+ * so eight is generous; the oldest key is evicted first.
+ */
+const MAX_HISTORY_ENTRIES = 8;
+
 ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
   const guarded = readTechnicalsWorkerMessage(e.data);
   if (!guarded) {
@@ -121,6 +131,10 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         hist.closes.set(payload.closes);
         hist.volumes.set(payload.volumes);
 
+        if (historyCache.size >= MAX_HISTORY_ENTRIES) {
+            const oldest = historyCache.keys().next().value;
+            if (oldest !== undefined) historyCache.delete(oldest);
+        }
         historyCache.set(payload.cacheKey || id, hist);
 
         // Perform initial calculation
@@ -144,8 +158,12 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         const k = payload.kline; // Single serialized kline
         const settings = payload.settings;
 
-        // Memory Protection: Trim History if needed
-        const limit = settings?.historyLimit || 750;
+        // Memory Protection: Trim History if needed. Clamped: an unbounded
+        // historyLimit would disable the trim entirely (BUG-0725 review).
+        const limit = Math.min(
+            Math.max(Number(settings?.historyLimit) || 750, 1),
+            50_000,
+        );
         // Allow some headroom to avoid shifting every tick
         const bufferLimit = limit + 50;
 

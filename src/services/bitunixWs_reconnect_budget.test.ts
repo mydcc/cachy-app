@@ -25,11 +25,15 @@ vi.mock("./logger", () => ({
 
 type WsInternals = {
   scheduleReconnect: (type: "public" | "private") => void;
+  reconnectAttemptsPublic: number;
   reconnectAttemptsPrivate: number;
   MAX_RECONNECT_ATTEMPTS: number;
   reconnectTimerPrivate: ReturnType<typeof setTimeout> | null;
   cleanup: (type: "public" | "private") => void;
   handleMessage: (message: unknown, type: "public" | "private") => void;
+  handleOnline: () => void;
+  connectPublic: (force?: boolean) => void;
+  connectPrivate: (force?: boolean) => void;
 };
 
 const internals = bitunixWs as unknown as WsInternals;
@@ -70,6 +74,18 @@ describe("BitunixWebSocketService reconnect budget (BUG-0725)", () => {
 
     internals.handleMessage({ event: "login", code: 0, msg: "success" }, "private");
 
+    expect(internals.reconnectAttemptsPrivate).toBe(0);
+  });
+
+  it("resets both budgets when the browser comes back online", () => {
+    internals.reconnectAttemptsPublic = 4;
+    internals.reconnectAttemptsPrivate = 7;
+    vi.spyOn(internals, "connectPublic").mockImplementation(() => {});
+    vi.spyOn(internals, "connectPrivate").mockImplementation(() => {});
+
+    internals.handleOnline();
+
+    expect(internals.reconnectAttemptsPublic).toBe(0);
     expect(internals.reconnectAttemptsPrivate).toBe(0);
   });
 

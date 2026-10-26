@@ -36,6 +36,18 @@ describe("SafeJsonValueSchema", () => {
     expect(SafeJsonValueSchema.safeParse(viaConstructor).success).toBe(false);
     expect(SafeJsonValueSchema.safeParse(viaArray).success).toBe(false);
   });
+
+  it("refuses deeply nested input without overflowing the stack", () => {
+    const deep = JSON.parse("[".repeat(5_000) + "]".repeat(5_000));
+
+    expect(() => SafeJsonValueSchema.safeParse(deep)).not.toThrow();
+    expect(SafeJsonValueSchema.safeParse(deep).success).toBe(false);
+  });
+
+  it("refuses a non-plain object such as a Date or Blob", () => {
+    expect(SafeJsonValueSchema.safeParse(new Date()).success).toBe(false);
+    expect(SafeJsonValueSchema.safeParse(new Blob(["x"])).success).toBe(false);
+  });
 });
 
 describe("WebSocket schemas reject prototype-shaped data", () => {

@@ -203,6 +203,12 @@ export class BitunixWebSocketService {
     if (this.isDestroyed) return;
     this.cleanup("public");
     this.cleanup("private");
+    // BUG-0725 review: regaining connectivity is an explicit recovery path, so
+    // it must clear the budget. `connectPublic` bypasses the counter check, but
+    // without this reset the first failed attempt after `online` would see an
+    // exhausted budget and stop again.
+    this.reconnectAttemptsPublic = 0;
+    this.reconnectAttemptsPrivate = 0;
     marketState.connectionStatus = "connecting";
     this.connectPublic(true);
     this.connectPrivate();
@@ -600,6 +606,7 @@ export class BitunixWebSocketService {
           logger.log("network", "Private connection opened");
         }
         this.isReconnectingPrivate = false;
+        this.oversizedFrameWarnedPrivate = false;
         this.lastMessageTimePrivate = Date.now();
         this.startHeartbeat(ws, "private");
         this.resetWatchdog("private", ws);
@@ -680,18 +687,21 @@ export class BitunixWebSocketService {
     const attempts =
       type === "public" ? this.reconnectAttemptsPublic : this.reconnectAttemptsPrivate;
     if (attempts >= this.MAX_RECONNECT_ATTEMPTS) {
-      marketState.connectionStatus = "disconnected";
+      // Only the public socket owns the global market-data status. A revoked
+      // private key must not make the banner claim the market stream is down.
+      if (type === "public") {
+        marketState.connectionStatus = "disconnected";
+      }
       logger.error(
         "network",
         `[BitunixWS] ${type}: reconnect budget exhausted after ${attempts} attempts; waiting for an explicit connect.`,
       );
       return;
     }
-    if (type === "public") this.reconnectAttemptsPublic++;
-    else this.reconnectAttemptsPrivate++;
 
     if (type === "public") {
       if (this.isReconnectingPublic) return;
+      this.reconnectAttemptsPublic++;
       this.isReconnectingPublic = true;
       marketState.connectionStatus = "reconnecting";
 
@@ -708,6 +718,7 @@ export class BitunixWebSocketService {
       }, delay);
     } else {
       if (this.isReconnectingPrivate) return;
+      this.reconnectAttemptsPrivate++;
       this.isReconnectingPrivate = true;
 
       const delay = this.backoffDelayPrivate;

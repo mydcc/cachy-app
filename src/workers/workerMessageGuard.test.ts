@@ -55,15 +55,25 @@ describe("readTechnicalsWorkerMessage", () => {
     ).toBeNull();
   });
 
-  it("accepts the legacy klines shape and rejects a non-array", () => {
+  it("accepts the legacy klines shape and rejects a non-array or bad entry", () => {
     expect(
       readTechnicalsWorkerMessage({
         type: "CALCULATE",
-        payload: { klines: [{ time: 1 }] },
+        payload: {
+          klines: [
+            { time: 1, open: "1", high: "2", low: "0.5", close: "1.5", volume: "10" },
+          ],
+        },
       }),
     ).not.toBeNull();
     expect(
       readTechnicalsWorkerMessage({ type: "CALCULATE", payload: { klines: {} } }),
+    ).toBeNull();
+    expect(
+      readTechnicalsWorkerMessage({
+        type: "CALCULATE",
+        payload: { klines: [{}] },
+      }),
     ).toBeNull();
   });
 
