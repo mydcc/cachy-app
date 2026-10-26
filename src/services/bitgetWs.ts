@@ -14,6 +14,7 @@ import { normalizeSymbol, stripLegacyVenueSuffix } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { logger } from "./logger";
 import { safeJsonParse } from "../utils/safeJson";
+import { isOversizedFrame } from "./wsFrameGuard";
 import CryptoJS from "crypto-js";
 import type {
   BitgetWSMessage,
@@ -112,12 +113,18 @@ export class BitgetWebSocketService {
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** One warning per socket generation; see `onmessage` (BUG-0725). */
+  private oversizedFrameWarned = false;
   private lastPingTime = 0;
   private isReconnecting = false;
 
   // Backoff
   private backoffDelay = RECONNECT_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
+  // Reconnect budget (BUG-0725): stop after 12 consecutive schedules without a
+  // successful open; an explicit connect(true) or a successful open resets it.
+  private reconnectAttempts = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 12;
 
   public subscriptions: Map<string, number> = new Map(); // Stores "channel:symbol" -> count
   /**
@@ -310,17 +317,19 @@ export class BitgetWebSocketService {
     if (this.isDestroyed || !settingsState.entitlement.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;
 
-    // TLS is the only protection for the login frame: it carries the API key,
-    // the passphrase and an HMAC. The endpoint is constructor-injectable, so
-    // the private instance refuses a non-wss URL before it reads credentials,
-    // mirroring `bitunixWs.connectPrivate`.
-    if (this.isPrivateSocket && !this.endpoint.startsWith("wss://")) {
+    // BUG-0725: the public socket was exempt, so a constructor-injected
+    // `ws://` endpoint could carry market data in cleartext. TLS is also the
+    // only protection for the login frame (API key, passphrase, HMAC).
+    if (!this.endpoint.startsWith("wss://")) {
       logger.error(
         "network",
-        "[WS-Bitget] Insecure WebSocket URL detected (Private). Aborting connection.",
+        `[WS-Bitget] Insecure WebSocket URL detected (${this.isPrivateSocket ? "Private" : "Public"}). Aborting connection.`,
       );
       return;
     }
+
+    // An explicit connect is the operator's way out of an exhausted budget.
+    if (force) this.reconnectAttempts = 0;
 
     // Cleared here, before any early return, so a secret never outlives the
     // attempt that read it — including the offline path below.
@@ -417,9 +426,11 @@ export class BitgetWebSocketService {
         // public socket is down (BUG-0598).
         if (!this.isPrivateSocket) connectionManager.onProviderConnected("bitget");
 
-        // Reset Backoff
+        // Reset Backoff and the reconnect budget
         this.backoffDelay = RECONNECT_DELAY;
         this.isReconnecting = false;
+        this.reconnectAttempts = 0;
+        this.oversizedFrameWarned = false;
         this.lastMessageTime = Date.now();
 
         this.startHeartbeat(ws);
@@ -447,6 +458,15 @@ export class BitgetWebSocketService {
 
       ws.onmessage = (event) => {
         if (this.ws !== ws) return;
+        // BUG-0725: reject before `safeJsonParse`. This also catches a binary
+        // or Blob frame, which the parser would otherwise have to fail on.
+        if (isOversizedFrame(event.data)) {
+          if (!this.oversizedFrameWarned) {
+            this.oversizedFrameWarned = true;
+            logger.warn("network", "[WS-Bitget] Dropped an oversized frame.");
+          }
+          return;
+        }
         this.lastMessageTime = Date.now();
         this.resetWatchdog(ws);
 
@@ -512,6 +532,18 @@ export class BitgetWebSocketService {
       this.reportStatus("disconnected");
       return;
     }
+
+    // Budget check before the schedule: an exhausted breaker leaves no timer
+    // behind (BUG-0725).
+    if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      this.reportStatus("disconnected");
+      logger.error(
+        "network",
+        `[WS-Bitget] Reconnect budget exhausted after ${this.reconnectAttempts} attempts; waiting for an explicit connect.`,
+      );
+      return;
+    }
+    this.reconnectAttempts++;
 
     this.isReconnecting = true;
     this.reportStatus("reconnecting");
@@ -788,7 +820,7 @@ export class BitgetWebSocketService {
     else if (channel.startsWith("candle")) {
       // data is [[ts, o, h, l, c, v, q], ...]
       if (Array.isArray(msg.data)) {
-        const klines = msg.data.map((k: BitgetCandleTuple) => {
+        const klines = (msg.data as BitgetCandleTuple[]).map((k: BitgetCandleTuple) => {
           // k is [ts, o, h, l, c, v]
           return {
             time: parseInt(k[0]),
@@ -844,8 +876,12 @@ export class BitgetWebSocketService {
     }
     // Depth
     else if (channel === "books" || channel === "books5" || channel === "books15") {
-      const data = msg.data[0];
-      if (data && data.bids && data.asks) {
+      // The recursive JSON schema validates shape, not the vendor's depth
+      // type, so the narrowing stays here (BUG-0725).
+      const data = msg.data[0] as
+        | { bids?: [string, string][]; asks?: [string, string][] }
+        | undefined;
+      if (data?.bids && data?.asks) {
         this.commitThrottle(`${instId}:depth`);
         marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
       }
@@ -854,7 +890,7 @@ export class BitgetWebSocketService {
     else if (channel === "orders") {
       // Handle order updates
       if (Array.isArray(msg.data)) {
-        msg.data.forEach((o: BitgetWSOrderData) => {
+        (msg.data as BitgetWSOrderData[]).forEach((o) => {
           const normalized = this.normalizeOrderData(o);
           accountState.updateOrderFromWs(normalized);
         });
@@ -863,7 +899,7 @@ export class BitgetWebSocketService {
     // Private: Positions
     else if (channel === "positions") {
       if (Array.isArray(msg.data)) {
-        msg.data.forEach((p: BitgetWSPositionData) => {
+        (msg.data as BitgetWSPositionData[]).forEach((p) => {
           const normalized = this.normalizePositionData(p);
           accountState.updatePositionFromWs(normalized);
         });

@@ -21,6 +21,7 @@
 import { Decimal } from "decimal.js";
 import { calculateAllIndicators, calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 import type { WorkerMessage } from "../services/technicalsTypes";
+import { readTechnicalsWorkerMessage } from "./workerMessageGuard";
 
 const ctx = self;
 
@@ -40,7 +41,21 @@ interface WorkerHistory {
 const historyCache = new Map<string, WorkerHistory>();
 
 ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
-  const { type, payload, id } = e.data;
+  const guarded = readTechnicalsWorkerMessage(e.data);
+  if (!guarded) {
+    // BUG-0725: no payload reaches the branch bodies unvalidated — including
+    // the legacy `payload.klines.map` call, which used to throw on null.
+    ctx.postMessage({
+      type: "ERROR",
+      id: typeof e.data?.id === "string" ? e.data.id : undefined,
+      error: "Invalid worker message",
+    });
+    return;
+  }
+  const { type, id } = guarded;
+  // The per-type payload shapes are validated above; the calculator entry
+  // points still take their own loose types.
+  const payload = guarded.payload as WorkerMessage["payload"];
 
   try {
     if (type === "CALCULATE") {

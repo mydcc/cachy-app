@@ -33,6 +33,7 @@ import { connectionManager } from "./connectionManager";
 import { logger } from "./logger";
 
 import { safeJsonParse } from "../utils/safeJson";
+import { isOversizedFrame } from "./wsFrameGuard";
 import CryptoJS from "crypto-js";
 
 
@@ -144,6 +145,11 @@ export class BitunixWebSocketService {
   private validationErrorCount = 0;
   private lastValidationErrorTime = 0;
   private readonly MAX_VALIDATION_ERRORS = 50; // [HYBRID FIX] Increased from 5 to 50 to prevent cascading reconnects on minor API drifts
+
+  // One warning per socket generation: an upstream that keeps sending
+  // oversized frames must not turn the drop into a log flood (BUG-0725).
+  private oversizedFrameWarnedPublic = false;
+  private oversizedFrameWarnedPrivate = false;
   private readonly VALIDATION_ERROR_WINDOW = 60000; // [HYBRID FIX] Increased window to 1m
   private lastNumericWarning = 0; // Throttle for numeric precision warnings
 
@@ -171,6 +177,13 @@ export class BitunixWebSocketService {
   private backoffDelay = INITIAL_BACKOFF_DELAY;
   private backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
+
+  // Reconnect budget (BUG-0725): after 12 consecutive schedules without a
+  // successful open, stop retrying and wait for an explicit connect() or the
+  // online event. Backoff alone bounds the rate but never stops the loop.
+  private reconnectAttemptsPublic = 0;
+  private reconnectAttemptsPrivate = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 12;
 
   // Throttling for UI Blocking Updates
   private throttleMap = new Map<string, number>();
@@ -335,6 +348,8 @@ export class BitunixWebSocketService {
     if (this.publicMessageTimer) { clearTimeout(this.publicMessageTimer); this.publicMessageTimer = null; }
     this.backoffDelay = INITIAL_BACKOFF_DELAY;
     this.backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
+    this.reconnectAttemptsPublic = 0;
+    this.reconnectAttemptsPrivate = 0;
     this.isReconnectingPublic = false;
     this.isReconnectingPrivate = false;
 
@@ -350,6 +365,11 @@ export class BitunixWebSocketService {
   connect(force?: boolean) {
     logger.log("governance", `[BitunixWS] #${this.instanceId} connect(force=${force}) - isDestroyed was ${this.isDestroyed}`);
     this.isDestroyed = false;
+    // An explicit connect is the operator's way out of an exhausted budget.
+    if (force) {
+      this.reconnectAttemptsPublic = 0;
+      this.reconnectAttemptsPrivate = 0;
+    }
     this.connectPublic(force);
     // A still-open socket never fires onopen again, so replay here too — the
     // onopen path only covers freshly opened sockets.
@@ -432,6 +452,8 @@ export class BitunixWebSocketService {
         // [HYBRID FIX] Reset Backoff on successful connection
         this.backoffDelay = INITIAL_BACKOFF_DELAY;
         this.isReconnectingPublic = false;
+        this.reconnectAttemptsPublic = 0;
+        this.oversizedFrameWarnedPublic = false;
 
         this.lastMessageTimePublic = Date.now();
         this.startHeartbeat(ws, "public");
@@ -460,6 +482,15 @@ export class BitunixWebSocketService {
 
       ws.onmessage = (event) => {
         if (this.wsPublic !== ws) return;
+        // BUG-0725: reject before the parse, not after. A 100 MB frame must
+        // cost one length read, not a JSON allocation on the main thread.
+        if (isOversizedFrame(event.data)) {
+          if (!this.oversizedFrameWarnedPublic) {
+            this.oversizedFrameWarnedPublic = true;
+            logger.warn("network", "[BitunixWS] Public: dropped an oversized frame.");
+          }
+          return;
+        }
         // logger.log("general", "[BitunixWS] Message received!");
         const now = Date.now();
         this.lastMessageTimePublic = now;
@@ -577,6 +608,14 @@ export class BitunixWebSocketService {
 
       ws.onmessage = (event) => {
         if (this.wsPrivate !== ws) return;
+        // Same cap as the public socket, same reason (BUG-0725).
+        if (isOversizedFrame(event.data)) {
+          if (!this.oversizedFrameWarnedPrivate) {
+            this.oversizedFrameWarnedPrivate = true;
+            logger.warn("network", "[BitunixWS] Private: dropped an oversized frame.");
+          }
+          return;
+        }
         const now = Date.now();
         this.lastMessageTimePrivate = now;
         if (now - this.lastWatchdogResetPrivate > this.WATCHDOG_THROTTLE_MS) {
@@ -635,6 +674,21 @@ export class BitunixWebSocketService {
       marketState.connectionStatus = "disconnected";
       return;
     }
+
+    // Budget check before the schedule, not after: an exhausted breaker must
+    // leave no timer behind (BUG-0725).
+    const attempts =
+      type === "public" ? this.reconnectAttemptsPublic : this.reconnectAttemptsPrivate;
+    if (attempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      marketState.connectionStatus = "disconnected";
+      logger.error(
+        "network",
+        `[BitunixWS] ${type}: reconnect budget exhausted after ${attempts} attempts; waiting for an explicit connect.`,
+      );
+      return;
+    }
+    if (type === "public") this.reconnectAttemptsPublic++;
+    else this.reconnectAttemptsPrivate++;
 
     if (type === "public") {
       if (this.isReconnectingPublic) return;
@@ -930,6 +984,8 @@ export class BitunixWebSocketService {
             if (settingsState.enableNetworkLogs) logger.log("network", "Login successful");
             this.isAuthenticated = true;
             this.backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
+            this.reconnectAttemptsPrivate = 0;
+            this.oversizedFrameWarnedPrivate = false;
             this.subscribePrivate();
           } else {
             logger.error("network", `[BitunixWS] Private login failed: ${validatedMessage.msg || validatedMessage.code}`);

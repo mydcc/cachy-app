@@ -68,6 +68,7 @@ class TechnicalsWorkerManager {
   private worker: Worker | null = null;
   private pendingResolves: Map<string, (value: { data: TechnicalsData; buffers?: KlineBuffers }) => void> = new Map();
   private pendingRejects: Map<string, (reason?: unknown) => void> = new Map();
+  private pendingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   private consecutiveFailures = 0;
   private isDisabled = false;
 
@@ -99,6 +100,11 @@ class TechnicalsWorkerManager {
   private handleMessage(e: MessageEvent) {
     const { id, payload, error, buffers } = e.data;
     if (id && this.pendingResolves.has(id)) {
+      const timer = this.pendingTimeouts.get(id);
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        this.pendingTimeouts.delete(id);
+      }
       if (error) {
           this.pendingRejects.get(id)?.(new Error(error));
       } else {
@@ -128,9 +134,29 @@ class TechnicalsWorkerManager {
         this.isDisabled = true;
     }
 
+    this.pendingTimeouts.forEach((timer) => clearTimeout(timer));
+    this.pendingTimeouts.clear();
     this.pendingRejects.forEach((reject) => reject(new Error(`workerErrors.eventError: ${errorMsg}`)));
     this.pendingResolves.clear();
     this.pendingRejects.clear();
+  }
+
+  /**
+   * Terminates the worker and fails every pending request (BUG-0725).
+   *
+   * Registered on `pagehide` once the manager exists; public so a test or a
+   * future teardown path can call it directly.
+   */
+  public terminate(): void {
+    this.pendingTimeouts.forEach((timer) => clearTimeout(timer));
+    this.pendingTimeouts.clear();
+    this.pendingRejects.forEach((reject) => reject(new Error("workerErrors.terminated")));
+    this.pendingResolves.clear();
+    this.pendingRejects.clear();
+    this.worker?.terminate();
+    this.worker = null;
+    this.consecutiveFailures = 0;
+    this.isDisabled = false;
   }
 
   public async postMessage(message: { type: string; payload: Record<string, unknown> }, transfer: Transferable[] = []): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
@@ -142,14 +168,16 @@ class TechnicalsWorkerManager {
       this.pendingResolves.set(id, resolve);
       this.pendingRejects.set(id, reject);
       w.postMessage({ ...message, id }, transfer);
-      
-      setTimeout(() => {
+
+      const timer = setTimeout(() => {
         if (this.pendingResolves.has(id)) {
           this.pendingRejects.get(id)?.(new Error("workerErrors.timeout"));
           this.pendingResolves.delete(id);
           this.pendingRejects.delete(id);
         }
+        this.pendingTimeouts.delete(id);
       }, 5000);
+      this.pendingTimeouts.set(id, timer);
     });
   }
   
@@ -159,6 +187,13 @@ class TechnicalsWorkerManager {
 }
 
 const workerManager = new TechnicalsWorkerManager();
+
+// BUG-0725: the worker previously survived page navigation and kept its timer
+// map alive. `pagehide` covers bfcache too, and `{ once: true }` keeps the
+// listener from piling up if the module is ever re-evaluated.
+if (browser && typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => workerManager.terminate(), { once: true });
+}
 
 function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: IndicatorSettings): string {
   // `_cachedJson` is a $derived on the IndicatorManager snapshot — the WeakMap

@@ -24,6 +24,7 @@ import {
   StrictDepthDataSchema,
 } from "../../types/bitunixValidation";
 import { normalizeSymbol } from "../../utils/symbolUtils";
+import { isSafeJsonValue } from "../../types/safeJsonValue";
 import { logger } from "../logger";
 import { mdaService } from "../mdaService";
 
@@ -41,6 +42,15 @@ export interface ParserContext {
 }
 
 export function parseMessage(message: Record<string, unknown>, context: ParserContext): ParseOutcome {
+  // Checked before the fast path as well as in the fallback schema: a ticker
+  // or depth payload takes the fast path and never reaches
+  // `BitunixWSMessageSchema`, so validating only there would leave the hot
+  // path open (BUG-0725).
+  if (!isSafeJsonValue(message)) {
+    logger.warn("network", "[WebSocket] Rejected a message with a forbidden prototype key.");
+    return { type: "ignore", reason: "unsafe_json" };
+  }
+
   const channel = (message.ch as string) || (message.topic as string);
   try {
     if (message && channel) {

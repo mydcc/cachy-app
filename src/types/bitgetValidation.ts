@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { SafeJsonValueSchema } from "./safeJsonValue";
 
 /**
  * Money boundary (BUG-0425): same contract as MoneyLike in apiSchemas —
@@ -31,7 +32,9 @@ export const BitgetWSArgSchema = z.object({
 export const BitgetWSMessageSchema = z.object({
   action: z.string().optional(),
   arg: BitgetWSArgSchema.optional(),
-  data: z.array(z.any()).optional(),
+  // BUG-0725: each element is checked recursively for prototype-pollution
+  // keys; `z.array(z.any())` let them through.
+  data: z.array(SafeJsonValueSchema).optional(),
   ts: z.number().optional(),
   event: z.string().optional(),
   // BUG-0581: the vendor sends the login code as "0", 0, or "00000"
