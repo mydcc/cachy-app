@@ -2369,12 +2369,16 @@ describe("FEAT-0740 — focus follows mouse", () => {
     it("does nothing while the setting is off", () => {
         settingsState.focusFollowsMouse = false;
         const { win, frame } = mountManagedFrame();
+        const add = vi.spyOn(window, "addEventListener");
 
         hover(frame);
         vi.advanceTimersByTime(200);
         flushSync();
 
         expect(win.isFocused).toBe(false);
+        expect(
+            add.mock.calls.some(([type]) => type === "pointerdown"),
+        ).toBe(false);
     });
 
     it("raises and focuses after the hover delay", () => {
