@@ -2,7 +2,7 @@
 id: FEAT-0737
 title: Add a keyboard window switcher
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0737-window-switcher
 priority: P2
@@ -57,25 +57,48 @@ like a no-op. The switcher is for the ordinary overlapping windows.
 
 ## Acceptance criteria
 
-- [ ] `Alt+W` opens the switcher; the binding is listed in the hotkey settings
+- [x] `Alt+W` opens the switcher; the binding is listed in the hotkey settings
       and a custom binding replaces it.
-- [ ] Safety and hybrid modes bind it; direct mode does not.
-- [ ] The overlay lists every open non-modal window, most recent first, and
+- [x] Safety and hybrid modes bind it; direct mode does not.
+- [x] The overlay lists every open non-modal window, most recent first, and
       includes minimized windows.
-- [ ] The initial selection is the next window, not the currently focused one;
+- [x] The initial selection is the next window, not the currently focused one;
       with one window it is that window.
-- [ ] Arrow keys cycle with wrap; Enter/Space and a click commit; Escape and a
+- [x] Arrow keys cycle with wrap; Enter/Space and a click commit; Escape and a
       backdrop click cancel.
-- [ ] Committing restores a minimized window and focuses the selected frame;
+- [x] Committing restores a minimized window and focuses the selected frame;
       `data-window-id` and `tabindex="-1"` exist on every frame.
-- [ ] The overlay is a labelled dialog with a listbox and options, has a visible
+- [x] The overlay is a labelled dialog with a listbox and options, has a visible
       keyboard hint, and traps Tab.
-- [ ] The new z-layer is declared in `zLayers.ts` and `themes.css` and asserted
+- [x] The new z-layer is declared in `zLayers.ts` and `themes.css` and asserted
       by the existing layer test.
-- [ ] No hardcoded colours; every effect that registers a listener returns a
+- [x] No hardcoded colours; every effect that registers a listener returns a
       cleanup.
-- [ ] Targeted component/unit tests and `npm run check` pass; existing window
+- [x] Targeted component/unit tests and `npm run check` pass; existing window
       behaviour is unchanged.
+
+## Progress
+
+`Alt+W` now opens `WindowSwitcher.svelte` from `WindowContainer`. The overlay
+snapshots the non-modal windows by z-index, preselects the window after the
+focused one, cycles with arrow keys, commits on Enter/Space or click, and
+cancels on Escape or the backdrop. Committing restores a minimized window,
+raises it through `windowManager.bringToFront` and focuses its frame.
+
+The hotkey is a regular `HOTKEY_ACTIONS` entry (safety and hybrid modes, not
+direct mode), so the existing settings editor can rebind it. While a
+modal/dialog is open the hotkey does nothing: those windows own focus and
+switching behind them would be a no-op.
+
+The overlay has its own `Z_LAYERS.switcher` / `--z-window-switcher` slot
+between modal and toast. `WindowFrame` gained `data-window-id` and
+`tabindex="-1"` so the commit can focus the selected frame.
+
+Tests: 13 unit cases (ordering/filter, store, z-layer, hotkey registration),
+7 component cases (order, default selection, wrap, restore, Escape/backdrop,
+Tab trap, dialog semantics) and the 29 existing `WindowFrame` cases including
+the new focus-target assertion. `npm run check` reports 0 errors and the
+existing 6 warnings. No production behaviour outside the window layer changed.
 
 ## Out of scope
 
