@@ -61,7 +61,7 @@ surfaces.
 - [x] The four original local lists are confirmed gone; no production
       behaviour changes are needed for the deletion.
 - [x] `surface-scan.test.ts` guards the rail, header, journal tab strip and
-      settings rail, plus the two registry views and the two dumb primitives.
+      settings rail, plus the three registry views and the two dumb primitives.
 - [x] Every rule has a sample self-test that fails when the regex stops
       matching.
 - [x] The guarded files pass; a reintroduced local label, icon, id or opener
@@ -79,8 +79,8 @@ FEAT-0733 the header button, FEAT-0734 the journal strip's default list and
 FEAT-0735 the settings rail. This item's deletion work was therefore a
 verification pass, not a second removal.
 
-`src/lib/navigation/surface-scan.test.ts` guards the four surfaces, the two
-registry views and the header component. Each rule carries a sample, and the
+`src/lib/navigation/surface-scan.test.ts` guards the four surfaces and the
+three registry views. Each rule carries a sample, and the
 self-test runs that sample through the same helper as the real scan; a regex
 that stops matching fails instead of guarding nothing. The scan was proven
 red by temporarily reintroducing `$_("app.journalButton")` in

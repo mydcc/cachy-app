@@ -35,6 +35,10 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import {
+    STATIC_ENTRY_CONTEXT,
+    getSurfaceEntries,
+} from "./entry-points";
 
 interface Rule {
     /** A regression pattern, matched against the raw source. */
@@ -251,7 +255,7 @@ function violations(source: string, rules: Rule[]): Rule[] {
 }
 
 describe("FEAT-0736: the entry-point registry source scan", () => {
-    it("guards the four migrated surfaces and the two registry views", () => {
+    it("guards the four migrated surfaces and the three registry views", () => {
         expect(SURFACES.map((surface) => surface.file).sort()).toEqual(
             [
                 "src/components/settings/SettingsContent.svelte",
@@ -265,6 +269,16 @@ describe("FEAT-0736: the entry-point registry source scan", () => {
                 "src/routes/+page.svelte",
             ].sort(),
         );
+    });
+
+    it("guards exactly the registry's destination labels", () => {
+        const labelsFor = (surface: "journal-tabs" | "settings-rail") =>
+            getSurfaceEntries(surface, STATIC_ENTRY_CONTEXT).map(
+                ({ entry }) => entry.labels.label,
+            );
+
+        expect(labelsFor("journal-tabs")).toEqual([...JOURNAL_TAB_KEYS]);
+        expect(labelsFor("settings-rail")).toEqual([...SETTINGS_TAB_KEYS]);
     });
 
     it("keeps the migrated surfaces free of local destination data", () => {
