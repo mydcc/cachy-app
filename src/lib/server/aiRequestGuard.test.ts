@@ -53,6 +53,30 @@ describe("readBoundedJson", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.response.status).toBe(400);
   });
+
+  it("cancels a chunked body as soon as it crosses the cap", async () => {
+    let cancelled = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(600));
+        controller.enqueue(new Uint8Array(600));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    // No Content-Length, which is the case the header check cannot cover.
+    const request = {
+      headers: new Headers(),
+      body: stream,
+    } as unknown as Request;
+
+    const result = await readBoundedJson(request, 1_000);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.response.status).toBe(413);
+    expect(cancelled).toBe(true);
+  });
 });
 
 describe("readAiRequest", () => {

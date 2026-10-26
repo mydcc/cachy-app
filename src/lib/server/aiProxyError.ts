@@ -15,11 +15,22 @@
  * generic string; the status code still tells the client what kind of failure
  * it was (401/429/5xx).
  */
+import { json } from "@sveltejs/kit";
 import { sanitizeErrorMessage } from "../../types/apiSchemas";
 
 export const AI_PROXY_ERROR_MESSAGE = "AI provider request failed";
 
 const LOG_MAX_CHARS = 500;
+const UPSTREAM_BODY_MAX_CHARS = 1_000;
+
+/**
+ * Collapses every character a log consumer or a model can read as a line
+ * break: C0/C1 controls, DEL, and the Unicode separators `JSON.stringify`
+ * leaves raw. ANSI escapes are C0 + `[`, so they disappear with the rest.
+ */
+export function collapseUnsafeText(text: string): string {
+  return text.replace(/[\p{Cc}\u2028\u2029]/gu, " ");
+}
 
 /**
  * Redacts a value for a log line.
@@ -39,8 +50,7 @@ export function redactForLog(
   for (const secret of secrets) {
     if (secret) out = out.split(secret).join("***");
   }
-  const collapsed = out.replace(/[\r\n\t]+/g, " ");
-  return sanitizeErrorMessage(collapsed, maxChars).slice(0, maxChars);
+  return sanitizeErrorMessage(collapseUnsafeText(out), maxChars);
 }
 
 /** Logs an upstream/proxy failure without the credential that caused it. */
@@ -57,4 +67,27 @@ export function logAiProxyError(
         : "unknown error";
 
   console.error(`[${scope}] ${redactForLog(text, secrets)}`);
+}
+
+/**
+ * Consumes an upstream error response, logs a redacted detail and returns the
+ * one message a client may see.
+ *
+ * Reading the body matters twice: it releases the socket for reuse (the old
+ * code dropped the response unread) and it keeps a 400 distinguishable from a
+ * 401 in the log. The body is capped before logging; the status is preserved.
+ */
+export async function aiUpstreamFailure(
+  response: Response,
+  scope: string,
+  secrets: readonly (string | null | undefined)[] = [],
+): Promise<Response> {
+  const body = await response.text().catch(() => "");
+  const detail = body.slice(0, UPSTREAM_BODY_MAX_CHARS);
+  logAiProxyError(
+    scope,
+    `status ${response.status}${detail ? `: ${detail}` : ""}`,
+    secrets,
+  );
+  return json({ error: AI_PROXY_ERROR_MESSAGE }, { status: response.status });
 }

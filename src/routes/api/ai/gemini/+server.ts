@@ -21,6 +21,7 @@ import { checkClientToken } from "../../../../lib/server/clientToken";
 import { readAiRequest } from "../../../../lib/server/aiRequestGuard";
 import {
   AI_PROXY_ERROR_MESSAGE,
+  aiUpstreamFailure,
   logAiProxyError,
 } from "../../../../lib/server/aiProxyError";
 import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
@@ -156,16 +157,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     });
 
     if (!response.ok) {
-      // Status only in the response, and no upstream body in the log: Gemini
-      // echoes the key in some 400s (BUG-0724).
       if (response.status === 429) {
         console.warn(
           `Gemini API Warning (${response.status}): Rate limit exceeded.`,
         );
-      } else {
-        logAiProxyError("Gemini upstream", `status ${response.status}`, [apiKey]);
       }
-      return json({ error: AI_PROXY_ERROR_MESSAGE }, { status: response.status });
+      return aiUpstreamFailure(response, "Gemini upstream", [apiKey]);
     }
 
     return new Response(response.body, {

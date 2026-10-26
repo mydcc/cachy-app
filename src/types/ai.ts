@@ -46,10 +46,13 @@ export const AI_LIMITS = {
  * Model identifiers are forwarded into upstream URLs and log lines. Allow the
  * characters every supported provider uses (`gpt-5.4-mini`, `anthropic/claude`,
  * `llama3:8b`, `google/gemini-2.5-pro:free`) and nothing that can terminate a
- * line, a path segment or a query parameter.
+ * line. The value is trimmed first so a pasted trailing space is a model, not
+ * a validation error. Providers that build a URL from it add their own,
+ * stricter alphabet (Gemini does).
  */
 export const AiModelSchema = z
   .string()
+  .trim()
   .max(AI_LIMITS.modelChars)
   .regex(/^[A-Za-z0-9._:@/-]*$/, "Invalid model identifier");
 
@@ -60,7 +63,11 @@ export const AiModelSchema = z
  */
 export const AiToolSchema = z.object({
   type: z.literal("function"),
-  function: z.object({
+  // Loose, not stripped: OpenAI's `strict` and vendor extensions such as
+  // `cache_control` are part of the caller's contract and used to survive
+  // `z.any()`. Validation is about the fields we know must be safe, not about
+  // deleting the rest (BUG-0724 review).
+  function: z.looseObject({
     name: z
       .string()
       .min(1)
@@ -68,6 +75,7 @@ export const AiToolSchema = z.object({
       .regex(/^[A-Za-z0-9_-]+$/, "Invalid tool name"),
     description: z.string().max(AI_LIMITS.toolDescriptionChars).optional(),
     parameters: z.record(z.string(), z.unknown()).optional(),
+    strict: z.boolean().optional(),
   }),
 });
 

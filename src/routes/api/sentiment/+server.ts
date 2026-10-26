@@ -12,8 +12,11 @@ import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 import { checkClientToken } from '../../../lib/server/clientToken';
 import { readBoundedJson } from '../../../lib/server/aiRequestGuard';
-import { logAiProxyError, redactForLog } from '../../../lib/server/aiProxyError';
-import { AiModelSchema } from '../../../types/ai';
+import {
+    collapseUnsafeText,
+    logAiProxyError,
+    redactForLog,
+} from '../../../lib/server/aiProxyError';
 
 /**
  * Sentiment proxy (BUG-0724).
@@ -37,7 +40,15 @@ const SentimentRequestSchema = z.object({
     .min(1)
     .max(MAX_HEADLINES),
   provider: z.enum(['openai', 'gemini']),
-  model: AiModelSchema.optional(),
+  // Narrower than the shared alphabet: the Gemini SDK concatenates a
+  // slash-bearing model id into the request path verbatim, so `/` and `:` do
+  // not belong here even though OpenRouter needs them elsewhere.
+  model: z
+    .string()
+    .trim()
+    .max(200)
+    .regex(/^[A-Za-z0-9._-]+$/, 'Invalid model identifier')
+    .optional(),
   apiKey: z.string().max(512).optional(),
 });
 
@@ -121,16 +132,6 @@ function buildPrompt(headlines: string[]): string {
     ].join('\n');
 }
 
-/** Replaces control characters without a control-character regex (lint rule). */
-function stripControlChars(text: string): string {
-    let out = '';
-    for (const char of text) {
-        const code = char.codePointAt(0) ?? 0;
-        out += code < 0x20 || code === 0x7f ? ' ' : char;
-    }
-    return out;
-}
-
 function parseAnalysis(resultText: string): SentimentOutput | null {
     if (resultText.length > MAX_MODEL_OUTPUT_CHARS) return null;
     try {
@@ -169,7 +170,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         apiKey = parsedRequest.data.apiKey ?? '';
 
         const cleanHeadlines = headlines
-            .map((headline) => stripControlChars(headline).trim())
+            .map((headline) => collapseUnsafeText(headline).trim())
             .filter((headline) => headline.length > 0)
             .slice(0, MAX_HEADLINES);
         if (cleanHeadlines.length === 0) {
@@ -269,7 +270,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         // The response is generic; the redacted detail stays in the log. The
         // old code returned the upstream text and only redacted keys longer
         // than four characters (BUG-0724).
+        const detail = e instanceof Error ? e.message : String(e);
         logAiProxyError('Sentiment', e, [apiKey]);
+
+        // A rejected credential is the caller's error, not an internal one.
+        // The provider text still never leaves the server.
+        if (/API_KEY_INVALID|Incorrect API key|invalid[_ ]api[_ ]key|\b401\b/i.test(detail)) {
+            return json({ error: 'INVALID_API_KEY' }, { status: 401 });
+        }
+        if (/\b403\b/.test(detail)) {
+            return json({ error: 'INVALID_API_KEY' }, { status: 403 });
+        }
         return json({ error: 'INTERNAL_ERROR' }, { status: 500 });
     }
 };

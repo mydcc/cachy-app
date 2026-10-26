@@ -522,7 +522,9 @@ describe("POST /api/ai/openai - proxy error boundary (BUG-0724)", () => {
     expect(body).toEqual({ error: "AI provider request failed" });
     expect(JSON.stringify(body)).not.toContain("sk-test-key");
     expect(consoleError).toHaveBeenCalled();
-    expect(consoleError.mock.calls.flat().join(" ")).not.toContain("sk-test-key");
+    const logged = consoleError.mock.calls.flat().join(" ");
+    expect(logged).toContain("***");
+    expect(logged).not.toContain("sk-test-key");
     consoleError.mockRestore();
   });
 

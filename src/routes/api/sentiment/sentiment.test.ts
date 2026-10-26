@@ -236,9 +236,11 @@ describe('Sentiment API Endpoint', () => {
             getClientAddress,
         } as unknown as RequestEvent);
 
-        expect(response.status).toBe(500);
+        // A rejected credential is a 401, not an internal error; the provider
+        // text still never leaves the server.
+        expect(response.status).toBe(401);
         const data = await response.json();
-        expect(data.error).toBe('INTERNAL_ERROR');
+        expect(data.error).toBe('INVALID_API_KEY');
         expect(JSON.stringify(data)).not.toContain(secretKey);
 
         // Check console.error did not log the secret key

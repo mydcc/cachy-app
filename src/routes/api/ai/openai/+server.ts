@@ -21,6 +21,7 @@ import { checkClientToken } from "../../../../lib/server/clientToken";
 import { readAiRequest } from "../../../../lib/server/aiRequestGuard";
 import {
   AI_PROXY_ERROR_MESSAGE,
+  aiUpstreamFailure,
   logAiProxyError,
 } from "../../../../lib/server/aiProxyError";
 import {
@@ -123,13 +124,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     });
 
     if (!response.ok) {
-      // Status only: the upstream body is attacker-influenced and may echo a
-      // key, an internal host or a path (BUG-0724).
-      logAiProxyError("OpenAI upstream", `status ${response.status}`, [apiKey]);
-      return json(
-        { error: AI_PROXY_ERROR_MESSAGE },
-        { status: response.status },
-      );
+      // The body is consumed for the log (and to release the socket), then
+      // reduced to the generic message — it is attacker-influenced and may
+      // echo a key, an internal host or a path (BUG-0724).
+      return aiUpstreamFailure(response, "OpenAI upstream", [apiKey]);
     }
 
     // Return the stream directly

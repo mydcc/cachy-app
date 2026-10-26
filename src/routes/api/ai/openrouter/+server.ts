@@ -21,6 +21,7 @@ import { checkClientToken } from "../../../../lib/server/clientToken";
 import { readAiRequest } from "../../../../lib/server/aiRequestGuard";
 import {
   AI_PROXY_ERROR_MESSAGE,
+  aiUpstreamFailure,
   logAiProxyError,
 } from "../../../../lib/server/aiProxyError";
 import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
@@ -77,11 +78,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     });
 
     if (!response.ok) {
-      logAiProxyError("OpenRouter upstream", `status ${response.status}`, [apiKey]);
-      return json(
-        { error: AI_PROXY_ERROR_MESSAGE },
-        { status: response.status },
-      );
+      return aiUpstreamFailure(response, "OpenRouter upstream", [apiKey]);
     }
 
     return new Response(response.body, {

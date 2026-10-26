@@ -15,24 +15,29 @@ depends_on: []
 
 # BUG-0724 — Security: AI proxy hardening
 
-> **State note.** Fixed on `fix/security-ai-proxy-hardening`. All six findings
-> are addressed: every provider route answers a generic
-> `AI provider request failed` (upstream status preserved) and logs a redacted
-> detail; the sentiment route carries headlines as a JSON data block under an
-> instruction that names them untrusted, and validates the model answer
-> against a fixed schema before returning it; one shared guard caps the body at
-> 1 MB and the schema caps messages, content, tools, model and base URL; model
-> identifiers are validated against one alphabet on every provider; tools are
-> validated as OpenAI-style function definitions instead of `z.any()`; log
-> lines collapse control characters and scrub exact secrets of every length.
+> **State note.** Fixed on `fix/security-ai-proxy-hardening` (PR #4365). All
+> six findings are addressed: the six completion routes and the four
+> model-listing routes answer a generic `AI provider request failed` (upstream
+> status preserved) and log a redacted detail; the sentiment route carries
+> headlines as a JSON data block under an instruction that names them
+> untrusted, validates the model answer against a fixed schema, and classifies
+> a rejected credential as 401/403 instead of 500; one shared guard enforces a
+> 512 KB body cap while streaming (under adapter-node's default limit) and the
+> schema caps messages, content, tools, model and base URL; model identifiers
+> are trimmed and validated against the shared alphabet, with a narrower
+> alphabet where the value is URL-interpolated (Gemini, sentiment); tools are
+> validated as OpenAI-style function definitions without stripping vendor
+> fields (`strict`, `cache_control`); log lines collapse C0/C1 controls,
+> Unicode separators and ANSI, and scrub exact secrets of every length.
 >
 > Deliberate residual: prompt injection cannot be eliminated by escaping — the
 > model still reads attacker-controlled headlines. The fix bounds what a
 > successful injection can do: the prompt marks the data as data, the output
 > shape is fixed, and nothing from the model is executed or forwarded.
 >
-> Verification: 116 tests across the AI routes, schemas, guard and sentiment;
-> TypeScript and ESLint clean. `npm run backlog:check` is run with the PR.
+> Verification: 99 targeted tests across the AI routes, model-listing routes,
+> schemas, guard, error helper and sentiment, plus `tsc --noEmit` and ESLint;
+> `npm run backlog:check` is run with the PR.
 
 ## Symptom
 
@@ -65,13 +70,13 @@ Multiple medium/low findings in the AI proxy routes:
 
 ## Acceptance criteria
 
-- [ ] AI proxy error responses return generic messages only
-- [ ] Sentiment headlines passed as structured data, not raw prompt text
-- [ ] Input size constraints on all AI routes
-- [ ] Model validation consistent across all providers
-- [ ] Tool definitions validated against schema
-- [ ] No log injection via model string
-- [ ] Regression tests
+- [x] AI proxy error responses return generic messages only
+- [x] Sentiment headlines passed as structured data, not raw prompt text
+- [x] Input size constraints on all AI routes
+- [x] Model validation consistent across all providers
+- [x] Tool definitions validated against schema
+- [x] No log injection via model string
+- [x] Regression tests
 
 ## Links
 

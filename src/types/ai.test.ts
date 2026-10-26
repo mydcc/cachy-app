@@ -89,6 +89,14 @@ describe("ai schemas", () => {
       expect(parsed).toEqual(req);
     });
 
+    it("trims a model identifier instead of rejecting a pasted space", () => {
+      const parsed = AiRequestSchema.parse({
+        messages: [],
+        model: " gpt-4o ",
+      });
+      expect(parsed.model).toBe("gpt-4o");
+    });
+
     it("should reject invalid requests", () => {
       // missing messages
       expect(() => AiRequestSchema.parse({})).toThrow();
@@ -151,10 +159,12 @@ describe("ai schemas", () => {
               name: "execute_trade_actions",
               description: "does things",
               parameters: { type: "object", properties: {} },
+              strict: true,
             },
           },
         ],
       };
+      // `strict` is part of the caller's contract and must survive validation.
       expect(AiRequestSchema.parse(valid)).toEqual(valid);
 
       expect(() =>

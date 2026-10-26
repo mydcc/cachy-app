@@ -28,6 +28,11 @@ import {
   isUrlAllowedAsync,
   safeFetch,
 } from "../../../../../lib/server/urlValidator";
+import {
+  AI_PROXY_ERROR_MESSAGE,
+  aiUpstreamFailure,
+  logAiProxyError,
+} from "../../../../../lib/server/aiProxyError";
 
 interface OpenAiModel {
   id: string;
@@ -86,11 +91,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     const response = await safeFetch(targetUrl, { headers });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return json(
-        { error: err.error?.message || "OpenAI API Error" },
-        { status: response.status },
-      );
+      return aiUpstreamFailure(response, "OpenAI models upstream", [apiKey]);
     }
 
     const data = await response.json();
@@ -127,7 +128,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
 
     return json({ models });
   } catch (e) {
-    console.error("OpenAI Models Proxy Error:", e);
-    return json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    logAiProxyError("OpenAI models", e, [request.headers.get("x-api-key")]);
+    return json({ error: AI_PROXY_ERROR_MESSAGE }, { status: 500 });
   }
 };
