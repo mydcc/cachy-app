@@ -160,8 +160,13 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
 
         // Memory Protection: Trim History if needed. Clamped: an unbounded
         // historyLimit would disable the trim entirely (BUG-0725 review).
+        // A candle count, not a financial value, so no Decimal is involved.
+        const rawLimit = settings?.historyLimit;
         const limit = Math.min(
-            Math.max(Number(settings?.historyLimit) || 750, 1),
+            Math.max(
+                typeof rawLimit === "number" && Number.isFinite(rawLimit) ? rawLimit : 750,
+                1,
+            ),
             50_000,
         );
         // Allow some headroom to avoid shifting every tick
