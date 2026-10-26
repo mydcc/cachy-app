@@ -32,11 +32,11 @@ import { windowManager } from "../../../lib/windows/WindowManager.svelte";
 import EmptyStub from "../../../tests/helpers/EmptyStub.svelte";
 
 class BackdropWindow extends WindowBase {
-    constructor() {
+    constructor(windowType: "modal" | "dialog" | "symbolpicker" = "modal") {
         super({
-            id: "backdrop-test-window",
+            id: `backdrop-test-${windowType}`,
             title: "Backdrop test",
-            windowType: "modal",
+            windowType,
         });
         this.showBackdrop = true;
     }
@@ -60,24 +60,29 @@ afterEach(() => {
 });
 
 describe("WindowContainer backdrop stacking (FEAT-0742)", () => {
-    it("keeps the backdrop below a maximized reserved-band window", () => {
-        const win = new BackdropWindow();
-        windowManager.open(win);
-        win.maximize();
-        flushSync();
+    it.each(["modal", "dialog", "symbolpicker"] as const)(
+        "keeps the backdrop below a maximized %s window",
+        (windowType) => {
+            const win = new BackdropWindow(windowType);
+            windowManager.open(win);
+            win.maximize();
+            flushSync();
 
-        host = document.createElement("div");
-        document.body.appendChild(host);
-        component = mount(WindowContainer, { target: host }) as never;
-        flushSync();
+            host = document.createElement("div");
+            document.body.appendChild(host);
+            component = mount(WindowContainer, { target: host }) as never;
+            flushSync();
 
-        const backdrop = host.querySelector<HTMLElement>(".window-backdrop");
-        const frame = host.querySelector<HTMLElement>(".window-frame");
-        if (!backdrop) throw new Error("the container rendered no backdrop");
-        if (!frame) throw new Error("the container rendered no frame");
+            const backdrop =
+                host.querySelector<HTMLElement>(".window-backdrop");
+            const frame = host.querySelector<HTMLElement>(".window-frame");
+            if (!backdrop)
+                throw new Error("the container rendered no backdrop");
+            if (!frame) throw new Error("the container rendered no frame");
 
-        expect(Number(frame.style.zIndex)).toBeGreaterThan(
-            Number(backdrop.style.zIndex),
-        );
-    });
+            expect(Number(frame.style.zIndex)).toBeGreaterThan(
+                Number(backdrop.style.zIndex),
+            );
+        },
+    );
 });
