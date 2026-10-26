@@ -2,7 +2,7 @@
 id: FEAT-0739
 title: Snap a dragged window to other windows and the screen centre
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0739-window-to-window-snap
 priority: P2
@@ -47,23 +47,46 @@ workspace makes it worthwhile.
 
 ## Acceptance criteria
 
-- [ ] Dragging a non-maximized window within 12 px of another window's left,
+- [x] Dragging a non-maximized window within 12 px of another window's left,
       right, top, bottom or centre line snaps that axis to it.
-- [ ] A 12 px boundary snaps; 13 px does not.
-- [ ] The window's left/right/top/bottom can also align adjacent to another
+- [x] A 12 px boundary snaps; 13 px does not.
+- [x] The window's left/right/top/bottom can also align adjacent to another
       window's opposite edge (no gap, no overlap by construction).
-- [ ] The usable-area centre is a candidate on both axes, using the same shell
+- [x] The usable-area centre is a candidate on both axes, using the same shell
       insets as tiling.
-- [ ] The active screen-edge half/quarter preview suppresses window snapping;
+- [x] The active screen-edge half/quarter preview suppresses window snapping;
       cancelling the edge preview restores normal movement.
-- [ ] The dragged window, minimized windows and modal/dialog windows never act
+- [x] The dragged window, minimized windows and modal/dialog windows never act
       as targets.
-- [ ] Both axes can snap in one move; each axis chooses the nearest candidate.
-- [ ] No new localStorage keys or window state; the drag-end save keeps the
+- [x] Both axes can snap in one move; each axis chooses the nearest candidate.
+- [x] No new localStorage keys or window state; the drag-end save keeps the
       snapped geometry.
-- [ ] Pure-helper and component tests cover the candidate matrix, threshold,
+- [x] Pure-helper and component tests cover the candidate matrix, threshold,
       insets, exclusions and the edge-preview interaction.
-- [ ] `npm run check` stays at 0 errors; no hardcoded colours.
+- [x] `npm run check` stays at 0 errors; no hardcoded colours.
+
+## Progress
+
+`windowSnapping.ts` is a pure 12 px alignment helper. It matches left/left,
+right/right, both adjacent pairs and centre-to-centre for every other visible
+window, plus the usable-area centre from `getUsableBounds`. The axes snap
+independently to the nearest candidate; the raw position is returned rounded
+when nothing is in range.
+
+`WindowFrame` runs the helper only after `detectSnapZone` returns null, so the
+48 px screen-edge tiler keeps priority. The target list excludes the dragged
+window, minimized windows and modal/dialog windows. There is no new state,
+localStorage key or guide overlay: the snapped position is the live drag
+position, and the existing drag-end save persists it.
+
+`getUsableBounds` is the shared clamp now used by both the tiler and the
+window-centre candidate. Tests: 22 `snapping` cases (including the bounds
+clamp) and 13 `windowSnapping` cases (edge/centre candidates, adjacency,
+nearest, 12/13 px boundary, insets, invalid targets) plus 57 `WindowFrame`
+cases (neighbour alignment, minimized/modal exclusion, edge-priority and the
+existing tiling regressions). The broader
+`WindowBase`/`WindowManager` suites stay at 71. `npm run check` reports 0
+errors and the existing 6 warnings; ESLint is clean.
 
 ## Out of scope
 
