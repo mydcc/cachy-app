@@ -18,7 +18,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
-import { AiRequestSchema } from "../../../../types/ai";
+import { readAiRequest } from "../../../../lib/server/aiRequestGuard";
+import {
+  AI_PROXY_ERROR_MESSAGE,
+  aiUpstreamFailure,
+  logAiProxyError,
+} from "../../../../lib/server/aiProxyError";
 import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
 import {
   isUrlAllowedAsync,
@@ -29,19 +34,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
+  let apiKey: string | null = null;
   try {
-    const rawBody = await request.json();
-    const parseResult = AiRequestSchema.safeParse(rawBody);
+    const guarded = await readAiRequest(request);
+    if (!guarded.ok) return guarded.response;
 
-    if (!parseResult.success) {
-      return json(
-        { error: "Invalid request body", details: parseResult.error.format() },
-        { status: 400 },
-      );
-    }
-
-    const { messages, model, tools, baseUrl } = parseResult.data;
-    const apiKey = request.headers.get("x-api-key");
+    const { messages, model, tools, baseUrl } = guarded.data;
+    apiKey = request.headers.get("x-api-key");
 
     if (!apiKey && !baseUrl?.trim()) {
       return json({ error: "Missing API Key" }, { status: 401 });
@@ -79,11 +78,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return json(
-        { error: err.error?.message || "OpenRouter API Error" },
-        { status: response.status },
-      );
+      return aiUpstreamFailure(response, "OpenRouter upstream", [apiKey]);
     }
 
     return new Response(response.body, {
@@ -94,7 +89,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       },
     });
   } catch (e) {
-    console.error("OpenRouter Proxy Error:", e);
-    return json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    logAiProxyError("OpenRouter", e, [apiKey]);
+    return json({ error: AI_PROXY_ERROR_MESSAGE }, { status: 500 });
   }
 };

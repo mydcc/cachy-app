@@ -17,9 +17,13 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { getErrorMessage } from "../../../../utils/errorUtils";
 import { checkClientToken } from "../../../../lib/server/clientToken";
-import { AiRequestSchema } from "../../../../types/ai";
+import { readAiRequest } from "../../../../lib/server/aiRequestGuard";
+import {
+  AI_PROXY_ERROR_MESSAGE,
+  aiUpstreamFailure,
+  logAiProxyError,
+} from "../../../../lib/server/aiProxyError";
 import {
   isOpenCodeTarget,
   resolveProviderEndpoint,
@@ -58,19 +62,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
+  let apiKey: string | null = null;
   try {
-    const rawBody = await request.json();
-    const parseResult = AiRequestSchema.safeParse(rawBody);
+    const guarded = await readAiRequest(request);
+    if (!guarded.ok) return guarded.response;
 
-    if (!parseResult.success) {
-      return json(
-        { error: "Invalid request body", details: parseResult.error.format() },
-        { status: 400 },
-      );
-    }
-
-    const { messages, model, tools, baseUrl } = parseResult.data;
-    const apiKey = request.headers.get("x-api-key");
+    const { messages, model, tools, baseUrl } = guarded.data;
+    apiKey = request.headers.get("x-api-key");
     /** Cachy's conversation id, translated for providers that need one. */
     const sessionId = request.headers.get("x-session-id");
 
@@ -126,11 +124,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      return json(
-        { error: err.error?.message || "OpenAI API Error" },
-        { status: response.status },
-      );
+      // The body is consumed for the log (and to release the socket), then
+      // reduced to the generic message — it is attacker-influenced and may
+      // echo a key, an internal host or a path (BUG-0724).
+      return aiUpstreamFailure(response, "OpenAI upstream", [apiKey]);
     }
 
     // Return the stream directly
@@ -142,7 +139,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       },
     });
   } catch (e: unknown) {
-    console.error("OpenAI Proxy Error:", e);
-    return json({ error: getErrorMessage(e) }, { status: 500 });
+    logAiProxyError("OpenAI", e, [apiKey]);
+    return json({ error: AI_PROXY_ERROR_MESSAGE }, { status: 500 });
   }
 };

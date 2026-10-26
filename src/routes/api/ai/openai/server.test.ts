@@ -478,3 +478,69 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard 
     expect(body.models.map((m: { id: string }) => m.id)).toEqual(["gpt-4o"]);
   });
 });
+
+describe("POST /api/ai/openai - proxy error boundary (BUG-0724)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    _resetForTests();
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ] as unknown as dns.LookupAddress[]);
+  });
+
+  const requestWith = (body: unknown) =>
+    new Request("http://localhost/api/ai/openai", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-app-access-token": issueToken(),
+        "x-api-key": "sk-test-key",
+      },
+      body: JSON.stringify(body),
+    });
+
+  it("does not relay an upstream error body that echoes the key", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: {
+            message:
+              "Incorrect API key sk-test-key at https://internal.example/v1",
+          },
+        }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const res = await POST(
+      event(requestWith({ messages: [{ role: "user", content: "hi" }] })),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(body).toEqual({ error: "AI provider request failed" });
+    expect(JSON.stringify(body)).not.toContain("sk-test-key");
+    expect(consoleError).toHaveBeenCalled();
+    const logged = consoleError.mock.calls.flat().join(" ");
+    expect(logged).toContain("***");
+    expect(logged).not.toContain("sk-test-key");
+    consoleError.mockRestore();
+  });
+
+  it("refuses an oversized body before any provider call", async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const res = await POST(
+      event(
+        requestWith({
+          messages: [{ role: "user", content: "x".repeat(1_000_001) }],
+        }),
+      ),
+    );
+
+    expect(res.status).toBe(413);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

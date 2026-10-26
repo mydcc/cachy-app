@@ -80,7 +80,10 @@ describe("Ollama Models Route GET", () => {
     expect(response.status).toBe(502);
 
     const body = await response.json();
-    expect(body.error).toContain("Could not reach Ollama at https://ollama.example.com");
+    // The hint stays; the resolved endpoint does not (BUG-0724 review: an
+    // operator's internal host must not be echoed to every caller).
+    expect(body.error).toContain("Could not reach the configured Ollama endpoint");
+    expect(body.error).not.toContain("ollama.example.com");
   });
 
   it("returns models array when Ollama fetch succeeds", async () => {

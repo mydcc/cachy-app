@@ -23,6 +23,10 @@ import {
   MISSING_BASE_URL_ERROR,
   resolveBaseUrl,
 } from "../../../../../lib/server/ollamaBaseUrl";
+import {
+  aiUpstreamFailure,
+  logAiProxyError,
+} from "../../../../../lib/server/aiProxyError";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface OllamaModel {
@@ -53,10 +57,7 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     const response = await safeFetch(`${baseUrl}/api/tags`);
 
     if (!response.ok) {
-      return json(
-        { error: `Ollama returned status ${response.status}` },
-        { status: response.status },
-      );
+      return aiUpstreamFailure(response, "Ollama models upstream", []);
     }
 
     const data = await response.json();
@@ -67,11 +68,10 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
 
     return json({ models });
   } catch (e) {
-    console.error("Ollama Models Proxy Error:", e);
-    const hint = "Is it running and is the base URL correct?";
+    logAiProxyError("Ollama models", e, []);
     return json(
       {
-        error: `Could not reach Ollama at ${baseUrl}. ${hint}`,
+        error: `Could not reach the configured Ollama endpoint. Is it running and is the base URL correct?`,
       },
       { status: 502 },
     );

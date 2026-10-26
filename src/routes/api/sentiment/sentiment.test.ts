@@ -118,7 +118,101 @@ describe('Sentiment API Endpoint', () => {
         expect(data.isFallback).toBeUndefined();
     });
 
-    it('should redact API key and sanitize error when upstream throws an error containing API key (BUG-0236)', async () => {
+    it('passes headlines as a JSON data block, not as prompt text', async () => {
+        mockGenerateContent.mockResolvedValue({
+            response: {
+                text: () => JSON.stringify({
+                    score: 0.5,
+                    regime: 'BULLISH',
+                    summary: 'Positive.',
+                    keyFactors: ['inflows'],
+                }),
+            },
+        });
+
+        const request = new Request('http://localhost/api/sentiment', {
+            method: 'POST',
+            body: JSON.stringify({
+                headlines: ['BTC sets new record high'],
+                provider: 'gemini',
+                apiKey: 'test-api-key',
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        await POST({ request, getClientAddress } as unknown as RequestEvent);
+
+        const prompt = mockGenerateContent.mock.calls[0][0] as string;
+        expect(prompt).toContain(JSON.stringify({ headlines: ['BTC sets new record high'] }));
+        expect(prompt).toContain('untrusted data');
+        expect(prompt).not.toContain('- BTC sets new record high');
+    });
+
+    it('rejects an oversized body before the provider call', async () => {
+        const request = new Request('http://localhost/api/sentiment', {
+            method: 'POST',
+            body: JSON.stringify({
+                // Above the 64 KB body cap, so the guard answers before the
+                // per-headline limit can turn it into a schema 400.
+                headlines: ['x'.repeat(70_000)],
+                provider: 'gemini',
+                apiKey: 'test-api-key',
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        const response = await POST({ request, getClientAddress } as unknown as RequestEvent);
+
+        expect(response.status).toBe(413);
+        expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('rejects a model identifier outside the shared alphabet', async () => {
+        const request = new Request('http://localhost/api/sentiment', {
+            method: 'POST',
+            body: JSON.stringify({
+                headlines: ['BTC sets new record high'],
+                provider: 'gemini',
+                model: 'gemini\nforged-log-line',
+                apiKey: 'test-api-key',
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        const response = await POST({ request, getClientAddress } as unknown as RequestEvent);
+
+        expect(response.status).toBe(400);
+        const data = await response.json();
+        expect(data.error).toBe('INVALID_REQUEST');
+        expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the heuristic when the model output does not match the schema', async () => {
+        mockGenerateContent.mockResolvedValue({
+            response: {
+                text: () => JSON.stringify({ score: 9, regime: 'HACKED' }),
+            },
+        });
+
+        const request = new Request('http://localhost/api/sentiment', {
+            method: 'POST',
+            body: JSON.stringify({
+                headlines: ['Bitcoin surges past 100k'],
+                provider: 'gemini',
+                apiKey: 'test-api-key',
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        const response = await POST({ request, getClientAddress } as unknown as RequestEvent);
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.isFallback).toBe(true);
+        expect(data.analysis.regime).toBe('BULLISH');
+    });
+
+    it('returns a generic error and keeps the key out of the response and log (BUG-0236, BUG-0724)', async () => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         const secretKey = 'AIzaSySecretApiKey123456';
 
@@ -142,11 +236,12 @@ describe('Sentiment API Endpoint', () => {
             getClientAddress,
         } as unknown as RequestEvent);
 
-        expect(response.status).toBe(500);
+        // A rejected credential is a 401, not an internal error; the provider
+        // text still never leaves the server.
+        expect(response.status).toBe(401);
         const data = await response.json();
-        expect(data.error).toBeDefined();
-        expect(data.error).not.toContain(secretKey);
-        expect(data.error).toContain('***');
+        expect(data.error).toBe('INVALID_API_KEY');
+        expect(JSON.stringify(data)).not.toContain(secretKey);
 
         // Check console.error did not log the secret key
         expect(consoleErrorSpy).toHaveBeenCalled();
