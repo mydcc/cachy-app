@@ -116,28 +116,54 @@ export const MAX_MESSAGE_LENGTH = 1000;
 /**
  * One-line chat text (BUG-0726).
  *
- * Control characters, bidi controls, zero-width characters and blank glyphs
- * (braille blank, Hangul fillers) become a space; runs of whitespace collapse
- * and the edges are trimmed. The set is explicit rather than all of `\p{Cf}`:
- * ZWJ/ZWNJ (U+200C/U+200D) must survive so emoji clusters and joining scripts
- * still render.
+ * Formatting marks are removed so a soft hyphen, word joiner or bidi control
+ * cannot split or reorder a word. Separators and blank glyphs become a space,
+ * runs of whitespace collapse and the edges are trimmed. ZWJ/ZWNJ
+ * (U+200C/U+200D) survive so emoji clusters and joining scripts still render.
  *
- * Bidi overrides (U+202A–U+202E, U+2066–U+2069) are removed because they let a
- * sender reorder or spoof the visible text. A result with no visible character
- * is returned as an empty string, which the caller rejects. Braille blank
- * (U+2800) and the Hangul fillers (U+115F/U+1160) are `So`/`Lo`, so the class
- * check alone would accept them as visible; they are in the removal set for
- * exactly that reason.
+ * The blank-glyph list covers the codepoints that render as nothing or as a
+ * placeholder despite being `Lo`/`So`/`Po`/`Sk`; a class check alone would
+ * accept them. The visible check rejects a result made only of whitespace,
+ * controls, combining marks, bare emoji modifiers or one of those glyphs.
  */
-const INVISIBLE_OR_CONTROL =
-  /[\p{Cc}\u00AD\u061C\u115F\u1160\u180E\u200B\u200E\u200F\u202A-\u202E\u2028\u2029\u2060-\u2064\u2066-\u2069\u2800\u3164\uFEFF\uFFA0\uFFF9-\uFFFB]/gu;
+const ZERO_WIDTH_SPACE = /\u200B/gu;
 
-/** At least one glyph a reader can see; combining marks alone do not count. */
-const VISIBLE_CHARACTER = /[\p{L}\p{N}\p{P}\p{S}]/u;
+/**
+ * Formatting marks and other code points that render as nothing. They are
+ * removed rather than replaced so a soft hyphen, word joiner or bidi control
+ * cannot split a word. ZWJ/ZWNJ are preserved; `\p{Cs}` drops lone surrogates,
+ * which are not valid text.
+ */
+const INVISIBLE_MARKS =
+  /[\p{Cf}\p{Cs}\u034F\u180B-\u180D\u180F\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu;
+
+/**
+ * Code points that render as blank or as a placeholder, not as text. They are
+ * replaced with a space so a message made only of them collapses to empty.
+ * The visible check below uses the same list; keep the two in sync.
+ */
+const BLANK_GLYPHS =
+  /[\u2800\u115F\u1160\u3164\uFFA0\u{13441}\u{13442}\u{1D159}\uFFFC\u{11C44}\u{11C45}\u{1144E}\u{11945}\u{1ECAC}\uA837]/gu;
+
+/**
+ * At least one glyph a reader can see. Whitespace, controls, combining marks
+ * and the listed blank glyphs do not count; neither do bare emoji modifiers
+ * (skin-tone selectors), which only make sense after a base emoji.
+ */
+// The modifier range is deliberate: a bare skin-tone selector renders blank,
+// while the same selector after a base emoji must pass.
+const VISIBLE_CHARACTER =
+  // eslint-disable-next-line no-misleading-character-class
+  /[^\p{Z}\p{C}\p{M}\u2800\u115F\u1160\u3164\uFFA0\u{13441}\u{13442}\u{1D159}\uFFFC\u{1F3FB}-\u{1F3FF}\u{11C44}\u{11C45}\u{1144E}\u{11945}\u{1ECAC}\uA837]/u;
 
 export function sanitizeMessageText(text: string): string {
   const collapsed = text
-    .replace(INVISIBLE_OR_CONTROL, ' ')
+    .replace(ZERO_WIDTH_SPACE, ' ')
+    .replace(INVISIBLE_MARKS, (ch) =>
+      ch === '\u200C' || ch === '\u200D' ? ch : '',
+    )
+    .replace(BLANK_GLYPHS, ' ')
+    .replace(/\p{Cc}/gu, ' ')
     .replace(/\s+/gu, ' ')
     .trim();
   return VISIBLE_CHARACTER.test(collapsed) ? collapsed : '';
@@ -165,9 +191,9 @@ export interface MessageDb {
 }
 
 /**
- * Writes a non-rejecting decision. A rejection here is a caller bug: it must
- * already have been thrown with its specific message, so dropping it silently
- * would hide the failure.
+ * Writes a non-rejecting decision. Both callers check for `reject` first, so
+ * the throw below is a defensive assertion, not a reachable path; it keeps a
+ * future caller from dropping a rejection silently.
  */
 function applyActivity(db: MessageDb, decision: RateLimitDecision): void {
   if (decision.action === 'reject') {
@@ -187,9 +213,11 @@ export function handleSendMessage(
   timestamp: number,
   text: string,
 ): void {
-  // Cheap early bound before the regex pass: a reducer argument far above the
-  // message cap cannot become a valid message, so it is rejected without
-  // scanning it character by character.
+  // Cheap DoS bound before the regex passes. It is deliberately four times the
+  // stored cap: a message may carry some padding, and the exact check runs on
+  // the sanitized text below. The bound is a resource guard, not a validity
+  // rule, so a pathological string that would sanitize below the cap can still
+  // be refused here.
   if (text.length > MAX_MESSAGE_LENGTH * 4) {
     throw new Error('Message too long');
   }

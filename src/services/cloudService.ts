@@ -25,7 +25,10 @@ import type { Infer } from 'spacetimedb';
 import { logger } from './logger';
 import { settingsState } from '../stores/settings.svelte';
 import { cloudHostSecurityIssue } from './cloudHost';
-import { sanitizeChatText } from '../lib/utils/chatText';
+import {
+  MAX_CHAT_MESSAGE_LENGTH,
+  sanitizeChatText,
+} from '../lib/utils/chatText';
 
 type GlobalMessage = Infer<typeof GlobalMessageType>;
 
@@ -52,6 +55,17 @@ const senderIdOf = (identity: { toHexString(): string }): string =>
 class CloudService {
   private conn: DbConnection | null = null;
   private connected = false;
+  /**
+   * True from `build()` until the handshake settles. A second `connect()` must
+   * not start a parallel socket while the first one is still pending.
+   */
+  private connecting = false;
+  /**
+   * Invalidates late callbacks: `disconnect()` and every new `connect()` bump
+   * it, and an `onConnect` from an older generation closes its own socket
+   * instead of resurrecting the service.
+   */
+  private connectionGeneration = 0;
   private lastError: string | null = null;
   private mySenderId: string | null = null;
   private messages: GlobalMessage[] = [];
@@ -110,6 +124,10 @@ class CloudService {
    * this from the same effect that opens the connection.
    */
   disconnect(): void {
+    // Invalidate any in-flight handshake: a late `onConnect` must not reopen
+    // the service after the user opted out or reconnected.
+    this.connectionGeneration += 1;
+    this.connecting = false;
     const connection = this.conn as unknown as { disconnect?: () => void } | null;
     try {
       connection?.disconnect?.();
@@ -145,7 +163,7 @@ class CloudService {
     if (!token) {
       throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
     }
-    if (this.connected) return;
+    if (this.connected || this.connecting) return;
 
     const uri = host || settingsState.cloudHost;
     const moduleName = dbName || settingsState.cloudDbName;
@@ -161,12 +179,28 @@ class CloudService {
 
     logger.log('network', 'Connecting to SpacetimeDB...', uri);
 
+    const generation = ++this.connectionGeneration;
+    this.connecting = true;
+
     try {
       this.conn = DbConnection.builder()
         .withUri(uri)
         .withDatabaseName(moduleName)
         .withToken(token) // Enforce token
-        .onConnect((_connection, identity) => {
+        .onConnect((connection, identity) => {
+          if (generation !== this.connectionGeneration) {
+            // A disconnect or a newer connect superseded this handshake. Close
+            // the socket this callback owns; do not touch the current one.
+            (connection as unknown as { disconnect?: () => void } | undefined)
+              ?.disconnect?.();
+            return;
+          }
+          this.connecting = false;
+          if (!settingsState.cloudEnabled) {
+            // The opt-in was turned off while the handshake was in flight.
+            this.disconnect();
+            return;
+          }
           // Log the identity, never the connection object: the SDK keeps the
           // bearer token on it, and a debug log must not become a token leak.
           logger.log(
@@ -189,6 +223,9 @@ class CloudService {
           }
         })
         .onConnectError((ctx, error) => {
+          if (generation !== this.connectionGeneration) return;
+          this.connecting = false;
+          this.conn = null;
           logger.error('network', 'SpacetimeDB connection error:', error);
           this.connected = false;
           this.mySenderId = null;
@@ -196,6 +233,9 @@ class CloudService {
           this.notifyStatusSubscribers(this.status());
         })
         .onDisconnect((ctx) => {
+          if (generation !== this.connectionGeneration) return;
+          this.connecting = false;
+          this.conn = null;
           logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
           this.mySenderId = null;
@@ -207,6 +247,8 @@ class CloudService {
       // calculation, a journal entry or a risk figure down with it — ADR-0001
       // requires every core function to work with the network down. The failure
       // is recorded so the settings tab can say so, and nothing else changes.
+      this.connecting = false;
+      this.conn = null;
       this.lastError = e instanceof Error ? e.message : String(e);
       logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
       this.notifyStatusSubscribers(this.status());
@@ -262,6 +304,9 @@ class CloudService {
     const sanitized = sanitizeChatText(text);
     if (sanitized.length === 0) {
       throw new Error('Message cannot be empty');
+    }
+    if (sanitized.length > MAX_CHAT_MESSAGE_LENGTH) {
+      throw new Error(`Message too long (max ${MAX_CHAT_MESSAGE_LENGTH}).`);
     }
     if (!this.connected) {
       logger.warn('network', 'Cannot send message: Not connected');

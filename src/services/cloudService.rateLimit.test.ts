@@ -303,6 +303,24 @@ describe("FEAT-0375: send_message rate limiting reducer integration", () => {
     ["BOM", "\uFEFF"],
     ["line separator", "\u2028"],
     ["control character", "\u0000"],
+    ["Egyptian full blank", "\u{13441}"],
+    ["Egyptian half blank", "\u{13442}"],
+    ["musical null notehead", "\u{1D159}"],
+    ["object replacement", "\uFFFC"],
+    ["emoji modifier", "\u{1F3FB}"],
+    ["gap filler 1", "\u{11C44}"],
+    ["gap filler 2", "\u{11C45}"],
+    ["gap filler 3", "\u{1144E}"],
+    ["gap filler 4", "\u{11945}"],
+    ["placeholder mark 1", "\u{1ECAC}"],
+    ["placeholder mark 2", "\uA837"],
+    ["tag character", "\u{E0061}"],
+    ["musical format control", "\u{1D173}"],
+    ["Egyptian format control", "\u{13430}"],
+    ["prepended concatenation mark", "\u0600"],
+    ["combining grapheme joiner", "\u034F"],
+    ["Mongolian free variation selector", "\u180B"],
+    ["variation selector", "\uFE0F"],
   ];
 
   it.each(INVISIBLE_MESSAGES)(
@@ -318,35 +336,51 @@ describe("FEAT-0375: send_message rate limiting reducer integration", () => {
     },
   );
 
-  it("replaces blank glyphs with spaces and keeps the visible text", () => {
+  it("keeps visible text while removing formatting marks and spacing blank glyphs", () => {
     expect(sanitizeMessageText("a\u2800b")).toBe("a b");
     expect(sanitizeMessageText("a\u115Fb")).toBe("a b");
-    expect(sanitizeMessageText("a\u061Cb")).toBe("a b");
-    expect(sanitizeMessageText("a\u2060b")).toBe("a b");
-  });
-
-  it("keeps the client-side sanitizer in lockstep with the reducer", () => {
-    const cases = [
-      "hello",
-      "  hello  ",
-      "a\tb\nc",
-      "ab\u202Ecd",
-      "\u200B",
-      "\u2800",
-      "\u115F",
-      "👨\u200D👩",
-      "a\u2800b",
-    ];
-
-    for (const input of cases) {
-      expect(sanitizeChatText(input)).toBe(sanitizeMessageText(input));
-    }
+    expect(sanitizeMessageText("a\u200Bb")).toBe("a b");
+    expect(sanitizeMessageText("a\u00ADb")).toBe("ab");
+    expect(sanitizeMessageText("a\u061Cb")).toBe("ab");
+    expect(sanitizeMessageText("a\u2060b")).toBe("ab");
+    expect(sanitizeMessageText("a\u{E0061}b")).toBe("ab");
+    expect(sanitizeMessageText("Silben\u00ADtrennung")).toBe("Silbentrennung");
+    // ZWJ is deliberately preserved so emoji clusters survive.
+    expect(sanitizeMessageText("👨\u200D👩")).toBe("👨\u200D👩");
+    // A modifier after a base emoji survives; a bare modifier does not.
+    expect(sanitizeMessageText("👍🏽")).toBe("👍🏽");
+    expect(sanitizeMessageText("a\u0301")).toBe("a\u0301");
   });
 
   it("strips bidi overrides but keeps the visible text around them (BUG-0726 review)", () => {
-    expect(sanitizeMessageText("ab\u202Ecd")).toBe("ab cd");
-    // ZWJ is deliberately preserved so emoji clusters survive.
-    expect(sanitizeMessageText("👨\u200D👩")).toBe("👨\u200D👩");
+    expect(sanitizeMessageText("ab\u202Ecd")).toBe("abcd");
+  });
+
+  it("keeps the client-side sanitizer in lockstep with the reducer across the BMP", () => {
+    const mismatches: string[] = [];
+
+    for (let codePoint = 0; codePoint <= 0xffff; codePoint += 1) {
+      const input = String.fromCharCode(codePoint);
+      if (sanitizeChatText(input) !== sanitizeMessageText(input)) {
+        mismatches.push(`U+${codePoint.toString(16).padStart(4, "0")}`);
+      }
+    }
+
+    for (const input of [
+      "\u{E0001}",
+      "\u{E0020}",
+      "\u{E007F}",
+      "\u{E0100}",
+      "👨\u200D👩",
+      "👍🏽",
+      "a\u2800b",
+    ]) {
+      if (sanitizeChatText(input) !== sanitizeMessageText(input)) {
+        mismatches.push(JSON.stringify(input));
+      }
+    }
+
+    expect(mismatches).toEqual([]);
   });
 
   it("rejects an oversized raw payload before the sanitizer runs (BUG-0726 review)", () => {

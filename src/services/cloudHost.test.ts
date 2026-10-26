@@ -30,11 +30,14 @@ describe("cloudHostSecurityIssue (BUG-0726)", () => {
   });
 
   it("refuses host-confusion and userinfo forms", () => {
-    expect(cloudHostSecurityIssue("http://127.0.0.1.evil.com")).toMatch(/https/);
-    expect(cloudHostSecurityIssue("http://localhost.evil.com")).toMatch(/https/);
-    expect(cloudHostSecurityIssue("http://localhost@evil.com")).toMatch(/https/);
-    expect(cloudHostSecurityIssue("http://evil.com#@127.0.0.1")).toMatch(/https/);
-    expect(cloudHostSecurityIssue("http://[::ffff:127.0.0.1]")).toMatch(/https/);
+    expect(cloudHostIssue("http://127.0.0.1.evil.com")).toBe("insecure_transport");
+    expect(cloudHostIssue("http://localhost.evil.com")).toBe("insecure_transport");
+    expect(cloudHostIssue("http://localhost@evil.com")).toBe("insecure_transport");
+    expect(cloudHostIssue("http://evil.com#@127.0.0.1")).toBe("insecure_transport");
+  });
+
+  it("refuses an IPv4-mapped loopback address as a deliberate fail-closed policy", () => {
+    expect(cloudHostIssue("http://[::ffff:127.0.0.1]")).toBe("insecure_transport");
   });
 
   it("accepts wss as a secure transport", () => {

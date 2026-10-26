@@ -11,6 +11,7 @@ import { browser } from "$app/env";
 
 import { settingsState } from "./settings.svelte";
 import { cloudService, type CloudStatus } from "../services/cloudService";
+import { MAX_CHAT_MESSAGE_LENGTH } from "../lib/utils/chatText";
 
 /**
  * Global Chat, backed by SpacetimeDB.
@@ -34,9 +35,6 @@ export interface ChatMessage {
   /** The sender's identity string, unmapped. */
   clientId?: string;
 }
-
-/** Matches the module's `send_message` guard, so we reject before the round trip. */
-const MAX_MESSAGE_LENGTH = 1000;
 
 /** Client-side rate limit, unchanged from the previous backend. */
 const SEND_INTERVAL_MS = 2000;
@@ -81,9 +79,10 @@ class ChatManager {
           const token = settingsState.cloudToken;
 
           if (!enabled) {
-            // Turning the opt-in off must also close a live connection
-            // (BUG-0726 review). Simply returning here left the socket open.
-            if (cloudService.isConnected()) cloudService.disconnect();
+            // Turning the opt-in off must also close a live connection or a
+            // handshake that is still in flight (BUG-0726 review). `disconnect`
+            // is idempotent and invalidates any late `onConnect`.
+            cloudService.disconnect();
             return;
           }
           if (!token) return;
@@ -159,8 +158,8 @@ class ChatManager {
     if (now - this.lastSentTimestamp < SEND_INTERVAL_MS) {
       throw new Error("Please wait 2 seconds between messages.");
     }
-    if (text.length > MAX_MESSAGE_LENGTH) {
-      throw new Error(`Message too long (max ${MAX_MESSAGE_LENGTH}).`);
+    if (text.length > MAX_CHAT_MESSAGE_LENGTH) {
+      throw new Error(`Message too long (max ${MAX_CHAT_MESSAGE_LENGTH}).`);
     }
     if (!this.connected) {
       throw new Error(

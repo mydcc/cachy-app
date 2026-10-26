@@ -27,11 +27,14 @@ depends_on: []
 >    60-second window lives in a reserved `__global__` row of the existing
 >    `sender_activity` table (no schema change). Per-sender and global decisions
 >    are evaluated before either counter is written.
-> 3. **Empty/whitespace** — `sanitizeMessageText` replaces control characters,
->    bidi controls, zero-width characters and blank glyphs (braille blank,
->    Hangul fillers) with spaces, keeps ZWJ/ZWNJ, and rejects a result with no
->    visible character. `cloudService.sendMessage` mirrors the same sanitizer
->    before the text leaves the device.
+> 3. **Empty/whitespace** — `sanitizeMessageText` removes formatting marks
+>    (bidi controls, tag characters, variation selectors and zero-width
+>    characters other than ZWJ/ZWNJ), turns a zero-width space into a word
+>    break, and replaces controls, line separators and the listed blank glyphs
+>    (braille blank, Hangul fillers, Egyptian blanks, bare emoji modifiers)
+>    with spaces. A result with no visible character is rejected;
+>    `cloudService.sendMessage` mirrors the sanitizer before the text leaves
+>    the device.
 > 4. **Stored XSS** — text interpolation only, with a comment at the render
 >    site and `src/tests/security/chat_rendering.test.ts` pinning both chat
 >    renderers against an HTML directive and `innerHTML`.
@@ -48,14 +51,17 @@ depends_on: []
 >    tables.
 >
 > Review round: the first pass added `disconnect()`, the stronger sanitizer,
-> the cleanup throttle and the wider renderer guard. A second adversarial pass
-> added the remaining blank glyphs (braille blank, Hangul fillers), the
+> the cleanup throttle and the wider renderer guard. A second pass added the
 > settings-tab disconnect path, an identity-only connection log, the
 > builder-not-called ordering assertion and a client/server sanitizer parity
-> test. Host warnings map the actual reason and expose it via
-> `aria-describedby`; an oversized raw payload is rejected before the sanitizer
-> runs; tests assert that a rejection consumes neither counter and that erasure
-> leaves the aggregate rows.
+> test. A third pass closed the follow-up review: formatting marks are removed
+> wholesale (except ZWJ/ZWNJ), the remaining blank glyphs are covered, a late
+> `onConnect` after opt-out or a superseded handshake is closed instead of
+> resurrecting the socket, and the connect path refuses a parallel handshake.
+> Host warnings map the actual reason and expose it via `aria-describedby`; an
+> oversized raw payload is rejected before the sanitizer runs; tests assert
+> that a rejection consumes neither counter and that erasure leaves the
+> aggregate rows.
 >
 > Residual: server-side authentication is impossible in the current module
 > model; the 180-per-fixed-minute global cap reduces flooding but a determined
@@ -65,11 +71,12 @@ depends_on: []
 > full scan that any client can call. The reducer change needs a module
 > republish, not a schema migration.
 >
-> Verification: targeted Vitest suites across the reducer, host policy, cloud
-> service, chat store and chat rendering; root `tsc --noEmit` clean; ESLint on
-> every changed file; translation check passes; `npm run backlog:check` — 613
-> items valid. The module's own `tsc -p server/spacetimedb` runs in CI (the root
-> tsconfig does not include the module).
+> Verification: 103 targeted Vitest tests (reducer, host policy, cloud service,
+> chat store, chat rendering and the CloudTab component); root `tsc --noEmit`
+> clean; ESLint on every changed file; translation check passes;
+> `npm run backlog:check` — 613 items valid. The module's own
+> `tsc -p server/spacetimedb` runs in CI (the root tsconfig does not include the
+> module).
 
 ## Symptom
 

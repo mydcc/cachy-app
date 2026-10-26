@@ -15,18 +15,34 @@
  * text that leaves the device is already the text the module stores.
  *
  * Keep the character classes in sync with
- * `server/spacetimedb/src/rateLimit.ts`. `chatText.test.ts` compares both
- * implementations over a case table and fails if they drift apart.
+ * `server/spacetimedb/src/rateLimit.ts`. The parity test in
+ * `src/services/cloudService.rateLimit.test.ts` sweeps the BMP and fails if
+ * the two implementations drift apart.
  */
-const INVISIBLE_OR_CONTROL =
-  /[\p{Cc}\u00AD\u061C\u115F\u1160\u180E\u200B\u200E\u200F\u202A-\u202E\u2028\u2029\u2060-\u2064\u2066-\u2069\u2800\u3164\uFEFF\uFFA0\uFFF9-\uFFFB]/gu;
+export const MAX_CHAT_MESSAGE_LENGTH = 1000;
 
-/** At least one glyph a reader can see; combining marks alone do not count. */
-const VISIBLE_CHARACTER = /[\p{L}\p{N}\p{P}\p{S}]/u;
+const ZERO_WIDTH_SPACE = /\u200B/gu;
+
+const INVISIBLE_MARKS =
+  /[\p{Cf}\p{Cs}\u034F\u180B-\u180D\u180F\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu;
+
+const BLANK_GLYPHS =
+  /[\u2800\u115F\u1160\u3164\uFFA0\u{13441}\u{13442}\u{1D159}\uFFFC\u{11C44}\u{11C45}\u{1144E}\u{11945}\u{1ECAC}\uA837]/gu;
+
+// The modifier range is deliberate: a bare skin-tone selector renders blank,
+// while the same selector after a base emoji must pass.
+const VISIBLE_CHARACTER =
+  // eslint-disable-next-line no-misleading-character-class
+  /[^\p{Z}\p{C}\p{M}\u2800\u115F\u1160\u3164\uFFA0\u{13441}\u{13442}\u{1D159}\uFFFC\u{1F3FB}-\u{1F3FF}\u{11C44}\u{11C45}\u{1144E}\u{11945}\u{1ECAC}\uA837]/u;
 
 export function sanitizeChatText(text: string): string {
   const collapsed = text
-    .replace(INVISIBLE_OR_CONTROL, " ")
+    .replace(ZERO_WIDTH_SPACE, " ")
+    .replace(INVISIBLE_MARKS, (ch) =>
+      ch === "\u200C" || ch === "\u200D" ? ch : "",
+    )
+    .replace(BLANK_GLYPHS, " ")
+    .replace(/\p{Cc}/gu, " ")
     .replace(/\s+/gu, " ")
     .trim();
   return VISIBLE_CHARACTER.test(collapsed) ? collapsed : "";

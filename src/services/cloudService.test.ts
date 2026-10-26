@@ -107,7 +107,7 @@ vi.mock('../lib/spacetimedb', () => {
 
 // Import service AFTER mocks
 import { cloudService } from './cloudService';
-import { DbConnection, tables } from '../lib/spacetimedb';
+import { DbConnection, reducers, tables } from '../lib/spacetimedb';
 import { settingsState } from '../stores/settings.svelte';
 
 describe('CloudService', () => {
@@ -118,11 +118,15 @@ describe('CloudService', () => {
     // Reset singleton state (private fields on the real class)
     const internals = cloudService as unknown as {
       connected: boolean;
+      connecting: boolean;
+      connectionGeneration: number;
       messages: unknown[];
       conn: unknown;
       insertListenerAttached: boolean;
     };
     internals.connected = false;
+    internals.connecting = false;
+    internals.connectionGeneration = 0;
     internals.messages = [];
     internals.conn = null;
     internals.insertListenerAttached = false;
@@ -166,6 +170,52 @@ describe('CloudService', () => {
     expect(cloudService.status().mySenderId).toBeNull();
   });
 
+  it('does not build a second socket while the first handshake is pending', async () => {
+    await cloudService.connect('https://chat.example', 'cachy-server', 'token');
+    await cloudService.connect('https://chat.example', 'cachy-server', 'token');
+
+    expect(DbConnection.builder).toHaveBeenCalledTimes(1);
+  });
+
+  it('tears down a handshake that completes after the opt-in is turned off', async () => {
+    await cloudService.connect('https://chat.example', 'cachy-server', 'token');
+    settingsState.cloudEnabled = false;
+
+    mockCallbacks.onConnect!({}, { toHexString: () => 'abc123' });
+
+    expect(cloudService.isConnected()).toBe(false);
+    expect(cloudService.status().mySenderId).toBeNull();
+    expect(mockLogger.log).not.toHaveBeenCalledWith(
+      'network',
+      'Connected to SpacetimeDB!',
+      'abc123',
+    );
+  });
+
+  it('ignores a late onConnect from a superseded connection', async () => {
+    await cloudService.connect('https://chat.example', 'cachy-server', 'token');
+    const staleOnConnect = mockCallbacks.onConnect!;
+
+    cloudService.disconnect();
+    await cloudService.connect('https://chat.example', 'cachy-server', 'token');
+    staleOnConnect({}, { toHexString: () => 'stale' });
+
+    expect(cloudService.isConnected()).toBe(false);
+  });
+
+  it('sends sanitized text and refuses blank or oversized input', async () => {
+    await cloudService.connect('http://localhost:3000', 'cachy-server', 'token');
+    mockCallbacks.onConnect!({}, { toHexString: () => 'abc123' });
+
+    await cloudService.sendMessage('a\u2800b');
+    expect(reducers.sendMessage).toHaveBeenCalledWith('a b');
+
+    await expect(cloudService.sendMessage('\u2800')).rejects.toThrow(/empty/);
+    await expect(cloudService.sendMessage('a'.repeat(1001))).rejects.toThrow(
+      /too long/,
+    );
+  });
+
   it('refuses plain http on a remote host before building a connection', async () => {
     await expect(
       cloudService.connect('http://chat.example', 'cachy-server', 'token'),
@@ -195,6 +245,8 @@ describe('CloudService', () => {
       'Connected to SpacetimeDB!',
       'abc123',
     );
+    // The connection object carries the bearer token and must never be logged.
+    expect(mockLogger.log.mock.calls.flat()).not.toContain(ctx);
 
     // 3. Simulate subscription applied
     // The onConnect callback should have triggered subscription builder

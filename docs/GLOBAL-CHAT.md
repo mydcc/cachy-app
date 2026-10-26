@@ -183,11 +183,13 @@ and cleanup rows carry no identity and are deliberately not covered by erasure.
 The window counter is user data for exactly as long as the messages are, which is
 why it is listed in the policy table above and not treated as a transient.
 
-**Text** — a message is trimmed and its control characters, bidi controls,
-zero-width characters and blank glyphs (braille blank, Hangul fillers) are
-replaced with spaces before it is stored. Zero-width joiners survive so emoji
-clusters and joining scripts still render. A message with no visible character
-is rejected by the reducer and by the client.
+**Text** — formatting marks (bidi controls, zero-width characters, tag
+characters, variation selectors) are removed, a zero-width space becomes a word
+break, and controls, line separators and the listed blank glyphs (braille blank,
+Hangul fillers, Egyptian blanks, bare emoji modifiers) become spaces. Zero-width
+joiners survive so emoji clusters and joining scripts still render. A message
+whose only characters are whitespace, controls, combining marks or one of those
+blank glyphs is rejected by the reducer and by the client.
 
 ### What still needs a machine this repository does not have
 
@@ -261,8 +263,9 @@ Two surfaces, one connection:
 The store connects only when `cloudEnabled` is on **and** a token is present. It
 never connects on its own. `cloudService.connect()` refuses to run while the
 switch is off, even for a direct caller. Turning the switch off closes an
-already-open connection and refuses `sendMessage`/`deleteMyMessages`, so
-revoking the opt-in stops the Class B traffic instead of leaving it running.
+already-open connection, invalidates a handshake that is still in flight, and
+refuses `sendMessage`/`deleteMyMessages`, so revoking the opt-in stops the
+Class B traffic instead of leaving it running.
 
 Chat text is remote input and is rendered with text interpolation only. It must
 never be passed to `{@html}`; `src/tests/security/chat_rendering.test.ts` pins
@@ -328,9 +331,10 @@ can decide whether to enable the feature.
   60-second window across all senders bounds a flood, but a determined client
   can occupy that budget — by rotating identities, or by erasing its own
   per-sender activity row and continuing — and make every other sender wait for
-  the window to reset. Because the window is fixed, up to two ceilings can land
-  around a boundary. It reduces flooding; it is not access control and does not
-  guarantee fair access.
+  the window to reset. Because the window is fixed, two windows can sit
+  back-to-back, so a client can send up to two ceilings around a boundary. It
+  reduces flooding; it is not access control and does not guarantee fair
+  access.
 - **Scheduled reducers are public.** A client can invoke
   `delete_expired_messages`. The `__cleanup__` marker limits it to one scan per
   hour, and it only deletes rows older than the retention window, so an early
