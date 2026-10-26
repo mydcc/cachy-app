@@ -4400,6 +4400,7 @@
     "eraseDone": "Löschung angefordert. Deine Nachrichten verschwinden, sobald die Änderung durchläuft.",
     "eraseNeedsConnection": "Zuerst verbinden — die Löschung läuft gegen den Server.",
     "eraseUnavailable": "In diesem Build nicht verfügbar: Die SpacetimeDB-Bindings sind älter als der Lösch-Reducer. Der Betreiber muss `spacetime generate` ausführen und neu bauen.",
+    "insecureHostWarning": "Nutze https:// für einen entfernten Server. Unverschlüsseltes http:// ist nur für localhost erlaubt, sonst würde das Verbindungs-Token im Klartext übertragen.",
     "tokenPlaceholder": "Token"
   },
   "positionsList": {

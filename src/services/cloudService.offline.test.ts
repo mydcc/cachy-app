@@ -50,10 +50,13 @@ vi.mock("../lib/spacetimedb/global_message_type", () => ({ default: {} }));
 import { cloudService } from "./cloudService";
 import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
+import { settingsState } from "../stores/settings.svelte";
 
 describe("core functions when the chat server is unreachable", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // BUG-0726: connect() is gated on the opt-in setting.
+    settingsState.cloudEnabled = true;
     (cloudService as unknown as { connected: boolean }).connected = false;
     (cloudService as unknown as { lastError: string | null }).lastError = null;
   });

@@ -28,6 +28,17 @@ export const CLEANUP_INTERVAL_MICROS = 60n * 60n * 1_000_000n; // hourly
 export const RATE_LIMIT_WINDOW_MS = 10_000; // 10-second fixed window
 export const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per fixed window
 
+/**
+ * Global floor (BUG-0726). SpacetimeDB issues an identity to any connection,
+ * so a per-sender limit is bypassed by reconnecting. This one is keyed on a
+ * reserved row in the same table rather than on the caller's identity.
+ *
+ * The key cannot collide with a real sender: identities are 64 hex characters.
+ */
+export const GLOBAL_RATE_LIMIT_WINDOW_MS = 60_000;
+export const GLOBAL_RATE_LIMIT_MAX_MESSAGES = 60;
+export const GLOBAL_RATE_LIMIT_SENDER = '__global__';
+
 export interface SenderActivityRecord {
   sender: string;
   window_start: number;
@@ -94,6 +105,18 @@ export function evaluateRateLimit(
 
 export const MAX_MESSAGE_LENGTH = 1000;
 
+/**
+ * One-line chat text (BUG-0726).
+ *
+ * Strips C0/C1 control characters and the Unicode line/paragraph separators
+ * that `JSON` and most loggers keep verbatim, so a message cannot forge a
+ * second line in a log or in a future prompt-style consumer. Trims the edges;
+ * a message that is only those characters becomes empty and is rejected.
+ */
+export function sanitizeMessageText(text: string): string {
+  return text.replace(/[\p{Cc}\u2028\u2029]/gu, '').trim();
+}
+
 export interface GlobalMessageRecord {
   sender: string;
   text: string;
@@ -119,30 +142,54 @@ export interface MessageDb {
  * Handles message validation, rate limiting, and insertion into the database.
  * Thrown errors are surfaced to the caller (e.g. SenderError in SpacetimeDB).
  */
+function applyActivity(db: MessageDb, decision: RateLimitDecision): void {
+  if (decision.action === 'reject') return;
+  if (decision.action === 'insert') db.senderActivity.insert(decision.record);
+  else db.senderActivity.update(decision.record);
+}
+
 export function handleSendMessage(
   db: MessageDb,
   senderId: string,
   timestamp: number,
   text: string,
 ): void {
-  if (text.length > MAX_MESSAGE_LENGTH) {
+  const sanitized = sanitizeMessageText(text);
+  if (sanitized.length === 0) {
+    throw new Error('Message cannot be empty');
+  }
+  if (sanitized.length > MAX_MESSAGE_LENGTH) {
     throw new Error('Message too long');
   }
 
-  const activity = db.senderActivity.find(senderId);
-  const decision = evaluateRateLimit(senderId, timestamp, activity);
-
-  if (decision.action === 'reject') {
-    throw new Error(decision.error);
-  } else if (decision.action === 'insert') {
-    db.senderActivity.insert(decision.record);
-  } else if (decision.action === 'update') {
-    db.senderActivity.update(decision.record);
+  const senderDecision = evaluateRateLimit(
+    senderId,
+    timestamp,
+    db.senderActivity.find(senderId),
+  );
+  if (senderDecision.action === 'reject') {
+    throw new Error(senderDecision.error);
   }
+
+  // Evaluated before either counter is written, so a global rejection does not
+  // consume the sender's budget or vice versa.
+  const globalDecision = evaluateRateLimit(
+    GLOBAL_RATE_LIMIT_SENDER,
+    timestamp,
+    db.senderActivity.find(GLOBAL_RATE_LIMIT_SENDER),
+    GLOBAL_RATE_LIMIT_WINDOW_MS,
+    GLOBAL_RATE_LIMIT_MAX_MESSAGES,
+  );
+  if (globalDecision.action === 'reject') {
+    throw new Error('Global chat rate limit exceeded: too many messages; try again shortly');
+  }
+
+  applyActivity(db, senderDecision);
+  applyActivity(db, globalDecision);
 
   db.globalMessage.insert({
     sender: senderId,
-    text,
+    text: sanitized,
     sent_at: timestamp,
   });
 }

@@ -2,7 +2,8 @@
 id: BUG-0726
 title: Security: SpacetimeDB global chat hardening (auth, rate limits, input validation)
 type: bug
-status: specced
+status: done
+assignee: opencode
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +14,39 @@ depends_on: []
 ---
 
 # BUG-0726 — Security: SpacetimeDB global chat hardening
+
+> **State note.** Fixed on `fix/security-spacetimedb-hardening` (worktree
+> `.worktrees/sec-audit-2`, PR pending). All seven findings are addressed as
+> far as the module model allows:
+>
+> 1. **Client-only auth** is inherent: SpacetimeDB issues an identity to every
+>    connection. Documented in `docs/GLOBAL-CHAT.md` §8 and at
+>    `clientConnected`; the global cap is the abuse mitigation.
+> 2. **Identity-rotation bypass** — a global cap of 60 messages/minute lives in
+>    a reserved `__global__` row of the existing `sender_activity` table (no
+>    schema change). Per-sender and global decisions are evaluated before
+>    either counter is written.
+> 3. **Empty/whitespace** — `sanitizeMessageText` trims, strips C0/C1 and
+>    U+2028/U+2029, and rejects an empty result in the reducer;
+>    `cloudService.sendMessage` refuses locally too.
+> 4. **Stored XSS** — text interpolation only, with a comment at the render
+>    site and `src/tests/security/chat_rendering.test.ts` pinning the chat-log
+>    block against an HTML directive.
+> 5. **`cloudEnabled`** — `connect()` refuses while the opt-in switch is off,
+>    even for a direct caller.
+> 6. **Transport** — `https://` required for remote hosts, `http://` only for
+>    loopback; shared `cloudHost.ts` enforces it in the service and the settings
+>    tab warns before Connect.
+> 7. **Scheduled reducer** — documented as public; it only deletes rows past
+>    the retention window, so an early call is a no-op.
+>
+> Residual: server-side authentication is impossible in the current module
+> model; the global cap reduces flooding but is not access control. The reducer
+> change needs a module republish, not a schema migration.
+>
+> Verification: 52 tests across the reducer, host policy, cloud service and
+> chat rendering; `tsc --noEmit` clean; ESLint clean; translation check passes;
+> `npm run backlog:check` — 613 items valid.
 
 ## Symptom
 
@@ -48,13 +82,13 @@ Multiple findings in the SpacetimeDB global chat subsystem:
 
 ## Acceptance criteria
 
-- [ ] Empty/whitespace messages rejected
-- [ ] Global message cap added alongside per-sender limit
-- [ ] `connect()` gated on `cloudEnabled`
-- [ ] UI warns on non-localhost HTTP host
-- [ ] Code comments/lint guard on chat rendering
-- [ ] Documentation updated for inherent limitations
-- [ ] Regression tests
+- [x] Empty/whitespace messages rejected
+- [x] Global message cap added alongside per-sender limit
+- [x] `connect()` gated on `cloudEnabled`
+- [x] UI warns on non-localhost HTTP host
+- [x] Code comments/lint guard on chat rendering
+- [x] Documentation updated for inherent limitations
+- [x] Regression tests
 
 ## Links
 

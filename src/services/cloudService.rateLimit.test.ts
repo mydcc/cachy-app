@@ -19,9 +19,12 @@ import { describe, it, expect } from "vitest";
 import {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_MESSAGES,
+  GLOBAL_RATE_LIMIT_WINDOW_MS,
+  GLOBAL_RATE_LIMIT_MAX_MESSAGES,
   RETENTION_MS,
   MAX_MESSAGE_LENGTH,
   evaluateRateLimit,
+  sanitizeMessageText,
   handleSendMessage,
   handleDeleteExpiredMessages,
   handleDeleteMyMessages,
@@ -254,6 +257,79 @@ describe("FEAT-0375: send_message rate limiting reducer integration", () => {
 
     expect(memDb.senderActivity.has("old_user")).toBe(false);
     expect(memDb.senderActivity.has("active_user")).toBe(true);
+  });
+
+  it("rejects empty and whitespace-only messages (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+
+    expect(() => handleSendMessage(memDb.db, "sender", 1_000_000, "")).toThrow(
+      "Message cannot be empty",
+    );
+    expect(() =>
+      handleSendMessage(memDb.db, "sender", 1_000_000, "  \n\t  "),
+    ).toThrow("Message cannot be empty");
+
+    expect(memDb.globalMessage).toHaveLength(0);
+  });
+
+  it("strips control characters and Unicode line separators before storing (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+
+    handleSendMessage(
+      memDb.db,
+      "sender",
+      1_000_000,
+      "  he\u0000llo\u2028world\u2029  ",
+    );
+
+    expect(memDb.globalMessage[0].text).toBe("helloworld");
+    expect(sanitizeMessageText("a\tb\nc")).toBe("abc");
+  });
+
+  it("caps messages globally even when the sender rotates identities (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+    const start = 1_000_000;
+    const sendersPerWindow = Math.ceil(
+      GLOBAL_RATE_LIMIT_MAX_MESSAGES / RATE_LIMIT_MAX_MESSAGES,
+    );
+
+    for (let s = 0; s < sendersPerWindow; s++) {
+      for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
+        handleSendMessage(memDb.db, `rotating_${s}`, start + i, `msg ${s}/${i}`);
+      }
+    }
+
+    expect(memDb.globalMessage).toHaveLength(GLOBAL_RATE_LIMIT_MAX_MESSAGES);
+
+    // A brand-new identity is still inside the per-sender budget, so only the
+    // global cap can refuse this one.
+    expect(() =>
+      handleSendMessage(memDb.db, "fresh_identity", start + 1, "one more"),
+    ).toThrow(/too many messages/);
+    expect(memDb.globalMessage).toHaveLength(GLOBAL_RATE_LIMIT_MAX_MESSAGES);
+  });
+
+  it("opens a new global window after a minute (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+    const start = 1_000_000;
+    const sendersPerWindow = Math.ceil(
+      GLOBAL_RATE_LIMIT_MAX_MESSAGES / RATE_LIMIT_MAX_MESSAGES,
+    );
+
+    for (let s = 0; s < sendersPerWindow; s++) {
+      for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
+        handleSendMessage(memDb.db, `rotating_${s}`, start + i, `msg ${s}/${i}`);
+      }
+    }
+
+    expect(() =>
+      handleSendMessage(
+        memDb.db,
+        "fresh_identity",
+        start + GLOBAL_RATE_LIMIT_WINDOW_MS,
+        "next window",
+      ),
+    ).not.toThrow();
   });
 
   it("cleans up sender activity on delete_my_messages for GDPR compliance", () => {

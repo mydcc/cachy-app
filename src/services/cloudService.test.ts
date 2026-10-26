@@ -108,10 +108,13 @@ vi.mock('../lib/spacetimedb', () => {
 // Import service AFTER mocks
 import { cloudService } from './cloudService';
 import { tables } from '../lib/spacetimedb';
+import { settingsState } from '../stores/settings.svelte';
 
 describe('CloudService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // BUG-0726: connect() is gated on the opt-in setting.
+    settingsState.cloudEnabled = true;
     // Reset singleton state (private fields on the real class)
     const internals = cloudService as unknown as {
       connected: boolean;
@@ -136,6 +139,20 @@ describe('CloudService', () => {
   it('should throw an error if no token is provided', async () => {
     const host = 'http://localhost:3000';
     await expect(cloudService.connect(host)).rejects.toThrow('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
+  });
+
+  it('refuses to connect while Global Chat is disabled', async () => {
+    settingsState.cloudEnabled = false;
+    await expect(
+      cloudService.connect('https://chat.example', 'cachy-server', 'token'),
+    ).rejects.toThrow(/disabled/);
+    settingsState.cloudEnabled = true;
+  });
+
+  it('refuses plain http on a remote host before building a connection', async () => {
+    await expect(
+      cloudService.connect('http://chat.example', 'cachy-server', 'token'),
+    ).rejects.toThrow(/https/);
   });
 
   it('should use logger service instead of console', async () => {

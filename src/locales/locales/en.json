@@ -4460,6 +4460,7 @@
     "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
     "eraseNeedsConnection": "Connect first — erasure runs against the server.",
     "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild.",
+    "insecureHostWarning": "Use https:// for a remote server. Plain http:// is only accepted for localhost, because the connection token would otherwise travel in clear text.",
     "tokenPlaceholder": "Token"
   },
   "marketAnalyst": {
