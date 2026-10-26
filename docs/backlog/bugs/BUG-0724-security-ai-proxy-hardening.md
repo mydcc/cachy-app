@@ -2,7 +2,8 @@
 id: BUG-0724
 title: Security: AI proxy hardening (error leakage, prompt injection, unbounded inputs, model validation)
 type: bug
-status: specced
+status: done
+assignee: opencode
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +14,25 @@ depends_on: []
 ---
 
 # BUG-0724 — Security: AI proxy hardening
+
+> **State note.** Fixed on `fix/security-ai-proxy-hardening`. All six findings
+> are addressed: every provider route answers a generic
+> `AI provider request failed` (upstream status preserved) and logs a redacted
+> detail; the sentiment route carries headlines as a JSON data block under an
+> instruction that names them untrusted, and validates the model answer
+> against a fixed schema before returning it; one shared guard caps the body at
+> 1 MB and the schema caps messages, content, tools, model and base URL; model
+> identifiers are validated against one alphabet on every provider; tools are
+> validated as OpenAI-style function definitions instead of `z.any()`; log
+> lines collapse control characters and scrub exact secrets of every length.
+>
+> Deliberate residual: prompt injection cannot be eliminated by escaping — the
+> model still reads attacker-controlled headlines. The fix bounds what a
+> successful injection can do: the prompt marks the data as data, the output
+> shape is fixed, and nothing from the model is executed or forwarded.
+>
+> Verification: 116 tests across the AI routes, schemas, guard and sentiment;
+> TypeScript and ESLint clean. `npm run backlog:check` is run with the PR.
 
 ## Symptom
 

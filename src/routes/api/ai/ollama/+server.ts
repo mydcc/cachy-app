@@ -24,26 +24,24 @@ import {
   resolveBaseUrl,
   usesConfiguredDefault,
 } from "../../../../lib/server/ollamaBaseUrl";
-import { AiRequestSchema } from "../../../../types/ai";
+import { readAiRequest } from "../../../../lib/server/aiRequestGuard";
+import {
+  AI_PROXY_ERROR_MESSAGE,
+  logAiProxyError,
+} from "../../../../lib/server/aiProxyError";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   let baseUrl: string | null = null;
+  let apiKey: string | null = null;
 
   try {
-    const rawBody = await request.json();
-    const parseResult = AiRequestSchema.safeParse(rawBody);
+    const guarded = await readAiRequest(request);
+    if (!guarded.ok) return guarded.response;
 
-    if (!parseResult.success) {
-      return json(
-        { error: "Invalid request body", details: parseResult.error.format() },
-        { status: 400 },
-      );
-    }
-
-    const { messages, model, baseUrl: rawBaseUrl } = parseResult.data;
+    const { messages, model, baseUrl: rawBaseUrl } = guarded.data;
     baseUrl = resolveBaseUrl(rawBaseUrl);
     if (!baseUrl) {
       // Distinguish "nothing configured" from "invalid URL supplied": the
@@ -65,7 +63,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     // Optional — most local Ollama installs have no auth, but a self-hosted
     // instance behind a reverse proxy may require a bearer token.
-    const apiKey = request.headers.get("x-api-key");
+    apiKey = request.headers.get("x-api-key");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
@@ -78,9 +76,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
+      logAiProxyError("Ollama upstream", `status ${response.status}`, [apiKey]);
       return json(
-        { error: err.error?.message || `Ollama returned status ${response.status}` },
+        { error: AI_PROXY_ERROR_MESSAGE },
         { status: response.status },
       );
     }
@@ -93,14 +91,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       },
     });
   } catch (e) {
-    console.error("Ollama Proxy Error:", e);
-    const hint = "Is it running and is the base URL correct?";
+    logAiProxyError("Ollama", e, [apiKey]);
+    // The setup hint stays — it is the remedy for the common case — but the
+    // exception text is no longer part of the response (BUG-0724).
+    const target = baseUrl ?? "the configured endpoint";
     return json(
       {
-        error:
-          e instanceof Error
-            ? `${e.message}. ${hint}`
-            : `Could not reach Ollama at ${baseUrl}. ${hint}`,
+        error: `Could not reach Ollama at ${target}. Is it running and is the base URL correct?`,
       },
       { status: 502 },
     );

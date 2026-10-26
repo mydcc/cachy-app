@@ -112,5 +112,63 @@ describe("ai schemas", () => {
         })
       ).toThrow();
     });
+
+    it("rejects unbounded messages, content, model and baseUrl (BUG-0724)", () => {
+      expect(() =>
+        AiRequestSchema.parse({
+          messages: Array.from({ length: 201 }, () => ({
+            role: "user",
+            content: "hi",
+          })),
+        }),
+      ).toThrow();
+      expect(() =>
+        AiRequestSchema.parse({
+          messages: [{ role: "user", content: "x".repeat(100_001) }],
+        }),
+      ).toThrow();
+      expect(() =>
+        AiRequestSchema.parse({
+          messages: [],
+          model: "gpt-4\nforged-line",
+        }),
+      ).toThrow();
+      expect(() =>
+        AiRequestSchema.parse({
+          messages: [],
+          baseUrl: "https://example.com/" + "a".repeat(2_048),
+        }),
+      ).toThrow();
+    });
+
+    it("validates tool definitions instead of passing them through (BUG-0724)", () => {
+      const valid = {
+        messages: [{ role: "user", content: "hi" }],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "execute_trade_actions",
+              description: "does things",
+              parameters: { type: "object", properties: {} },
+            },
+          },
+        ],
+      };
+      expect(AiRequestSchema.parse(valid)).toEqual(valid);
+
+      expect(() =>
+        AiRequestSchema.parse({
+          messages: [],
+          tools: [{ type: "function", function: { name: "bad name" } }],
+        }),
+      ).toThrow();
+      expect(() =>
+        AiRequestSchema.parse({
+          messages: [],
+          tools: [{ type: "not-a-function", function: { name: "ok" } }],
+        }),
+      ).toThrow();
+    });
   });
 });
