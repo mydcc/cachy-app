@@ -2,7 +2,7 @@
 id: FEAT-0733
 title: Migrate the header journal entry to the entry-point registry
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0733-header-registry
 priority: P3
@@ -55,21 +55,44 @@ of restoring it; that single edge is normalised to the rail's behaviour.
 
 ## Acceptance criteria
 
-- [ ] The header renders exactly the registry's `header` placements: the
+- [x] The header renders exactly the registry's `header` placements: the
       `journal` entry, in both the mobile and the desktop variant.
-- [ ] Text, title and `aria-label` come from the entry's label keys;
+- [x] Text, title and `aria-label` come from the entry's label keys;
       `+page.svelte` has no literal `app.journalButton`/`app.journalButtonTitle`
       for the header destination and does not call `toggleJournalModal` for it.
-- [ ] `#journal-toggle-btn` and `#view-journal-btn-desktop` still exist, keep
+- [x] `#journal-toggle-btn` and `#view-journal-btn-desktop` still exist, keep
       their breakpoint wrappers and their accessible names.
-- [ ] Clicking the header control opens the journal when closed, closes it
+- [x] Clicking the header control opens the journal when closed, closes it
       when open, and restores it when minimized.
-- [ ] Telemetry event names are unchanged.
-- [ ] The preset loader, save/delete, reset and theme switch are untouched.
-- [ ] Component tests cover both variants, their labels and the opener wiring;
+- [x] Telemetry event names are unchanged.
+- [x] The preset loader, save/delete, reset and theme switch are untouched.
+- [x] Component tests cover both variants, their labels and the opener wiring;
       adapter tests cover the journal restore/toggle split and the other
       opener kinds.
-- [ ] No rail, journal-strip or settings-rail behavior changes.
+- [x] No rail, journal-strip or settings-rail behavior changes.
+
+## Progress
+
+`HeaderJournalButton.svelte` renders the registry's `header` placement in both
+responsive copies. `+page.svelte` builds a condition-free `EntryContext` (the
+header carries only the always-visible journal placement) and iterates
+`getSurfaceEntries("header", context)`; the literal label keys and the direct
+`toggleJournalModal` call are gone from the header. Both ids stay, because the
+onboarding tour targets them.
+
+The journal branch in `openEntry` now covers both old handlers: a minimized
+journal is restored, otherwise `uiState.toggleJournalModal(true)` opens it when
+closed and closes it when open. The one intended delta is a minimized journal
+clicked from the header: it used to be closed, now it is restored, matching the
+rail shortcut.
+
+Tests: 5 `HeaderJournalButton` component cases (both variants, labels, mobile
+open, desktop restore, non-journal rejection) and 10 `openEntry` adapter cases
+(all window, toggle and error branches, including the instance-id guard). The
+registry test suite additionally pins that the header placement stays
+context-free, because the header's entry context is static. Targeted tests,
+ESLint and `npm run check` pass; the preset, reset and theme actions are
+untouched.
 
 ## Out of scope
 

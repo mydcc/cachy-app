@@ -20,11 +20,16 @@
  * the window/settings/UI stores. Surfaces call `openEntry(entry)`; they never
  * map an entry to `uiState` or `windowManager` themselves.
  *
- * Each branch reproduces the rail's previous click handler exactly, including
- * the surprising ones: the settings entry toggles its window closed on a
- * second click (`WindowManager.toggle`), while the academy entry only raises
- * an existing window. Unifying those two into "focus if open" would be a
+ * Each branch reproduces the previous click handlers, including the
+ * surprising ones: the settings entry toggles its window closed on a second
+ * click (`WindowManager.toggle`), while the academy entry only raises an
+ * existing window. Unifying those two into "focus if open" would be a
  * behaviour change, not a migration.
+ *
+ * The journal is the one destination with two call sites that behaved
+ * differently: the header toggled the window open/closed, the rail shortcut
+ * restored it from the dock. Both stay in this adapter, keyed by window state
+ * rather than by surface.
  */
 
 import { settingsState } from "../../stores/settings.svelte";
@@ -36,27 +41,33 @@ type WindowOpener = Extract<Opener, { kind: "window" }>;
 type ToggleTarget = Extract<Opener, { kind: "toggle" }>["target"];
 
 /**
- * The journal shortcut only renders while a journal is minimized, so restore
- * that window rather than raising whichever journal happens to be first.
+ * A minimized journal is restored (the rail shortcut only exists in that
+ * state). Otherwise the header's old toggle semantics apply: open when
+ * closed, close when open.
  */
-function restoreJournal(opener: WindowOpener): void {
-    const journals = windowManager.windows.filter(
-        (win) => win.windowType === opener.windowType,
+function toggleJournal(opener: WindowOpener): void {
+    // Prefer the opener's instance id: `toggleJournalModal` works on the
+    // "journal" id, so restoring a same-type window with another id would
+    // raise a window the store never touches.
+    const minimized = windowManager.windows.find(
+        (win) =>
+            win.isMinimized &&
+            (opener.instance !== undefined
+                ? win.id === opener.instance
+                : win.windowType === opener.windowType),
     );
-    const target =
-        journals.find((win) => win.isMinimized) ?? journals[0] ?? null;
-    if (!target) {
-        void uiState.toggleJournalModal(true);
+    if (minimized) {
+        windowManager.bringToFront(minimized.id);
+        minimized.restore();
         return;
     }
-    windowManager.bringToFront(target.id);
-    if (target.isMinimized) target.restore();
+    void uiState.toggleJournalModal(true);
 }
 
 function openWindow(opener: WindowOpener): void {
     switch (opener.windowType) {
         case "journal":
-            restoreJournal(opener);
+            toggleJournal(opener);
             return;
         case "settings":
             // `toggleSettingsModal(true)` closes an already open settings
