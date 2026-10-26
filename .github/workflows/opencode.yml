@@ -34,9 +34,9 @@ on:
 # and a run never needs a funded Zen balance. The config files below also pin
 # `small_model`, so title generation cannot silently pick a paid model.
 env:
-  OPENCODE_MODEL: opencode/muse-spark-1.3-contributor-free
+  OPENCODE_MODEL: opencode/beam-free
   OPENCODE_MODEL_FALLBACK_1: opencode/big-pickle
-  OPENCODE_MODEL_FALLBACK_2: opencode/deepseek-v4-flash-free
+  OPENCODE_MODEL_FALLBACK_2: opencode/deepseek-v4.1-flash-free
   REVIEW_PROMPT: |
     Review this pull request using the Cachy review checklist:
     - If the PR links a backlog item (Fixes #NNN), read docs/backlog/ and
@@ -129,7 +129,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
-            "small_model": "opencode/deepseek-v4-flash-free",
+            "small_model": "opencode/deepseek-v4.1-flash-free",
             "permission": {
               "external_directory": { "**": "deny" },
               "bash": {
@@ -282,7 +282,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
-            "small_model": "opencode/deepseek-v4-flash-free",
+            "small_model": "opencode/deepseek-v4.1-flash-free",
             "permission": { "external_directory": { "**": "deny" } }
           }
           JSON
@@ -355,7 +355,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
-            "small_model": "opencode/deepseek-v4-flash-free",
+            "small_model": "opencode/deepseek-v4.1-flash-free",
             "permission": { "external_directory": { "**": "deny" } }
           }
           JSON
@@ -427,7 +427,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
-            "small_model": "opencode/deepseek-v4-flash-free",
+            "small_model": "opencode/deepseek-v4.1-flash-free",
             "permission": { "external_directory": { "**": "deny" } }
           }
           JSON
