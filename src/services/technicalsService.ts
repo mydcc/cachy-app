@@ -68,6 +68,7 @@ class TechnicalsWorkerManager {
   private worker: Worker | null = null;
   private pendingResolves: Map<string, (value: { data: TechnicalsData; buffers?: KlineBuffers }) => void> = new Map();
   private pendingRejects: Map<string, (reason?: unknown) => void> = new Map();
+  private pendingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   private consecutiveFailures = 0;
   private isDisabled = false;
 
@@ -99,6 +100,11 @@ class TechnicalsWorkerManager {
   private handleMessage(e: MessageEvent) {
     const { id, payload, error, buffers } = e.data;
     if (id && this.pendingResolves.has(id)) {
+      const timer = this.pendingTimeouts.get(id);
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        this.pendingTimeouts.delete(id);
+      }
       if (error) {
           this.pendingRejects.get(id)?.(new Error(error));
       } else {
@@ -128,9 +134,29 @@ class TechnicalsWorkerManager {
         this.isDisabled = true;
     }
 
+    this.pendingTimeouts.forEach((timer) => clearTimeout(timer));
+    this.pendingTimeouts.clear();
     this.pendingRejects.forEach((reject) => reject(new Error(`workerErrors.eventError: ${errorMsg}`)));
     this.pendingResolves.clear();
     this.pendingRejects.clear();
+  }
+
+  /**
+   * Terminates the worker and fails every pending request (BUG-0725).
+   *
+   * Registered on `pagehide` once the manager exists; public so a test or a
+   * future teardown path can call it directly.
+   */
+  public terminate(): void {
+    this.pendingTimeouts.forEach((timer) => clearTimeout(timer));
+    this.pendingTimeouts.clear();
+    this.pendingRejects.forEach((reject) => reject(new Error("workerErrors.terminated")));
+    this.pendingResolves.clear();
+    this.pendingRejects.clear();
+    this.worker?.terminate();
+    this.worker = null;
+    // `isDisabled` is deliberately not reset: if the worker was crash-looping,
+    // a pagehide/teardown must not make the breaker retry it.
   }
 
   public async postMessage(message: { type: string; payload: Record<string, unknown> }, transfer: Transferable[] = []): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
@@ -141,24 +167,48 @@ class TechnicalsWorkerManager {
     return new Promise((resolve, reject) => {
       this.pendingResolves.set(id, resolve);
       this.pendingRejects.set(id, reject);
-      w.postMessage({ ...message, id }, transfer);
-      
-      setTimeout(() => {
+      try {
+        w.postMessage({ ...message, id }, transfer);
+      } catch (error) {
+        // DataCloneError or a terminated worker: without this the two maps
+        // keep the entries forever because no timer was created (BUG-0725).
+        this.pendingResolves.delete(id);
+        this.pendingRejects.delete(id);
+        reject(error);
+        return;
+      }
+
+      const timer = setTimeout(() => {
         if (this.pendingResolves.has(id)) {
           this.pendingRejects.get(id)?.(new Error("workerErrors.timeout"));
           this.pendingResolves.delete(id);
           this.pendingRejects.delete(id);
         }
+        this.pendingTimeouts.delete(id);
       }, 5000);
+      this.pendingTimeouts.set(id, timer);
     });
   }
   
   isHealthy(): boolean {
-      return !this.isDisabled && (this.worker !== null || !browser);
+      // Deliberately not `worker !== null`: after a `pagehide` teardown the
+      // next postMessage re-creates it through `getWorker()`. Reporting
+      // unhealthy here would silently keep every calculation on the main
+      // thread for the rest of a bfcache-restored session (BUG-0725 review).
+      return !this.isDisabled && browser;
   }
 }
 
 const workerManager = new TechnicalsWorkerManager();
+
+// BUG-0725: the worker previously survived page navigation and kept its timer
+// map alive. `pagehide` covers bfcache too, and `{ once: true }` keeps the
+// listener from piling up if the module is ever re-evaluated.
+if (browser && typeof window !== "undefined") {
+  // No `once`: a bfcache-restored page re-creates the worker, and the next
+  // pagehide must terminate that one too.
+  window.addEventListener("pagehide", () => workerManager.terminate());
+}
 
 function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: IndicatorSettings): string {
   // `_cachedJson` is a $derived on the IndicatorManager snapshot — the WeakMap

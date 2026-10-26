@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { SafeJsonValueSchema } from "./safeJsonValue";
 
 // Zod-Schemas für WebSocket-Messages
 
@@ -80,7 +81,9 @@ export const BitunixWSMessageSchema = z.object({
   ch: z.string().optional(),
   topic: z.string().optional(),
   symbol: z.string().optional(),
-  data: z.any().optional(),
+  // BUG-0725: parsed JSON only, and no `__proto__`/`constructor`/`prototype`
+  // at any depth. `z.any()` let those keys through into the stores.
+  data: SafeJsonValueSchema.optional(),
   ts: z.number().optional(),
 });
 

@@ -21,6 +21,7 @@
 import { Decimal } from "decimal.js";
 import { calculateAllIndicators, calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 import type { WorkerMessage } from "../services/technicalsTypes";
+import { readTechnicalsWorkerMessage } from "./workerMessageGuard";
 
 const ctx = self;
 
@@ -39,8 +40,32 @@ interface WorkerHistory {
 
 const historyCache = new Map<string, WorkerHistory>();
 
+/**
+ * Bound on the number of cached series (BUG-0725 review).
+ *
+ * The payload guard caps one message; without this cap a caller could post
+ * many INITIALIZE messages with distinct keys and grow the worker's retained
+ * Float64Arrays without limit. The live UI keeps one series per open chart,
+ * so eight is generous; the oldest key is evicted first.
+ */
+const MAX_HISTORY_ENTRIES = 8;
+
 ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
-  const { type, payload, id } = e.data;
+  const guarded = readTechnicalsWorkerMessage(e.data);
+  if (!guarded) {
+    // BUG-0725: no payload reaches the branch bodies unvalidated — including
+    // the legacy `payload.klines.map` call, which used to throw on null.
+    ctx.postMessage({
+      type: "ERROR",
+      id: typeof e.data?.id === "string" ? e.data.id : undefined,
+      error: "Invalid worker message",
+    });
+    return;
+  }
+  const { type, id } = guarded;
+  // The per-type payload shapes are validated above; the calculator entry
+  // points still take their own loose types.
+  const payload = guarded.payload as WorkerMessage["payload"];
 
   try {
     if (type === "CALCULATE") {
@@ -106,6 +131,10 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         hist.closes.set(payload.closes);
         hist.volumes.set(payload.volumes);
 
+        if (historyCache.size >= MAX_HISTORY_ENTRIES) {
+            const oldest = historyCache.keys().next().value;
+            if (oldest !== undefined) historyCache.delete(oldest);
+        }
         historyCache.set(payload.cacheKey || id, hist);
 
         // Perform initial calculation
@@ -129,8 +158,17 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         const k = payload.kline; // Single serialized kline
         const settings = payload.settings;
 
-        // Memory Protection: Trim History if needed
-        const limit = settings?.historyLimit || 750;
+        // Memory Protection: Trim History if needed. Clamped: an unbounded
+        // historyLimit would disable the trim entirely (BUG-0725 review).
+        // A candle count, not a financial value, so no Decimal is involved.
+        const rawLimit = settings?.historyLimit;
+        const limit = Math.min(
+            Math.max(
+                typeof rawLimit === "number" && Number.isFinite(rawLimit) ? rawLimit : 750,
+                1,
+            ),
+            50_000,
+        );
         // Allow some headroom to avoid shifting every tick
         const bufferLimit = limit + 50;
 

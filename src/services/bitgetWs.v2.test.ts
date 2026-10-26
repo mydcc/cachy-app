@@ -45,6 +45,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import CryptoJS from "crypto-js";
 import { BitgetWebSocketService, bitgetWsPrivate } from "./bitgetWs";
+import { MAX_WS_FRAME_BYTES } from "./wsFrameGuard";
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
@@ -149,6 +150,32 @@ function v2TickerFrame(overrides: Record<string, string | number> = {}) {
 }
 
 describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
+  describe("frame size guard (BUG-0725)", () => {
+    it("drops an oversized frame before handleMessage runs", () => {
+      settingsState.apiProvider = "bitget";
+      settingsState.entitlement.capabilities.marketData = true;
+      internals.ws = null;
+      service.connect(true);
+
+      const opened = MockWebSocket.instances[0];
+      opened.onopen?.();
+      const handle = vi.spyOn(
+        service as unknown as { handleMessage(message: unknown): void },
+        "handleMessage",
+      );
+
+      // Valid JSON, padded above the cap. A plain string of `x`s would also
+      // make `JSON.parse` throw, so the test would pass without the guard.
+      const padded = JSON.stringify({
+        ...v2TickerFrame(),
+        padding: "x".repeat(MAX_WS_FRAME_BYTES + 1),
+      });
+      opened.onmessage?.({ data: padded });
+
+      expect(handle).not.toHaveBeenCalled();
+    });
+  });
+
   describe("endpoint", () => {
     it("connects to the V2 public endpoint, not the decommissioned V1 mix stream", () => {
       settingsState.apiProvider = "bitget";
@@ -162,6 +189,36 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       expect(MockWebSocket.instances).toHaveLength(1);
       expect(MockWebSocket.instances[0].url).toBe(V2_PUBLIC_URL);
       expect(MockWebSocket.instances[0].url).not.toBe(V1_MIX_URL);
+    });
+
+    it("refuses a non-wss public endpoint (BUG-0725)", () => {
+      settingsState.apiProvider = "bitget";
+      settingsState.entitlement.capabilities.marketData = true;
+      MockWebSocket.instances = [];
+
+      const insecure = new BitgetWebSocketService({ url: "ws://insecure.example/ws" });
+      (insecure as unknown as { ws: WebSocket | null }).ws = null;
+      insecure.connect(true);
+
+      expect(MockWebSocket.instances).toHaveLength(0);
+      insecure.destroy();
+    });
+
+    it("stops scheduling reconnects once the budget is exhausted (BUG-0725)", () => {
+      vi.useFakeTimers();
+      const i = service as unknown as {
+        reconnectAttempts: number;
+        MAX_RECONNECT_ATTEMPTS: number;
+        reconnectTimer: ReturnType<typeof setTimeout> | null;
+        scheduleReconnect(): void;
+      };
+      i.reconnectAttempts = i.MAX_RECONNECT_ATTEMPTS;
+      i.reconnectTimer = null;
+
+      i.scheduleReconnect();
+
+      expect(i.reconnectTimer).toBeNull();
+      vi.useRealTimers();
     });
 
     it("never sends a login frame on the public socket, even with keys configured", () => {
