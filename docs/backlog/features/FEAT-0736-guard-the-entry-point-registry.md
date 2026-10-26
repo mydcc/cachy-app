@@ -2,7 +2,7 @@
 id: FEAT-0736
 title: Guard the entry-point registry with a source scan
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0736-registry-scan
 priority: P3
@@ -58,19 +58,36 @@ surfaces.
 
 ## Acceptance criteria
 
-- [ ] The four original local lists are confirmed gone; no production
+- [x] The four original local lists are confirmed gone; no production
       behaviour changes are needed for the deletion.
-- [ ] `surface-scan.test.ts` guards the rail, header, journal tab strip and
-      settings rail, plus the two registry views and the two dumb primitives.
-- [ ] Every rule has a sample self-test that fails when the regex stops
+- [x] `surface-scan.test.ts` guards the rail, header, journal tab strip and
+      settings rail, plus the three registry views and the two dumb primitives.
+- [x] Every rule has a sample self-test that fails when the regex stops
       matching.
-- [ ] The guarded files pass; a reintroduced local label, icon, id or opener
+- [x] The guarded files pass; a reintroduced local label, icon, id or opener
       fails with the file and the reason.
-- [ ] The scan's guarded-file list is asserted, so deleting a row is a test
+- [x] The scan's guarded-file list is asserted, so deleting a row is a test
       failure rather than silent coverage loss.
-- [ ] `JournalDeepDive`'s ten presets, settings sub-tabs and the journal main
+- [x] `JournalDeepDive`'s ten presets, settings sub-tabs and the journal main
       Table/Overview/Deep Dive switch are not scanned.
-- [ ] Targeted unit test and `npm run check` pass; no new warnings.
+- [x] Targeted unit test and `npm run check` pass; no new warnings.
+
+## Progress
+
+The four local lists are already gone: FEAT-0732 removed the rail list,
+FEAT-0733 the header button, FEAT-0734 the journal strip's default list and
+FEAT-0735 the settings rail. This item's deletion work was therefore a
+verification pass, not a second removal.
+
+`src/lib/navigation/surface-scan.test.ts` guards the four surfaces and the
+three registry views. Each rule carries a sample, and the
+self-test runs that sample through the same helper as the real scan; a regex
+that stops matching fails instead of guarding nothing. The scan was proven
+red by temporarily reintroducing `$_("app.journalButton")` in
+`LeftControlPanel.svelte`; the failure named the file and the reason.
+
+No production code changed. Targeted test and `npm run check` pass with the
+existing warning baseline.
 
 ## Out of scope
 
