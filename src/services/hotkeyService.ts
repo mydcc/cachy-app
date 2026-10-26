@@ -49,6 +49,8 @@ export interface HotkeyAction {
   labelKey: TranslationKey;
   category: HotkeyCategory;
   defaultKey: string; // Used as default for Custom mode
+  /** Ignore auto-repeat while the key is held (e.g. a toggle overlay). */
+  ignoreRepeat?: boolean;
   action: () => void;
 }
 
@@ -302,6 +304,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     labelKey: "settings.hotkeys.action.windowSwitcher",
     category: "UI & Navigation",
     defaultKey: "Alt+W",
+    ignoreRepeat: true,
     action: () => {
       // Do not open an empty overlay when every open window is a blocking
       // modal/dialog. `getWindowSwitcherEntries` is the same filter the
@@ -456,6 +459,8 @@ export function handleGlobalKeydown(event: KeyboardEvent) {
       map[action.id] || (mode === "custom" ? action.defaultKey : null);
 
     if (mappedKey && isMatch(event, mappedKey)) {
+      if (action.ignoreRepeat && event.repeat) continue;
+
       // --- Input Protection Logic ---
       const hasModifier = event.altKey || event.ctrlKey;
       const isFunctionKey = event.key.startsWith("F") && event.key.length > 1;

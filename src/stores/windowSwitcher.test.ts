@@ -32,12 +32,4 @@ describe("windowSwitcherState", () => {
         windowSwitcherState.close();
         expect(windowSwitcherState.isOpen).toBe(false);
     });
-
-    it("toggles from either state", () => {
-        windowSwitcherState.toggle();
-        expect(windowSwitcherState.isOpen).toBe(true);
-
-        windowSwitcherState.toggle();
-        expect(windowSwitcherState.isOpen).toBe(false);
-    });
 });

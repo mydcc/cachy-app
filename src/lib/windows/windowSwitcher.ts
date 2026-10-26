@@ -25,6 +25,9 @@ export interface SwitchableWindow {
     zIndex: number;
 }
 
+/** Shared with `WindowManager`'s background-click guard and the overlay. */
+export const WINDOW_SWITCHER_CLASS = "switcher-root";
+
 /**
  * Modal and dialog windows are blocking tasks that own focus while open;
  * switching to a window behind one would look like a no-op. They are not
@@ -42,6 +45,5 @@ export function getWindowSwitcherEntries<T extends SwitchableWindow>(
 ): T[] {
     return windows
         .filter(isSwitchableWindow)
-        .slice()
         .sort((a, b) => b.zIndex - a.zIndex);
 }

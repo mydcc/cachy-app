@@ -35,6 +35,7 @@ export type TranslationKey =
   | "windows.contextMenu.showPriceInTitle"
   | "windowSwitcher.title"
   | "windowSwitcher.hint"
+  | "windowSwitcher.current"
   | "windowSwitcher.minimized"
   | "windowSwitcher.empty"
   | "app.title"

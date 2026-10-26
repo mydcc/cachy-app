@@ -30,7 +30,10 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { windowManager } from "../../../lib/windows/WindowManager.svelte";
-  import { getWindowSwitcherEntries } from "../../../lib/windows/windowSwitcher";
+  import {
+    getWindowSwitcherEntries,
+    WINDOW_SWITCHER_CLASS,
+  } from "../../../lib/windows/windowSwitcher";
   import { windowSwitcherState } from "../../../stores/windowSwitcher.svelte";
   import { _ } from "../../../locales/i18n";
 
@@ -78,6 +81,12 @@
   function commit(index = selectedIndex): void {
     const win = entries[index];
     if (!win) return;
+    if (!windowManager.windows.some((candidate) => candidate.id === win.id)) {
+      // The snapshot can outlive a window (a news eviction, a background
+      // close). Nothing to raise; just leave the overlay.
+      close();
+      return;
+    }
 
     selectedIndex = index;
     if (win.isMinimized) win.restore();
@@ -167,17 +176,19 @@
         (win) => win.windowType === "modal" || win.windowType === "dialog",
       )
     ) {
-      close(false);
+      // If the modal already took focus, leave it there; if it did not, give
+      // the keyboard back to the element that opened the switcher.
+      close(document.activeElement === document.body);
     }
   });
 </script>
 
-<div class="switcher-root">
+<div class={WINDOW_SWITCHER_CLASS}>
   <button
     type="button"
     class="switcher-backdrop"
     tabindex="-1"
-    aria-label={$_("common.close")}
+    aria-hidden="true"
     onclick={() => close()}
   ></button>
 
@@ -204,6 +215,7 @@
         aria-activedescendant={selected ? optionId(selectedIndex) : undefined}
       >
         {#each entries as entry, index (entry.id)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
           <li
             id={optionId(index)}
             class="switcher-option"
@@ -212,21 +224,23 @@
             tabindex="-1"
             aria-selected={index === selectedIndex}
             onclick={() => commit(index)}
-            onkeydown={(event) => {
-              if (event.key !== "Enter" && event.key !== " ") return;
-              event.preventDefault();
-              commit(index);
-            }}
             onmouseenter={() => (selectedIndex = index)}
           >
             <span class="switcher-option-title"
               >{entry.title || entry.windowType}</span
             >
-            {#if entry.isMinimized}
-              <span class="switcher-badge"
-                >{$_("windowSwitcher.minimized")}</span
-              >
-            {/if}
+            <span class="switcher-badges">
+              {#if entry.isFocused}
+                <span class="switcher-badge switcher-current"
+                  >{$_("windowSwitcher.current")}</span
+                >
+              {/if}
+              {#if entry.isMinimized}
+                <span class="switcher-badge"
+                  >{$_("windowSwitcher.minimized")}</span
+                >
+              {/if}
+            </span>
           </li>
         {/each}
       </ul>
@@ -326,6 +340,17 @@
     flex-shrink: 0;
     font-size: var(--text-xs);
     color: var(--text-tertiary);
+  }
+
+  .switcher-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .switcher-current {
+    color: var(--accent-color);
   }
 
   .switcher-hint,

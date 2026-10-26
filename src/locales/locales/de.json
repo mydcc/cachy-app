@@ -21,7 +21,8 @@
   },
   "windowSwitcher": {
     "title": "Fenster wechseln",
-    "hint": "↑↓ auswählen · Enter wechseln · Esc abbrechen",
+    "hint": "↑↓/←→ auswählen · Enter wechseln · Esc abbrechen",
+    "current": "Aktiv",
     "minimized": "Minimiert",
     "empty": "Keine Fenster zum Wechseln"
   },

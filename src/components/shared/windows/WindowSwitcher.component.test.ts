@@ -80,15 +80,32 @@ function render(): HTMLElement {
     return host;
 }
 
-function press(key: string): void {
-    window.dispatchEvent(
-        new KeyboardEvent("keydown", {
-            key,
-            bubbles: true,
-            cancelable: true,
-        }),
-    );
+function press(key: string): KeyboardEvent {
+    const event = new KeyboardEvent("keydown", {
+        key,
+        bubbles: true,
+        cancelable: true,
+    });
+    window.dispatchEvent(event);
     flushSync();
+    return event;
+}
+
+function pressOn(target: EventTarget, key: string): KeyboardEvent {
+    const event = new KeyboardEvent("keydown", {
+        key,
+        bubbles: true,
+        cancelable: true,
+    });
+    target.dispatchEvent(event);
+    flushSync();
+    return event;
+}
+
+function optionTitles(target: HTMLElement): (string | undefined)[] {
+    return Array.from(
+        target.querySelectorAll<HTMLElement>(".switcher-option-title"),
+    ).map((element) => element.textContent?.trim());
 }
 
 function options(target: HTMLElement): HTMLElement[] {
@@ -127,15 +144,54 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         const listbox = target.querySelector<HTMLElement>('[role="listbox"]')!;
         const rows = options(target);
 
-        expect(rows.map((row) => row.textContent?.trim())).toEqual([
-            "Charlie",
-            "Bravo",
-            "Alpha",
-        ]);
+        expect(optionTitles(target)).toEqual(["Charlie", "Bravo", "Alpha"]);
         expect(listbox.getAttribute("aria-activedescendant")).toBe(
             "window-switcher-option-1",
         );
+        expect(rows[0].getAttribute("aria-selected")).toBe("false");
         expect(rows[1].getAttribute("aria-selected")).toBe("true");
+        expect(rows[0].textContent).toContain("Current");
+        expect(document.activeElement).toBe(listbox);
+    });
+
+    it("selects the only window when the list has one entry", () => {
+        const alpha = openWindow("switcher-a", "Alpha");
+        alpha.isFocused = true;
+
+        const target = render();
+        const listbox = target.querySelector<HTMLElement>('[role="listbox"]')!;
+        const rows = options(target);
+
+        expect(rows).toHaveLength(1);
+        expect(listbox.getAttribute("aria-activedescendant")).toBe(
+            "window-switcher-option-0",
+        );
+        expect(rows[0].getAttribute("aria-selected")).toBe("true");
+
+        press("Enter");
+
+        expect(windowSwitcherState.isOpen).toBe(false);
+        expect(alpha.isFocused).toBe(true);
+    });
+
+    it("wraps from the oldest focused window to the newest", () => {
+        const alpha = openWindow("switcher-a", "Alpha");
+        const bravo = openWindow("switcher-b", "Bravo");
+        const charlie = openWindow("switcher-c", "Charlie");
+        alpha.zIndex = 10;
+        bravo.zIndex = 20;
+        charlie.zIndex = 30;
+        alpha.isFocused = true;
+        bravo.isFocused = false;
+        charlie.isFocused = false;
+
+        const target = render();
+
+        expect(
+            target
+                .querySelector('[role="listbox"]')
+                ?.getAttribute("aria-activedescendant"),
+        ).toBe("window-switcher-option-0");
     });
 
     it("cycles with wrap and commits on Enter", async () => {
@@ -162,6 +218,9 @@ describe("FEAT-0737: the keyboard window switcher", () => {
                 .querySelector('[role="listbox"]')
                 ?.getAttribute("aria-activedescendant"),
         ).toBe("window-switcher-option-2");
+        expect(alpha.zIndex).toBe(10);
+        expect(charlie.zIndex).toBe(30);
+        expect(alpha.isFocused).toBe(false);
 
         press("ArrowDown");
         expect(
@@ -183,10 +242,58 @@ describe("FEAT-0737: the keyboard window switcher", () => {
 
         expect(windowSwitcherState.isOpen).toBe(false);
         expect(alpha.isFocused).toBe(true);
+        expect(alpha.zIndex).toBeGreaterThan(charlie.zIndex);
         expect(document.activeElement).toBe(frame);
     });
 
-    it("restores a minimized window on commit", () => {
+    it("commits the selected window on Space and on a row click", () => {
+        const alpha = openWindow("switcher-a", "Alpha");
+        const bravo = openWindow("switcher-b", "Bravo");
+        const charlie = openWindow("switcher-c", "Charlie");
+        alpha.zIndex = 10;
+        bravo.zIndex = 20;
+        charlie.zIndex = 30;
+        alpha.isFocused = false;
+        bravo.isFocused = false;
+        charlie.isFocused = true;
+
+        const target = render();
+        press(" ");
+        expect(windowSwitcherState.isOpen).toBe(false);
+        expect(bravo.isFocused).toBe(true);
+
+        windowSwitcherState.open();
+        flushSync();
+        options(target)[2].click();
+        flushSync();
+
+        expect(windowSwitcherState.isOpen).toBe(false);
+        expect(alpha.isFocused).toBe(true);
+        expect(alpha.zIndex).toBeGreaterThan(charlie.zIndex);
+    });
+
+    it("moves to Home and End", () => {
+        openWindow("switcher-a", "Alpha");
+        openWindow("switcher-b", "Bravo");
+        openWindow("switcher-c", "Charlie");
+        const target = render();
+
+        press("End");
+        expect(
+            target
+                .querySelector('[role="listbox"]')
+                ?.getAttribute("aria-activedescendant"),
+        ).toBe("window-switcher-option-2");
+
+        press("Home");
+        expect(
+            target
+                .querySelector('[role="listbox"]')
+                ?.getAttribute("aria-activedescendant"),
+        ).toBe("window-switcher-option-0");
+    });
+
+    it("restores a minimized window on commit and focuses the floating frame", async () => {
         const alpha = openWindow("switcher-a", "Alpha");
         const bravo = openWindow("switcher-b", "Bravo");
         alpha.zIndex = 10;
@@ -196,13 +303,31 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         bravo.isFocused = true;
 
         const target = render();
+        const dock = document.createElement("div");
+        dock.className = "minimized-dock";
+        const dockFrame = document.createElement("div");
+        dockFrame.className = "window-frame";
+        dockFrame.dataset.windowId = "switcher-a";
+        dockFrame.tabIndex = -1;
+        dock.appendChild(dockFrame);
+        target.appendChild(dock);
+
+        const floatingFrame = document.createElement("div");
+        floatingFrame.className = "window-frame";
+        floatingFrame.dataset.windowId = "switcher-a";
+        floatingFrame.tabIndex = -1;
+        target.appendChild(floatingFrame);
+
         expect(options(target)[1].textContent).toContain("Minimized");
 
         press("Enter");
+        await tick();
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(windowSwitcherState.isOpen).toBe(false);
         expect(alpha.isMinimized).toBe(false);
         expect(alpha.isFocused).toBe(true);
+        expect(document.activeElement).toBe(floatingFrame);
     });
 
     it("closes on Escape and on the backdrop", () => {
@@ -219,7 +344,37 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         expect(windowSwitcherState.isOpen).toBe(false);
     });
 
-    it("traps Tab on the listbox", () => {
+    it("returns focus to the opener on Escape", async () => {
+        const outside = document.createElement("button");
+        document.body.appendChild(outside);
+        outside.focus();
+
+        openWindow("switcher-a", "Alpha");
+        render();
+
+        press("Escape");
+        await tick();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(document.activeElement).toBe(outside);
+        outside.remove();
+    });
+
+    it("does not run the window manager's Escape close behind the overlay", () => {
+        const alpha = openWindow("switcher-a", "Alpha");
+        alpha.closeOnBlur = true;
+        const target = render();
+        const listbox = target.querySelector<HTMLElement>('[role="listbox"]')!;
+
+        pressOn(listbox, "Escape");
+
+        expect(windowSwitcherState.isOpen).toBe(false);
+        expect(
+            windowManager.windows.some((win) => win.id === "switcher-a"),
+        ).toBe(true);
+    });
+
+    it("traps Tab on the listbox and suppresses the global hotkey path", () => {
         openWindow("switcher-a", "Alpha");
         const target = render();
         const listbox = target.querySelector<HTMLElement>('[role="listbox"]')!;
@@ -227,9 +382,14 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         target.appendChild(outside);
         outside.focus();
 
-        press("Tab");
+        const bubble = vi.fn();
+        window.addEventListener("keydown", bubble);
+        const tab = pressOn(listbox, "Tab");
+        window.removeEventListener("keydown", bubble);
 
         expect(document.activeElement).toBe(listbox);
+        expect(tab.defaultPrevented).toBe(true);
+        expect(bubble).not.toHaveBeenCalled();
     });
 
     it("excludes modal windows", () => {
@@ -247,14 +407,39 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         const alpha = openWindow("switcher-a", "Alpha");
         alpha.closeOnBlur = true;
         const target = render();
+        const backdrop = target.querySelector(".switcher-backdrop")!;
+        const root = target.querySelector(".switcher-root")!;
 
         target
             .querySelector(".switcher-panel")!
             .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-
+        flushSync();
         expect(
             windowManager.windows.some((win) => win.id === "switcher-a"),
         ).toBe(true);
+        expect(windowSwitcherState.isOpen).toBe(true);
+
+        backdrop.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        flushSync();
+        expect(
+            windowManager.windows.some((win) => win.id === "switcher-a"),
+        ).toBe(true);
+
+        root.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        flushSync();
+        expect(
+            windowManager.windows.some((win) => win.id === "switcher-a"),
+        ).toBe(true);
+
+        // Positive control: the same click outside the overlay still closes
+        // the window, so the guard is not a no-op.
+        document.body.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true }),
+        );
+        flushSync();
+        expect(
+            windowManager.windows.some((win) => win.id === "switcher-a"),
+        ).toBe(false);
     });
 
     it("closes when a blocking window appears", () => {
@@ -265,6 +450,42 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         flushSync();
 
         expect(windowSwitcherState.isOpen).toBe(false);
+    });
+
+    it("does not add a window opened while the overlay is open", () => {
+        openWindow("switcher-a", "Alpha");
+        const target = render();
+        expect(options(target)).toHaveLength(1);
+
+        openWindow("switcher-b", "Bravo");
+        flushSync();
+
+        expect(options(target)).toHaveLength(1);
+    });
+
+    it("does not commit a window that closed while the overlay was open", () => {
+        openWindow("switcher-a", "Alpha");
+        openWindow("switcher-b", "Bravo");
+        render();
+
+        windowManager.close("switcher-a");
+        flushSync();
+
+        expect(() => press("Enter")).not.toThrow();
+        expect(windowSwitcherState.isOpen).toBe(false);
+    });
+
+    it("removes its keyboard listener when unmounted", () => {
+        openWindow("switcher-a", "Alpha");
+        render();
+
+        unmount(component!);
+        component = null;
+        windowSwitcherState.open();
+
+        press("Escape");
+
+        expect(windowSwitcherState.isOpen).toBe(true);
     });
 
     it("names the dialog and exposes the keyboard hint", () => {

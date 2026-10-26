@@ -22,6 +22,7 @@
 
 import type { WindowBase } from "./WindowBase.svelte";
 import { Z_LAYERS } from "./zLayers";
+import { WINDOW_SWITCHER_CLASS } from "./windowSwitcher";
 import { ModalWindow } from "./implementations/ModalWindow.svelte";
 import { IframeWindow } from "./implementations/IframeWindow.svelte";
 // ChartWindow and ChannelWindow are imported dynamically in createFromData 
@@ -80,7 +81,7 @@ class WindowManager {
                 if (target.closest('.glass-panel')) return;
 
                 // The keyboard window switcher is an overlay, not empty space.
-                if (target.closest('.switcher-root')) return;
+                if (target.closest(`.${WINDOW_SWITCHER_CLASS}`)) return;
 
                 // If we reach here, the click happened in the "empty space" behind the UI.
                 this.handleBackgroundClick();

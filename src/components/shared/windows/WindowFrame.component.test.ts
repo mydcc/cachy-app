@@ -1061,8 +1061,11 @@ describe("FEAT-0737 — the frame is a focus target for the window switcher", ()
         const { content, win } = mountFrame();
         const frame = content().closest<HTMLElement>(".window-frame");
 
-        expect(frame).not.toBeNull();
-        expect(frame?.dataset.windowId).toBe(win.id);
-        expect(frame?.tabIndex).toBe(-1);
+        if (!frame) throw new Error("the frame rendered no .window-frame root");
+        expect(frame.dataset.windowId).toBe(win.id);
+        expect(frame.tabIndex).toBe(-1);
+
+        frame.focus();
+        expect(document.activeElement).toBe(frame);
     });
 });

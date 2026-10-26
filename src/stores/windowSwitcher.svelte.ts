@@ -30,10 +30,6 @@ class WindowSwitcherState {
     close(): void {
         this.isOpen = false;
     }
-
-    toggle(): void {
-        this.isOpen = !this.isOpen;
-    }
 }
 
 export const windowSwitcherState = new WindowSwitcherState();

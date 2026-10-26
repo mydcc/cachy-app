@@ -21,7 +21,8 @@
   },
   "windowSwitcher": {
     "title": "Switch window",
-    "hint": "↑↓ select · Enter switch · Esc cancel",
+    "hint": "↑↓/←→ select · Enter switch · Esc cancel",
+    "current": "Current",
     "minimized": "Minimized",
     "empty": "No windows to switch to"
   },
