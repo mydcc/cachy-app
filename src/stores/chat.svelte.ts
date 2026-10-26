@@ -80,7 +80,13 @@ class ChatManager {
           const enabled = settingsState.cloudEnabled;
           const token = settingsState.cloudToken;
 
-          if (!enabled || !token) return;
+          if (!enabled) {
+            // Turning the opt-in off must also close a live connection
+            // (BUG-0726 review). Simply returning here left the socket open.
+            if (cloudService.isConnected()) cloudService.disconnect();
+            return;
+          }
+          if (!token) return;
           if (cloudService.isConnected()) return;
 
           void cloudService
@@ -145,6 +151,9 @@ class ChatManager {
   }
 
   async sendMessage(text: string) {
+    if (!settingsState.cloudEnabled) {
+      throw new Error("Global Chat is disabled. Enable it in Settings before sending.");
+    }
     const now = Date.now();
 
     if (now - this.lastSentTimestamp < SEND_INTERVAL_MS) {

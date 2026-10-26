@@ -148,7 +148,7 @@ implementation is expected to meet.
 
 | | |
 | --- | --- |
-| **What is stored** | Message text, the full sender identity hex, a timestamp, and a per-sender rate-limit counter (`sender_activity`: `window_start`, `count`, `last_sent_at`). Nothing else. |
+| **What is stored** | Message text, the full sender identity hex, a timestamp, a per-sender rate-limit counter, and one aggregate global counter (`sender_activity`: `window_start`, `count`, `last_sent_at`). The global and cleanup rows carry no identity. Nothing else. |
 | **Legal basis** | Consent. The feature is off until the user turns it on, and the settings tab states what leaves the device before they do. |
 | **Retention** | Messages are deleted **90 days** after they are sent. A chat is a conversation, not an archive; nothing in the product reads messages older than the visible history. |
 | **Deletion on request** | Self-service: `delete_my_messages` deletes every message belonging to the caller, identified from `ctx.sender` rather than from an argument. No operator involvement, and no way to erase someone else's messages. |
@@ -163,19 +163,29 @@ The module implements both halves (roadmap item 15a):
 `delete_expired_messages` hourly. The reducer deletes every row older than
 90 days. It is driven by the database rather than by a client, so no caller can
 skip it and nobody has to remember to run it. It uses `ctx.timestamp` rather than
-`Date.now()`, because reducers must be deterministic.
+`Date.now()`, because reducers must be deterministic. The reducer is also
+publicly callable; a persisted `__cleanup__` marker limits a client-invoked run
+to one scan per hour, so it cannot be used as a free full-table scan loop.
 
 **Erasure** — `delete_my_messages` deletes every message belonging to the caller.
 The sender ID is derived from `ctx.sender`, never taken as an argument, so one
 caller cannot erase another's messages. This makes the right to erasure
 self-service: a user exercises it directly, without going through the operator.
 
-**Rate limiting** — `server/spacetimedb/src/rateLimit.ts:28-29` allows 5
-messages per fixed 10-second window per sender. Every send writes an
-identity-keyed `sender_activity` row, which the retention sweep prunes at 90
-days and `delete_my_messages` erases together with the messages. The window
+**Rate limiting** — `server/spacetimedb/src/rateLimit.ts` allows 5
+messages per fixed 10-second window per sender **and** 180 messages per minute
+across all senders. The global counter is a reserved row (`__global__`) in the
+same `sender_activity` table, because identities are self-issued and a per-sender
+limit alone is bypassed by reconnecting. Every send writes an identity-keyed
+`sender_activity` row, which the retention sweep prunes at 90 days and
+`delete_my_messages` erases together with the messages. The global and cleanup
+rows carry no identity and are deliberately not covered by erasure. The window
 counter is user data for exactly as long as the messages are, which is why it is
 listed in the policy table above and not treated as a transient.
+
+**Text** — a message is trimmed and stripped of C0/C1 control characters and
+the Unicode line/paragraph separators before it is stored. Empty and
+whitespace-only messages are rejected by the reducer and by the client.
 
 ### What still needs a machine this repository does not have
 
@@ -247,7 +257,14 @@ Two surfaces, one connection:
   now adapts SpacetimeDB rows into the same shape they already read.
 
 The store connects only when `cloudEnabled` is on **and** a token is present. It
-never connects on its own.
+never connects on its own. `cloudService.connect()` refuses to run while the
+switch is off, even for a direct caller. Turning the switch off closes an
+already-open connection and refuses `sendMessage`/`deleteMyMessages`, so
+revoking the opt-in stops the Class B traffic instead of leaving it running.
+
+Chat text is remote input and is rendered with text interpolation only. It must
+never be passed to `{@html}`; `src/tests/security/chat_rendering.test.ts` pins
+that rule.
 
 ---
 
@@ -284,3 +301,37 @@ The host and module name used to be hardcoded in `cloudService.ts`, which made
 the endpoint Cachy's choice rather than the user's. They are settings now
 (roadmap item 14) — the defaults describe a local development instance, not a
 server anyone else operates.
+
+`https://` is required for a remote host. Plain `http://` is accepted only for
+`localhost`, `127.0.0.1` and `[::1]`, because the connection token is a bearer
+credential and would otherwise travel in clear text. The settings tab warns
+before Connect and `cloudService.connect()` enforces the same rule.
+
+---
+
+## 8. Known limitations (security)
+
+These are inherent to the current SpacetimeDB module model, not bugs that a
+later patch is expected to close silently. They are stated here so an operator
+can decide whether to enable the feature.
+
+- **Identity is self-issued.** SpacetimeDB hands an identity to any connection,
+  including one that never presents a token. The module cannot reject an
+  anonymous connection. The client's token gate is a product policy, not a
+  server control, and anyone who knows the host can read the public table and
+  call the reducers. Mitigations: per-sender and global rate caps, 90-day
+  retention, self-service erasure, and a schema that carries no Class A data.
+- **The global cap is an availability trade-off.** 180 messages/minute across
+  all senders bounds a flood, but two determined identities can occupy that
+  budget and make every other sender wait for the window to reset. It reduces
+  flooding; it is not access control.
+- **Scheduled reducers are public.** A client can invoke
+  `delete_expired_messages`. The `__cleanup__` marker limits it to one scan per
+  hour, and it only deletes rows older than the retention window, so an early
+  call cannot erase live messages. The first run after a fresh module still
+  performs a full scan.
+- **Rendering is text-only.** Chat text is remote input. `{@html}` is forbidden
+  for it; the architecture test pins the current renderer.
+- **Transport.** `https://` (or `wss://`) is required for remote hosts; loopback
+  may use `http://`. This is enforced in `cloudService.connect()`, not only in
+  the UI.

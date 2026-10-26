@@ -19,9 +19,13 @@ import { describe, it, expect } from "vitest";
 import {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_MESSAGES,
+  GLOBAL_RATE_LIMIT_WINDOW_MS,
+  GLOBAL_RATE_LIMIT_MAX_MESSAGES,
+  CLEANUP_MIN_INTERVAL_MS,
   RETENTION_MS,
   MAX_MESSAGE_LENGTH,
   evaluateRateLimit,
+  sanitizeMessageText,
   handleSendMessage,
   handleDeleteExpiredMessages,
   handleDeleteMyMessages,
@@ -254,6 +258,159 @@ describe("FEAT-0375: send_message rate limiting reducer integration", () => {
 
     expect(memDb.senderActivity.has("old_user")).toBe(false);
     expect(memDb.senderActivity.has("active_user")).toBe(true);
+  });
+
+  it("rejects empty and whitespace-only messages (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+
+    expect(() => handleSendMessage(memDb.db, "sender", 1_000_000, "")).toThrow(
+      "Message cannot be empty",
+    );
+    expect(() =>
+      handleSendMessage(memDb.db, "sender", 1_000_000, "  \n\t  "),
+    ).toThrow("Message cannot be empty");
+
+    expect(memDb.globalMessage).toHaveLength(0);
+  });
+
+  it("collapses control characters and line separators to spaces before storing (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+
+    handleSendMessage(
+      memDb.db,
+      "sender",
+      1_000_000,
+      "  he\u0000llo\u2028world\u2029  ",
+    );
+
+    expect(memDb.globalMessage[0].text).toBe("he llo world");
+    expect(sanitizeMessageText("a\tb\nc")).toBe("a b c");
+  });
+
+  it("rejects invisible-only and bidi-only messages (BUG-0726 review)", () => {
+    const memDb = createInMemoryDb();
+
+    expect(() =>
+      handleSendMessage(memDb.db, "sender", 1_000_000, " \u200B "),
+    ).toThrow("Message cannot be empty");
+    expect(() =>
+      handleSendMessage(memDb.db, "sender", 1_000_000, "\u202E"),
+    ).toThrow("Message cannot be empty");
+
+    expect(memDb.globalMessage).toHaveLength(0);
+  });
+
+  it("strips bidi overrides but keeps the visible text around them (BUG-0726 review)", () => {
+    expect(sanitizeMessageText("ab\u202Ecd")).toBe("ab cd");
+    // ZWJ is deliberately preserved so emoji clusters survive.
+    expect(sanitizeMessageText("👨\u200D👩")).toBe("👨\u200D👩");
+  });
+
+  it("rejects an oversized raw payload before the sanitizer runs (BUG-0726 review)", () => {
+    const memDb = createInMemoryDb();
+    const oversized = "x".repeat(MAX_MESSAGE_LENGTH * 4 + 1);
+
+    expect(() =>
+      handleSendMessage(memDb.db, "sender", 1_000_000, oversized),
+    ).toThrow("Message too long");
+  });
+
+  it("caps messages globally even when the sender rotates identities (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+    const start = 1_000_000;
+    const sendersPerWindow = Math.ceil(
+      GLOBAL_RATE_LIMIT_MAX_MESSAGES / RATE_LIMIT_MAX_MESSAGES,
+    );
+
+    for (let s = 0; s < sendersPerWindow; s++) {
+      for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
+        handleSendMessage(memDb.db, `rotating_${s}`, start + i, `msg ${s}/${i}`);
+      }
+    }
+
+    expect(memDb.globalMessage).toHaveLength(GLOBAL_RATE_LIMIT_MAX_MESSAGES);
+
+    // A brand-new identity is still inside the per-sender budget, so only the
+    // global cap can refuse this one.
+    expect(() =>
+      handleSendMessage(memDb.db, "fresh_identity", start + 1, "one more"),
+    ).toThrow(/too many messages/);
+    expect(memDb.globalMessage).toHaveLength(GLOBAL_RATE_LIMIT_MAX_MESSAGES);
+    // The global rejection happens before either counter is written.
+    expect(memDb.senderActivity.has("fresh_identity")).toBe(false);
+  });
+
+  it("a per-sender rejection does not consume the global counter (BUG-0726 review)", () => {
+    const memDb = createInMemoryDb();
+    const sender = "sender_alpha";
+    const start = 1_000_000;
+
+    for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
+      handleSendMessage(memDb.db, sender, start + i, `msg ${i}`);
+    }
+    const globalBefore = memDb.senderActivity.get("__global__")?.count;
+
+    expect(() =>
+      handleSendMessage(memDb.db, sender, start + 5_000, "over budget"),
+    ).toThrow(/Rate limit exceeded/);
+
+    expect(memDb.senderActivity.get("__global__")?.count).toBe(globalBefore);
+  });
+
+  it("erasure leaves the aggregate global counter in place (BUG-0726 review)", () => {
+    const memDb = createInMemoryDb();
+    handleSendMessage(memDb.db, "user_a", 1_000_000, "hello");
+
+    handleDeleteMyMessages(memDb.db, "user_a");
+
+    expect(memDb.senderActivity.has("__global__")).toBe(true);
+  });
+
+  it("opens a new global window after a minute (BUG-0726)", () => {
+    const memDb = createInMemoryDb();
+    const start = 1_000_000;
+    const sendersPerWindow = Math.ceil(
+      GLOBAL_RATE_LIMIT_MAX_MESSAGES / RATE_LIMIT_MAX_MESSAGES,
+    );
+
+    for (let s = 0; s < sendersPerWindow; s++) {
+      for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
+        handleSendMessage(memDb.db, `rotating_${s}`, start + i, `msg ${s}/${i}`);
+      }
+    }
+
+    expect(() =>
+      handleSendMessage(
+        memDb.db,
+        "fresh_identity",
+        start + GLOBAL_RATE_LIMIT_WINDOW_MS,
+        "next window",
+      ),
+    ).not.toThrow();
+  });
+
+  it("throttles client-invoked cleanup to one scan per interval (BUG-0726 review)", () => {
+    const memDb = createInMemoryDb();
+    const now = 200 * 24 * 60 * 60 * 1000;
+
+    handleDeleteExpiredMessages(memDb.db, now);
+    expect(memDb.senderActivity.has("__cleanup__")).toBe(true);
+
+    // A second call inside the interval must not scan or delete anything.
+    memDb.db.globalMessage.insert({
+      sender: "user",
+      text: "expired but not swept yet",
+      sent_at: now - RETENTION_MS - 1,
+    });
+    const second = handleDeleteExpiredMessages(memDb.db, now + 1_000);
+    expect(second.deletedMessages).toBe(0);
+    expect(memDb.globalMessage).toHaveLength(1);
+
+    const third = handleDeleteExpiredMessages(
+      memDb.db,
+      now + CLEANUP_MIN_INTERVAL_MS,
+    );
+    expect(third.deletedMessages).toBe(1);
   });
 
   it("cleans up sender activity on delete_my_messages for GDPR compliance", () => {

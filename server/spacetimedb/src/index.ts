@@ -99,6 +99,11 @@ function adaptDb(ctx: { db: any }): MessageDb {
  *
  * Scheduled, so it is driven by the database rather than by a client — no
  * caller can skip it and none has to remember to run it.
+ *
+ * BUG-0726: scheduled reducers are part of the public module API and a client
+ * can invoke this one. It only deletes rows older than RETENTION_MS, so an
+ * early call is a no-op rather than a way to erase live data. Documented in
+ * docs/GLOBAL-CHAT.md.
  */
 spacetimedb.reducer(
   'delete_expired_messages',
@@ -128,6 +133,11 @@ spacetimedb.reducer('delete_my_messages', {}, (ctx) => {
 });
 
 spacetimedb.clientConnected((ctx) => {
+  // BUG-0726: SpacetimeDB issues an identity to every connection, including one
+  // that never presented a token. The module cannot tell them apart, so the
+  // "authenticated, no anonymous access" rule is a client policy, not a server
+  // control. The global and per-sender caps are the abuse mitigation; the
+  // limitation is stated in docs/GLOBAL-CHAT.md.
   console.info(`Client connected: ${ctx.sender}`);
 });
 

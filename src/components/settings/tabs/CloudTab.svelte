@@ -23,6 +23,7 @@
 <script lang="ts">
     import Button from "../../shared/Button.svelte";
   import { cloudService, type CloudStatus } from '../../../services/cloudService';
+  import { cloudHostIssue } from '../../../services/cloudHost';
   import { settingsState } from '../../../stores/settings.svelte';
   import { _ } from '../../../locales/i18n';
   import type { Infer } from 'spacetimedb';
@@ -36,6 +37,8 @@
   let status = $state<CloudStatus>({ connected: false, lastError: null, mySenderId: null });
 
   const connected = $derived(status.connected);
+  // Shown before the user clicks Connect; `connect()` enforces the same rule.
+  const hostIssue = $derived(cloudHostIssue(settingsState.cloudHost));
 
   $effect(() => {
     const unsubMessages = cloudService.subscribeMessages((msgs) => {
@@ -65,7 +68,7 @@
   }
 
   async function send() {
-    if (!messageText) return;
+    if (!messageText.trim()) return;
     try {
       await cloudService.sendMessage(messageText);
       messageText = "";
@@ -141,8 +144,19 @@
           spellcheck="false"
           placeholder="http://127.0.0.1:3000"
           disabled={connected}
+          aria-describedby={hostIssue ? "cloud-host-warning" : undefined}
         />
       </label>
+      {#if hostIssue}
+        <p
+          id="cloud-host-warning"
+          class="text-xs"
+          style="color: var(--warning-color);"
+          aria-live="polite"
+        >
+          {$_(hostIssue === "invalid_url" ? "cloud.invalidHostWarning" : "cloud.insecureHostWarning")}
+        </p>
+      {/if}
 
       <label class="cloud-field">
         <span>{$_("cloud.dbNameLabel")}</span>
@@ -213,6 +227,12 @@
           <span class="cloud-log-sender">
             {typeof msg.sender === 'string' ? msg.sender.substring(0, 8) : 'Unknown'}:
           </span>
+          <!--
+            Deliberately text interpolation. Chat text is remote input; an
+            HTML-rendering directive here would turn every stored message into
+            stored XSS. The architecture test `chat_rendering.test.ts` pins
+            this block.
+          -->
           <span style="color: var(--text-primary);">{msg.text}</span>
         </div>
       {/each}

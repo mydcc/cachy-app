@@ -24,6 +24,7 @@ import GlobalMessageType from '../lib/spacetimedb/global_message_type';
 import type { Infer } from 'spacetimedb';
 import { logger } from './logger';
 import { settingsState } from '../stores/settings.svelte';
+import { cloudHostSecurityIssue } from './cloudHost';
 
 type GlobalMessage = Infer<typeof GlobalMessageType>;
 
@@ -101,6 +102,26 @@ class CloudService {
   }
 
   /**
+   * Closes the connection (BUG-0726 review).
+   *
+   * The opt-in switch is not only a connect-time gate: turning Global Chat off
+   * must stop the Class B traffic that is already running. The chat store calls
+   * this from the same effect that opens the connection.
+   */
+  disconnect(): void {
+    const connection = this.conn as unknown as { disconnect?: () => void } | null;
+    try {
+      connection?.disconnect?.();
+    } catch (e) {
+      logger.error('network', 'Failed to disconnect SpacetimeDB:', e);
+    }
+    this.conn = null;
+    this.connected = false;
+    this.mySenderId = null;
+    this.notifyStatusSubscribers(this.status());
+  }
+
+  /**
    * Connects to the Global Chat module.
    *
    * `host` and `dbName` come from settings (`cloudHost`, `cloudDbName`) rather
@@ -112,6 +133,12 @@ class CloudService {
    * Anonymous access stays prohibited: Class B condition 2 in ADR-0001.
    */
   async connect(host?: string, dbName?: string, token?: string) {
+    // Class B condition 1: the feature is opt-in and default off. The chat
+    // store checks this too, but a direct caller must not bypass the setting
+    // (BUG-0726).
+    if (!settingsState.cloudEnabled) {
+      throw new Error('Global Chat is disabled. Enable it in Settings before connecting.');
+    }
     if (!token) {
       throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
     }
@@ -123,6 +150,11 @@ class CloudService {
     if (!uri || !moduleName) {
       throw new Error('Global Chat is not configured: set a server address and module name in Settings.');
     }
+
+    // The token is a bearer credential; clear-text transport is only acceptable
+    // on loopback (BUG-0726).
+    const hostIssue = cloudHostSecurityIssue(uri);
+    if (hostIssue) throw new Error(hostIssue);
 
     logger.log('network', 'Connecting to SpacetimeDB...', uri);
 
@@ -208,6 +240,19 @@ class CloudService {
   }
 
   async sendMessage(text: string): Promise<void> {
+    // The opt-in switch also gates sending, not just connecting: a connection
+    // that survived the switch being turned off must not keep transmitting
+    // (BUG-0726 review).
+    if (!settingsState.cloudEnabled) {
+      throw new Error('Global Chat is disabled. Enable it in Settings before sending.');
+    }
+    // The reducer also rejects this, but refusing locally saves a round trip
+    // and gives the UI a legible message. The visible-character check mirrors
+    // the server's, so a zero-width-only message never leaves the device.
+    const sanitized = text.trim();
+    if (sanitized.length === 0 || !/[\p{L}\p{N}\p{P}\p{S}]/u.test(sanitized)) {
+      throw new Error('Message cannot be empty');
+    }
     if (!this.connected) {
       logger.warn('network', 'Cannot send message: Not connected');
       return;
@@ -216,7 +261,7 @@ class CloudService {
       // The reducers object is exported from the generated code and handles calling the server.
       // Same generated-bindings-drift reasoning as canDeleteMyMessages() below.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (reducers as any).sendMessage(text);
+      await (reducers as any).sendMessage(sanitized);
     } catch (e) {
       // Same rule as connect(): a chat failure stays a chat failure.
       this.lastError = e instanceof Error ? e.message : String(e);
@@ -249,6 +294,9 @@ class CloudService {
    * anyone else's messages, and no argument is needed.
    */
   deleteMyMessages() {
+    if (!settingsState.cloudEnabled) {
+      throw new Error('Global Chat is disabled. Enable it in Settings before deleting messages.');
+    }
     if (!this.connected) {
       logger.warn('network', 'Cannot delete messages: Not connected');
       throw new Error('Not connected to Global Chat.');

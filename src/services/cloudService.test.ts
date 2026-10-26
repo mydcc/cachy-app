@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 type MockCallback = ((...args: unknown[]) => unknown) | undefined;
 
@@ -108,10 +108,13 @@ vi.mock('../lib/spacetimedb', () => {
 // Import service AFTER mocks
 import { cloudService } from './cloudService';
 import { tables } from '../lib/spacetimedb';
+import { settingsState } from '../stores/settings.svelte';
 
 describe('CloudService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // BUG-0726: connect() is gated on the opt-in setting.
+    settingsState.cloudEnabled = true;
     // Reset singleton state (private fields on the real class)
     const internals = cloudService as unknown as {
       connected: boolean;
@@ -132,10 +135,41 @@ describe('CloudService', () => {
     mockCallbacks.onInsert = undefined;
   });
 
+  afterEach(() => {
+    // Restore the opt-in even when an assertion above failed.
+    settingsState.cloudEnabled = true;
+  });
+
 
   it('should throw an error if no token is provided', async () => {
     const host = 'http://localhost:3000';
     await expect(cloudService.connect(host)).rejects.toThrow('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
+  });
+
+  it('refuses to connect while Global Chat is disabled', async () => {
+    settingsState.cloudEnabled = false;
+    await expect(
+      cloudService.connect('https://chat.example', 'cachy-server', 'token'),
+    ).rejects.toThrow(/disabled/);
+  });
+
+  it('disconnects and refuses to send when the opt-in is turned off', async () => {
+    await cloudService.connect('http://localhost:3000', 'cachy-server', 'token');
+    mockCallbacks.onConnect!({}, { toHexString: () => 'abc123' });
+    expect(cloudService.isConnected()).toBe(true);
+
+    settingsState.cloudEnabled = false;
+
+    await expect(cloudService.sendMessage('hello')).rejects.toThrow(/disabled/);
+    cloudService.disconnect();
+    expect(cloudService.isConnected()).toBe(false);
+    expect(cloudService.status().mySenderId).toBeNull();
+  });
+
+  it('refuses plain http on a remote host before building a connection', async () => {
+    await expect(
+      cloudService.connect('http://chat.example', 'cachy-server', 'token'),
+    ).rejects.toThrow(/https/);
   });
 
   it('should use logger service instead of console', async () => {
