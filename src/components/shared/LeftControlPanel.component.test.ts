@@ -37,6 +37,10 @@ import { flushSync, mount, unmount } from "svelte";
 import en from "../../locales/locales/en.json";
 import LeftControlPanel from "./LeftControlPanel.svelte";
 import { uiState } from "../../stores/ui.svelte";
+import { settingsState } from "../../stores/settings.svelte";
+import { windowManager } from "../../lib/windows/WindowManager.svelte";
+import { ModalWindow } from "../../lib/windows/implementations/ModalWindow.svelte";
+import EmptyStub from "../../tests/helpers/EmptyStub.svelte";
 
 const dictionary = en as Record<string, unknown>;
 
@@ -138,5 +142,134 @@ describe("FEAT-0389: the bell opens the Super-Alert panel", () => {
         button.getAttribute("aria-label")?.trim().length ?? 0,
       ).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("FEAT-0732: the rail renders the entry-point registry", () => {
+  let target: HTMLElement;
+  let component: ReturnType<typeof mount> | null = null;
+
+  function render() {
+    component = mount(LeftControlPanel, { target, props: {} });
+    flushSync();
+    return target;
+  }
+
+  function control(el: HTMLElement, key: string) {
+    return el.querySelector<HTMLButtonElement>(
+      `[aria-label="${getNestedTranslation(key)}"]`,
+    );
+  }
+
+  beforeEach(() => {
+    target = document.createElement("div");
+    document.body.appendChild(target);
+    windowManager.close("assistant");
+    uiState.showMarketDashboardModal = false;
+    settingsState.showTechnicals = false;
+    settingsState.showMarketOverview = true;
+    settingsState.showSidebarActivity = false;
+    settingsState.showMarketSentiment = true;
+  });
+
+  afterEach(() => {
+    if (component) unmount(component);
+    component = null;
+    target.remove();
+    windowManager.close("journal");
+    windowManager.close("assistant");
+    uiState.showMarketDashboardModal = false;
+    settingsState.showTechnicals = false;
+    settingsState.showMarketOverview = true;
+    settingsState.showSidebarActivity = false;
+    settingsState.showMarketSentiment = true;
+  });
+
+  it("renders nine controls, or ten while the journal is minimized", () => {
+    const el = render();
+    expect(el.querySelectorAll("button.control-btn")).toHaveLength(9);
+    expect(control(el, "app.journalButtonTitle")).toBeNull();
+
+    windowManager.open(
+      new ModalWindow(EmptyStub, "Journal", {
+        id: "journal",
+        windowType: "journal",
+      }),
+    );
+    const journal = windowManager.windows.find(
+      (win) => win.windowType === "journal",
+    )!;
+    journal.isMinimized = true;
+    flushSync();
+
+    expect(el.querySelectorAll("button.control-btn")).toHaveLength(10);
+    expect(control(el, "app.journalButtonTitle")).not.toBeNull();
+  });
+
+  it("opens the dashboard and toggles a panel", () => {
+    const el = render();
+
+    control(el, "app.marketDashboard.buttonTitle")!.click();
+    flushSync();
+    expect(uiState.showMarketDashboardModal).toBe(true);
+
+    control(el, "settings.showTechnicals")!.click();
+    flushSync();
+    expect(settingsState.showTechnicals).toBe(true);
+  });
+
+  it("keeps the existing active classes", () => {
+    windowManager.open(
+      new ModalWindow(EmptyStub, "Assistant", {
+        id: "assistant",
+        windowType: "assistant",
+      }),
+    );
+    settingsState.showTechnicals = true;
+    settingsState.showMarketOverview = true;
+    settingsState.showSidebarActivity = true;
+    settingsState.showMarketSentiment = true;
+
+    const el = render();
+
+    expect(
+      control(el, "sidePanel.aiAssistant")!.classList.contains("active"),
+    ).toBe(true);
+    expect(
+      control(el, "settings.showTechnicals")!.classList.contains("active"),
+    ).toBe(true);
+    expect(
+      control(el, "settings.toggleMarketTiles")!.classList.contains("active"),
+    ).toBe(true);
+    expect(
+      control(el, "dashboard.marketActivity")!.classList.contains("active"),
+    ).toBe(true);
+    expect(
+      control(el, "settings.toggleMarketSentiment")!.classList.contains(
+        "active",
+      ),
+    ).toBe(true);
+  });
+
+  it("restores a minimized journal window", () => {
+    windowManager.open(
+      new ModalWindow(EmptyStub, "Journal", {
+        id: "journal",
+        windowType: "journal",
+      }),
+    );
+    const journal = windowManager.windows.find(
+      (win) => win.windowType === "journal",
+    )!;
+    journal.isMinimized = true;
+
+    const el = render();
+    control(el, "app.journalButtonTitle")!.click();
+    flushSync();
+
+    expect(journal.isMinimized).toBe(false);
+    expect(windowManager.windows.find((win) => win.id === "journal")).toBe(
+      journal,
+    );
   });
 });

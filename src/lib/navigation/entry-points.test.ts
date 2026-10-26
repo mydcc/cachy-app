@@ -131,6 +131,52 @@ describe("surface resolver", () => {
         ).toContain("journal");
     });
 
+    it("tracks the rail's existing selected states", () => {
+        const active = (id: string, ctx: EntryContext) =>
+            getSurfaceEntries("rail", ctx).find(
+                ({ entry }) => entry.id === id,
+            )!.active;
+
+        expect(active("assistant", context())).toBe(false);
+        expect(
+            active(
+                "assistant",
+                context({ ui: { showAssistant: true } }),
+            ),
+        ).toBe(true);
+
+        expect(
+            active(
+                "technicals",
+                context({ settings: { showTechnicals: true } }),
+            ),
+        ).toBe(true);
+        expect(
+            active(
+                "market-overview",
+                context({ settings: { showMarketOverview: true } }),
+            ),
+        ).toBe(true);
+        expect(
+            active(
+                "market-activity",
+                context({ settings: { showSidebarActivity: true } }),
+            ),
+        ).toBe(true);
+        expect(
+            active(
+                "market-sentiment",
+                context({ settings: { showMarketSentiment: true } }),
+            ),
+        ).toBe(true);
+        expect(
+            active(
+                "journal",
+                context({ windows: { journal: "minimized" } }),
+            ),
+        ).toBe(true);
+    });
+
     it("evaluates the rail panel preconditions", () => {
         const technicals = () =>
             getSurfaceEntries("rail", context()).find(

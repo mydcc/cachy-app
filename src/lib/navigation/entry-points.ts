@@ -102,6 +102,8 @@ export interface Placement {
     keyboard: KeyboardRoute;
     visibleWhen?: Condition;
     enabledWhen?: Condition;
+    /** Visual selected state (a toggle that is on, a panel that is open). */
+    activeWhen?: Condition;
 }
 
 export interface Entry {
@@ -138,6 +140,7 @@ export interface SurfaceEntry {
     entry: Entry;
     placement: Placement;
     enabled: boolean;
+    active: boolean;
 }
 
 function valuesEqual(left: unknown, right: unknown): boolean {
@@ -274,6 +277,9 @@ export function getSurfaceEntries(
                     placement.enabledWhen ?? { kind: "always" },
                     context,
                 ),
+                active: placement.activeWhen
+                    ? evaluateCondition(placement.activeWhen, context)
+                    : false,
             });
         }
     }
@@ -289,11 +295,12 @@ const always: Condition = { kind: "always" };
 
 function rail(
     order: number,
+    group: "destinations" | "panels",
     extra: Partial<Placement> = {},
 ): Placement {
     return {
         surface: "rail",
-        group: "primary",
+        group,
         order,
         keyboard: { kind: "tab-order", surface: "rail" },
         ...extra,
@@ -336,13 +343,15 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         opener: { kind: "window", windowType: "journal", instance: "journal" },
         placements: [
             header(10),
-            rail(60, {
+            rail(60, "destinations", {
                 visibleWhen: { kind: "window", id: "journal", state: "minimized" },
+                activeWhen: { kind: "always" },
             }),
         ],
     },
     {
         id: "settings",
+        telemetryName: "OpenSettings",
         labels: { label: "settings.title" },
         icon: "icons.settings",
         opener: {
@@ -350,35 +359,47 @@ const GLOBAL_DESTINATIONS: Entry[] = [
             windowType: "settings",
             instance: "settings",
         },
-        placements: [rail(20)],
+        placements: [rail(20, "destinations")],
     },
     {
         id: "dashboard",
+        telemetryName: "OpenMarketDashboard",
         labels: { label: "app.marketDashboard.buttonTitle" },
         icon: "rail-dashboard",
         opener: { kind: "toggle", target: "market-dashboard" },
-        placements: [rail(10)],
+        placements: [rail(10, "destinations")],
     },
     {
         id: "alerts",
+        telemetryName: "OpenAlerts",
         labels: { label: "dashboard.alerts.panel.open" },
         icon: "rail-alerts",
         opener: { kind: "toggle", target: "alerts" },
-        placements: [rail(30)],
+        placements: [rail(30, "destinations")],
     },
     {
         id: "academy",
+        telemetryName: "OpenAcademy",
         labels: { label: "academy.title" },
         icon: "rail-academy",
         opener: { kind: "window", windowType: "academy" },
-        placements: [rail(40)],
+        placements: [rail(40, "destinations")],
     },
     {
         id: "assistant",
+        telemetryName: "OpenAssistant",
         labels: { label: "sidePanel.aiAssistant" },
         icon: "rail-assistant",
         opener: { kind: "toggle", target: "assistant" },
-        placements: [rail(50)],
+        placements: [
+            rail(50, "destinations", {
+                activeWhen: {
+                    kind: "state",
+                    key: "showAssistant",
+                    equals: true,
+                },
+            }),
+        ],
     },
     {
         id: "technicals",
@@ -386,10 +407,15 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         icon: "icons.chart",
         opener: { kind: "toggle", target: "technicals" },
         placements: [
-            rail(70, {
+            rail(70, "panels", {
                 enabledWhen: {
                     kind: "derived",
                     key: "isTechnicalsVisible",
+                },
+                activeWhen: {
+                    kind: "setting",
+                    key: "showTechnicals",
+                    equals: true,
                 },
             }),
         ],
@@ -400,13 +426,18 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         icon: "rail-market-overview",
         opener: { kind: "toggle", target: "market-overview" },
         placements: [
-            rail(80, {
+            rail(80, "panels", {
                 enabledWhen: {
                     kind: "all",
                     conditions: [
                         { kind: "setting", key: "showSidebars" },
                         { kind: "viewport", minWidth: 1280 },
                     ],
+                },
+                activeWhen: {
+                    kind: "setting",
+                    key: "showMarketOverview",
+                    equals: true,
                 },
             }),
         ],
@@ -417,10 +448,15 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         icon: "rail-market-activity",
         opener: { kind: "toggle", target: "market-activity" },
         placements: [
-            rail(90, {
+            rail(90, "panels", {
                 enabledWhen: {
                     kind: "derived",
                     key: "effectiveShowSidebarActivity",
+                },
+                activeWhen: {
+                    kind: "setting",
+                    key: "showSidebarActivity",
+                    equals: true,
                 },
             }),
         ],
@@ -431,8 +467,13 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         icon: "rail-market-sentiment",
         opener: { kind: "toggle", target: "market-sentiment" },
         placements: [
-            rail(100, {
+            rail(100, "panels", {
                 enabledWhen: { kind: "viewport", minWidth: 1280 },
+                activeWhen: {
+                    kind: "setting",
+                    key: "showMarketSentiment",
+                    equals: true,
+                },
             }),
         ],
     },
