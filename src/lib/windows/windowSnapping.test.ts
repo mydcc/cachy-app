@@ -59,12 +59,12 @@ describe("snapToWindows", () => {
         expect(snap(305, 300, [OTHER], 200).x).toBe(300);
     });
 
-    it("places a window flush to the left of another", () => {
+    it("places a window flush to the right of another", () => {
         const other = { x: 400, y: 100, width: 300, height: 300 };
         expect(snap(703, 300, [other], 200).x).toBe(700);
     });
 
-    it("places a window flush to the right of another", () => {
+    it("places a window flush to the left of another", () => {
         const other = { x: 100, y: 100, width: 300, height: 300 };
         expect(snap(-97, 300, [other], 200).x).toBe(-100);
     });
@@ -75,9 +75,20 @@ describe("snapToWindows", () => {
         expect(snap(205, 300, [other]).x).toBe(200);
     });
 
-    it("aligns top and bottom edges independently", () => {
+    it("aligns the top edge and places flush below", () => {
         expect(snap(300, 103).y).toBe(100);
         expect(snap(300, 403, [OTHER], 300, 200).y).toBe(400);
+    });
+
+    it("aligns bottom/bottom, y-centre and the space above a window", () => {
+        const bottom = { x: 100, y: 100, width: 300, height: 300 };
+        expect(snap(300, 203, [bottom]).y).toBe(200);
+
+        const tall = { x: 100, y: 100, width: 300, height: 500 };
+        expect(snap(300, 255, [tall]).y).toBe(250);
+
+        const lower = { x: 100, y: 300, width: 400, height: 200 };
+        expect(snap(300, 103, [lower]).y).toBe(100);
     });
 
     it("snaps both axes in one move", () => {
@@ -86,9 +97,9 @@ describe("snapToWindows", () => {
     });
 
     it("chooses the nearest candidate when two windows are close", () => {
-        const first = { x: 100, y: 100, width: 300, height: 300 };
-        const second = { x: 116, y: 100, width: 300, height: 300 };
-        expect(snap(115, 300, [first, second]).x).toBe(116);
+        const first = { x: 115, y: 100, width: 300, height: 300 };
+        const second = { x: 120, y: 100, width: 300, height: 300 };
+        expect(snap(115, 300, [first, second]).x).toBe(115);
     });
 
     it("snaps to the usable screen centre", () => {
@@ -103,6 +114,17 @@ describe("snapToWindows", () => {
         });
     });
 
+    it("gives the screen centre an exact tie over a window edge", () => {
+        const other = { x: 312, y: 300, width: 300, height: 200 };
+        expect(snap(306, 300, [other], 400).x).toBe(300);
+    });
+
+    it("rounds a snapped half-pixel candidate", () => {
+        expect(snap(355, 300, [], 300, 200, NO_INSETS, 1001, 800).x).toBe(
+            351,
+        );
+    });
+
     it("snaps at exactly 12 px and not at 13 px", () => {
         expect(snap(312, 300, [], 400).x).toBe(300);
         expect(snap(313, 300, [], 400).x).toBe(313);
@@ -112,8 +134,19 @@ describe("snapToWindows", () => {
         expect(snap(637.4, 419.6, [])).toEqual({ x: 637, y: 420 });
     });
 
-    it("ignores invalid targets", () => {
+    it("ignores invalid targets instead of snapping to them", () => {
         const invalid = { x: 100, y: 100, width: 0, height: 0 };
-        expect(snap(305, 300, [invalid], 400)).toEqual({ x: 300, y: 300 });
+        expect(snap(103, 103, [invalid])).toEqual({ x: 103, y: 103 });
+    });
+
+    it("keeps the raw position for invalid dragged geometry", () => {
+        expect(snap(503, 500, [], 0)).toEqual({ x: 503, y: 500 });
+        expect(snap(Number.NaN, 500, [])).toEqual({ x: 0, y: 500 });
+    });
+
+    it("does not clamp a centre that is wider than the viewport", () => {
+        // The helper returns the mathematical centre; WindowBase.updatePosition
+        // owns the visible-position clamp.
+        expect(snap(-97, 300, [], 400, 200, NO_INSETS, 200, 800).x).toBe(-100);
     });
 });

@@ -75,16 +75,22 @@ when nothing is in range.
 
 `WindowFrame` runs the helper only after `detectSnapZone` returns null, so the
 48 px screen-edge tiler keeps priority. The target list excludes the dragged
-window, minimized windows and modal/dialog windows. There is no new state,
-localStorage key or guide overlay: the snapped position is the live drag
-position, and the existing drag-end save persists it.
+window, minimized windows and modal/dialog windows. Shell insets and viewport
+size are read once at drag start, so the common off-edge path has no per-move
+DOM queries. There is no new state, localStorage key or guide overlay: the
+snapped position is the live drag position, and the existing drag-end save
+persists it.
 
 `getUsableBounds` is the shared clamp now used by both the tiler and the
-window-centre candidate. Tests: 22 `snapping` cases (including the bounds
-clamp) and 13 `windowSnapping` cases (edge/centre candidates, adjacency,
-nearest, 12/13 px boundary, insets, invalid targets) plus 57 `WindowFrame`
-cases (neighbour alignment, minimized/modal exclusion, edge-priority and the
-existing tiling regressions). The broader
+window-centre candidate. The helper returns a finite fallback for corrupt
+input and documents that the screen centre wins an exact tie and that
+`WindowBase.updatePosition` owns the visible-position clamp. Tests: 22
+`snapping` cases (including the bounds clamp) and 18 `windowSnapping` cases
+(edge/centre candidates, adjacency, nearest, tie, 12/13 px boundary, roundings,
+invalid targets/geometry, insets) plus 66 `WindowFrame` cases (neighbour,
+centre, pinned-target and self-exclusion behavior, shell insets, 12 px frame
+boundary, minimized/modal/dialog exclusion, edge priority, pinned detach,
+pointercancel and the existing tiling regressions). The broader
 `WindowBase`/`WindowManager` suites stay at 71. `npm run check` reports 0
 errors and the existing 6 warnings; ESLint is clean.
 

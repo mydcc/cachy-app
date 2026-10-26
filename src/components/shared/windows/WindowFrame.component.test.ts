@@ -1796,6 +1796,330 @@ describe("FEAT-0739 — window-to-window snapping", () => {
             windowManager.close(target.id);
         }
     });
+
+    it("does not use the dragged window as its own target", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        windowManager.open(win);
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 156,
+                    clientY: 126,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(106);
+            expect(win.y).toBe(106);
+        } finally {
+            windowManager.close(win.id);
+        }
+    });
+
+    it("uses the dragged width for centre alignment", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = openTarget();
+        target.x = 200;
+        target.y = 150;
+        target.width = 400;
+        target.height = 200;
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 303,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(250);
+            expect(win.y).toBe(150);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+
+    it("uses the shell insets for the screen-centre candidate", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 400;
+        win.height = 200;
+        const left = document.createElement("div");
+        left.dataset.snapSidebar = "left";
+        left.getBoundingClientRect = () =>
+            ({
+                left: 0,
+                right: 100,
+                width: 100,
+                top: 0,
+                bottom: 768,
+                height: 768,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            }) as unknown as DOMRect;
+        host!.appendChild(left);
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 407,
+                    clientY: 320,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe((100 + window.innerWidth - 400) / 2);
+        } finally {
+            left.remove();
+        }
+    });
+
+    it.each([
+        [111, 100],
+        [113, 113],
+    ] as const)(
+        "uses the 12 px magnet at the frame boundary (%i -> %i)",
+        (rawX, expected) => {
+            const { win } = mountFrame();
+            win.x = 100;
+            win.y = 100;
+            win.width = 300;
+            win.height = 200;
+            const target = openTarget();
+            target.x = 100;
+            target.y = 100;
+            target.width = 300;
+            target.height = 200;
+            flushSync();
+
+            try {
+                const header =
+                    host!.querySelector<HTMLElement>(".window-header");
+                if (!header) throw new Error("the frame rendered no header");
+
+                header.dispatchEvent(
+                    new PointerEvent("pointerdown", {
+                        pointerId: 1,
+                        clientX: 150,
+                        clientY: 120,
+                        bubbles: true,
+                        cancelable: true,
+                    }),
+                );
+                header.dispatchEvent(
+                    new PointerEvent("pointermove", {
+                        pointerId: 1,
+                        clientX: rawX + 50,
+                        clientY: 320,
+                        bubbles: true,
+                    }),
+                );
+                flushSync();
+
+                expect(win.x).toBe(expected);
+            } finally {
+                windowManager.close(target.id);
+            }
+        },
+    );
+
+    it("re-snaps a detached pinned window to a neighbour", () => {
+        const { win } = mountFrame();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const target = openTarget();
+        target.x = 200;
+        target.y = 150;
+        target.width = 300;
+        target.height = 200;
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 200,
+                    clientY: 50,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 403,
+                    clientY: 203,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(200);
+            expect(win.y).toBe(150);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+
+    it("uses a pinned window as a target", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = openTarget();
+        target.snapToSide("left");
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 565,
+                    clientY: 320,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(512);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+
+    it("keeps the live window-snap position on pointercancel", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = openTarget();
+        target.x = 200;
+        target.y = 150;
+        target.width = 300;
+        target.height = 200;
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 253,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+            expect(win.x).toBe(200);
+            expect(win.y).toBe(150);
+
+            header.dispatchEvent(
+                new PointerEvent("pointercancel", {
+                    pointerId: 1,
+                    clientX: 253,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(200);
+            expect(win.y).toBe(150);
+            expect(win.isPinned).toBe(false);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
 });
 
 describe("FEAT-0739 — exclusions and edge priority", () => {
@@ -1857,15 +2181,59 @@ describe("FEAT-0739 — exclusions and edge priority", () => {
         }
     });
 
-    it("lets the screen-edge tiler win over a window target", () => {
+    it("ignores a dialog window as a target", () => {
         const { win } = mountFrame();
         win.x = 100;
         win.y = 100;
         win.width = 300;
         win.height = 200;
         const target = new AnotherTargetWindow();
+        target.windowType = "dialog";
+        target.x = 200;
+        target.y = 150;
+        target.width = 300;
+        target.height = 200;
+        windowManager.open(target);
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 253,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(203);
+            expect(win.y).toBe(153);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+
+    it("lets the screen-edge tiler win over a window target", () => {
+        const { win } = mountFrame();
+        win.x = 100;        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = new AnotherTargetWindow();
         target.windowType = "chart";
-        target.x = 100;
+        target.x = -35;
         target.y = 150;
         target.width = 300;
         target.height = 200;
@@ -1895,6 +2263,9 @@ describe("FEAT-0739 — exclusions and edge priority", () => {
             );
             flushSync();
             expect(host!.querySelector(".snap-preview")).not.toBeNull();
+            // The target's left edge is 5 px from the raw position; a broken
+            // priority branch would align here instead of keeping the raw x.
+            expect(win.x).toBe(-40);
 
             header.dispatchEvent(
                 new PointerEvent("pointerup", {

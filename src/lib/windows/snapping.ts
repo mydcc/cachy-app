@@ -70,9 +70,13 @@ export interface SnapGeometry {
 
 /** The rectangle left for windows after the shell chrome. */
 export interface SnapBounds {
+    /** Absolute viewport x of the usable left edge. */
     left: number;
+    /** Absolute viewport x of the usable right edge (not an inset distance). */
     right: number;
+    /** Absolute viewport y of the usable top edge. */
     top: number;
+    /** Absolute viewport y of the usable bottom edge (not an inset distance). */
     bottom: number;
 }
 

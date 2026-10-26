@@ -26,18 +26,15 @@
 
 import {
     getUsableBounds,
+    type SnapGeometry,
     type SnapInsets,
 } from "./snapping";
 
 /** Alignment magnet, deliberately smaller than the 48 px screen-edge band. */
 export const WINDOW_SNAP_THRESHOLD_PX = 12;
 
-export interface WindowSnapTarget {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
+/** A visible window rectangle; identical to the tiler's geometry shape. */
+export type WindowSnapTarget = SnapGeometry;
 
 export interface WindowSnapResult {
     x: number;
@@ -67,8 +64,11 @@ function snapAxis(
 /**
  * Returns the position the dragged window should use. Each axis snaps
  * independently to the nearest edge/center candidate within the threshold,
- * including the usable viewport centre. When nothing is close, the raw
- * position is returned rounded.
+ * including the usable viewport centre. The screen centre is pushed first,
+ * so it wins an exact tie; windows otherwise win by being nearer. The result
+ * is not clamped to the usable bounds — `WindowBase.updatePosition` owns the
+ * viewport clamp. When nothing is close, the raw position is returned
+ * rounded.
  */
 export function snapToWindows(
     rawX: number,
@@ -93,7 +93,10 @@ export function snapToWindows(
         viewportWidth <= 0 ||
         viewportHeight <= 0
     ) {
-        return { x: Math.round(rawX), y: Math.round(rawY) };
+        return {
+            x: Number.isFinite(rawX) ? Math.round(rawX) : 0,
+            y: Number.isFinite(rawY) ? Math.round(rawY) : 0,
+        };
     }
 
     const bounds = getUsableBounds(viewportWidth, viewportHeight, insets);
