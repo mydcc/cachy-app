@@ -178,9 +178,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress, url }) =
     }
     // The shared guard cannot decide this: it cannot tell a missing
     // passphrase from a Bitunix request that rightly carries none — the route
-    // is the level that knows the venue. Without this, `executeOrder` throws
-    // `PASSPHRASE_REQUIRED` from `bitgetCallHeaders` and the catch below turns
-    // a client bug into a 500 (BUG-0723). Same check the read routes run.
+    // is the level that knows the venue. Without this, `executeOrder` itself
+    // throws `PASSPHRASE_REQUIRED` and the catch below turns a client bug into
+    // a 500 (BUG-0723). Same check the read routes run.
     if (venue.requiresPassphrase && check.envelope.passphrase === undefined) {
       return json({ error: ORDER_ERRORS.PASSPHRASE_REQUIRED }, { status: 400 });
     }

@@ -467,12 +467,18 @@ describe("exchangeSignedFetch", () => {
       keys: KEYS,
       venue: "bitunix",
       payload: PLACE_ORDER_BITUNIX,
-      now: NOW,
+      // Marked so the assertion also pins that the guard runs *after* the
+      // signing await, which is the window BUG-0551 exists for. Moving the
+      // hook above `signCachyRequest` would produce ["guard", "sign", "fetch"].
+      now: () => {
+        order.push("sign");
+        return NOW();
+      },
       beforeAttempt: () => order.push("guard"),
       fetchFn,
     });
 
-    expect(order).toEqual(["guard", "fetch"]);
+    expect(order).toEqual(["sign", "guard", "fetch"]);
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 

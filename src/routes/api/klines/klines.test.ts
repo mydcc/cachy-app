@@ -368,4 +368,16 @@ describe('GET /api/klines', () => {
     const upstream = new URL(vi.mocked(global.fetch).mock.calls[0][0] as string);
     expect(upstream.searchParams.get("limit")).toBe("1000");
   });
+
+  it('sanitises the symbol before the venue call and the cache key', async () => {
+    okKlines();
+    const url = new URL(
+      'http://localhost/api/klines?symbol=BTCUSDT%26admin%3D1&provider=bitunix&interval=1m',
+    );
+    await GET({ url } as unknown as Parameters<typeof GET>[0]);
+
+    const upstream = new URL(vi.mocked(global.fetch).mock.calls[0][0] as string);
+    expect(upstream.searchParams.get("symbol")).toBe("BTCUSDTADMIN1");
+    expect(upstream.searchParams.get("admin")).toBeNull();
+  });
 });

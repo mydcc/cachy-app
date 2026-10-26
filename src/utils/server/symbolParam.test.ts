@@ -15,10 +15,15 @@ describe("sanitizeSymbol", () => {
     expect(sanitizeSymbol("BTCUSDT")).toBe("BTCUSDT");
   });
 
+  it("uppercases so one symbol has one cache entry", () => {
+    expect(sanitizeSymbol("btcusdt")).toBe("BTCUSDT");
+    expect(sanitizeSymbol("BtCuSdT")).toBe("BTCUSDT");
+  });
+
   it("strips query, path and fragment separators", () => {
-    expect(sanitizeSymbol("BTCUSDT&limit=1000")).toBe("BTCUSDTlimit1000");
-    expect(sanitizeSymbol("../../etc/passwd")).toBe("etcpasswd");
-    expect(sanitizeSymbol("BTC#frag")).toBe("BTCfrag");
+    expect(sanitizeSymbol("BTCUSDT&limit=1000")).toBe("BTCUSDTLIMIT1000");
+    expect(sanitizeSymbol("../../etc/passwd")).toBe("ETCPASSWD");
+    expect(sanitizeSymbol("BTC#frag")).toBe("BTCFRAG");
   });
 });
 

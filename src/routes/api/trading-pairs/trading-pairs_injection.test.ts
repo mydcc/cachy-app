@@ -36,7 +36,7 @@ describe("GET /api/trading-pairs symbol sanitising", () => {
     expect(response.status).toBe(200);
     const [upstreamUrl] = mockFetch.mock.calls[0];
     expect(upstreamUrl).toBe(
-      "https://fapi.bitunix.com/api/v1/futures/market/trading_pairs?symbols=BTCUSDT,ETHUSDTadmin1",
+      "https://fapi.bitunix.com/api/v1/futures/market/trading_pairs?symbols=BTCUSDT,ETHUSDTADMIN1",
     );
     expect(upstreamUrl).not.toContain("&admin=");
   });
@@ -52,5 +52,22 @@ describe("GET /api/trading-pairs symbol sanitising", () => {
 
     expect(response.status).toBe(400);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps the unfiltered key separate from an explicit filter", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(upstreamOk());
+
+    await GET({
+      url: new URL("http://localhost/api/trading-pairs"),
+      fetch: mockFetch,
+    } as unknown as Parameters<typeof GET>[0]);
+    await GET({
+      url: new URL("http://localhost/api/trading-pairs?symbols=ALL"),
+      fetch: mockFetch,
+    } as unknown as Parameters<typeof GET>[0]);
+
+    // `ALL` is a valid symbol alphabet string; it must not alias the
+    // "no filter" entry and serve its cached answer to every caller.
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });

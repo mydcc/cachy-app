@@ -36,7 +36,11 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
     return json({ message: "Invalid 'symbols' parameter" }, { status: 400 });
   }
 
-  const cacheKey = `trading-pairs:${symbols || "ALL"}`;
+  // A filter can never share the "all pairs" key: `symbols=ALL` is a valid
+  // alphabet string, and the old `|| "ALL"` form aliased it to no filter
+  // (BUG-0723).
+  const cacheKey =
+    symbols === null ? "trading-pairs:all" : `trading-pairs:filter:${symbols}`;
 
   try {
     const data = await cache.getOrFetch(

@@ -22,11 +22,12 @@ import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/ve
 import type { KlinePriceSource } from "../../../utils/server/venues/types";
 import { getCachedKlines } from "../../../lib/server/klineCache";
 import { clampKlineLimit } from "../../../lib/server/klineCacheKey";
+import { sanitizeSymbol } from "../../../utils/server/symbolParam";
 
 type ApiError = UpstreamApiError;
 
 export const GET: RequestHandler = async ({ url }) => {
-  const symbol = url.searchParams.get("symbol");
+  const rawSymbol = url.searchParams.get("symbol");
   const interval = url.searchParams.get("interval") || "1d";
   const limitParam = url.searchParams.get("limit");
   const startParam =
@@ -42,8 +43,17 @@ export const GET: RequestHandler = async ({ url }) => {
   const start = startParam ? parseInt(startParam) : undefined;
   const end = endParam ? parseInt(endParam) : undefined;
 
-  if (!symbol) {
+  if (!rawSymbol) {
     return json({ error: "Symbol is required" }, { status: 400 });
+  }
+
+  // The venue builder uppercases before it asks, but the cache key used the
+  // raw value: `btcusdt` and `BTCUSDT` were two entries for one response, and
+  // an injected separator became part of the key. Sanitise once, before both
+  // (BUG-0723).
+  const symbol = sanitizeSymbol(rawSymbol);
+  if (!symbol) {
+    return json({ error: "Invalid symbol" }, { status: 400 });
   }
 
   // Only `mark` opts out of the default. An unrecognised spelling is rejected

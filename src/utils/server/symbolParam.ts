@@ -18,12 +18,18 @@
  *
  * One helper for all of them, because the audit found the routes disagreeing:
  * funding-rate sanitised, position-tiers and trading-pairs did not.
+ *
+ * It delegates to `src/types/bitunixValidation.ts` rather than introducing a
+ * second helper with the same name: that one is the canonical alphabet and
+ * also uppercases, which makes `BTCUSDT` and `btcusdt` one cache entry instead
+ * of two. A case-preserving copy here would be the same inconsistency one
+ * import away.
  */
 
-/** Strips everything outside the venue symbol alphabet. */
-export function sanitizeSymbol(raw: string): string {
-  return raw.replace(/[^A-Za-z0-9]/g, "");
-}
+import { sanitizeSymbol as sanitizeVenueSymbol } from "../../types/bitunixValidation";
+
+/** Uppercases and strips everything outside the venue symbol alphabet. */
+export const sanitizeSymbol = sanitizeVenueSymbol;
 
 /**
  * Sanitises a comma-separated symbol list, dropping empty members.

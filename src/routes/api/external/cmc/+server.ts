@@ -62,10 +62,9 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
 
   try {
     // `safeFetch`, not the native fetch: the base URL is fixed, but a CMC
-    // response/redirect could still send the proxy elsewhere, and the
-    // dial-time guard is what refuses a private or loopback target after DNS
-    // resolution (BUG-0723). CMC follows no redirects today; this is the guard
-    // that keeps that true if it ever starts.
+    // response/redirect could still send the proxy elsewhere. Every hop is
+    // re-validated and the dial-time guard refuses a private or loopback
+    // target after DNS resolution (BUG-0723).
     const response = await safeFetch(targetUrl, {
       method: "GET",
       headers: {

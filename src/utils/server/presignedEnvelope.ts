@@ -86,13 +86,21 @@ export const PRESIGNED_ERRORS = {
  * are minutes old, and the venue remains the authority for replays inside its
  * own window.
  *
+ * The value is also chosen against `clockDrift.ts`: that tracker discards a
+ * sample whose offset exceeds `MAX_SAMPLE_OFFSET_MS` (five minutes), and it
+ * has no production caller today, so a device more than five minutes off signs
+ * with its raw clock. A five-minute window would then turn a skewed device
+ * into a total refusal on every signed route. Fifteen minutes leaves that
+ * device a working path while still bounding how long a captured envelope
+ * stays admissible at the proxy.
+ *
  * A per-process nonce cache was considered and deliberately not added: it
  * would only cover one instance, Bitget carries no nonce at all, and a
  * deployment behind a load balancer would get the appearance of replay
  * protection without the substance. Timestamp freshness is the half that can
  * be enforced honestly here (`BUG-0723`).
  */
-export const PRESIGNED_TIMESTAMP_WINDOW_MS = 5 * 60 * 1000;
+export const PRESIGNED_TIMESTAMP_WINDOW_MS = 15 * 60 * 1000;
 
 /**
  * Rejects an envelope whose timestamp is malformed or outside the window.

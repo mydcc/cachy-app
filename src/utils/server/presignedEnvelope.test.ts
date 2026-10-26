@@ -237,6 +237,13 @@ describe("assertPresignedConsistency — timestamp freshness", () => {
     expect(() => consistency(String(NOW - 1_000))).not.toThrow();
   });
 
+  it("accepts a six-minute skew, which the client drift tracker refuses to correct", () => {
+    // `clockDrift.ts` discards samples beyond five minutes as corrupt and has
+    // no production caller, so a skewed device signs with its raw clock. The
+    // window must not turn that into a refusal (BUG-0723).
+    expect(() => consistency(String(NOW - 6 * 60 * 1000))).not.toThrow();
+  });
+
   it("accepts the exact window edge, so a slow request is not refused early", () => {
     expect(() =>
       consistency(String(NOW - PRESIGNED_TIMESTAMP_WINDOW_MS)),

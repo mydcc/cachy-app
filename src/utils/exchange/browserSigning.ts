@@ -364,6 +364,9 @@ export async function exchangeSignedFetch(
      * Invariant to re-check after signing and before every dispatch attempt.
      * `appFetch`'s third argument is the place for a retry-safe guard; this
      * one is the belt-and-braces call that survives a two-argument wrapper.
+     *
+     * It can run more than once per request when `fetchFn` forwards it to
+     * `appFetch` and `appFetch` retries; the hook must be idempotent.
      */
     beforeAttempt?: () => void;
   },

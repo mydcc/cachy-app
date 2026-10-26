@@ -33,7 +33,12 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   // key. The key used to carry the raw string, so `BTCUSDT&x=1` addressed an
   // entry no other caller could produce (BUG-0723).
   const symbol = rawSymbol === null ? null : sanitizeSymbol(rawSymbol);
-  const limit = url.searchParams.get("limit") || "30";
+  // Parsed and clamped once, before the cache key. The key used to carry the
+  // raw `limit`, so `30`, `abc` and `30.9` were three entries for the same
+  // upstream response (BUG-0723).
+  const rawLimit = url.searchParams.get("limit");
+  const parsedLimit = parseInt(rawLimit ?? "", 10);
+  const limit = isNaN(parsedLimit) ? 30 : Math.min(Math.max(parsedLimit, 1), 200);
 
   if (provider !== "bitunix") {
     return json({ message: "Unsupported provider" }, { status: 400 });
@@ -53,9 +58,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
       async () => {
         let apiUrl = "https://fapi.bitunix.com/api/v1/futures/market/funding_rate/batch";
         if (symbol) {
-          const parsedLimit = parseInt(limit, 10);
-          const validLimit = isNaN(parsedLimit) ? 30 : Math.min(Math.max(parsedLimit, 1), 200);
-          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=${encodeURIComponent(symbol)}&limit=${validLimit}`;
+          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=${encodeURIComponent(symbol)}&limit=${limit}`;
         }
         const response = await fetchWithTimeout(apiUrl, {}, DEFAULT_UPSTREAM_TIMEOUT_MS, fetch);
 
