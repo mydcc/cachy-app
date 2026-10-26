@@ -29,7 +29,9 @@
 <script lang="ts">
     import { windowManager } from "../../../lib/windows/WindowManager.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
+    import { windowSwitcherState } from "../../../stores/windowSwitcher.svelte";
     import WindowFrame from "./WindowFrame.svelte";
+    import WindowSwitcher from "./WindowSwitcher.svelte";
 
     /**
      * Reactive derivation of active windows.
@@ -95,6 +97,10 @@
                 {/each}
             </div>
         </div>
+    {/if}
+
+    {#if windowSwitcherState.isOpen}
+        <WindowSwitcher />
     {/if}
 </div>
 

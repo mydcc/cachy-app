@@ -247,3 +247,22 @@ describe("HotkeyService", () => {
     expect(mockElement.focus).toHaveBeenCalled();
   });
 });
+
+describe("FEAT-0737 window switcher hotkey", () => {
+  it("registers the action and maps it in the safety and hybrid modes", () => {
+    const action = HotkeyModule.HOTKEY_ACTIONS.find(
+      (candidate) => candidate.id === "WINDOW_SWITCHER",
+    );
+
+    expect(action).toBeDefined();
+    expect(action?.defaultKey).toBe("Alt+W");
+    expect(action?.category).toBe("UI & Navigation");
+    expect(action?.labelKey).toBe(
+      "settings.hotkeys.action.windowSwitcher",
+    );
+
+    expect(HotkeyModule.MODE2_MAP.WINDOW_SWITCHER).toBe("Alt+W");
+    expect(HotkeyModule.MODE3_MAP.WINDOW_SWITCHER).toBe("Alt+W");
+    expect(HotkeyModule.MODE1_MAP.WINDOW_SWITCHER).toBeUndefined();
+  });
+});

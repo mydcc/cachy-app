@@ -21,6 +21,8 @@ import { favoritesState } from "../stores/favorites.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { app } from "./app";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { getWindowSwitcherEntries } from "../lib/windows/windowSwitcher";
+import { windowSwitcherState } from "../stores/windowSwitcher.svelte";
 import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerWindow.svelte";
 import { CONSTANTS } from "../lib/constants";
 import type { TranslationKey } from "../locales/schema";
@@ -295,6 +297,29 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     defaultKey: "Alt+A",
     action: () => uiState.toggleAssistant(true),
   },
+  {
+    id: "WINDOW_SWITCHER",
+    labelKey: "settings.hotkeys.action.windowSwitcher",
+    category: "UI & Navigation",
+    defaultKey: "Alt+W",
+    action: () => {
+      // Do not open an empty overlay when every open window is a blocking
+      // modal/dialog. `getWindowSwitcherEntries` is the same filter the
+      // overlay uses, so the two cannot disagree. A blocking window also
+      // means switching behind it would look like a no-op, so the hotkey
+      // stays closed until the task is dismissed.
+      const windows = windowManager.windows;
+      const hasBlockingWindow = windows.some(
+        (win) => win.windowType === "modal" || win.windowType === "dialog",
+      );
+      if (
+        !hasBlockingWindow &&
+        getWindowSwitcherEntries(windows).length > 0
+      ) {
+        windowSwitcherState.open();
+      }
+    },
+  },
 ];
 
 // --- Legacy Mode Maps ---
@@ -344,6 +369,7 @@ export const MODE2_MAP: Record<string, string> = {
   TOGGLE_SETTINGS: "Alt+,",
   TOGGLE_SYMBOL_PICKER: "Alt+F",
   TOGGLE_ASSISTANT: "Alt+A",
+  WINDOW_SWITCHER: "Alt+W",
 };
 
 export const MODE3_MAP: Record<string, string> = {
@@ -369,6 +395,7 @@ export const MODE3_MAP: Record<string, string> = {
   TOGGLE_SETTINGS: ",",
   TOGGLE_SYMBOL_PICKER: "F",
   TOGGLE_ASSISTANT: "A",
+  WINDOW_SWITCHER: "Alt+W",
 };
 
 // --- Key Matching Logic ---

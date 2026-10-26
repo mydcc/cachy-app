@@ -19,6 +19,12 @@
       "showPriceInTitle": "Show Price in Title"
     }
   },
+  "windowSwitcher": {
+    "title": "Switch window",
+    "hint": "↑↓ select · Enter switch · Esc cancel",
+    "minimized": "Minimized",
+    "empty": "No windows to switch to"
+  },
   "app": {
     "title": "Cachy",
     "journalButton": "Journal",
@@ -1910,7 +1916,8 @@
         "toggleTechnicals": "Toggle Technicals Panel",
         "fetchPrice": "Fetch Price",
         "openSymbolPicker": "Open Symbol Picker",
-        "toggleAssistant": "Toggle Assistant"
+        "toggleAssistant": "Toggle Assistant",
+        "windowSwitcher": "Window switcher"
       }
     },
     "chart": {

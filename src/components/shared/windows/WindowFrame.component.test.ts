@@ -1055,3 +1055,14 @@ describe("FEAT-0545 — the feed control follows the duck master switch", () => 
         }
     });
 });
+
+describe("FEAT-0737 — the frame is a focus target for the window switcher", () => {
+    it("exposes the window id and is programmatically focusable", () => {
+        const { content, win } = mountFrame();
+        const frame = content().closest<HTMLElement>(".window-frame");
+
+        expect(frame).not.toBeNull();
+        expect(frame?.dataset.windowId).toBe(win.id);
+        expect(frame?.tabIndex).toBe(-1);
+    });
+});

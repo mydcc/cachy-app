@@ -34,6 +34,7 @@ export const Z_LAYERS = {
     windowDock: 1_010_000,
     windowMax: 1_020_000,
     modal: 1_030_000,
+    switcher: 1_035_000,
     toast: 1_040_000,
     fx: 1_050_000,
 } as const;

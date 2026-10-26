@@ -265,6 +265,7 @@
   --z-window-dock: 1010000;
   --z-window-max: 1020000;
   --z-modal: 1030000;
+  --z-window-switcher: 1035000;
   --z-toast: 1040000;
   --z-fx: 1050000;
 }
