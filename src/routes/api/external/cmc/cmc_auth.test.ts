@@ -54,6 +54,31 @@ describe('CMC Proxy Security', () => {
     expect(safeFetch).not.toHaveBeenCalled();
   });
 
+  it('does not forward the upstream error body (BUG-0727)', async () => {
+    vi.mocked(checkClientToken).mockReturnValue(null);
+    vi.mocked(safeFetch).mockResolvedValue(
+      new Response('upstream secret detail', { status: 502 }),
+    );
+
+    const request = {
+      headers: new Headers({ 'x-cmc-api-key': 'test-key' }),
+    } as unknown as Request;
+    const url = new URL(
+      'http://localhost/api/external/cmc?endpoint=/v1/global-metrics/quotes/latest',
+    );
+
+    const response = await GET({
+      url,
+      request,
+      getClientAddress,
+    } as unknown as Parameters<typeof GET>[0]);
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body).not.toHaveProperty('details');
+    expect(JSON.stringify(body)).not.toContain('upstream secret detail');
+  });
+
   it('proxies through safeFetch, not the unguarded native fetch', async () => {
     vi.mocked(checkClientToken).mockReturnValue(null);
     vi.mocked(safeFetch).mockResolvedValue(

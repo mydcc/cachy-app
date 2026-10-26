@@ -7,6 +7,7 @@
  * (at your option) any later version.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { serializeJsonLd } from "./jsonLd";
 
@@ -21,6 +22,18 @@ describe("serializeJsonLd (BUG-0727)", () => {
     expect(JSON.parse(serialized).name).toBe(
       "</script><script>alert(1)</script>",
     );
+  });
+
+  it("refuses a value JSON cannot serialize instead of throwing a TypeError from replace", () => {
+    expect(() => serializeJsonLd(undefined)).toThrow(TypeError);
+  });
+
+  it("is the helper the layout actually uses", () => {
+    const layout = readFileSync(
+      new URL("../routes/+layout.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(layout).toContain("serializeJsonLd(");
   });
 
   it("escapes ampersands and Unicode line separators", () => {

@@ -7,6 +7,7 @@
  * (at your option) any later version.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { toastIcon } from "./toastIcons";
 
@@ -21,6 +22,15 @@ describe("toastIcon allowlist (BUG-0727)", () => {
     expect(toastIcon("constructor")).toBe(info);
     expect(toastIcon("__proto__")).toBe(info);
     expect(toastIcon("toString")).toBe(info);
+  });
+
+  it("is the lookup the component actually uses", () => {
+    const source = readFileSync(
+      new URL("./ToastItem.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("toastIcon(toast.type)");
+    expect(source).not.toContain("icons[toast.type]");
   });
 
   it("falls back for non-string input", () => {

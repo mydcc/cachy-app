@@ -77,7 +77,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
       const errorBody = await response.text();
       console.warn(`[CMC Proxy] Error ${response.status}:`, errorBody);
       return json(
-        { error: `CMC API Error: ${response.status}`, details: errorBody },
+        { error: `CMC API Error: ${response.status}` },
         { status: response.status },
       );
     }
@@ -103,9 +103,6 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     return json(data);
   } catch (error) {
     console.error("[CMC Proxy] Exception:", error);
-    return json(
-      { error: "Internal Server Error", message: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    );
+    return json({ error: "Internal Server Error" }, { status: 500 });
   }
 };

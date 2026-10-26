@@ -230,9 +230,8 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
       }
     }
 
-    return json(
-      { error: errorMsg || "Internal Proxy Error" },
-      { status: 500 },
-    );
+    // `errorMsg` is redacted and logged above; the client gets our text only
+    // (BUG-0727).
+    return json({ error: "News provider request failed" }, { status: 500 });
   }
 };

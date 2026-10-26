@@ -17,14 +17,12 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import type { UpstreamApiError } from "../../../utils/server/fetchWithTimeout";
+import { upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
 import type { KlinePriceSource } from "../../../utils/server/venues/types";
 import { getCachedKlines } from "../../../lib/server/klineCache";
 import { clampKlineLimit } from "../../../lib/server/klineCacheKey";
 import { sanitizeSymbol } from "../../../utils/server/symbolParam";
-
-type ApiError = UpstreamApiError;
 
 export const GET: RequestHandler = async ({ url }) => {
   const rawSymbol = url.searchParams.get("symbol");
@@ -113,21 +111,12 @@ export const GET: RequestHandler = async ({ url }) => {
     // upstream status (BUG-0727).
     console.error(`Error fetching klines from ${provider}:`, e);
 
-    let status = 500;
-    if (e instanceof Error) {
-      const apiError = e as ApiError;
-      if (typeof apiError.status === 'number') {
-        status = apiError.status;
-      }
-    } else if (typeof e === 'object' && e !== null && 'status' in e) {
-      const candidate = (e as { status?: unknown }).status;
-      if (typeof candidate === 'number') status = candidate;
-    }
+    const status = upstreamErrorStatus(e) ?? 500;
 
     // The timeout text is ours (`fetchWithTimeout`), not an upstream body, and
     // the UI distinguishes "slow venue" from "venue refused".
     const message =
       status === 504 ? "Upstream market data request timed out" : "Failed to fetch klines";
-    return json({ error: message }, { status });
+    return json({ message }, { status });
   }
 };

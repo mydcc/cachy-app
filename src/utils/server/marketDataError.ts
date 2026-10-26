@@ -18,18 +18,21 @@
  */
 
 import { json } from "@sveltejs/kit";
-import { logger } from "#lib/server/logger.js";
 import { isStatusError } from "./httpErrors";
 
 export const MARKET_DATA_ERROR = "Upstream market data request failed";
 
 export function marketDataErrorResponse(error: unknown, scope: string): Response {
+  // `console` rather than `logger`: the logger emits to the authenticated log
+  // stream only, so with no stream client attached the raw body would go
+  // nowhere. `hooks.server.ts` patches console into both stdout and that
+  // stream, which is the server-side sink this detail is meant for.
   if (isStatusError(error)) {
-    logger.warn("network", `[${scope}] upstream ${error.status}: ${error.message}`);
+    console.warn(`[${scope}] upstream ${error.status}: ${error.message}`);
     return json({ message: MARKET_DATA_ERROR }, { status: error.status });
   }
 
   const detail = error instanceof Error ? error.message : String(error);
-  logger.error("network", `[${scope}] ${detail}`);
+  console.error(`[${scope}] ${detail}`);
   return json({ message: "Internal server error" }, { status: 500 });
 }

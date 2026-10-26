@@ -17,7 +17,12 @@
  * and U+2029 are escaped too because they are line terminators to some parsers.
  */
 export function serializeJsonLd(value: unknown): string {
-  return JSON.stringify(value)
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined) {
+    throw new TypeError("JSON-LD value is not serialisable");
+  }
+
+  return serialized
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e")
     .replace(/&/g, "\\u0026")

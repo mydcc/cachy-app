@@ -96,6 +96,18 @@ t1,2023-01-01,12:00,BTCUSDT,Long,Breakeven,50000,49000`;
         expect(trade.status).toBe("Closed");
     });
 
+    it('accepts buy/sell as aliases for long/short (BUG-0727 review)', () => {
+        const csvContent = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss
+t1,2023-01-01,12:00,BTCUSDT,Buy,CLOSED,50000,49000
+t2,2023-01-02,12:00,BTCUSDT,Sell,CLOSED,50000,49000`;
+
+        const result = csvService.parseCSVContent(csvContent, {
+            useUtcDateParsing: true,
+        });
+
+        expect(result.map((trade) => trade.tradeType)).toEqual(["long", "short"]);
+    });
+
     it('drops a row whose trade type is not long or short (BUG-0727)', () => {
         const csvContent = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss
 t1,2023-01-01,12:00,BTCUSDT,Sideways,CLOSED,50000,49000`;

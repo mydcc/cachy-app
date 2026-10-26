@@ -21,8 +21,10 @@ depends_on: []
 > 1. **Market-data error bodies** — `marketDataErrorResponse` keeps the upstream
 >    status but returns our `Upstream market data request failed` and logs the
 >    raw body server-side. Used by funding-rate, position-tiers, trading-pairs,
->    tickers, bitget/contracts and klines. Tickers keeps its own
->    `Symbol not found` 404. The AI routes were already converted in BUG-0724.
+>    tickers and bitget/contracts. Klines keeps its own catch with a fixed
+>    message and the upstream status. Tickers keeps its own `Symbol not found`
+>    404. The AI routes were already converted in BUG-0724; CMC and news were
+>    converted here too.
 > 2. **Token attachment** — `appAuthHeaders(extra, requestUrl)` attaches
 >    `x-app-access-token` only to a relative, same-origin or network-path
 >    same-origin target; an absolute foreign URL gets no token. `appFetch`
@@ -44,10 +46,23 @@ depends_on: []
 >    scanner no longer learns whether the host is development.
 > 9. **Locked-session openrouterApiKey** — already fixed in BUG-0721.
 >
-> Verification: the changed route/service tests, `tsc --noEmit` clean, ESLint
-> clean, `npm run backlog:check` — 613 items valid. RED proofs: the cross-origin
-> token test, the invalid trade-type row and the `javascript:` screenshot fail
-> with the old code restored.
+> Review round: the same-origin check now parses before classifying (leading
+> whitespace and backslashes are cross-origin), and `requestUrl` is required.
+> The error boundary logs through the patched console, because `logger` only
+> feeds the authenticated SSE stream. CMC and news no longer forward upstream
+> bodies. CSV accepts `buy`/`sell` aliases, warns with the row number, and
+> stores the normalized screenshot URL. `.gitignore` anchors the secret pattern.
+> Tests now pin the six-route boundary, the `appFetch` URL hand-off, the health
+> payload, and the layout/toast wiring.
+>
+> Residual: `rss-fetch` and `article-content` still return extractor messages
+> (not part of the listed market/AI proxies); a venue 200 error envelope passes
+> through unchanged; the tracked `.npmrc` was left alone.
+>
+> Verification: 88 tests across the changed routes/helpers, `tsc --noEmit`
+> clean, ESLint clean, translation check passes, `npm run backlog:check` — 613
+> items valid. RED proofs: the cross-origin token test, the invalid trade-type
+> row and the `javascript:` screenshot fail with the old code restored.
 
 ## Symptom
 

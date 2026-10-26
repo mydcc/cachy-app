@@ -39,17 +39,26 @@ import { settingsState } from "../stores/settings.svelte";
  * (SSR), an absolute URL cannot be verified and is treated as foreign.
  */
 function isSameOriginRequest(input: string): boolean {
-  const absolute = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(input) || input.startsWith("//");
-  if (!absolute) return true;
-
+  // Resolve before classifying. A raw-string check misses leading whitespace,
+  // tabs and backslashes, all of which the URL parser normalises into a
+  // cross-origin target (BUG-0727 review).
   const base = globalThis.location?.href;
-  if (!base) return false;
-
-  try {
-    return new URL(input, base).origin === new URL(base).origin;
-  } catch {
-    return false;
+  if (base) {
+    try {
+      return new URL(input, base).origin === new URL(base).origin;
+    } catch {
+      return false;
+    }
   }
+
+  // SSR has no location to resolve against: only a clearly relative path is
+  // safe. `//host` and `\\host` are network-path references, not paths.
+  const trimmed = input.trim();
+  return (
+    !/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed) &&
+    !trimmed.startsWith("//") &&
+    !trimmed.startsWith("\\\\")
+  );
 }
 
 /**
@@ -60,15 +69,15 @@ function isSameOriginRequest(input: string): boolean {
  * user has configured a token and while the settings are locked — neither is a
  * request worth labelling as authenticated.
  *
- * `requestUrl` is the URL about to be fetched. When it is supplied, the token is
- * only attached to a same-origin target: a caller can pass an absolute URL
- * (exchange/proxy helper, user-configured base URL), and the bearer token must
- * not follow it off-origin. Direct callers that omit the argument keep the old
- * behaviour; every fetch in this module supplies it.
+ * `requestUrl` is the URL about to be fetched and is required: the token is
+ * only attached to a same-origin target, because a caller can pass an absolute
+ * URL (exchange/proxy helper, user-configured base URL) and a bearer token must
+ * not follow it off-origin. Making the argument required turns a forgotten
+ * guard into a compile error rather than a silent leak.
  */
 export function appAuthHeaders(
-  extra?: HeadersInit,
-  requestUrl?: string,
+  extra: HeadersInit | undefined,
+  requestUrl: string,
 ): Record<string, string> {
   const headers: Record<string, string> = {};
 
@@ -81,7 +90,7 @@ export function appAuthHeaders(
   }
 
   const token = settingsState.appAccessToken;
-  if (token && (!requestUrl || isSameOriginRequest(requestUrl))) {
+  if (token && isSameOriginRequest(requestUrl)) {
     headers["x-app-access-token"] = token;
   }
 

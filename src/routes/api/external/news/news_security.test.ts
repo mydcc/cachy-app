@@ -149,6 +149,28 @@ describe('News Service Security', () => {
         expect(res.status).toBe(429);
     });
 
+    it('does not forward upstream error text (BUG-0727)', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 500,
+            text: async () => 'upstream secret detail',
+            json: async () => ({}),
+        });
+
+        const apiKey = 'news-error-key';
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': apiKey }),
+            json: async () => ({ source: 'cryptopanic', apiKey, params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+        const body = await res.json();
+
+        expect(body.error).toBe('News provider request failed');
+        expect(JSON.stringify(body)).not.toContain('upstream secret detail');
+    });
+
     it('URL-encodes the CryptoPanic auth token so it cannot inject a parameter', async () => {
         const apiKey = 'key&injected=1';
         const fetchMock = vi.fn().mockResolvedValue({
