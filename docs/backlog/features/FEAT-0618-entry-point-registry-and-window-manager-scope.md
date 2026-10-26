@@ -2,7 +2,9 @@
 id: FEAT-0618
 title: Define the entry-point registry and align the window manager scope with a reference
 type: feature
-status: specced
+status: done
+assignee: opencode
+branch: docs/feat-0618-entry-point-registry
 priority: P3
 milestone: none
 created: "2026-10-03"
@@ -69,19 +71,19 @@ follow-up item.
 
 ## Acceptance criteria
 
-- [ ] A comparison table exists: reference window manager versus Cachy's
+- [x] A comparison table exists: reference window manager versus Cachy's
       window manager, one row per feature, with a verdict per row (adopt /
       defer / browser-impossible)
-- [ ] Every verdict of "defer" names the condition under which it is revisited
-- [ ] The table records which reference the user named in the session; the item
+- [x] Every verdict of "defer" names the condition under which it is revisited
+- [x] The table records which reference the user named in the session; the item
       text itself names no product and no URL
-- [ ] The registry contract is specified: entry fields, opener types, and who
+- [x] The registry contract is specified: entry fields, opener types, and who
       may add or group entries
-- [ ] The four surfaces are mapped to the registry: which entries each surface
+- [x] The four surfaces are mapped to the registry: which entries each surface
       shows, and by which rule
-- [ ] Every registry entry has a keyboard route; pointer-only access is called
+- [x] Every registry entry has a keyboard route; pointer-only access is called
       out where it remains
-- [ ] The visibility condition per entry reuses the enabling-state vocabulary
+- [x] The visibility condition per entry reuses the enabling-state vocabulary
       from [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)'s
       audit table
 
@@ -104,9 +106,36 @@ follow-up item.
 - Does the registry contract need an ADR? "How the user reaches a destination"
   constrains future UI work the way entry points do.
 
+## Progress
+
+Research and spec are in [`assets/FEAT-0618/`](../assets/FEAT-0618/). The
+comparison asset records the reference the user named in the session; this item
+text deliberately does not repeat it.
+
+- [`window-manager-comparison.md`](../assets/FEAT-0618/window-manager-comparison.md):
+  24 feature rows, each with `adopt`, `defer` (plus reopen condition) or
+  `browser-impossible`, and the source pages used.
+- [`entry-point-registry.md`](../assets/FEAT-0618/entry-point-registry.md):
+  entry/placement/opener/condition/keyboard contract, 10 global destinations,
+  5 journal tabs, 8 settings tabs, the four surface rules, ownership, CI
+  validation and migration order.
+
+The comparison’s main finding is that the largest real gap is **keyboard window
+traversal** (a switcher), not more tiling. OS/compositor features are marked
+browser-impossible rather than deferred; rules, grouping, shading and scripting
+have explicit reopen conditions. The registry contract deliberately leaves the
+four surfaces separate and treats header presets/theme/reset as actions, not
+destinations.
+
+Follow-up: an implementation item (registry data + migration in five steps;
+see the spec’s migration order) should be opened after this spec is accepted.
+No UI was migrated here.
+
 ## Links
 
 - Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §1 and §5.1
+- Research: [`assets/FEAT-0618/window-manager-comparison.md`](../assets/FEAT-0618/window-manager-comparison.md)
+- Spec: [`assets/FEAT-0618/entry-point-registry.md`](../assets/FEAT-0618/entry-point-registry.md)
 - `src/components/shared/LeftControlPanel.svelte`
 - `src/routes/+layout.svelte`
 - [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)
