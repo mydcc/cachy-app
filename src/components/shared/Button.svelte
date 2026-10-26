@@ -48,6 +48,11 @@
      */
     ariaExpanded?: boolean;
     ariaControls?: string;
+    /**
+     * Toggle state for a button that switches a mode (FEAT-0742's keep-above
+     * control). Separate from `ariaExpanded`, which describes a disclosure.
+     */
+    ariaPressed?: boolean;
     onClick?: (event: MouseEvent) => void;
     oncontextmenu?: (event: MouseEvent) => void;
     /**
@@ -77,6 +82,7 @@
     ariaLabel,
     ariaExpanded,
     ariaControls,
+    ariaPressed,
     onClick,
     oncontextmenu,
     ondblclick,
@@ -100,6 +106,7 @@
   aria-label={ariaLabel || title}
   aria-expanded={ariaExpanded}
   aria-controls={ariaControls}
+  aria-pressed={ariaPressed}
   use:trackClick={track}
 >
   {#if children}

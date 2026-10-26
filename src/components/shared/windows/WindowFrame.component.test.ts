@@ -57,6 +57,7 @@ vi.mock("../../../locales/i18n", async () => {
 import WindowFrame from "./WindowFrame.svelte";
 import { WindowBase } from "../../../lib/windows/WindowBase.svelte";
 import { windowManager } from "../../../lib/windows/WindowManager.svelte";
+import { Z_LAYERS } from "../../../lib/windows/zLayers";
 import { settingsState } from "../../../stores/settings.svelte";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
 import EmptyStub from "../../../tests/helpers/EmptyStub.svelte";
@@ -2732,5 +2733,223 @@ describe("FEAT-0740 — focus follows mouse", () => {
 
         expect(bringToFront).not.toHaveBeenCalled();
         expect(win.isFocused).toBe(false);
+    });
+});
+
+describe("FEAT-0742 — keep a window above the others", () => {
+    class KeepAboveTargetWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "keep-above-target",
+                title: "Keep above target",
+                windowType: "chart",
+            });
+            this.allowMultipleInstances = true;
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    class KeepAboveModalWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "keep-above-modal",
+                title: "Keep above modal",
+                windowType: "modal",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    class KeepAboveDialogWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "keep-above-dialog",
+                title: "Keep above dialog",
+                windowType: "dialog",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    class KeepAboveSymbolPickerWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "keep-above-symbolpicker",
+                title: "Keep above symbol picker",
+                windowType: "symbolpicker",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    afterEach(() => {
+        for (const win of [...windowManager.windows]) {
+            windowManager.close(win.id);
+        }
+    });
+
+    function keepAboveButton(): HTMLButtonElement {
+        const button = host?.querySelector<HTMLButtonElement>(
+            `button[aria-label="${lookup("windows.aria.keepAbove")}"]`,
+        );
+        if (!button) throw new Error("the frame rendered no keep-above toggle");
+        return button;
+    }
+
+    function hasKeepAboveButton(): boolean {
+        return (
+            host?.querySelector(
+                `button[aria-label="${lookup("windows.aria.keepAbove")}"]`,
+            ) !== null
+        );
+    }
+
+    it("toggles the flag from the header and raises the window immediately", () => {
+        const { win } = mountFrame(new KeepAboveTargetWindow());
+        windowManager.open(win);
+        flushSync();
+
+        const button = keepAboveButton();
+        const label = button.getAttribute("aria-label");
+        expect(button.getAttribute("aria-pressed")).toBe("false");
+        expect(button.tabIndex).toBe(0);
+        expect(button.querySelector("svg")?.getAttribute("fill")).toBe("none");
+
+        button.click();
+        flushSync();
+
+        expect(win.isKeepAbove).toBe(true);
+        expect(button.getAttribute("aria-pressed")).toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(label);
+        expect(button.querySelector("svg")?.getAttribute("fill")).toBe(
+            "currentColor",
+        );
+        expect(win.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.windowKeepAbove);
+        expect(win.zIndex).toBeLessThan(Z_LAYERS.modal);
+    });
+
+    it("re-stacks a window that is already maximized when the flag is turned on", () => {
+        const { win } = mountFrame(new KeepAboveTargetWindow());
+        windowManager.open(win);
+        win.maximize();
+        flushSync();
+
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        if (!frame) throw new Error("the frame rendered no root");
+        expect(Number(frame.style.zIndex)).toBeLessThan(
+            Z_LAYERS.windowKeepAbove,
+        );
+
+        keepAboveButton().click();
+        flushSync();
+
+        expect(win.isKeepAbove).toBe(true);
+        expect(Number(frame.style.zIndex)).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowKeepAbove,
+        );
+        expect(Number(frame.style.zIndex)).toBeLessThan(Z_LAYERS.modal);
+    });
+
+    it("keeps the window above one that is focused later", () => {
+        const { win } = mountFrame(new KeepAboveTargetWindow());
+        windowManager.open(win);
+        flushSync();
+        keepAboveButton().click();
+        flushSync();
+
+        const other = new PlainWindow();
+        other.allowMultipleInstances = true;
+        windowManager.open(other);
+        flushSync();
+
+        expect(other.isFocused).toBe(true);
+        expect(win.zIndex).toBeGreaterThan(other.zIndex);
+    });
+
+    it("renders a maximized keep-above window above a floating keep-above window", () => {
+        const { win } = mountFrame(new KeepAboveTargetWindow());
+        windowManager.open(win);
+        win.maximize();
+        flushSync();
+        keepAboveButton().click();
+        flushSync();
+
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        if (!frame) throw new Error("the frame rendered no root");
+
+        const floating = new KeepAboveTargetWindow();
+        floating.id = "keep-above-floating";
+        floating.isKeepAbove = true;
+        windowManager.open(floating);
+        flushSync();
+
+        windowManager.bringToFront(win.id);
+        flushSync();
+
+        expect(Number(frame.style.zIndex)).toBeGreaterThan(floating.zIndex);
+    });
+
+    it("renders no keep-above toggle for a modal, dialog or symbol picker", () => {
+        mountFrame(new KeepAboveModalWindow());
+        expect(hasKeepAboveButton()).toBe(false);
+
+        unmount(component as never);
+        component = null;
+        host?.remove();
+        host = null;
+
+        mountFrame(new KeepAboveDialogWindow());
+        expect(hasKeepAboveButton()).toBe(false);
+
+        unmount(component as never);
+        component = null;
+        host?.remove();
+        host = null;
+
+        mountFrame(new KeepAboveSymbolPickerWindow());
+        expect(hasKeepAboveButton()).toBe(false);
+    });
+
+    it("renders no keep-above toggle for a closeOnBlur window", () => {
+        const win = new KeepAboveTargetWindow();
+        win.closeOnBlur = true;
+        mountFrame(win);
+
+        expect(hasKeepAboveButton()).toBe(false);
+    });
+
+    it("keeps a maximized modal in the modal band", () => {
+        const { win } = mountFrame(new KeepAboveModalWindow());
+        windowManager.open(win);
+        win.maximize();
+        flushSync();
+
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        if (!frame) throw new Error("the frame rendered no root");
+
+        expect(win.isMaximized).toBe(true);
+        expect(Number(frame.style.zIndex)).toBeGreaterThanOrEqual(
+            Z_LAYERS.modal,
+        );
+    });
+
+    it("renders no keep-above toggle while the window is minimized", () => {
+        const win = new KeepAboveTargetWindow();
+        win.isMinimized = true;
+        mountFrame(win);
+
+        expect(hasKeepAboveButton()).toBe(false);
     });
 });

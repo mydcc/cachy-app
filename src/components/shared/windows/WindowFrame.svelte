@@ -36,6 +36,7 @@
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
     import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
     import { computeFittedHeight } from "../../../lib/windows/fitContentHeight";
+    import { isReservedBandWindow } from "../../../lib/windows/windowBands";
     import {
         computeSnapGeometry,
         detectSnapZone,
@@ -841,6 +842,10 @@
     ></div>
 {/if}
 
+<!-- A keep-above, modal, dialog or symbolpicker window always uses the
+     manager's zIndex. Only an ordinary maximized window uses maximizedZIndex;
+     mixing the two sequences inside the keep-above band would make focus order
+     disagree with the rendered order. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     bind:this={frameEl}
@@ -889,7 +894,11 @@
         : win.isMaximized
           ? "100vh"
           : `${win.height}px`}
-    style:z-index={win.isMaximized ? win.maximizedZIndex : win.zIndex}
+    style:z-index={win.isMaximized &&
+    !win.isKeepAbove &&
+    !isReservedBandWindow(win.windowType)
+        ? win.maximizedZIndex
+        : win.zIndex}
     style:opacity={win.opacity}
     style:transition={win.fitContentOnce && !fitApplied ? "none" : undefined}
     onpointerdown={handlePointerDown}
@@ -1176,6 +1185,44 @@
                             ? $_("windows.aria.unpin")
                             : $_("windows.aria.pin")}
                     >{win.isPinned ? "📌" : "📍"}</Button>
+                </div>
+            {/if}
+
+            {#if !win.isMinimized && !win.closeOnBlur && !isReservedBandWindow(win.windowType)}
+                <div class="control-group">
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        ariaPressed={win.isKeepAbove}
+                        onClick={() => {
+                            win.toggleKeepAbove();
+                            // The pointerdown that led to this click already
+                            // raised the window in its old band; re-stack it
+                            // so the new flag takes effect immediately.
+                            windowManager.bringToFront(win.id);
+                        }}
+                        ondblclick={(e) => e.stopPropagation()}
+                        title={win.isKeepAbove
+                            ? $_("windows.aria.keepAboveOff")
+                            : $_("windows.aria.keepAbove")}
+                        ariaLabel={$_("windows.aria.keepAbove")}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill={win.isKeepAbove ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path d="M4 4h16" />
+                            <path d="M12 20V8" />
+                            <path d="m6 14 6-6 6 6" />
+                        </svg>
+                    </Button>
                 </div>
             {/if}
 

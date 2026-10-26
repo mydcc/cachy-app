@@ -12,7 +12,9 @@
       "decreaseFont": "Schriftgröße verkleinern",
       "increaseFont": "Schriftgröße vergrößern",
       "unpin": "Fenster lösen",
-      "pin": "Fenster anheften"
+      "pin": "Fenster anheften",
+      "keepAbove": "Fenster im Vordergrund halten",
+      "keepAboveOff": "Fenster nicht mehr im Vordergrund halten"
     },
     "contextMenu": {
       "closeWindow": "Fenster schließen",

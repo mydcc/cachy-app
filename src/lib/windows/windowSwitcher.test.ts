@@ -24,20 +24,42 @@ import {
 describe("getWindowSwitcherEntries", () => {
     it("orders the windows most recently focused first", () => {
         const entries = getWindowSwitcherEntries([
-            { id: "a", windowType: "window", zIndex: 10 },
-            { id: "b", windowType: "chart", zIndex: 30 },
-            { id: "c", windowType: "settings", zIndex: 20 },
+            { id: "a", windowType: "window", zIndex: 0, lastFocusOrder: 10 },
+            { id: "b", windowType: "chart", zIndex: 0, lastFocusOrder: 30 },
+            { id: "c", windowType: "settings", zIndex: 0, lastFocusOrder: 20 },
         ]);
 
         expect(entries.map((entry) => entry.id)).toEqual(["b", "c", "a"]);
     });
 
+    it("does not let the keep-above z-band override recency", () => {
+        const entries = getWindowSwitcherEntries([
+            {
+                id: "keep-above",
+                windowType: "chart",
+                zIndex: 1_025_000,
+                lastFocusOrder: 10,
+            },
+            {
+                id: "recent",
+                windowType: "window",
+                zIndex: 11_000,
+                lastFocusOrder: 20,
+            },
+        ]);
+
+        expect(entries.map((entry) => entry.id)).toEqual([
+            "recent",
+            "keep-above",
+        ]);
+    });
+
     it("excludes modal and dialog windows", () => {
         const entries = getWindowSwitcherEntries([
-            { id: "normal", windowType: "window", zIndex: 10 },
-            { id: "modal", windowType: "modal", zIndex: 99 },
-            { id: "dialog", windowType: "dialog", zIndex: 98 },
-            { id: "chart", windowType: "chart", zIndex: 20 },
+            { id: "normal", windowType: "window", zIndex: 0, lastFocusOrder: 10 },
+            { id: "modal", windowType: "modal", zIndex: 0, lastFocusOrder: 99 },
+            { id: "dialog", windowType: "dialog", zIndex: 0, lastFocusOrder: 98 },
+            { id: "chart", windowType: "chart", zIndex: 0, lastFocusOrder: 20 },
         ]);
 
         expect(entries.map((entry) => entry.id)).toEqual(["chart", "normal"]);
@@ -45,8 +67,8 @@ describe("getWindowSwitcherEntries", () => {
 
     it("does not mutate the caller's array", () => {
         const windows = [
-            { id: "a", windowType: "window", zIndex: 10 },
-            { id: "b", windowType: "window", zIndex: 20 },
+            { id: "a", windowType: "window", zIndex: 0, lastFocusOrder: 10 },
+            { id: "b", windowType: "window", zIndex: 0, lastFocusOrder: 20 },
         ];
         const original = [...windows];
 

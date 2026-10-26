@@ -23,7 +23,7 @@
 import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
-import { Z_LAYERS } from "./zLayers";
+import { Z_LAYERS, WINDOW_STACK_Z_SPAN } from "./zLayers";
 import { computeSnapGeometry, readShellInsets, isSnapZone } from "./snapping";
 import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
@@ -134,6 +134,13 @@ export abstract class WindowBase {
     height = $state(480);
     zIndex = $state(100);
     isFocused = $state(false);
+    /**
+     * Monotonic focus sequence used by the keyboard switcher. It is
+     * deliberately independent of `zIndex`: a keep-above window always carries
+     * a higher z-index than an ordinary window, so z-index alone can no longer
+     * express "most recently focused" (FEAT-0742).
+     */
+    lastFocusOrder = 0;
 
     // --- STATE RUNES ---
     isMaximized = $state(false);
@@ -153,6 +160,13 @@ export abstract class WindowBase {
     isTransparent = $state(false);
     /** Tiling/Pinning state (active if pinSide != 'none') */
     isPinned = $state(false);
+    /**
+     * FEAT-0742: keeps this window above ordinary and maximized windows while
+     * another window owns focus. The manager assigns the band in
+     * bringToFront(); WindowFrame renders `zIndex` (not `maximizedZIndex`)
+     * while this flag is set, so the band has one focus sequence.
+     */
+    isKeepAbove = $state(false);
 
     /** Storage for dimensions prior to maximization or pinning. */
     private lastX = 0;
@@ -251,18 +265,21 @@ export abstract class WindowBase {
     /**
      * Shared across every WindowBase instance so relative focus order among
      * maximized windows survives regardless of which instance last called
-     * refreshMaximizedZIndex() -- see maximizedZIndex above. Bounded well
-     * inside the --z-window-max..--z-modal gap (FEAT-0041's layer contract)
-     * so it can never grow into the next layer.
+     * refreshMaximizedZIndex() -- see maximizedZIndex above. Bounded by
+     * WINDOW_STACK_Z_SPAN so the windowMax band cannot grow into the
+     * windowKeepAbove band (FEAT-0742). The ordinal wraps after the span; a
+     * wrapped window starts at the bottom of the band, the same trade-off the
+     * modal band already accepts.
      */
     private static nextMaximizedOffset = 0;
-    private static readonly MAX_MAXIMIZED_OFFSET = 9000;
+    private static readonly MAX_MAXIMIZED_OFFSET = WINDOW_STACK_Z_SPAN;
 
     /**
-     * Bumps this window to the front of the maximized-window stacking order.
-     * Called when a window maximizes and again whenever an already-maximized
-     * window is focused, so bringToFront() has an effect on maximized
-     * windows too (FEAT-0044).
+     * Advances this window's ordinal inside the maximized band. Called when a
+     * window maximizes and again whenever an already-maximized window is
+     * focused, so bringToFront() has an effect on maximized windows too
+     * (FEAT-0044). Keep-above windows never use this field: the manager's
+     * keep-above band is a single sequence (FEAT-0742).
      */
     refreshMaximizedZIndex() {
         WindowBase.nextMaximizedOffset =
@@ -462,6 +479,11 @@ export abstract class WindowBase {
             isMaximized: this.isMaximized,
             isMinimized: this.isMinimized,
             isPinned: this.isPinned,
+            // A shared storage key (news_article) is one snapshot for many
+            // instances. Persisting a per-window flag there would lift every
+            // later article the moment one article had it on, so shared-key
+            // windows keep the flag for the session only.
+            isKeepAbove: this.customStorageKey ? false : this.isKeepAbove,
             pinSide: this.pinSide,
             pinRestore: this.pinRestore,
             opacity: this.opacity,
@@ -492,6 +514,10 @@ export abstract class WindowBase {
                 this.isMaximized = state.isMaximized ?? false;
                 this.isMinimized = state.isMinimized ?? false;
                 this.isPinned = state.isPinned ?? false;
+                // Only a literal boolean restores the flag; a legacy snapshot
+                // has no field, and a hand-edited string or number must not
+                // lift a window above the others.
+                this.isKeepAbove = state.isKeepAbove === true;
                 const pinSide = state.pinSide;
                 if (pinSide === "none") {
                     this.pinSide = "none";
@@ -804,6 +830,17 @@ export abstract class WindowBase {
         this.y = geometry.y;
         this.width = geometry.width;
         this.height = geometry.height;
+        this.saveState();
+    }
+
+    /**
+     * FEAT-0742: flips the keep-above intent and persists it with the window's
+     * existing snapshot. The caller that wants the window to move bands must
+     * ask WindowManager to re-stack it; this class cannot reach the singleton
+     * without a module cycle.
+     */
+    toggleKeepAbove() {
+        this.isKeepAbove = !this.isKeepAbove;
         this.saveState();
     }
 

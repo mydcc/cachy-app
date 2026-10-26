@@ -31,6 +31,8 @@ export type TranslationKey =
   | "windows.aria.increaseFont"
   | "windows.aria.unpin"
   | "windows.aria.pin"
+  | "windows.aria.keepAbove"
+  | "windows.aria.keepAboveOff"
   | "windows.contextMenu.closeWindow"
   | "windows.contextMenu.showPriceInTitle"
   | "windowSwitcher.title"

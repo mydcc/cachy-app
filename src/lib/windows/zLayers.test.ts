@@ -18,7 +18,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Z_LAYERS, MAX_SAFE_WINDOW_Z_INDEX } from "./zLayers";
+import { Z_LAYERS, MAX_SAFE_WINDOW_Z_INDEX, WINDOW_STACK_Z_SPAN } from "./zLayers";
 
 describe("Z_LAYERS", () => {
   it("is strictly ordered from window to fx", () => {
@@ -26,6 +26,7 @@ describe("Z_LAYERS", () => {
       Z_LAYERS.window,
       Z_LAYERS.windowDock,
       Z_LAYERS.windowMax,
+      Z_LAYERS.windowKeepAbove,
       Z_LAYERS.modal,
       Z_LAYERS.switcher,
       Z_LAYERS.toast,
@@ -34,6 +35,15 @@ describe("Z_LAYERS", () => {
     for (let i = 1; i < values.length; i++) {
       expect(values[i]).toBeGreaterThan(values[i - 1]);
     }
+  });
+
+  it("leaves room for both stacking bands without crossing the next layer", () => {
+    expect(Z_LAYERS.windowMax + WINDOW_STACK_Z_SPAN).toBeLessThan(
+      Z_LAYERS.windowKeepAbove,
+    );
+    expect(Z_LAYERS.windowKeepAbove + WINDOW_STACK_Z_SPAN).toBeLessThan(
+      Z_LAYERS.modal,
+    );
   });
 
   it("keeps every layer above window comfortably past the window counter's safe ceiling", () => {
@@ -55,6 +65,7 @@ describe("Z_LAYERS", () => {
     expect(readCssVar("z-window")).toBe(Z_LAYERS.window);
     expect(readCssVar("z-window-dock")).toBe(Z_LAYERS.windowDock);
     expect(readCssVar("z-window-max")).toBe(Z_LAYERS.windowMax);
+    expect(readCssVar("z-window-keep-above")).toBe(Z_LAYERS.windowKeepAbove);
     expect(readCssVar("z-modal")).toBe(Z_LAYERS.modal);
     expect(readCssVar("z-window-switcher")).toBe(Z_LAYERS.switcher);
     expect(readCssVar("z-toast")).toBe(Z_LAYERS.toast);

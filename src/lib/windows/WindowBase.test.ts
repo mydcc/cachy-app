@@ -18,6 +18,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { WindowBase, normalizeDoubleClickBehavior } from "./WindowBase.svelte";
+import { Z_LAYERS, WINDOW_STACK_Z_SPAN } from "./zLayers";
 
 class TestWindow extends WindowBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -316,6 +317,67 @@ describe("WindowBase maximizedZIndex (FEAT-0044)", () => {
         // fresh refresh it would remain stuck behind winB.
         winA.refreshMaximizedZIndex();
         expect(winA.maximizedZIndex).toBeGreaterThan(winB.maximizedZIndex);
+    });
+});
+
+describe("WindowBase keep-above (FEAT-0742)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it("defaults to off and persists the toggled flag with the window snapshot", () => {
+        const id = `keep-above-${nextTestId++}`;
+        const win = new TestWindow({ id });
+        expect(win.isKeepAbove).toBe(false);
+
+        win.toggleKeepAbove();
+        expect(win.isKeepAbove).toBe(true);
+
+        const restored = new TestWindow({ id });
+        expect(restored.isKeepAbove).toBe(true);
+    });
+
+    it("ignores a persisted flag that is not a literal boolean", () => {
+        const id = `keep-above-bogus-${nextTestId++}`;
+        localStorage.setItem(
+            `cachy_win_${id}`,
+            JSON.stringify({ isKeepAbove: "yes" }),
+        );
+
+        const win = new TestWindow({ id });
+
+        expect(win.isKeepAbove).toBe(false);
+    });
+
+    it("keeps maximizedZIndex in the windowMax band even when keep-above", () => {
+        const win = makeTestWindow();
+        win.isKeepAbove = true;
+
+        win.maximize();
+
+        expect(win.maximizedZIndex).toBeGreaterThanOrEqual(Z_LAYERS.windowMax);
+        expect(win.maximizedZIndex).toBeLessThan(Z_LAYERS.windowKeepAbove);
+    });
+
+    it("bounds the maximized ordinal by the shared stack span", () => {
+        expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (WindowBase as any).MAX_MAXIMIZED_OFFSET,
+        ).toBe(WINDOW_STACK_Z_SPAN);
+    });
+
+    it("does not persist the flag for a window with a shared storage key", () => {
+        const id = `keep-above-shared-${nextTestId++}`;
+        const win = new TestWindow({ id, storageKey: "news_article" });
+        win.toggleKeepAbove();
+        expect(win.isKeepAbove).toBe(true);
+
+        const restored = new TestWindow({
+            id: `keep-above-shared-next-${nextTestId++}`,
+            storageKey: "news_article",
+        });
+
+        expect(restored.isKeepAbove).toBe(false);
     });
 });
 
