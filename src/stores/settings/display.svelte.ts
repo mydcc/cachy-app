@@ -173,4 +173,5 @@ export class DisplaySettingsStore {
     defaultSettings.enableDockingCentered,
   );
   dockingPosition = $state<"top" | "bottom">(defaultSettings.dockingPosition);
+  focusFollowsMouse = $state<boolean>(defaultSettings.focusFollowsMouse);
 }

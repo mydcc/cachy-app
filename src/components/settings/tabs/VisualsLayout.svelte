@@ -177,6 +177,23 @@
                 <p class="text-[10px] text-[var(--text-secondary)]">{$_("settings.dockingPositionDesc")}</p>
             </div>
         </div>
+
+        <!-- Window behaviour (FEAT-0740) -->
+        <div class="col-span-full border-t border-[var(--border-color)] pt-4">
+            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                {$_("settings.windowBehaviorTitle")}
+            </h4>
+            <label class="toggle-card gap-3">
+                <div class="flex flex-col min-w-0 flex-1">
+                    <span class="text-sm font-medium">{$_("settings.focusFollowsMouse")}</span>
+                    <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.focusFollowsMouseDesc")}</span>
+                </div>
+                <Toggle
+                    id="focus-follows-mouse"
+                    bind:checked={settingsState.focusFollowsMouse}
+                />
+            </label>
+        </div>
     </SettingsGrid>
 </section>
 

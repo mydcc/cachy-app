@@ -42,6 +42,7 @@ const settingsMock = vi.hoisted(() => ({
     showSidebars: false,
     enableDockingCentered: true,
     dockingPosition: "top",
+    focusFollowsMouse: false,
 }));
 vi.mock("../../../stores/settings.svelte", () => ({ settingsState: settingsMock }));
 
@@ -59,6 +60,7 @@ beforeEach(() => {
     settingsMock.showSidebars = false;
     settingsMock.enableDockingCentered = true;
     settingsMock.dockingPosition = "top";
+    settingsMock.focusFollowsMouse = false;
     uiMock.showAssistant = false;
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -125,5 +127,16 @@ describe("FEAT-0346 — VisualsLayout writes through to the stores", () => {
             "top",
             "bottom",
         ]);
+    });
+
+    it("binds the focus-follows-mouse toggle", () => {
+        render();
+
+        const focus = host.querySelector<HTMLInputElement>(
+            "#focus-follows-mouse",
+        );
+        if (!focus) throw new Error("focus-follows toggle not rendered");
+        focus.click();
+        expect(settingsMock.focusFollowsMouse).toBe(true);
     });
 });

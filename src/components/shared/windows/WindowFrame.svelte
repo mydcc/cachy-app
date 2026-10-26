@@ -96,6 +96,8 @@
      * down starts the drag, and the first move would otherwise be the click.
      */
     const DRAG_DETACH_THRESHOLD_PX = 4;
+    /** Hover time before focus-follows-mouse raises a window (FEAT-0740). */
+    const FOCUS_FOLLOW_DELAY_MS = 120;
     /** Ignore the double-click that can follow a real drag gesture. */
     const DOUBLE_CLICK_AFTER_DRAG_MS = 400;
     let lastDragMovedAt = 0;
@@ -203,6 +205,71 @@
         win.snapToSide(nextSnapZone(current, direction));
     }
 
+    let focusFollowTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /** Clears a pending hover focus and its one-shot global cancel listener. */
+    function cancelFocusFollow() {
+        if (focusFollowTimer !== null) {
+            clearTimeout(focusFollowTimer);
+            focusFollowTimer = null;
+        }
+        window.removeEventListener("pointerdown", cancelFocusFollow, true);
+    }
+
+    /**
+     * FEAT-0740: the shared precondition for a hover focus. A modal/dialog
+     * window owns focus while open, including the non-blocking dashboard
+     * cockpit; the conservative gate keeps the feature from raising a window
+     * behind that band.
+     */
+    function isHoverFocusAllowed(): boolean {
+        if (!settingsState.focusFollowsMouse) return false;
+        if (win.isFocused || win.isMinimized) return false;
+        if (document.querySelector(".window-frame.interacting")) return false;
+        if (
+            windowManager.windows.some(
+                (candidate) =>
+                    candidate.windowType === "modal" ||
+                    candidate.windowType === "dialog",
+            )
+        ) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * FEAT-0740: opt-in focus-follows-mouse. A short hover raises and focuses
+     * the window, but only for a mouse, never while the user is dragging or a
+     * blocking dialog owns focus. The raise must not sweep closeOnBlur
+     * windows: hovering is not a deliberate click elsewhere.
+     */
+    function handlePointerEnter(event: PointerEvent) {
+        if (event.pointerType !== "mouse") return;
+        // A button held on pointerenter means a gesture started outside this
+        // frame (text selection, chart drag, scrollbar). Raising now would
+        // steal focus mid-gesture.
+        if (event.buttons !== 0) return;
+        if (!isHoverFocusAllowed()) return;
+
+        cancelFocusFollow();
+        window.addEventListener("pointerdown", cancelFocusFollow, true);
+        focusFollowTimer = setTimeout(() => {
+            focusFollowTimer = null;
+            window.removeEventListener("pointerdown", cancelFocusFollow, true);
+
+            if (document.visibilityState === "hidden") return;
+            if (!isHoverFocusAllowed()) return;
+
+            windowManager.bringToFront(win.id, { sweepCloseOnBlur: false });
+            frameEl?.focus({ preventScroll: true });
+        }, FOCUS_FOLLOW_DELAY_MS);
+    }
+
+    function handlePointerLeave() {
+        cancelFocusFollow();
+    }
+
     function handleFocusIn() {
         if (!win.isFocused) windowManager.bringToFront(win.id);
     }
@@ -240,11 +307,22 @@
         return () => window.removeEventListener("keydown", handler);
     });
 
+    // Turning the setting off cancels the timer and its one-shot listener
+    // immediately, not only when the callback re-checks the setting.
+    $effect(() => {
+        if (!settingsState.focusFollowsMouse) cancelFocusFollow();
+    });
+
+    // A pending hover-focus must not survive the frame; remove both the timer
+    // and the one-shot global pointerdown cancel listener.
+    $effect(() => () => cancelFocusFollow());
+
     /**
      * Stacking & Focus Management
      * Ensures the window is brought to the front when clicked.
      */
     function handlePointerDown() {
+        cancelFocusFollow();
         windowManager.bringToFront(win.id);
     }
 
@@ -771,6 +849,8 @@
     data-window-id={win.id}
     tabindex="-1"
     onfocusin={handleFocusIn}
+    onpointerenter={handlePointerEnter}
+    onpointerleave={handlePointerLeave}
     class:window-frame={true}
     class:glass-panel={true}
     class:focused={win.isFocused}
