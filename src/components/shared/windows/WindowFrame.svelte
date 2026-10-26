@@ -43,6 +43,7 @@
         nextSnapZone,
         readShellInsets,
     } from "../../../lib/windows/snapping";
+    import { snapToWindows } from "../../../lib/windows/windowSnapping";
     import type {
         SnapDirection,
         SnapGeometry,
@@ -251,7 +252,10 @@
      * Uses Pointer Capture to allow movement across the entire screen once initiated
      * from the header bar.
      */
-    function updateSnapPreview(clientX: number, clientY: number) {
+    function updateSnapPreview(
+        clientX: number,
+        clientY: number,
+    ): SnapZone | null {
         const zone = detectSnapZone(
             clientX,
             clientY,
@@ -261,7 +265,7 @@
         if (!zone) {
             snapZone = null;
             snapPreview = null;
-            return;
+            return null;
         }
         snapZone = zone;
         snapPreview = computeSnapGeometry(
@@ -272,6 +276,42 @@
             win.minWidth,
             win.minHeight,
         );
+        return zone;
+    }
+
+    /**
+     * Other floating windows are alignment targets, not tiling targets:
+     * minimized, modal and dialog windows stay out, and the dragged window
+     * never targets itself. The screen-edge preview has priority and skips
+     * this pass entirely.
+     */
+    function updateWindowSnap(rawX: number, rawY: number): void {
+        const targets = windowManager.windows
+            .filter(
+                (candidate) =>
+                    candidate.id !== win.id &&
+                    !candidate.isMinimized &&
+                    candidate.windowType !== "modal" &&
+                    candidate.windowType !== "dialog",
+            )
+            .map((candidate) => ({
+                x: candidate.x,
+                y: candidate.y,
+                width: candidate.width,
+                height: candidate.height,
+            }));
+
+        const snapped = snapToWindows(
+            rawX,
+            rawY,
+            win.width,
+            win.height,
+            targets,
+            window.innerWidth,
+            window.innerHeight,
+            readShellInsets(),
+        );
+        win.updatePosition(snapped.x, snapped.y);
     }
 
     function startDrag(e: PointerEvent, fromPinned = false) {
@@ -298,12 +338,18 @@
                 pendingPinDetach = false;
                 win.detachPin();
             }
-            win.updatePosition(
-                moveEvent.clientX - startX,
-                moveEvent.clientY - startY,
+            const rawX = moveEvent.clientX - startX;
+            const rawY = moveEvent.clientY - startY;
+            const zone = updateSnapPreview(
+                moveEvent.clientX,
+                moveEvent.clientY,
             );
+            if (zone) {
+                win.updatePosition(rawX, rawY);
+            } else {
+                updateWindowSnap(rawX, rawY);
+            }
             lastDragMovedAt = Date.now();
-            updateSnapPreview(moveEvent.clientX, moveEvent.clientY);
         };
 
         const endDrag = (endEvent: PointerEvent, commit: boolean) => {

@@ -1676,3 +1676,241 @@ describe("FEAT-0738 — tiling regressions", () => {
         expect(win.x).toBe(512);
     });
 });
+
+describe("FEAT-0739 — window-to-window snapping", () => {
+    class SnapTargetWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "snap-target",
+                title: "Target",
+                windowType: "chart",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    function openTarget(): SnapTargetWindow {
+        const target = new SnapTargetWindow();
+        windowManager.open(target);
+        return target;
+    }
+
+    it("aligns the dragged frame to a neighbouring window", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = openTarget();
+        target.x = 200;
+        target.y = 150;
+        target.width = 300;
+        target.height = 200;
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 253,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(200);
+            expect(win.y).toBe(150);
+
+            header.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 253,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+            expect(win.x).toBe(200);
+            expect(win.y).toBe(150);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+
+    it("ignores modal and minimized windows as targets", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = openTarget();
+        target.x = 200;
+        target.y = 150;
+        target.width = 300;
+        target.height = 200;
+        target.isMinimized = true;
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 253,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(203);
+            expect(win.y).toBe(153);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+});
+
+describe("FEAT-0739 — exclusions and edge priority", () => {
+    class AnotherTargetWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "snap-target-modal",
+                title: "Modal target",
+                windowType: "modal",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
+    it("ignores a modal window as a target", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = new AnotherTargetWindow();
+        target.x = 200;
+        target.y = 150;
+        target.width = 300;
+        target.height = 200;
+        windowManager.open(target);
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 253,
+                    clientY: 173,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.x).toBe(203);
+            expect(win.y).toBe(153);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+
+    it("lets the screen-edge tiler win over a window target", () => {
+        const { win } = mountFrame();
+        win.x = 100;
+        win.y = 100;
+        win.width = 300;
+        win.height = 200;
+        const target = new AnotherTargetWindow();
+        target.windowType = "chart";
+        target.x = 100;
+        target.y = 150;
+        target.width = 300;
+        target.height = 200;
+        windowManager.open(target);
+        flushSync();
+
+        try {
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 150,
+                    clientY: 120,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 10,
+                    clientY: 400,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+            expect(host!.querySelector(".snap-preview")).not.toBeNull();
+
+            header.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 10,
+                    clientY: 400,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(true);
+            expect(win.pinSide).toBe("left");
+            expect(win.x).toBe(0);
+        } finally {
+            windowManager.close(target.id);
+        }
+    });
+});

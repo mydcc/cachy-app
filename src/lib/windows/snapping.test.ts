@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
     computeSnapGeometry,
     detectSnapZone,
+    getUsableBounds,
     isSnapZone,
     isTypingTarget,
     nextSnapZone,
@@ -218,6 +219,28 @@ describe("isSnapZone", () => {
         expect(isSnapZone("diagonal")).toBe(false);
         expect(isSnapZone(null)).toBe(false);
         expect(isSnapZone(1)).toBe(false);
+    });
+});
+
+describe("getUsableBounds", () => {
+    it("clamps the shell insets to the viewport", () => {
+        expect(
+            getUsableBounds(1000, 800, {
+                left: 100,
+                right: 300,
+                top: 40,
+                bottom: 60,
+            }),
+        ).toEqual({ left: 100, right: 700, top: 40, bottom: 740 });
+
+        expect(
+            getUsableBounds(100, 100, {
+                left: 200,
+                right: 200,
+                top: 200,
+                bottom: 200,
+            }),
+        ).toEqual({ left: 100, right: 100, top: 100, bottom: 100 });
     });
 });
 
