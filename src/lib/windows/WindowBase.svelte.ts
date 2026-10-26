@@ -24,8 +24,8 @@ import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
 import { Z_LAYERS } from "./zLayers";
-import { computeSnapGeometry, readShellInsets } from "./snapping";
-import type { SnapSide } from "./snapping";
+import { computeSnapGeometry, readShellInsets, isSnapZone } from "./snapping";
+import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
 
@@ -209,8 +209,8 @@ export abstract class WindowBase {
     headerAction: 'toggle-mode' | 'none' = $state('none');
     /** Array of standard button groups to render in header. */
     headerButtons: ('zoom' | 'export' | 'delete' | 'custom' | 'openInNewTab')[] = $state([]);
-    /** Target side for pinning. */
-    pinSide: 'left' | 'right' | 'top' | 'bottom' | 'none' = $state('none');
+    /** Tiling/Pinning state (active if pinSide != 'none'). */
+    pinSide: SnapZone | 'none' = $state('none');
     doubleClickBehavior: 'maximize' | 'pin' = $state('maximize');
     /** Dynamic custom controls (e.g., Period Selectors in Charts). */
     headerControls = $state<HeaderControl[]>([]);
@@ -493,13 +493,9 @@ export abstract class WindowBase {
                 this.isMinimized = state.isMinimized ?? false;
                 this.isPinned = state.isPinned ?? false;
                 const pinSide = state.pinSide;
-                if (
-                    pinSide === "left" ||
-                    pinSide === "right" ||
-                    pinSide === "top" ||
-                    pinSide === "bottom" ||
-                    pinSide === "none"
-                ) {
+                if (pinSide === "none") {
+                    this.pinSide = "none";
+                } else if (isSnapZone(pinSide)) {
                     this.pinSide = pinSide;
                 }
                 this.pinRestore = isPinRestore(state.pinRestore)
@@ -773,11 +769,11 @@ export abstract class WindowBase {
     }
 
     /**
-     * Pin the window to a vertical side and tile it into half of the usable
-     * viewport (FEAT-0616). The shell's visible sidebars are measured at snap
-     * time so the window never sits under them.
+     * Pin the window to a half or a quarter of the usable viewport
+     * (FEAT-0616, extended by FEAT-0738). The shell's sidebars, titlebar and
+     * dock are measured at snap time so the window never sits under them.
      */
-    snapToSide(side: SnapSide) {
+    snapToSide(zone: SnapZone) {
         if (typeof window === 'undefined' || this.isMinimized) return;
 
         // A snap from a maximized window records the pre-maximize floating
@@ -794,13 +790,14 @@ export abstract class WindowBase {
         }
 
         const geometry = computeSnapGeometry(
-            side,
+            zone,
             window.innerWidth,
             window.innerHeight,
             readShellInsets(),
             this.minWidth,
+            this.minHeight,
         );
-        this.pinSide = side;
+        this.pinSide = zone;
         this.isPinned = true;
         this.isMaximized = false;
         this.x = geometry.x;
@@ -840,13 +837,11 @@ export abstract class WindowBase {
             return;
         }
 
-        if (this.pinSide === 'left' || this.pinSide === 'right') {
+        if (this.pinSide !== 'none') {
             this.snapToSide(this.pinSide);
             return;
         }
 
-        // Top/bottom pinning is deferred (FEAT-0616); keep the flag behaviour
-        // for configurations that declare it without a vertical tiler.
         this.isPinned = true;
         this.isMaximized = false;
         this.saveState();

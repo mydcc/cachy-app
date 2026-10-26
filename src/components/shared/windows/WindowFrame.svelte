@@ -38,13 +38,15 @@
     import { computeFittedHeight } from "../../../lib/windows/fitContentHeight";
     import {
         computeSnapGeometry,
-        detectSnapSide,
+        detectSnapZone,
         isTypingTarget,
+        nextSnapZone,
         readShellInsets,
     } from "../../../lib/windows/snapping";
     import type {
+        SnapDirection,
         SnapGeometry,
-        SnapSide,
+        SnapZone,
     } from "../../../lib/windows/snapping";
     import { effectsState } from "../../../stores/effects.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -84,7 +86,7 @@
     let showSettings = $state(false);
     let isResizing = $state(false);
     let snapPreview = $state<SnapGeometry | null>(null);
-    let snapSide = $state<SnapSide | null>(null);
+    let snapZone = $state<SnapZone | null>(null);
 
     /**
      * A pinned window detaches only after the pointer has genuinely moved.
@@ -172,16 +174,31 @@
      * Keyboard parity for snapping. The shortcut belongs to the focused
      * window; `handleFocusIn` raises it when a child is focused, and typing
      * targets keep their native Option/Alt+Arrow behaviour.
+     *
+     * A perpendicular arrow refines a half into a corner; an arrow on a
+     * corner collapses it back to the half on that axis (FEAT-0738).
      */
     function handleFrameKeydown(e: KeyboardEvent) {
         if (!e.altKey) return;
-        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        const direction: SnapDirection | null =
+            e.key === "ArrowLeft"
+                ? "left"
+                : e.key === "ArrowRight"
+                  ? "right"
+                  : e.key === "ArrowUp"
+                    ? "up"
+                    : e.key === "ArrowDown"
+                      ? "down"
+                      : null;
+        if (!direction) return;
         if (isTypingTarget(e.target)) return;
+        if (e.repeat) return;
         e.preventDefault();
         e.stopPropagation();
-        snapSide = null;
+        snapZone = null;
         snapPreview = null;
-        win.snapToSide(e.key === "ArrowLeft" ? "left" : "right");
+        const current = win.isPinned ? win.pinSide : "none";
+        win.snapToSide(nextSnapZone(current, direction));
     }
 
     function handleFocusIn() {
@@ -234,20 +251,26 @@
      * Uses Pointer Capture to allow movement across the entire screen once initiated
      * from the header bar.
      */
-    function updateSnapPreview(clientX: number) {
-        const side = detectSnapSide(clientX, window.innerWidth);
-        if (!side) {
-            snapSide = null;
+    function updateSnapPreview(clientX: number, clientY: number) {
+        const zone = detectSnapZone(
+            clientX,
+            clientY,
+            window.innerWidth,
+            window.innerHeight,
+        );
+        if (!zone) {
+            snapZone = null;
             snapPreview = null;
             return;
         }
-        snapSide = side;
+        snapZone = zone;
         snapPreview = computeSnapGeometry(
-            side,
+            zone,
             window.innerWidth,
             window.innerHeight,
             readShellInsets(),
             win.minWidth,
+            win.minHeight,
         );
     }
 
@@ -280,7 +303,7 @@
                 moveEvent.clientY - startY,
             );
             lastDragMovedAt = Date.now();
-            updateSnapPreview(moveEvent.clientX);
+            updateSnapPreview(moveEvent.clientX, moveEvent.clientY);
         };
 
         const endDrag = (endEvent: PointerEvent, commit: boolean) => {
@@ -292,10 +315,10 @@
             target.removeEventListener("pointerup", onPointerUp);
             target.removeEventListener("pointercancel", onPointerCancel);
 
-            if (commit && snapSide) {
-                win.snapToSide(snapSide);
+            if (commit && snapZone) {
+                win.snapToSide(snapZone);
             }
-            snapSide = null;
+            snapZone = null;
             snapPreview = null;
             flushSaveState();
         };
@@ -674,7 +697,7 @@
 <div
     bind:this={frameEl}
     class={extraClasses}
-    aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
+    aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown"
     data-window-id={win.id}
     tabindex="-1"
     onfocusin={handleFocusIn}
@@ -690,6 +713,12 @@
     class:minimized={win.isMinimized}
     class:pinned-left={win.isPinned && win.pinSide === "left"}
     class:pinned-right={win.isPinned && win.pinSide === "right"}
+    class:pinned-top={win.isPinned && win.pinSide === "top"}
+    class:pinned-bottom={win.isPinned && win.pinSide === "bottom"}
+    class:pinned-top-left={win.isPinned && win.pinSide === "top-left"}
+    class:pinned-top-right={win.isPinned && win.pinSide === "top-right"}
+    class:pinned-bottom-left={win.isPinned && win.pinSide === "bottom-left"}
+    class:pinned-bottom-right={win.isPinned && win.pinSide === "bottom-right"}
     style:left={win.isMinimized
         ? "auto"
         : win.isMaximized
@@ -1205,17 +1234,44 @@
         outline: 2px solid var(--accent-color);
         outline-offset: -2px;
     }
-    .window-frame.pinned-left {
+    .window-frame.pinned-left:not(.maximized):not(.minimized) {
         border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
         border-left: none;
     }
-    .window-frame.pinned-right {
+    .window-frame.pinned-right:not(.maximized):not(.minimized) {
         border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+        border-right: none;
+    }
+    .window-frame.pinned-top:not(.maximized):not(.minimized) {
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+        border-top: none;
+    }
+    .window-frame.pinned-bottom:not(.maximized):not(.minimized) {
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        border-bottom: none;
+    }
+    .window-frame.pinned-top-left:not(.maximized):not(.minimized) {
+        border-radius: 0 0 var(--radius-xl) 0;
+        border-top: none;
+        border-left: none;
+    }
+    .window-frame.pinned-top-right:not(.maximized):not(.minimized) {
+        border-radius: 0 0 0 var(--radius-xl);
+        border-top: none;
+        border-right: none;
+    }
+    .window-frame.pinned-bottom-left:not(.maximized):not(.minimized) {
+        border-radius: 0 var(--radius-xl) 0 0;
+        border-bottom: none;
+        border-left: none;
+    }
+    .window-frame.pinned-bottom-right:not(.maximized):not(.minimized) {
+        border-radius: var(--radius-xl) 0 0 0;
+        border-bottom: none;
         border-right: none;
     }
     .window-frame.focused {
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--border-color);
     }
     .window-frame.dragging {
         opacity: 0.9;

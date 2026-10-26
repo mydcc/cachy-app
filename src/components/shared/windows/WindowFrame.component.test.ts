@@ -424,6 +424,20 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
         expect(frame!.getAttribute("aria-keyshortcuts")).toContain(
             "Alt+ArrowRight",
         );
+        expect(frame!.getAttribute("aria-keyshortcuts")).toContain(
+            "Alt+ArrowUp",
+        );
+        expect(
+            frame!
+                .getAttribute("aria-keyshortcuts")!
+                .split(/\s+/)
+                .sort(),
+        ).toEqual([
+            "Alt+ArrowDown",
+            "Alt+ArrowLeft",
+            "Alt+ArrowRight",
+            "Alt+ArrowUp",
+        ]);
 
         win.isFocused = true;
         flushSync();
@@ -440,6 +454,203 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
         expect(win.isPinned).toBe(true);
         expect(win.pinSide).toBe("right");
         expect(win.x).toBe(window.innerWidth / 2);
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.pinSide).toBe("top-right");
+        expect(win.y).toBe(0);
+        expect(win.height).toBe(Math.round(window.innerHeight / 2));
+
+        // A corner collapses back to the half on the pressed axis.
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.pinSide).toBe("top");
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.pinSide).toBe("top-left");
+        expect(frame!.classList.contains("pinned-top-left")).toBe(true);
+    });
+
+    it("previews and commits a top half", () => {
+        const oldWidth = window.innerWidth;
+        const oldHeight = window.innerHeight;
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+
+        try {
+            const { win } = mountFrame();
+            win.x = 100;
+            win.y = 100;
+            win.width = 640;
+            win.height = 480;
+            flushSync();
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            expect(header).not.toBeNull();
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 500,
+                    clientY: 100,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 512,
+                    clientY: 10,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            const preview =
+                host!.querySelector<HTMLElement>(".snap-preview");
+            expect(preview).not.toBeNull();
+            expect(preview!.style.left).toBe("0px");
+            expect(preview!.style.top).toBe("0px");
+            expect(preview!.style.width).toBe("1024px");
+            expect(preview!.style.height).toBe("384px");
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 512,
+                    clientY: 10,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(true);
+            expect(win.pinSide).toBe("top");
+            expect(win.x).toBe(0);
+            expect(win.y).toBe(0);
+            expect(win.width).toBe(1024);
+            expect(win.height).toBe(384);
+        } finally {
+            Object.defineProperty(window, "innerWidth", {
+                value: oldWidth,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: oldHeight,
+                configurable: true,
+            });
+        }
+    });
+
+    it("previews and commits a bottom-right corner", () => {
+        const oldWidth = window.innerWidth;
+        const oldHeight = window.innerHeight;
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+
+        try {
+            const { win } = mountFrame();
+            win.x = 100;
+            win.y = 100;
+            win.width = 640;
+            win.height = 480;
+            flushSync();
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            expect(header).not.toBeNull();
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 500,
+                    clientY: 100,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 1020,
+                    clientY: 760,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            const preview =
+                host!.querySelector<HTMLElement>(".snap-preview");
+            expect(preview).not.toBeNull();
+            expect(preview!.style.left).toBe("512px");
+            expect(preview!.style.top).toBe("384px");
+            expect(preview!.style.width).toBe("512px");
+            expect(preview!.style.height).toBe("384px");
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 1020,
+                    clientY: 760,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(true);
+            expect(win.pinSide).toBe("bottom-right");
+            expect(win.x).toBe(512);
+            expect(win.y).toBe(384);
+            expect(win.width).toBe(512);
+            expect(win.height).toBe(384);
+            const frame = host!.querySelector<HTMLElement>(".window-frame");
+            expect(frame!.classList.contains("pinned-bottom-right")).toBe(
+                true,
+            );
+        } finally {
+            Object.defineProperty(window, "innerWidth", {
+                value: oldWidth,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: oldHeight,
+                configurable: true,
+            });
+        }
     });
 
     it("detaches a pinned window on the first drag movement", () => {
@@ -1067,5 +1278,401 @@ describe("FEAT-0737 — the frame is a focus target for the window switcher", ()
 
         frame.focus();
         expect(document.activeElement).toBe(frame);
+    });
+});
+
+describe("FEAT-0738 — preview and commit agree for every zone", () => {
+    const oldWidth = window.innerWidth;
+    const oldHeight = window.innerHeight;
+
+    beforeEach(() => {
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+    });
+
+    afterEach(() => {
+        Object.defineProperty(window, "innerWidth", {
+            value: oldWidth,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: oldHeight,
+            configurable: true,
+        });
+    });
+
+    function addShellInsets(target: HTMLElement): void {
+        const left = document.createElement("div");
+        left.dataset.snapSidebar = "left";
+        left.getBoundingClientRect = () =>
+            ({
+                left: 0,
+                right: 100,
+                width: 100,
+                top: 0,
+                bottom: 768,
+                height: 768,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            }) as unknown as DOMRect;
+        target.appendChild(left);
+
+        const right = document.createElement("div");
+        right.dataset.snapSidebar = "right";
+        right.getBoundingClientRect = () =>
+            ({
+                left: 924,
+                right: 1024,
+                width: 100,
+                top: 0,
+                bottom: 768,
+                height: 768,
+                x: 924,
+                y: 0,
+                toJSON: () => ({}),
+            }) as unknown as DOMRect;
+        target.appendChild(right);
+
+        const titlebar = document.createElement("div");
+        titlebar.id = "wco-titlebar";
+        titlebar.getBoundingClientRect = () =>
+            ({
+                left: 0,
+                right: 1024,
+                width: 1024,
+                top: 0,
+                bottom: 33,
+                height: 33,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            }) as unknown as DOMRect;
+        target.appendChild(titlebar);
+
+        const dock = document.createElement("div");
+        dock.className = "minimized-dock dock-bottom";
+        dock.getBoundingClientRect = () =>
+            ({
+                left: 0,
+                right: 1024,
+                width: 1024,
+                top: 718,
+                bottom: 768,
+                height: 50,
+                x: 0,
+                y: 718,
+                toJSON: () => ({}),
+            }) as unknown as DOMRect;
+        target.appendChild(dock);
+    }
+
+    it.each([
+        ["left", 10, 300],
+        ["right", 1014, 300],
+        ["top", 512, 10],
+        ["bottom", 512, 758],
+        ["top-left", 10, 10],
+        ["top-right", 1014, 10],
+        ["bottom-left", 10, 758],
+        ["bottom-right", 1014, 758],
+    ] as const)(
+        "previews and commits %s with non-zero insets and minimums",
+        (_zone, clientX, clientY) => {
+            const { win } = mountFrame();
+            win.minWidth = 700;
+            win.minHeight = 500;
+            addShellInsets(host!);
+            flushSync();
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            if (!header) throw new Error("the frame rendered no header");
+
+            header.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 500,
+                    clientY: 100,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX,
+                    clientY,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            const preview =
+                host!.querySelector<HTMLElement>(".snap-preview");
+            if (!preview) throw new Error("no snap preview rendered");
+            const previewGeometry = {
+                x: parseInt(preview.style.left, 10),
+                y: parseInt(preview.style.top, 10),
+                width: parseInt(preview.style.width, 10),
+                height: parseInt(preview.style.height, 10),
+            };
+
+            header.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX,
+                    clientY,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(true);
+            expect({
+                x: win.x,
+                y: win.y,
+                width: win.width,
+                height: win.height,
+            }).toEqual(previewGeometry);
+        },
+    );
+});
+
+describe("FEAT-0738 — tiling regressions", () => {
+    const oldWidth = window.innerWidth;
+    const oldHeight = window.innerHeight;
+
+    beforeEach(() => {
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+    });
+
+    afterEach(() => {
+        Object.defineProperty(window, "innerWidth", {
+            value: oldWidth,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: oldHeight,
+            configurable: true,
+        });
+    });
+
+    it("does not pin a floating window when pointercancel arrives with a live preview", () => {
+        const { win } = mountFrame();
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        if (!header) throw new Error("the frame rendered no header");
+
+        header.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 500,
+                clientY: 100,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        header.dispatchEvent(
+            new PointerEvent("pointermove", {
+                pointerId: 1,
+                clientX: 10,
+                clientY: 400,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+        expect(host!.querySelector(".snap-preview")).not.toBeNull();
+
+        header.dispatchEvent(
+            new PointerEvent("pointercancel", {
+                pointerId: 1,
+                clientX: 10,
+                clientY: 400,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(host!.querySelector(".snap-preview")).toBeNull();
+    });
+
+    it.each([
+        "left",
+        "right",
+        "top",
+        "bottom",
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+    ] as const)("renders and removes the pinned-%s class", (zone) => {
+        const { win } = mountFrame();
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        if (!frame) throw new Error("the frame rendered no root");
+
+        win.snapToSide(zone);
+        flushSync();
+        expect(frame.classList.contains(`pinned-${zone}`)).toBe(true);
+
+        win.togglePin();
+        flushSync();
+        expect(frame.classList.contains(`pinned-${zone}`)).toBe(false);
+    });
+
+    it("ignores an arrow without Alt and an Alt+Arrow from a typing target", () => {
+        const { win } = mountFrame();
+        win.isFocused = true;
+        flushSync();
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.isPinned).toBe(false);
+
+        const input = document.createElement("input");
+        host!.appendChild(input);
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.isPinned).toBe(false);
+    });
+
+    it("only attaches the keyboard shortcut while the window is focused", () => {
+        const { win } = mountFrame();
+        win.isFocused = false;
+        flushSync();
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.isPinned).toBe(false);
+
+        win.isFocused = true;
+        flushSync();
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.isPinned).toBe(true);
+        expect(win.pinSide).toBe("right");
+    });
+
+    it("ignores repeated keydown while the key is held", () => {
+        const { win } = mountFrame();
+        win.isFocused = true;
+        flushSync();
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.pinSide).toBe("left");
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                altKey: true,
+                repeat: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(win.pinSide).toBe("left");
+    });
+
+    it("raises the window when a child receives focus", () => {
+        const { win } = mountFrame();
+        windowManager.open(win);
+        win.isFocused = false;
+        flushSync();
+
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        if (!frame) throw new Error("the frame rendered no root");
+        frame.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+        flushSync();
+
+        expect(win.isFocused).toBe(true);
+        windowManager.close(win.id);
+    });
+
+    it("re-snaps a detached pinned window when released on another edge", () => {
+        const { win } = mountFrame();
+        win.snapToSide("left");
+        flushSync();
+
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        if (!header) throw new Error("the frame rendered no header");
+
+        header.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 200,
+                clientY: 50,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        header.dispatchEvent(
+            new PointerEvent("pointermove", {
+                pointerId: 1,
+                clientX: 1000,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        header.dispatchEvent(
+            new PointerEvent("pointerup", {
+                pointerId: 1,
+                clientX: 1000,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(true);
+        expect(win.pinSide).toBe("right");
+        expect(win.x).toBe(512);
     });
 });

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WindowBase } from "./WindowBase.svelte";
 
 class TestWindow extends WindowBase {
@@ -49,6 +49,10 @@ beforeEach(() => {
     setViewport(1200, 800);
 });
 
+afterEach(() => {
+    document.body.innerHTML = "";
+});
+
 describe("WindowBase.snapToSide", () => {
     it("pins, tiles half the viewport and persists the geometry", () => {
         const win = makeWindow();
@@ -73,6 +77,127 @@ describe("WindowBase.snapToSide", () => {
             isPinned: true,
             pinSide: "left",
         });
+    });
+
+    it("tiles the top and bottom halves", () => {
+        const top = makeWindow();
+        top.snapToSide("top");
+        expect(top).toMatchObject({
+            isPinned: true,
+            pinSide: "top",
+            x: 0,
+            y: 0,
+            width: 1200,
+            height: 400,
+        });
+
+        const bottom = makeWindow();
+        bottom.snapToSide("bottom");
+        expect(bottom).toMatchObject({
+            isPinned: true,
+            pinSide: "bottom",
+            x: 0,
+            y: 400,
+            width: 1200,
+            height: 400,
+        });
+    });
+
+    it("tiles the four corners and restores the corner after a detach", () => {
+        const win = makeWindow();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+
+        win.snapToSide("top-left");
+        expect(win).toMatchObject({
+            pinSide: "top-left",
+            x: 0,
+            y: 0,
+            width: 600,
+            height: 400,
+        });
+
+        win.detachPin();
+        expect(win.isPinned).toBe(false);
+        win.togglePin();
+        expect(win.isPinned).toBe(true);
+        expect(win.pinSide).toBe("top-left");
+        expect(win.x).toBe(0);
+        expect(win.y).toBe(0);
+
+        // The detach discarded the pre-snap rectangle; the tiled rectangle is
+        // now the restore target, matching the existing half-snap semantics.
+        win.togglePin();
+        expect(win.x).toBe(0);
+        expect(win.y).toBe(0);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(400);
+    });
+
+    it("unpins a corner to the floating rectangle", () => {
+        const win = makeWindow();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+
+        win.snapToSide("top-left");
+        win.togglePin();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.y).toBe(90);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
+    });
+
+    it("restores a persisted corner zone", () => {
+        const win = makeWindow();
+        win.snapToSide("bottom-right");
+
+        const restored = makeWindow();
+        expect(restored.isPinned).toBe(true);
+        expect(restored.pinSide).toBe("bottom-right");
+        expect(restored.x).toBe(600);
+        expect(restored.y).toBe(400);
+        expect(restored.width).toBe(600);
+        expect(restored.height).toBe(400);
+    });
+
+    it("honours the minimum height when a half is smaller", () => {
+        const win = makeWindow();
+        win.minHeight = 500;
+
+        win.snapToSide("top");
+
+        expect(win.height).toBe(500);
+        expect(win.y).toBe(0);
+    });
+
+    it("accounts for the titlebar and a bottom dock", () => {
+        const titlebar = document.createElement("div");
+        titlebar.id = "wco-titlebar";
+        titlebar.getBoundingClientRect = () =>
+            ({ width: 1200, height: 33, left: 0, right: 1200 }) as DOMRect;
+        document.body.appendChild(titlebar);
+
+        const dock = document.createElement("div");
+        dock.className = "minimized-dock dock-bottom";
+        dock.getBoundingClientRect = () =>
+            ({ width: 1200, height: 50, left: 0, right: 1200 }) as DOMRect;
+        document.body.appendChild(dock);
+
+        const win = makeWindow();
+        win.snapToSide("top");
+
+        expect(win.y).toBe(33);
+        expect(win.height).toBe(358);
+        expect(win.width).toBe(1200);
+
+        titlebar.remove();
+        dock.remove();
     });
 
     it("restores the saved pinned geometry on a new instance", () => {
@@ -194,6 +319,11 @@ describe("WindowBase.snapToSide", () => {
         expect(reloaded.isPinned).toBe(false);
         expect(reloaded.x).toBe(0);
         expect(reloaded.width).toBe(600);
+
+        // The last zone survives the reload, so the pin control can return to it.
+        reloaded.togglePin();
+        expect(reloaded.isPinned).toBe(true);
+        expect(reloaded.pinSide).toBe("left");
     });
 
     it("detaches only once", () => {
@@ -390,6 +520,36 @@ describe("WindowBase.snapToSide", () => {
         expect(win.height).toBe(800);
     });
 
+    it("unpins a legacy pinned snapshot with no pinSide key at all", () => {
+        localStorage.setItem(
+            "cachy_win_snap-test",
+            JSON.stringify({
+                x: 0,
+                y: 0,
+                width: 600,
+                height: 800,
+                isMaximized: false,
+                isMinimized: false,
+                isPinned: true,
+                pinRestore: { x: 120, y: 90, width: 600, height: 480 },
+                opacity: 1,
+                fontSize: 14,
+                zoomLevel: 1,
+                showPriceInTitle: false,
+                symbol: "",
+            }),
+        );
+
+        const win = makeWindow();
+        expect(win.pinSide).toBe("none");
+        win.togglePin();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
+    });
+
     it("keeps the pinned float target through a maximize round-trip", () => {
         const win = makeWindow();
         win.x = 120;
@@ -427,5 +587,56 @@ describe("WindowBase.snapToSide", () => {
         expect(win.x).toBe(200);
         expect(win.width).toBe(500);
         left.remove();
+    });
+
+    it("loads a legacy vertical pin zone", () => {
+        localStorage.setItem(
+            "cachy_win_snap-test",
+            JSON.stringify({
+                x: 0,
+                y: 0,
+                width: 1200,
+                height: 400,
+                isMaximized: false,
+                isMinimized: false,
+                isPinned: true,
+                pinSide: "top",
+                opacity: 1,
+                fontSize: 14,
+                zoomLevel: 1,
+                showPriceInTitle: false,
+                symbol: "",
+            }),
+        );
+
+        const win = makeWindow();
+        expect(win.isPinned).toBe(true);
+        expect(win.pinSide).toBe("top");
+    });
+
+    it("rejects an unknown persisted pin zone", () => {
+        localStorage.setItem(
+            "cachy_win_snap-test",
+            JSON.stringify({
+                x: 0,
+                y: 0,
+                width: 600,
+                height: 400,
+                isMaximized: false,
+                isMinimized: false,
+                isPinned: true,
+                pinSide: "diagonal",
+                opacity: 1,
+                fontSize: 14,
+                zoomLevel: 1,
+                showPriceInTitle: false,
+                symbol: "",
+            }),
+        );
+
+        const win = makeWindow();
+        expect(win.pinSide).toBe("none");
+        expect(() => win.togglePin()).not.toThrow();
+        expect(win.isPinned).toBe(false);
     });
 });
