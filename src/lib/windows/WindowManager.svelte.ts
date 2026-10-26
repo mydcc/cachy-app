@@ -46,7 +46,7 @@ const MODAL_Z_SPAN = 1000;
  * sweep; keeping a confirm behind a keep-above journal or alert panel would
  * make it unanswerable (FEAT-0742).
  */
-function usesModalBand(win: WindowBase): boolean {
+function usesReservedBand(win: WindowBase): boolean {
     return isReservedBandWindow(win.windowType);
 }
 // Shared with WindowFrame.svelte's own geometry-save debounce (BUG-0042) so
@@ -468,7 +468,7 @@ class WindowManager {
             }
 
             const ordinal = this._nextZIndex++;
-            if (usesModalBand(win)) {
+            if (usesReservedBand(win)) {
                 win.zIndex = Z_LAYERS.modal + (ordinal % MODAL_Z_SPAN);
             } else if (win.isKeepAbove) {
                 // FEAT-0742: a keep-above window stays above the ordinary
@@ -539,7 +539,7 @@ class WindowManager {
         let keepAboveOrdinal = 0;
         for (const win of sorted) {
             if (win.id === excludeId) continue;
-            if (usesModalBand(win)) {
+            if (usesReservedBand(win)) {
                 win.zIndex = Z_LAYERS.modal + modalOrdinal++;
                 continue;
             }
