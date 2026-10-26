@@ -27,7 +27,7 @@ export interface SwitchableWindow {
      * Monotonic focus sequence assigned by `WindowManager.bringToFront()`.
      * The switcher must not sort by `zIndex`: a keep-above window always
      * carries a higher z-index than an ordinary one, which would make the
-     * list band-first instead of most-recently-focused-first (FEAT-0741).
+     * list band-first instead of most-recently-focused-first (FEAT-0742).
      */
     lastFocusOrder: number;
 }

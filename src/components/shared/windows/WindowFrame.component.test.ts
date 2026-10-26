@@ -2736,7 +2736,7 @@ describe("FEAT-0740 — focus follows mouse", () => {
     });
 });
 
-describe("FEAT-0741 — keep a window above the others", () => {
+describe("FEAT-0742 — keep a window above the others", () => {
     class KeepAboveTargetWindow extends WindowBase {
         constructor() {
             super({

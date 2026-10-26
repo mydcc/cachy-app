@@ -110,7 +110,7 @@ describe("WindowManager.bringToFront and maximized windows (FEAT-0044)", () => {
     });
 });
 
-describe("WindowManager keep-above stacking (FEAT-0741)", () => {
+describe("WindowManager keep-above stacking (FEAT-0742)", () => {
     it("keeps a keep-above window above a normal window focused later", () => {
         const keep = openTestWindow();
         keep.isKeepAbove = true;

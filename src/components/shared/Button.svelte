@@ -49,7 +49,7 @@
     ariaExpanded?: boolean;
     ariaControls?: string;
     /**
-     * Toggle state for a button that switches a mode (FEAT-0741's keep-above
+     * Toggle state for a button that switches a mode (FEAT-0742's keep-above
      * control). Separate from `ariaExpanded`, which describes a disclosure.
      */
     ariaPressed?: boolean;

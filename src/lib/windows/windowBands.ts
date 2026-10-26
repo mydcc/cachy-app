@@ -24,7 +24,7 @@ import type { WindowType } from "./types";
  * them behind a keep-above window would leave a pending promise unanswerable.
  *
  * One predicate so the manager's band assignment, the frame's z-index bind and
- * the header-toggle exclusion cannot drift apart (FEAT-0741).
+ * the header-toggle exclusion cannot drift apart (FEAT-0742).
  */
 export function isReservedBandWindow(windowType: WindowType): boolean {
     return (

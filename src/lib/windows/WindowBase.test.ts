@@ -320,7 +320,7 @@ describe("WindowBase maximizedZIndex (FEAT-0044)", () => {
     });
 });
 
-describe("WindowBase keep-above (FEAT-0741)", () => {
+describe("WindowBase keep-above (FEAT-0742)", () => {
     beforeEach(() => {
         localStorage.clear();
     });

@@ -1,5 +1,5 @@
 ---
-id: FEAT-0741
+id: FEAT-0742
 title: Keep a floating window above the other windows
 type: feature
 status: done
@@ -14,7 +14,7 @@ adr: none
 depends_on: [FEAT-0044]
 ---
 
-# FEAT-0741 — Keep a floating window above the other windows
+# FEAT-0742 — Keep a floating window above the other windows
 
 ## Problem
 

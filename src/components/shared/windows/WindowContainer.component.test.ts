@@ -17,7 +17,7 @@
  */
 
 /*
- * FEAT-0741 — the dimming backdrop is rendered one z-index below its window.
+ * FEAT-0742 — the dimming backdrop is rendered one z-index below its window.
  * A reserved-band window must keep that relation even when the responsive
  * rule maximizes it; otherwise the modal or dialog renders behind its own
  * backdrop.
@@ -59,7 +59,7 @@ afterEach(() => {
     }
 });
 
-describe("WindowContainer backdrop stacking (FEAT-0741)", () => {
+describe("WindowContainer backdrop stacking (FEAT-0742)", () => {
     it("keeps the backdrop below a maximized reserved-band window", () => {
         const win = new BackdropWindow();
         windowManager.open(win);

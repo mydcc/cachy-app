@@ -138,7 +138,7 @@ export abstract class WindowBase {
      * Monotonic focus sequence used by the keyboard switcher. It is
      * deliberately independent of `zIndex`: a keep-above window always carries
      * a higher z-index than an ordinary window, so z-index alone can no longer
-     * express "most recently focused" (FEAT-0741).
+     * express "most recently focused" (FEAT-0742).
      */
     lastFocusOrder = 0;
 
@@ -161,7 +161,7 @@ export abstract class WindowBase {
     /** Tiling/Pinning state (active if pinSide != 'none') */
     isPinned = $state(false);
     /**
-     * FEAT-0741: keeps this window above ordinary and maximized windows while
+     * FEAT-0742: keeps this window above ordinary and maximized windows while
      * another window owns focus. The manager assigns the band in
      * bringToFront(); WindowFrame renders `zIndex` (not `maximizedZIndex`)
      * while this flag is set, so the band has one focus sequence.
@@ -267,7 +267,7 @@ export abstract class WindowBase {
      * maximized windows survives regardless of which instance last called
      * refreshMaximizedZIndex() -- see maximizedZIndex above. Bounded by
      * WINDOW_STACK_Z_SPAN so the windowMax band cannot grow into the
-     * windowKeepAbove band (FEAT-0741). The ordinal wraps after the span; a
+     * windowKeepAbove band (FEAT-0742). The ordinal wraps after the span; a
      * wrapped window starts at the bottom of the band, the same trade-off the
      * modal band already accepts.
      */
@@ -279,7 +279,7 @@ export abstract class WindowBase {
      * window maximizes and again whenever an already-maximized window is
      * focused, so bringToFront() has an effect on maximized windows too
      * (FEAT-0044). Keep-above windows never use this field: the manager's
-     * keep-above band is a single sequence (FEAT-0741).
+     * keep-above band is a single sequence (FEAT-0742).
      */
     refreshMaximizedZIndex() {
         WindowBase.nextMaximizedOffset =
@@ -834,7 +834,7 @@ export abstract class WindowBase {
     }
 
     /**
-     * FEAT-0741: flips the keep-above intent and persists it with the window's
+     * FEAT-0742: flips the keep-above intent and persists it with the window's
      * existing snapshot. The caller that wants the window to move bands must
      * ask WindowManager to re-stack it; this class cannot reach the singleton
      * without a module cycle.

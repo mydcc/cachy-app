@@ -44,7 +44,7 @@ const MODAL_Z_SPAN = 1000;
  * promise-based symbol picker. The band is shared with modals even though,
  * unlike modals, dialogs and pickers are not exempt from the close-on-blur
  * sweep; keeping a confirm behind a keep-above journal or alert panel would
- * make it unanswerable (FEAT-0741).
+ * make it unanswerable (FEAT-0742).
  */
 function usesModalBand(win: WindowBase): boolean {
     return isReservedBandWindow(win.windowType);
@@ -76,7 +76,7 @@ class WindowManager {
     /** Internal counter for global stacking order. Incremented on every focus event. */
     private _nextZIndex = BASE_Z_INDEX;
     /**
-     * Monotonic ordinal inside the keep-above band (FEAT-0741). A per-band
+     * Monotonic ordinal inside the keep-above band (FEAT-0742). A per-band
      * counter keeps focus order intact across the global counter's growth;
      * normalizeZIndices() rewrites it before it reaches the band's span.
      */
@@ -452,7 +452,7 @@ class WindowManager {
      * over a compact dialog (~11_000) — the reported symptom on a viewport
      * narrow enough for the pane to maximize itself.
      *
-     * FEAT-0741 adds a second reserved band: a window with `isKeepAbove` takes
+     * FEAT-0742 adds a second reserved band: a window with `isKeepAbove` takes
      * an ordinal in `Z_LAYERS.windowKeepAbove`, so focusing an ordinary window
      * can never draw over it, while modals stay above it. A keep-above window
      * renders that manager ordinal even while maximized, so the band has one
@@ -471,7 +471,7 @@ class WindowManager {
             if (usesModalBand(win)) {
                 win.zIndex = Z_LAYERS.modal + (ordinal % MODAL_Z_SPAN);
             } else if (win.isKeepAbove) {
-                // FEAT-0741: a keep-above window stays above the ordinary
+                // FEAT-0742: a keep-above window stays above the ordinary
                 // counter and the maximized band, but below a modal. Its own
                 // monotonic ordinal keeps focus order among keep-above windows;
                 // rewrite the band before the ordinal leaves its span.
@@ -533,7 +533,7 @@ class WindowManager {
         // Reassign new sequential Z-Indices. Modals and dialogs keep their own
         // band: the sort puts them last, so reassigning them from BASE_Z_INDEX
         // would drop every dialog back under a maximized window (BUG-0667).
-        // FEAT-0741: keep-above windows have their own band too, preserving
+        // FEAT-0742: keep-above windows have their own band too, preserving
         // their relative order while staying above the ordinary counter.
         let modalOrdinal = 0;
         let keepAboveOrdinal = 0;

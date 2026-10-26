@@ -29,7 +29,7 @@
  * MAX_SAFE_WINDOW_Z_INDEX. Every layer above `window` sits far enough past
  * that ceiling that the counter's growth can never cross into it.
  *
- * `windowKeepAbove` (FEAT-0741) sits above the maximized band so a keep-above
+ * `windowKeepAbove` (FEAT-0742) sits above the maximized band so a keep-above
  * window cannot be covered by a maximized ordinary window, and below `modal`
  * so a blocking dialog still owns the top of the stack. `WINDOW_STACK_Z_SPAN`
  * bounds both the maximized and the keep-above ordinals inside their gap.

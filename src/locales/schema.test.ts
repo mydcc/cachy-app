@@ -84,7 +84,7 @@ describe("generated TranslationKey union", () => {
     });
 });
 
-describe("windows.aria DE/EN parity (FEAT-0741)", () => {
+describe("windows.aria DE/EN parity (FEAT-0742)", () => {
     it("carries the same window aria keys in both languages", () => {
         const prefix = "windows.aria.";
         const enKeys = (
