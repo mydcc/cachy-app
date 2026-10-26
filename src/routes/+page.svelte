@@ -67,6 +67,26 @@
   import OnboardingSpotlight from "../components/shared/OnboardingSpotlight.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
   import { effectsState } from "../stores/effects.svelte";
+  import HeaderJournalButton from "../components/shared/HeaderJournalButton.svelte";
+  import {
+    getSurfaceEntries,
+    type EntryContext,
+  } from "../lib/navigation/entry-points";
+
+  // The header placement is condition-free by registry contract: the header
+  // carries only the journal destination, always visible. If that changes,
+  // this context must start reading the stores the way the rail does.
+  const HEADER_CONTEXT: EntryContext = {
+    settings: {},
+    entitlement: { pro: false },
+    accounts: { activeId: null, activeExchange: null, count: 0 },
+    windows: {},
+    viewportWidth: 0,
+    ui: {},
+    derived: {},
+    data: {},
+  };
+  const headerEntries = getSurfaceEntries("header", HEADER_CONTEXT);
 
   let changelogContent = $state("");
   let guideContent = $state("");
@@ -415,17 +435,9 @@
             {$_("app.title")}
           </h1>
         </div>
-        <button
-          id="journal-toggle-btn"
-          class="text-sm md:hidden bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg"
-          title={$_("app.journalButtonTitle")}
-          onclick={() => uiState.toggleJournalModal(true)}
-          use:trackClick={{
-            category: "Navigation",
-            action: "Click",
-            name: "ViewJournalMobile",
-          }}>{$_("app.journalButton")}</button
-        >
+        {#each headerEntries as item (item.entry.id)}
+          <HeaderJournalButton entry={item.entry} variant="mobile" />
+        {/each}
       </div>
       <div
         class="flex items-center flex-wrap justify-end gap-2 w-full md:w-auto"
@@ -493,18 +505,9 @@
           >
         </div>
         <span class="hidden md:block md:order-2">
-          <Button
-            id="view-journal-btn-desktop"
-            variant="accent"
-            title={$_("app.journalButtonTitle")}
-            ariaLabel={$_("app.journalButton")}
-            onClick={() => uiState.toggleJournalModal(true)}
-            track={{
-              category: "Navigation",
-              action: "Click",
-              name: "ViewJournalDesktop",
-            }}>{$_("app.journalButton")}</Button
-          >
+          {#each headerEntries as item (item.entry.id)}
+            <HeaderJournalButton entry={item.entry} variant="desktop" />
+          {/each}
         </span>
       </div>
     </div>

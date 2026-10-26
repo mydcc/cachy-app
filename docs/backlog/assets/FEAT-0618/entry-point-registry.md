@@ -86,6 +86,11 @@ component directly; one `openEntry(entry)` adapter switches on `opener.kind`.
 That adapter is the only place that knows `uiState`, `windowManager` or router
 APIs.
 
+The journal is the one state-dependent `window` opener: a minimized journal is
+restored, otherwise the adapter toggles it open/closed. The rail shortcut only
+ever renders while the journal is minimized, so it always restores; the header
+uses the open/close case.
+
 ## Visibility and enabling vocabulary
 
 Both `visibleWhen` and `enabledWhen` use the same small condition language.
