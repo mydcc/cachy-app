@@ -243,6 +243,16 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         expect(rows[0].textContent).toContain("Alpha");
     });
 
+    it("closes when a blocking window appears", () => {
+        openWindow("switcher-a", "Alpha");
+        render();
+
+        openWindow("switcher-modal", "Modal", "modal");
+        flushSync();
+
+        expect(windowSwitcherState.isOpen).toBe(false);
+    });
+
     it("names the dialog and exposes the keyboard hint", () => {
         openWindow("switcher-a", "Alpha");
         const target = render();

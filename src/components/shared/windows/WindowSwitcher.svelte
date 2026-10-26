@@ -87,7 +87,11 @@
     void tick().then(() => {
       const frame = Array.from(
         document.querySelectorAll<HTMLElement>(".window-frame"),
-      ).find((candidate) => candidate.dataset.windowId === win.id);
+      ).find(
+        (candidate) =>
+          candidate.dataset.windowId === win.id &&
+          candidate.closest(".minimized-dock") === null,
+      );
       frame?.focus();
     });
   }
@@ -153,6 +157,18 @@
     document
       .getElementById(optionId(selectedIndex))
       ?.scrollIntoView?.({ block: "nearest" });
+  });
+
+  // A blocking dialog can open while the overlay is up (a background flow,
+  // not this hotkey). It owns focus, so the switcher must not stay above it.
+  $effect(() => {
+    if (
+      windowManager.windows.some(
+        (win) => win.windowType === "modal" || win.windowType === "dialog",
+      )
+    ) {
+      close(false);
+    }
   });
 </script>
 
