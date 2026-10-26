@@ -25,7 +25,8 @@
  * the request — that disagreement is ADR-0013's second failure mode.
  *
  * When a route is migrated, add it here first. A route absent from this table
- * has not been cut over and still takes `X-Api-Secret`.
+ * is a wiring bug once it calls the guard: `assertPresignedConsistency` fails
+ * closed rather than letting an unmapped route accept any envelope.
  *
  * Browser-safe: no `node:*` imports, no SvelteKit-only modules.
  */
@@ -126,9 +127,10 @@ const MIGRATED_ROUTES = Object.keys(ROUTE_SIGNING_PLAN) as MigratedRoute[];
 /**
  * Resolves a path to its plan row, ignoring any query string or hash.
  *
- * Returns `null` for an unmigrated route. Callers must treat `null` as "this
- * route still carries a raw secret" rather than as an error — the cutover is
- * incremental, so an unknown route is the normal case until the last PR lands.
+ * Returns `null` for a route with no plan row. The signer refuses such a route
+ * (`SIGNING_ROUTE_NOT_MIGRATED`) and the server guard fails closed, so `null` is a
+ * wiring bug for any route that has been cut over — not a signal that a legacy
+ * secret path is still available.
  */
 export function planForRoute(path: string): RouteSigningPlan | null {
   const [pathname] = path.split(/[?#]/);

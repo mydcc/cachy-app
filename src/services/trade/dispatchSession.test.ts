@@ -157,5 +157,40 @@ describe("createSessionDispatch", () => {
         expect(hook).toHaveBeenCalledTimes(1);
         expect(appFetch.mock.calls[0]?.[2]).toBeTypeOf("function");
     });
+
+    it("runs the caller's hook alongside the session check", async () => {
+        const callerHook = vi.fn();
+        appFetch.mockImplementation(
+            async (_input: string, _init?: RequestInit, beforeAttempt?: () => void) => {
+                beforeAttempt?.();
+                return new Response("ok");
+            },
+        );
+        const dispatch = createSessionDispatch(() => LIVE_BITUNIX, () => true);
+
+        await dispatch(SESSION, LIVE_BITUNIX)("/api/orders", {}, callerHook);
+
+        expect(callerHook).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the session check when the wrapper is called through a two-argument lambda", async () => {
+        // BUG-0723 finding 4: the guard is closed over by this wrapper, not
+        // carried in the third argument. A two-argument call can drop the
+        // third argument but cannot reach into the closure, so the check
+        // still runs. A future change that moves the check into the argument
+        // would fail here.
+        let current = LIVE_BITUNIX;
+        const dispatch = createSessionDispatch(() => current, () => true);
+        const guarded = dispatch(SESSION, LIVE_BITUNIX);
+        const twoArg = (input: string, init?: RequestInit) => guarded(input, init);
+
+        current = { ...LIVE_BITUNIX, accountFingerprint: "fp-2" };
+
+        const error = await refusal(() => twoArg("/api/orders"));
+
+        expect(error).toMatchObject({
+            refusal: { messageKey: "orderGate.sessionChanged" },
+        });
+    });
 });
 

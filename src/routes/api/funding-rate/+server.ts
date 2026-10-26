@@ -21,17 +21,31 @@ import { cache } from "#lib/server/cache.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
 import { isStatusError } from "../../../utils/server/httpErrors";
+import { sanitizeSymbol } from "../../../utils/server/symbolParam";
 
 // Bitunix funding rate proxy:
 // 1. If `symbol` is specified: proxies GET /api/v1/futures/market/get_funding_rate_history
 // 2. If no `symbol`: proxies GET /api/v1/futures/market/funding_rate/batch (all pairs)
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const provider = url.searchParams.get("provider") || "bitunix";
-  const symbol = url.searchParams.get("symbol");
-  const limit = url.searchParams.get("limit") || "30";
+  const rawSymbol = url.searchParams.get("symbol");
+  // Sanitised before it reaches either sink — the upstream URL and the cache
+  // key. The key used to carry the raw string, so `BTCUSDT&x=1` addressed an
+  // entry no other caller could produce (BUG-0723).
+  const symbol = rawSymbol === null ? null : sanitizeSymbol(rawSymbol);
+  // Parsed and clamped once, before the cache key. The key used to carry the
+  // raw `limit`, so `30`, `abc` and `30.9` were three entries for the same
+  // upstream response (BUG-0723).
+  const rawLimit = url.searchParams.get("limit");
+  const parsedLimit = parseInt(rawLimit ?? "", 10);
+  const limit = isNaN(parsedLimit) ? 30 : Math.min(Math.max(parsedLimit, 1), 200);
 
   if (provider !== "bitunix") {
     return json({ message: "Unsupported provider" }, { status: 400 });
+  }
+
+  if (rawSymbol !== null && symbol === "") {
+    return json({ message: "Invalid 'symbol' parameter" }, { status: 400 });
   }
 
   const cacheKey = symbol
@@ -44,10 +58,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
       async () => {
         let apiUrl = "https://fapi.bitunix.com/api/v1/futures/market/funding_rate/batch";
         if (symbol) {
-          const cleanSymbol = symbol.replace(/[^a-zA-Z0-9]/g, "");
-          const parsedLimit = parseInt(limit, 10);
-          const validLimit = isNaN(parsedLimit) ? 30 : Math.min(Math.max(parsedLimit, 1), 200);
-          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=${encodeURIComponent(cleanSymbol)}&limit=${validLimit}`;
+          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=${encodeURIComponent(symbol)}&limit=${limit}`;
         }
         const response = await fetchWithTimeout(apiUrl, {}, DEFAULT_UPSTREAM_TIMEOUT_MS, fetch);
 

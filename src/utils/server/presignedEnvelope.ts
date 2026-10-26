@@ -64,7 +64,68 @@ export const PRESIGNED_ERRORS = {
   MISSING_ENVELOPE: "PRESIGNED_ENVELOPE_MISSING",
   DIVERGENCE: "PRESIGNED_DIVERGENCE",
   UNEXPECTED_PASSPHRASE: "PRESIGNED_UNEXPECTED_PASSPHRASE",
+  /**
+   * A route that calls the guard must have a row in the shared table. Arriving
+   * here without one is a wiring bug, not an unmigrated route: unmigrated
+   * routes never call the guard (`BUG-0723`).
+   */
+  ROUTE_NOT_MIGRATED: "PRESIGNED_ROUTE_NOT_MIGRATED",
+  /** `x-api-timestamp` is not a millisecond epoch value. */
+  TIMESTAMP_INVALID: "PRESIGNED_TIMESTAMP_INVALID",
+  /** The envelope is older (or further in the future) than the window allows. */
+  TIMESTAMP_STALE: "PRESIGNED_TIMESTAMP_STALE",
 } as const;
+
+/**
+ * How far a signing timestamp may sit from this server's clock.
+ *
+ * Deliberately wider than the venue window — Bitget documents a fixed 30-second
+ * window (`docs/bitget-api/01_sign.md`), Bitunix documents none. A proxy
+ * stricter than the venue would refuse live trades the venue would have
+ * accepted, so this check does not compete with it: it rejects captures that
+ * are minutes old, and the venue remains the authority for replays inside its
+ * own window.
+ *
+ * The value is also chosen against `clockDrift.ts`: that tracker discards a
+ * sample whose offset exceeds `MAX_SAMPLE_OFFSET_MS` (five minutes), and it
+ * has no production caller today, so a device more than five minutes off signs
+ * with its raw clock. A five-minute window would then turn a skewed device
+ * into a total refusal on every signed route. Fifteen minutes leaves that
+ * device a working path while still bounding how long a captured envelope
+ * stays admissible at the proxy.
+ *
+ * A per-process nonce cache was considered and deliberately not added: it
+ * would only cover one instance, Bitget carries no nonce at all, and a
+ * deployment behind a load balancer would get the appearance of replay
+ * protection without the substance. Timestamp freshness is the half that can
+ * be enforced honestly here (`BUG-0723`).
+ */
+export const PRESIGNED_TIMESTAMP_WINDOW_MS = 15 * 60 * 1000;
+
+/**
+ * Rejects an envelope whose timestamp is malformed or outside the window.
+ *
+ * `nowMs` is injectable so the tests can pin a clock; routes never pass it.
+ */
+export function assertFreshTimestamp(
+  envelope: Pick<PresignedEnvelope, "timestamp">,
+  nowMs: number = Date.now(),
+): void {
+  // Signers emit `Date.now().toString()`, i.e. a 13-digit millisecond epoch.
+  // The ten-digit seconds form some venue documents use for WebSocket logins
+  // parses as 1970 here and is rejected as stale — which is the right outcome,
+  // because forwarding it would only reach a venue rejection later.
+  if (!/^\d{1,16}$/.test(envelope.timestamp)) {
+    throw new Error(PRESIGNED_ERRORS.TIMESTAMP_INVALID);
+  }
+  const signedAt = Number(envelope.timestamp);
+  if (!Number.isSafeInteger(signedAt) || signedAt <= 0) {
+    throw new Error(PRESIGNED_ERRORS.TIMESTAMP_INVALID);
+  }
+  if (Math.abs(nowMs - signedAt) > PRESIGNED_TIMESTAMP_WINDOW_MS) {
+    throw new Error(PRESIGNED_ERRORS.TIMESTAMP_STALE);
+  }
+}
 
 function header(request: Request, name: string): string | undefined {
   const value = request.headers.get(name);
@@ -127,6 +188,11 @@ export interface PresignedConsistencyInput {
    * which is what single-venue callers get without passing anything.
    */
   venue?: Venue;
+  /**
+   * Clock for the freshness check, in epoch milliseconds. Injectable so tests
+   * can pin a timestamp; routes leave it out and the server clock applies.
+   */
+  nowMs?: number;
 }
 
 /**
@@ -153,11 +219,17 @@ export type PresignedCheckInput = Omit<PresignedConsistencyInput, "envelope">;
 export function assertPresignedConsistency(input: PresignedConsistencyInput): void {
   const plan = planForRoute(input.cachyPath);
 
-  // A route absent from the table has not been cut over. Returning quietly
-  // rather than throwing keeps the migration incremental: the guard can sit in
-  // a route before that route is fully wired, and unmigrated routes are still
-  // free to carry a secret until their own PR removes it.
-  if (!plan) return;
+  // Fail closed. A route that calls this guard has declared itself migrated, so
+  // arriving with no plan row means the route and the shared table disagree —
+  // and the old silent return turned that wiring bug into "accept any envelope
+  // without comparing a byte" (BUG-0723). A route that is genuinely not cut
+  // over does not call this guard at all; that is what keeps the migration
+  // incremental, not a permissive miss here.
+  if (!plan) throw new Error(PRESIGNED_ERRORS.ROUTE_NOT_MIGRATED);
+
+  // Freshness before credentials: a captured envelope must not reach the venue
+  // merely because its passphrase and nonce are well-formed.
+  assertFreshTimestamp(input.envelope, input.nowMs);
 
   if (!routeTakesPassphrase(plan)) {
     const { passphrase } = input.envelope;
@@ -196,8 +268,9 @@ export type PresignedCheck =
   | { ok: false; code: string };
 
 /**
- * Reads the envelope and checks it against the server's rebuild in one step,
- * reporting a `PRESIGNED_ERRORS` code instead of throwing.
+ * Reads the envelope and checks it against the server's rebuild and the
+ * freshness window in one step, reporting a `PRESIGNED_ERRORS` code instead of
+ * throwing.
  *
  * The route handlers share this so that "no envelope" and "divergent bytes"
  * cannot be mapped to different statuses on different routes — a migrated route

@@ -22,18 +22,32 @@ import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
 import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
 import { isStatusError } from "../../../utils/server/httpErrors";
+import { sanitizeSymbolList } from "../../../utils/server/symbolParam";
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
-  const symbols = url.searchParams.get("symbols");
+  const rawSymbols = url.searchParams.get("symbols");
+  // Sanitised before both sinks — the venue URL and the cache key. The raw
+  // string used to be able to append `&foo=bar` to the Bitunix request and
+  // became its own cache entry (BUG-0723). Uppercasing also folds
+  // `btcusdt`/`BTCUSDT` into one entry.
+  const symbols = rawSymbols === null ? null : sanitizeSymbolList(rawSymbols);
+  if (rawSymbols !== null && symbols === "") {
+    return json({ message: "Invalid 'symbols' parameter" }, { status: 400 });
+  }
+
   const provider = url.searchParams.get("provider") || "bitunix";
   const type = url.searchParams.get("type"); // 'price' (default) or '24hr'
 
   // As on the klines route, an unrecognised provider is served Bitunix data
-  // rather than rejected. The cache key still keys on the raw parameter, so
-  // caching behaviour is unchanged.
+  // rather than rejected.
   const venue = resolveVenue(provider) ?? VENUES[DEFAULT_VENUE_ID];
 
-  const cacheKey = `tickers:${provider}:${symbols || "ALL"}:${type || "default"}`;
+  // The "all tickers" key and an explicit filter can never collide: the
+  // sentinel is outside the sanitised alphabet (BUG-0723).
+  const cacheKey =
+    symbols === null
+      ? `tickers:${provider}:all:${type || "default"}`
+      : `tickers:${provider}:filter:${symbols}:${type || "default"}`;
 
   try {
     const data = await cache.getOrFetch(

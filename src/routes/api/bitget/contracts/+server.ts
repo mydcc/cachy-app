@@ -21,18 +21,30 @@ import { cache } from "#lib/server/cache.js";
 import { safeJsonParse } from "../../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../../utils/server/fetchWithTimeout";
 import { isStatusError } from "../../../../utils/server/httpErrors";
+import { sanitizeSymbol } from "../../../../utils/server/symbolParam";
 
 // Public, no auth. Bitget V2 mix contracts (precision, size limits, leverage
 // range, status per instrument) change rarely, so a longer TTL is fine.
 // BUG-0501: the second venue's metadata source — V1 (/api/mix/v1/...) is
 // decommissioned and answers 30032, so this is V2 or nothing.
 export const GET: RequestHandler = async ({ url, fetch }) => {
-  const symbols = url.searchParams.get("symbols");
-  const cacheKey = `bitget-contracts:${symbols || "ALL"}`;
-  const wanted = (symbols || "")
+  const rawSymbols = url.searchParams.get("symbols");
+  const wanted = (rawSymbols ?? "")
     .split(",")
-    .map((s) => s.trim().toUpperCase().replace(/_UMCBL$/, ""))
+    // The legacy `_UMCBL` suffix is stripped before sanitising: the underscore
+    // is outside the alphabet, so sanitising first would leave `UMCBL` glued
+    // to the symbol and filter for the wrong instrument.
+    .map((s) => sanitizeSymbol(s.trim().toUpperCase().replace(/_UMCBL$/, "")))
     .filter((s) => s.length > 0);
+  if (rawSymbols !== null && wanted.length === 0) {
+    return json({ message: "Invalid 'symbols' parameter" }, { status: 400 });
+  }
+  // A filter can no longer share the "all contracts" key — the sentinel is
+  // outside the sanitised alphabet (BUG-0723).
+  const cacheKey =
+    rawSymbols === null
+      ? "bitget-contracts:all"
+      : `bitget-contracts:filter:${wanted.join(",")}`;
 
   try {
     const data = await cache.getOrFetch(

@@ -122,4 +122,52 @@ describe('GET /api/funding-rate', () => {
     );
     expect(json).toEqual(mockResponse);
   });
+
+  it('sanitises the symbol before the upstream URL and the cache key', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 0, data: [] }),
+    } as unknown as Response);
+
+    const url = new URL(
+      'http://localhost/api/funding-rate?provider=bitunix&symbol=BTCUSDT%26limit%3D999',
+    );
+    await GET({ url, fetch: mockFetch } as unknown as Parameters<typeof GET>[0]);
+
+    const [upstreamUrl] = mockFetch.mock.calls[0];
+    expect(upstreamUrl).toBe(
+      'https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=BTCUSDTLIMIT999&limit=30',
+    );
+    expect(upstreamUrl).not.toContain('&limit=999');
+  });
+
+  it('refuses a symbol that sanitises to nothing', async () => {
+    const mockFetch = vi.fn();
+    const url = new URL('http://localhost/api/funding-rate?provider=bitunix&symbol=%26%26');
+
+    const response = await GET({ url, fetch: mockFetch } as unknown as Parameters<typeof GET>[0]);
+
+    expect(response.status).toBe(400);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('keys the cache on the clamped limit, not the raw parameter', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 0, data: [] }),
+    } as unknown as Response);
+
+    await GET({
+      url: new URL('http://localhost/api/funding-rate?provider=bitunix&symbol=BTCUSDT&limit=30'),
+      fetch: mockFetch,
+    } as unknown as Parameters<typeof GET>[0]);
+    await GET({
+      url: new URL('http://localhost/api/funding-rate?provider=bitunix&symbol=BTCUSDT&limit=abc'),
+      fetch: mockFetch,
+    } as unknown as Parameters<typeof GET>[0]);
+
+    // Both clamp to 30, so the second request is a cache hit rather than a
+    // second upstream call under a different key.
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
 });

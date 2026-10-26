@@ -111,4 +111,23 @@ describe('GET /api/tickers', () => {
     expect(response.status).toBe(200);
     expect(json).toEqual(mockTickers);
   });
+
+  it('sanitises symbols before the venue URL and the cache key', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify([{ symbol: 'BTCUSDT', lastPrice: '65000' }]),
+    } as unknown as Response);
+
+    const url = new URL(
+      'http://localhost/api/tickers?symbols=BTCUSDT%26foo%3Dbar&provider=bitunix',
+    );
+    const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
+
+    expect(response.status).toBe(200);
+    const upstream = String(vi.mocked(global.fetch).mock.calls[0][0]);
+    expect(upstream).toBe(
+      'https://fapi.bitunix.com/api/v1/futures/market/tickers?symbols=BTCUSDTFOOBAR',
+    );
+    expect(upstream).not.toContain('&foo=');
+  });
 });
