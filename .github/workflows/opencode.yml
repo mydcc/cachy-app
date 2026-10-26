@@ -34,9 +34,10 @@ on:
 # and a run never needs a funded Zen balance. The config files below also pin
 # `small_model`, so title generation cannot silently pick a paid model.
 env:
-  OPENCODE_MODEL: opencode/beam-free
-  OPENCODE_MODEL_FALLBACK_1: opencode/big-pickle
-  OPENCODE_MODEL_FALLBACK_2: opencode/deepseek-v4.1-flash-free
+  OPENCODE_MODEL: opencode/glm-5.3-flash-free
+  OPENCODE_MODEL_FALLBACK_1: opencode/beam-free
+  OPENCODE_MODEL_FALLBACK_2: opencode/big-pickle
+  OPENCODE_MODEL_FALLBACK_3: opencode/deepseek-v4.1-flash-free
   REVIEW_PROMPT: |
     Review this pull request using the Cachy review checklist:
     - If the PR links a backlog item (Fixes #NNN), read docs/backlog/ and
@@ -99,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     # Hard stop: an unattended agent stuck on a decision must never burn
     # runner minutes until the default 6h timeout. The budget covers up to
-    # three fallback attempts; fast model failures (429/503) leave ample room.
+    # four fallback attempts; fast model failures (429/503) leave ample room.
     timeout-minutes: 35
     # Serialize interactive runs: two parallel /oc calls would push to the same
     # branches. Queued, never cancelled.
@@ -171,11 +172,23 @@ jobs:
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
         uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
+          share: false
+
+      - name: Run opencode (fallback 3)
+        id: oc_fallback_3
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure' && steps.oc_fallback_2.outcome == 'failure'
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_3 }}
           share: false
 
   # Automated review of code-bearing non-draft PRs against the Cachy
@@ -319,11 +332,24 @@ jobs:
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
         uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
+          share: false
+          prompt: ${{ env.REVIEW_PROMPT }}
+
+      - name: Run opencode review (fallback 3)
+        id: oc_fallback_3
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure' && steps.oc_fallback_2.outcome == 'failure'
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_3 }}
           share: false
           prompt: ${{ env.REVIEW_PROMPT }}
 
@@ -392,11 +418,24 @@ jobs:
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
         uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
+          share: false
+          prompt: ${{ env.WEEKLY_PROMPT }}
+
+      - name: Run opencode weekly maintenance (fallback 3)
+        id: oc_fallback_3
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure' && steps.oc_fallback_2.outcome == 'failure'
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_3 }}
           share: false
           prompt: ${{ env.WEEKLY_PROMPT }}
 
@@ -464,10 +503,23 @@ jobs:
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
         uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
+          share: false
+          prompt: ${{ inputs.task }}
+
+      - name: Run opencode manual task (fallback 3)
+        id: oc_fallback_3
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure' && steps.oc_fallback_2.outcome == 'failure'
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_3 }}
           share: false
           prompt: ${{ inputs.task }}
