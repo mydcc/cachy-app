@@ -425,6 +425,7 @@ export abstract class WindowBase {
             isMinimized: this.isMinimized,
             isPinned: this.isPinned,
             pinSide: this.pinSide,
+            pinRestore: this.pinRestore,
             opacity: this.opacity,
             fontSize: this.fontSize,
             zoomLevel: this.zoomLevel,
@@ -454,6 +455,30 @@ export abstract class WindowBase {
                 this.isMinimized = state.isMinimized ?? false;
                 this.isPinned = state.isPinned ?? false;
                 this.pinSide = state.pinSide ?? this.pinSide;
+                const restore = state.pinRestore as
+                    | Record<string, unknown>
+                    | null
+                    | undefined;
+                if (
+                    restore &&
+                    typeof restore === "object" &&
+                    ["x", "y", "width", "height"].every((key) => {
+                        const value = restore[key];
+                        return (
+                            typeof value === "number" &&
+                            Number.isFinite(value)
+                        );
+                    })
+                ) {
+                    this.pinRestore = restore as {
+                        x: number;
+                        y: number;
+                        width: number;
+                        height: number;
+                    };
+                } else {
+                    this.pinRestore = null;
+                }
                 this.opacity = state.opacity ?? this.opacity;
                 // Through the setter: it owns the clamp, so a hand-edited or
                 // legacy size cannot reach the window's type scale unbounded —
@@ -765,6 +790,7 @@ export abstract class WindowBase {
 
         if (this.isPinned) {
             this.isPinned = false;
+            this.isMaximized = false;
             if (this.pinRestore) {
                 this.x = this.pinRestore.x;
                 this.y = this.pinRestore.y;
@@ -785,6 +811,21 @@ export abstract class WindowBase {
         // for configurations that declare it without a vertical tiler.
         this.isPinned = true;
         this.isMaximized = false;
+        this.saveState();
+    }
+
+    /**
+     * Releases a pinned window for a drag without jumping back to the
+     * pre-snap rectangle. The window keeps the tiled geometry it was grabbed
+     * at; `togglePin()` remains the explicit "undo the snap" path that
+     * restores the floating rectangle. `pinSide` is kept so a later pin
+     * (double-click on the assistant, or a future pin control) records the
+     * dragged rectangle as its new restore target.
+     */
+    detachPin() {
+        if (!this.isPinned) return;
+        this.isPinned = false;
+        this.pinRestore = null;
         this.saveState();
     }
 

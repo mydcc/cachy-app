@@ -35,7 +35,7 @@
  * the one key the control group does not swallow.
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import en from "../../../locales/locales/en.json";
 
@@ -112,6 +112,13 @@ function mountFrame(win: WindowBase = new ProbeWindow()): {
     content();
     return { content, win };
 }
+
+beforeEach(() => {
+    // The frame persists geometry under the window's own key. A fresh window
+    // must not inherit the previous case's pinned snapshot, or the pin-restore
+    // assertions become order-dependent.
+    localStorage.clear();
+});
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -433,6 +440,156 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
         expect(win.isPinned).toBe(true);
         expect(win.pinSide).toBe("right");
         expect(win.x).toBe(window.innerWidth / 2);
+    });
+
+    it("detaches a pinned window on the first drag movement", () => {
+        const oldWidth = window.innerWidth;
+        const oldHeight = window.innerHeight;
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+
+        try {
+            const { win } = mountFrame();
+            win.x = 120;
+            win.y = 90;
+            win.width = 600;
+            win.height = 480;
+            win.snapToSide("left");
+            flushSync();
+
+            expect(win.isPinned).toBe(true);
+            expect(win.width).toBe(512);
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            expect(header).not.toBeNull();
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 200,
+                    clientY: 50,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 400,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(false);
+            // The drag keeps the tiled width and follows the pointer; it does
+            // not jump back to the pre-snap rectangle.
+            expect(win.x).toBe(200);
+            expect(win.width).toBe(512);
+
+            header!.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 400,
+                    clientY: 50,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(win.isPinned).toBe(false);
+        } finally {
+            Object.defineProperty(window, "innerWidth", {
+                value: oldWidth,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: oldHeight,
+                configurable: true,
+            });
+        }
+    });
+
+    it("keeps a pinned window pinned on a click without movement", () => {
+        const { win } = mountFrame();
+        win.snapToSide("left");
+        flushSync();
+
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        header!.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 200,
+                clientY: 50,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        header!.dispatchEvent(
+            new PointerEvent("pointerup", {
+                pointerId: 1,
+                clientX: 200,
+                clientY: 50,
+                bubbles: true,
+            }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(true);
+    });
+
+    it("offers an unpin control while pinned and restores the floating geometry", () => {
+        const { win } = mountFrame();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const unpin = host!.querySelector<HTMLButtonElement>(
+            `[aria-label="${lookup("windows.aria.unpin")}"]`,
+        );
+        expect(unpin, "the pinned window rendered no unpin control").not.toBeNull();
+
+        unpin!.click();
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.y).toBe(90);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
+        expect(
+            host!.querySelector(`[aria-label="${lookup("windows.aria.unpin")}"]`),
+        ).toBeNull();
+    });
+
+    it("unpins on double-click while pinned", () => {
+        const { win } = mountFrame();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        flushSync();
+
+        const header = host!.querySelector<HTMLElement>(".window-header");
+        header!.dispatchEvent(
+            new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.width).toBe(600);
     });
 });
 

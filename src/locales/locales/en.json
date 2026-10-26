@@ -10,7 +10,8 @@
       "zoomOut": "Zoom Out",
       "zoomIn": "Zoom In",
       "decreaseFont": "Decrease Font Size",
-      "increaseFont": "Increase Font Size"
+      "increaseFont": "Increase Font Size",
+      "unpin": "Unpin window"
     },
     "contextMenu": {
       "closeWindow": "Close Window",

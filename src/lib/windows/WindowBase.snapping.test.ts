@@ -89,6 +89,43 @@ describe("WindowBase.snapToSide", () => {
         expect(restored.height).toBe(800);
     });
 
+    it("restores the floating target across a reload, so unpin still works", () => {
+        const win = makeWindow();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+
+        const restored = makeWindow();
+        restored.togglePin();
+
+        expect(restored.isPinned).toBe(false);
+        expect(restored.x).toBe(120);
+        expect(restored.y).toBe(90);
+        expect(restored.width).toBe(600);
+        expect(restored.height).toBe(480);
+    });
+
+    it("unpins a maximized pinned window back to its floating rectangle", () => {
+        const win = makeWindow();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.snapToSide("left");
+        win.maximize();
+
+        win.togglePin();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.isMaximized).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.y).toBe(90);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
+    });
+
     it("records the pre-maximize rectangle when snapping from maximized", () => {
         const win = makeWindow();
         win.x = 120;
@@ -122,6 +159,34 @@ describe("WindowBase.snapToSide", () => {
         expect(win.y).toBe(90);
         expect(win.width).toBe(600);
         expect(win.height).toBe(480);
+    });
+
+    it("detaches for a drag without jumping back to the floating geometry", () => {
+        const win = makeWindow();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+
+        win.snapToSide("left");
+        win.detachPin();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.pinSide).toBe("left");
+        // The window keeps the tiled rectangle it was dragged from; the
+        // pre-snap rectangle is only for the explicit unpin path.
+        expect(win.x).toBe(0);
+        expect(win.y).toBe(0);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(800);
+        expect(win.persistedSnapshot).toMatchObject({
+            x: 0,
+            y: 0,
+            width: 600,
+            height: 800,
+            isPinned: false,
+            pinSide: "left",
+        });
     });
 
     it("accounts for visible sidebars", () => {

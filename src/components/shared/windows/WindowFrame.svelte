@@ -86,6 +86,13 @@
     let snapPreview = $state<SnapGeometry | null>(null);
     let snapSide = $state<SnapSide | null>(null);
 
+    /**
+     * A pinned window detaches only after the pointer has genuinely moved.
+     * Without this, a plain click on the header would unpin it: the pointer
+     * down starts the drag, and the first move would otherwise be the click.
+     */
+    const DRAG_DETACH_THRESHOLD_PX = 4;
+
     // One-shot content fit (BUG-0411). Bound below; read once when the fit
     // effect runs. fitApplied suppresses the frame's size transition until
     // the single fit lands, so opening never animates. fittedWin keeps the
@@ -217,7 +224,7 @@
         );
     }
 
-    function startDrag(e: PointerEvent) {
+    function startDrag(e: PointerEvent, detachPin = false) {
         if ((e.target as HTMLElement).closest(".window-controls") || (e.target as HTMLElement).closest(".header-controls")) return;
 
         isDragging = true;
@@ -226,9 +233,22 @@
 
         const startX = e.clientX - win.x;
         const startY = e.clientY - win.y;
+        let pinDetached = !detachPin;
 
         const onPointerMove = (moveEvent: PointerEvent) => {
             if (!isDragging) return;
+            if (!pinDetached) {
+                const movedX = Math.abs(moveEvent.clientX - e.clientX);
+                const movedY = Math.abs(moveEvent.clientY - e.clientY);
+                if (
+                    movedX <= DRAG_DETACH_THRESHOLD_PX &&
+                    movedY <= DRAG_DETACH_THRESHOLD_PX
+                ) {
+                    return;
+                }
+                pinDetached = true;
+                win.detachPin();
+            }
             win.updatePosition(
                 moveEvent.clientX - startX,
                 moveEvent.clientY - startY,
@@ -692,14 +712,16 @@
                 // For clicking the rest of the bar, we could add it here if needed.
                 return;
             }
-            if (win.isDraggable && !win.isMaximized && !win.isPinned) {
-                startDrag(e);
+            if (win.isDraggable && !win.isMaximized) {
+                startDrag(e, win.isPinned);
             }
         }}
         ondblclick={() => {
             if (win.isMinimized) {
                 win.restore();
                 windowManager.bringToFront(win.id);
+            } else if (win.isPinned) {
+                win.togglePin();
             } else {
                 const action = win.resolveDoubleClickAction();
                 if (action === "maximize") win.toggleMaximize();
@@ -715,6 +737,8 @@
                 if (win.isMinimized) {
                     win.restore();
                     windowManager.bringToFront(win.id);
+                } else if (win.isPinned) {
+                    win.togglePin();
                 } else {
                     const action = win.resolveDoubleClickAction();
                     if (action === "maximize") win.toggleMaximize();
@@ -942,6 +966,18 @@
                         ondblclick={(e) => e.stopPropagation()}
                         title={$_("common.feedDuck")}
                         ariaLabel={$_("common.feedDuck")}>🍞</Button>
+                </div>
+            {/if}
+
+            {#if win.isPinned}
+                <div class="control-group">
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        onClick={() => win.togglePin()}
+                        ondblclick={(e) => e.stopPropagation()}
+                        title={$_("windows.aria.unpin")}
+                        ariaLabel={$_("windows.aria.unpin")}
+                    >📌</Button>
                 </div>
             {/if}
 
