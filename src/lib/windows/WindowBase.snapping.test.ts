@@ -300,6 +300,7 @@ describe("WindowBase.snapToSide", () => {
         ["a partial object", { x: 0, y: 0, width: 600 }],
         ["zero width", { x: 0, y: 0, width: 0, height: 480 }],
         ["negative height", { x: 0, y: 0, width: 600, height: -1 }],
+        ["an absurd size", { x: 0, y: 0, width: 1e9, height: 1e9 }],
         ["a string coordinate", { x: "0", y: 0, width: 600, height: 480 }],
     ])("rejects a malformed pin restore (%s)", (_label, pinRestore) => {
         localStorage.setItem(

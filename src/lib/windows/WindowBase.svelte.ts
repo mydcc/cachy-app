@@ -63,6 +63,13 @@ interface PinRestore {
 }
 
 /**
+ * A persisted restore rectangle larger than this is not a real layout; it is
+ * a corrupt or hand-edited snapshot. The bound keeps a finite-but-absurd size
+ * from creating an unusable window before the viewport clamp runs.
+ */
+const MAX_RESTORE_DIMENSION = 100_000;
+
+/**
  * Validates a persisted pin-restore rectangle. A zero/negative size would
  * bypass the window's minWidth/minHeight floor, and `Number.isFinite` alone
  * would accept it. The position may be negative; `updatePosition` clamps it
@@ -79,7 +86,9 @@ function isPinRestore(value: unknown): value is PinRestore {
             return typeof number === "number" && Number.isFinite(number);
         }) &&
         (candidate.width as number) > 0 &&
-        (candidate.height as number) > 0
+        (candidate.height as number) > 0 &&
+        (candidate.width as number) <= MAX_RESTORE_DIMENSION &&
+        (candidate.height as number) <= MAX_RESTORE_DIMENSION
     );
 }
 
