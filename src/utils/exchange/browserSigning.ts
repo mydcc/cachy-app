@@ -391,14 +391,16 @@ export async function exchangeSignedFetch(
   // parameters, and a union call would refuse the third argument at the type
   // level even though the runtime ignores it.
   const doFetch: SignedFetch = input.fetchFn ?? ((url, init) => fetch(url, init));
-  return doFetch(
-    requestPathFor(input.cachyPath, input.action),
-    {
-      method: "POST",
-      headers,
-      body: signed.body ?? JSON.stringify(input.payload ?? {}),
-      signal: input.signal,
-    },
-    input.beforeAttempt,
-  );
+  const init: RequestInit = {
+    method: "POST",
+    headers,
+    body: signed.body ?? JSON.stringify(input.payload ?? {}),
+    signal: input.signal,
+  };
+  // The third argument is only added when there is a hook. Passing an explicit
+  // `undefined` would change the call shape for every existing caller — and
+  // for every test or spy that pins `fetchFn`'s arguments.
+  return input.beforeAttempt === undefined
+    ? doFetch(requestPathFor(input.cachyPath, input.action), init)
+    : doFetch(requestPathFor(input.cachyPath, input.action), init, input.beforeAttempt);
 }

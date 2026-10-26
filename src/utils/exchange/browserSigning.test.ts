@@ -482,6 +482,21 @@ describe("exchangeSignedFetch", () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the two-argument call shape when no hook is supplied", async () => {
+    const fetchFn = vi.fn(async () => new Response("{}", { status: 200 }));
+
+    await exchangeSignedFetch({
+      cachyPath: "/api/orders",
+      keys: KEYS,
+      venue: "bitunix",
+      payload: PLACE_ORDER_BITUNIX,
+      now: NOW,
+      fetchFn,
+    });
+
+    expect(fetchFn.mock.calls[0]).toHaveLength(2);
+  });
+
   it("carries a declared action in the request URL the server reads", async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     const fetchFn = (async (url: string, init: RequestInit) => {
