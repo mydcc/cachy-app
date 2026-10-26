@@ -93,10 +93,12 @@ switching behind them would be a no-op.
 The overlay has its own `Z_LAYERS.switcher` / `--z-window-switcher` slot
 between modal and toast. `WindowFrame` gained `data-window-id` and
 `tabindex="-1"` so the commit can focus the selected frame.
+`WindowManager`'s background-click guard ignores `.switcher-root`, so a click
+inside the overlay cannot close a `closeOnBlur` window.
 
 Tests: 13 unit cases (ordering/filter, store, z-layer, hotkey registration),
-8 component cases (order, default selection, wrap, restore, Escape/backdrop,
-Tab trap, dialog semantics, blocking-window close) and the 29 existing
+9 component cases (order, default selection, wrap, restore, Escape/backdrop,
+Tab trap, dialog semantics, blocking-window close, overlay-click guard) and the 29 existing
 `WindowFrame` cases including the new focus-target assertion. `npm run check`
 reports 0 errors and the existing 6 warnings. No production behaviour outside
 the window layer changed.

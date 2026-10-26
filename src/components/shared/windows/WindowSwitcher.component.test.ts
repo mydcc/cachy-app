@@ -243,6 +243,20 @@ describe("FEAT-0737: the keyboard window switcher", () => {
         expect(rows[0].textContent).toContain("Alpha");
     });
 
+    it("does not treat a click inside the switcher as a background click", () => {
+        const alpha = openWindow("switcher-a", "Alpha");
+        alpha.closeOnBlur = true;
+        const target = render();
+
+        target
+            .querySelector(".switcher-panel")!
+            .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+        expect(
+            windowManager.windows.some((win) => win.id === "switcher-a"),
+        ).toBe(true);
+    });
+
     it("closes when a blocking window appears", () => {
         openWindow("switcher-a", "Alpha");
         render();

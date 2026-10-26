@@ -79,6 +79,9 @@ class WindowManager {
                 // Ignore clicks on main UI components (identified by .glass-panel).
                 if (target.closest('.glass-panel')) return;
 
+                // The keyboard window switcher is an overlay, not empty space.
+                if (target.closest('.switcher-root')) return;
+
                 // If we reach here, the click happened in the "empty space" behind the UI.
                 this.handleBackgroundClick();
             });
