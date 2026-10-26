@@ -217,16 +217,15 @@
     }
 
     /**
-     * FEAT-0740: opt-in focus-follows-mouse. A short hover raises and focuses
-     * the window, but only for a mouse, never while the user is dragging or a
-     * blocking dialog owns focus. The raise must not sweep closeOnBlur
-     * windows: hovering is not a deliberate click elsewhere.
+     * FEAT-0740: the shared precondition for a hover focus. A modal/dialog
+     * window owns focus while open, including the non-blocking dashboard
+     * cockpit; the conservative gate keeps the feature from raising a window
+     * behind that band.
      */
-    function handlePointerEnter(event: PointerEvent) {
-        if (event.pointerType !== "mouse") return;
-        if (!settingsState.focusFollowsMouse) return;
-        if (win.isFocused || win.isMinimized) return;
-        if (document.querySelector(".window-frame.interacting")) return;
+    function isHoverFocusAllowed(): boolean {
+        if (!settingsState.focusFollowsMouse) return false;
+        if (win.isFocused || win.isMinimized) return false;
+        if (document.querySelector(".window-frame.interacting")) return false;
         if (
             windowManager.windows.some(
                 (candidate) =>
@@ -234,8 +233,24 @@
                     candidate.windowType === "dialog",
             )
         ) {
-            return;
+            return false;
         }
+        return true;
+    }
+
+    /**
+     * FEAT-0740: opt-in focus-follows-mouse. A short hover raises and focuses
+     * the window, but only for a mouse, never while the user is dragging or a
+     * blocking dialog owns focus. The raise must not sweep closeOnBlur
+     * windows: hovering is not a deliberate click elsewhere.
+     */
+    function handlePointerEnter(event: PointerEvent) {
+        if (event.pointerType !== "mouse") return;
+        // A button held on pointerenter means a gesture started outside this
+        // frame (text selection, chart drag, scrollbar). Raising now would
+        // steal focus mid-gesture.
+        if (event.buttons !== 0) return;
+        if (!isHoverFocusAllowed()) return;
 
         cancelFocusFollow();
         window.addEventListener("pointerdown", cancelFocusFollow, true);
@@ -243,19 +258,8 @@
             focusFollowTimer = null;
             window.removeEventListener("pointerdown", cancelFocusFollow, true);
 
-            if (!settingsState.focusFollowsMouse) return;
-            if (win.isFocused || win.isMinimized) return;
             if (document.visibilityState === "hidden") return;
-            if (document.querySelector(".window-frame.interacting")) return;
-            if (
-                windowManager.windows.some(
-                    (candidate) =>
-                        candidate.windowType === "modal" ||
-                        candidate.windowType === "dialog",
-                )
-            ) {
-                return;
-            }
+            if (!isHoverFocusAllowed()) return;
 
             windowManager.bringToFront(win.id, { sweepCloseOnBlur: false });
             frameEl?.focus({ preventScroll: true });
@@ -301,6 +305,12 @@
         const handler = (e: KeyboardEvent) => handleFrameKeydown(e);
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
+    });
+
+    // Turning the setting off cancels the timer and its one-shot listener
+    // immediately, not only when the callback re-checks the setting.
+    $effect(() => {
+        if (!settingsState.focusFollowsMouse) cancelFocusFollow();
     });
 
     // A pending hover-focus must not survive the frame; remove both the timer

@@ -74,11 +74,14 @@ or unmounting. The callback re-checks the setting, focus/minimized state,
 modal/dialog ownership, an active drag/resize (`.window-frame.interacting`) and
 document visibility. Touch and pen pointers are ignored.
 
-Tests: 76 `WindowFrame` component cases (66 previous + 10 focus-follows cases
-covering off, 119/120 ms boundary, leave, setting-off, pointerdown, touch/pen,
-modal, drag, closeOnBlur and unmount), 10 settings display/persistence cases
-and 6 reactivity-contract cases. `npm run check` reports 0 errors and the
-existing 6 warnings; ESLint is clean.
+Tests: 88 `WindowFrame` component cases (entry guard, off, 119/120 ms
+boundary, leave, setting-off, pointerdown on the frame and elsewhere,
+touch/pen, held-button, already-focused, minimized, modal/dialog, modal or drag
+appearing during the delay, z-order raise, closeOnBlur, resize/interacting,
+visibility, re-entry and unmount cleanup), 5 `VisualsLayout` component cases
+(including the new toggle binding), 10 settings display/persistence cases and 6
+reactivity-contract cases. `npm run check` reports 0 errors and the existing 6
+warnings; ESLint is clean.
 
 ## Out of scope
 

@@ -2315,6 +2315,20 @@ describe("FEAT-0740 — focus follows mouse", () => {
         }
     }
 
+    class FocusDialogWindow extends WindowBase {
+        constructor() {
+            super({
+                id: "focus-dialog",
+                title: "Focus dialog",
+                windowType: "dialog",
+            });
+        }
+
+        get component() {
+            return EmptyStub;
+        }
+    }
+
     const previousSetting = settingsState.focusFollowsMouse;
 
     beforeEach(() => {
@@ -2341,10 +2355,11 @@ describe("FEAT-0740 — focus follows mouse", () => {
         return { win, frame };
     }
 
-    function hover(frame: HTMLElement, pointerType = "mouse") {
+    function hover(frame: HTMLElement, pointerType = "mouse", buttons = 0) {
         frame.dispatchEvent(
             new PointerEvent("pointerenter", {
                 pointerType,
+                buttons,
                 bubbles: false,
                 cancelable: true,
             }),
@@ -2430,6 +2445,25 @@ describe("FEAT-0740 — focus follows mouse", () => {
         expect(win.isFocused).toBe(false);
     });
 
+    it("cancels a pending hover when the press lands elsewhere", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        document.body.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                pointerType: "mouse",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
     it("ignores touch and pen pointers", () => {
         const { win, frame } = mountManagedFrame();
 
@@ -2439,6 +2473,64 @@ describe("FEAT-0740 — focus follows mouse", () => {
         flushSync();
 
         expect(win.isFocused).toBe(false);
+    });
+
+    it("ignores a hover while a mouse button is held", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame, "mouse", 1);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("does not schedule for an already focused window", () => {
+        const { win, frame } = mountManagedFrame();
+        win.isFocused = true;
+        flushSync();
+
+        const input = document.createElement("input");
+        host!.appendChild(input);
+        input.focus();
+        const bringToFront = vi.spyOn(windowManager, "bringToFront");
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(bringToFront).not.toHaveBeenCalled();
+        expect(document.activeElement).toBe(input);
+    });
+
+    it("does not schedule for a minimized window", () => {
+        const { win, frame } = mountManagedFrame();
+        win.isMinimized = true;
+        flushSync();
+        const bringToFront = vi.spyOn(windowManager, "bringToFront");
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(bringToFront).not.toHaveBeenCalled();
+    });
+
+    it("raises the hovered window above another window", () => {
+        const { win, frame } = mountManagedFrame();
+        const other = new FocusTargetWindow();
+        other.id = "focus-other";
+        windowManager.open(other);
+        win.isFocused = false;
+        flushSync();
+        expect(other.zIndex).toBeGreaterThan(win.zIndex);
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(true);
+        expect(win.zIndex).toBeGreaterThan(other.zIndex);
     });
 
     it("does not raise while a modal is open", () => {
@@ -2455,6 +2547,110 @@ describe("FEAT-0740 — focus follows mouse", () => {
         expect(win.isFocused).toBe(false);
     });
 
+    it("does not raise while a dialog is open", () => {
+        const { win, frame } = mountManagedFrame();
+        const dialog = new FocusDialogWindow();
+        windowManager.open(dialog);
+        win.isFocused = false;
+        flushSync();
+
+        hover(frame);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("re-checks a modal that opens during the hover delay", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        windowManager.open(new FocusModalWindow());
+        win.isFocused = false;
+        flushSync();
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+    });
+
+    it("re-checks a drag that starts during the hover delay", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        const blocker = document.createElement("div");
+        blocker.className = "window-frame interacting";
+        host!.appendChild(blocker);
+        vi.advanceTimersByTime(200);
+        flushSync();
+
+        expect(win.isFocused).toBe(false);
+        blocker.remove();
+    });
+
+    it("removes its global pointerdown probe when the pointer leaves", () => {
+        const add = vi.spyOn(window, "addEventListener");
+        const remove = vi.spyOn(window, "removeEventListener");
+        const { frame } = mountManagedFrame();
+
+        hover(frame);
+        const probe = add.mock.calls.find(
+            ([type]) => type === "pointerdown",
+        );
+        expect(probe).toBeTruthy();
+
+        frame.dispatchEvent(
+            new PointerEvent("pointerleave", {
+                pointerType: "mouse",
+                bubbles: false,
+            }),
+        );
+
+        expect(remove).toHaveBeenCalledWith(
+            "pointerdown",
+            probe![1],
+            true,
+        );
+    });
+
+    it("does not focus while the document is hidden", () => {
+        const { win, frame } = mountManagedFrame();
+        const original = document.visibilityState;
+        Object.defineProperty(document, "visibilityState", {
+            value: "hidden",
+            configurable: true,
+        });
+
+        try {
+            hover(frame);
+            vi.advanceTimersByTime(200);
+            flushSync();
+            expect(win.isFocused).toBe(false);
+        } finally {
+            Object.defineProperty(document, "visibilityState", {
+                value: original,
+                configurable: true,
+            });
+        }
+    });
+
+    it("restarts the delay when the pointer re-enters", () => {
+        const { win, frame } = mountManagedFrame();
+
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        hover(frame);
+        vi.advanceTimersByTime(60);
+        flushSync();
+        expect(win.isFocused).toBe(false);
+
+        vi.advanceTimersByTime(60);
+        flushSync();
+        expect(win.isFocused).toBe(true);
+    });
+
     it("does not raise while another window is being dragged", () => {
         const { win, frame } = mountManagedFrame();
         const blocker = document.createElement("div");
@@ -2467,6 +2663,37 @@ describe("FEAT-0740 — focus follows mouse", () => {
 
         expect(win.isFocused).toBe(false);
         blocker.remove();
+    });
+
+    it("marks a resizing frame as interacting", () => {
+        const { win, frame } = mountManagedFrame();
+        win.isResizable = true;
+        flushSync();
+
+        const grip = host!.querySelector<HTMLElement>(".resize-grip.se");
+        if (!grip) throw new Error("the frame rendered no resize grip");
+        grip.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                pointerType: "mouse",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(frame.classList.contains("interacting")).toBe(true);
+        expect(frame.classList.contains("resizing")).toBe(true);
+
+        grip.dispatchEvent(
+            new PointerEvent("pointerup", {
+                pointerId: 1,
+                pointerType: "mouse",
+                bubbles: true,
+            }),
+        );
+        flushSync();
+        expect(frame.classList.contains("interacting")).toBe(false);
+        expect(frame.classList.contains("resizing")).toBe(false);
     });
 
     it("raises without sweeping a closeOnBlur window", () => {
