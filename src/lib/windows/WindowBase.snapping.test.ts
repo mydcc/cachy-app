@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WindowBase } from "./WindowBase.svelte";
 
 class TestWindow extends WindowBase {
@@ -47,6 +47,10 @@ function setViewport(width: number, height: number) {
 beforeEach(() => {
     localStorage.clear();
     setViewport(1200, 800);
+});
+
+afterEach(() => {
+    document.body.innerHTML = "";
 });
 
 describe("WindowBase.snapToSide", () => {
@@ -189,7 +193,7 @@ describe("WindowBase.snapToSide", () => {
         win.snapToSide("top");
 
         expect(win.y).toBe(33);
-        expect(win.height).toBe(359);
+        expect(win.height).toBe(358);
         expect(win.width).toBe(1200);
 
         titlebar.remove();
@@ -315,6 +319,11 @@ describe("WindowBase.snapToSide", () => {
         expect(reloaded.isPinned).toBe(false);
         expect(reloaded.x).toBe(0);
         expect(reloaded.width).toBe(600);
+
+        // The last zone survives the reload, so the pin control can return to it.
+        reloaded.togglePin();
+        expect(reloaded.isPinned).toBe(true);
+        expect(reloaded.pinSide).toBe("left");
     });
 
     it("detaches only once", () => {
@@ -509,6 +518,36 @@ describe("WindowBase.snapToSide", () => {
         expect(win.x).toBe(0);
         expect(win.width).toBe(600);
         expect(win.height).toBe(800);
+    });
+
+    it("unpins a legacy pinned snapshot with no pinSide key at all", () => {
+        localStorage.setItem(
+            "cachy_win_snap-test",
+            JSON.stringify({
+                x: 0,
+                y: 0,
+                width: 600,
+                height: 800,
+                isMaximized: false,
+                isMinimized: false,
+                isPinned: true,
+                pinRestore: { x: 120, y: 90, width: 600, height: 480 },
+                opacity: 1,
+                fontSize: 14,
+                zoomLevel: 1,
+                showPriceInTitle: false,
+                symbol: "",
+            }),
+        );
+
+        const win = makeWindow();
+        expect(win.pinSide).toBe("none");
+        win.togglePin();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
     });
 
     it("keeps the pinned float target through a maximize round-trip", () => {

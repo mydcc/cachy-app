@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { SnapZone } from "./snapping";
+
 /**
  * WindowFlags define the behavioral and visual capabilities of a window.
  * These flags are used by WindowBase and WindowFrame to determine how a window
@@ -67,7 +69,7 @@ export interface WindowFlags {
     /** List of standard action buttons to show in the header. */
     headerButtons?: ('zoom' | 'export' | 'delete' | 'custom' | 'openInNewTab')[];
     /** Which half or corner the window should pin to when dragged to an edge. */
-    pinSide?: 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none';
+    pinSide?: SnapZone | 'none';
     /** Behavior when double-clicking the title bar. */
     doubleClickBehavior?: 'maximize' | 'pin';
     /** If true, position and state are saved to local storage. */

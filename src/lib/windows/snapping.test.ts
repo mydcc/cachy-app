@@ -112,6 +112,11 @@ describe("detectSnapZone", () => {
         expect(detectSnapZone(0, 0, 1280, 0)).toBeNull();
         expect(detectSnapZone(Number.NaN, 0, 1280, 800)).toBeNull();
     });
+
+    it("pins the small-viewport tie: the left edge wins at the midpoint", () => {
+        expect(detectSnapZone(48, 400, 96, 800)).toBe("left");
+        expect(detectSnapZone(49, 400, 96, 800)).toBe("right");
+    });
 });
 
 describe("nextSnapZone", () => {
@@ -147,6 +152,51 @@ describe("nextSnapZone", () => {
         expect(nextSnapZone("right", "left")).toBe("left");
         expect(nextSnapZone("top", "down")).toBe("bottom");
         expect(nextSnapZone("bottom", "up")).toBe("top");
+    });
+
+    it("covers every current state and direction", () => {
+        const cases = [
+            ["none", "left", "left"],
+            ["none", "right", "right"],
+            ["none", "up", "top"],
+            ["none", "down", "bottom"],
+            ["left", "left", "left"],
+            ["left", "right", "right"],
+            ["left", "up", "top-left"],
+            ["left", "down", "bottom-left"],
+            ["right", "left", "left"],
+            ["right", "right", "right"],
+            ["right", "up", "top-right"],
+            ["right", "down", "bottom-right"],
+            ["top", "left", "top-left"],
+            ["top", "right", "top-right"],
+            ["top", "up", "top"],
+            ["top", "down", "bottom"],
+            ["bottom", "left", "bottom-left"],
+            ["bottom", "right", "bottom-right"],
+            ["bottom", "up", "top"],
+            ["bottom", "down", "bottom"],
+            ["top-left", "left", "left"],
+            ["top-left", "right", "right"],
+            ["top-left", "up", "top"],
+            ["top-left", "down", "bottom"],
+            ["top-right", "left", "left"],
+            ["top-right", "right", "right"],
+            ["top-right", "up", "top"],
+            ["top-right", "down", "bottom"],
+            ["bottom-left", "left", "left"],
+            ["bottom-left", "right", "right"],
+            ["bottom-left", "up", "top"],
+            ["bottom-left", "down", "bottom"],
+            ["bottom-right", "left", "left"],
+            ["bottom-right", "right", "right"],
+            ["bottom-right", "up", "top"],
+            ["bottom-right", "down", "bottom"],
+        ] as const;
+
+        for (const [current, direction, expected] of cases) {
+            expect(nextSnapZone(current, direction)).toBe(expected);
+        }
     });
 });
 
@@ -235,6 +285,73 @@ describe("computeSnapGeometry", () => {
         expect(
             computeSnapGeometry("bottom-right", 1280, 800, insets),
         ).toEqual({ x: 690, y: 390, width: 390, height: 350 });
+        expect(
+            computeSnapGeometry("top-right", 1280, 800, insets),
+        ).toEqual({ x: 690, y: 40, width: 390, height: 350 });
+        expect(
+            computeSnapGeometry("bottom-left", 1280, 800, insets),
+        ).toEqual({ x: 300, y: 390, width: 390, height: 350 });
+    });
+
+    it("applies both minimums to every zone", () => {
+        const zones = [
+            "left",
+            "right",
+            "top",
+            "bottom",
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right",
+        ] as const;
+
+        for (const zone of zones) {
+            const geometry = computeSnapGeometry(
+                zone,
+                300,
+                200,
+                { left: 0, right: 0 },
+                700,
+                500,
+            );
+            expect(geometry.width).toBeGreaterThanOrEqual(700);
+            expect(geometry.height).toBeGreaterThanOrEqual(500);
+            expect(geometry.x).toBeGreaterThanOrEqual(0);
+            expect(geometry.y).toBeGreaterThanOrEqual(0);
+        }
+
+        // A floored half keeps its top/left anchor instead of moving the
+        // header off-screen; the chrome paints above the overlap.
+        expect(
+            computeSnapGeometry("right", 300, 200, { left: 0, right: 0 }, 700),
+        ).toMatchObject({ x: 0 });
+        expect(
+            computeSnapGeometry("bottom", 300, 200, { left: 0, right: 0 }, 0, 500),
+        ).toMatchObject({ y: 0 });
+    });
+
+    it("splits odd dimensions without a gap or overlap", () => {
+        const left = computeSnapGeometry("left", 1281, 801, {
+            left: 0,
+            right: 0,
+        });
+        const right = computeSnapGeometry("right", 1281, 801, {
+            left: 0,
+            right: 0,
+        });
+        const top = computeSnapGeometry("top", 1281, 801, {
+            left: 0,
+            right: 0,
+        });
+        const bottom = computeSnapGeometry("bottom", 1281, 801, {
+            left: 0,
+            right: 0,
+        });
+
+        expect(left.x + left.width).toBe(right.x);
+        expect(left.width + right.width).toBe(1281);
+        expect(top.y + top.height).toBe(bottom.y);
+        expect(top.height + bottom.height).toBe(801);
     });
 
     it("honours the window minimum width and height", () => {
@@ -284,13 +401,13 @@ describe("readShellInsets", () => {
         });
     });
 
-    it("measures the PWA titlebar and a top dock", () => {
+    it("measures the union of the PWA titlebar and a top dock", () => {
         titlebar(33);
         dock("top", 40);
         expect(readShellInsets()).toEqual({
             left: 0,
             right: 0,
-            top: 73,
+            top: 40,
             bottom: 0,
         });
     });

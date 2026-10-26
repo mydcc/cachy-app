@@ -84,21 +84,28 @@ quadrants of that rectangle.
 
 `SnapZone` now covers the four halves and four corners. `computeSnapGeometry`
 splits the usable rectangle (sidebars, PWA titlebar and minimized dock
-excluded) and applies `minWidth`/`minHeight` last. `detectSnapZone` checks
-corners before edges at the existing 48 px threshold; the drag preview and the
-committed geometry share one call.
+excluded) and applies `minWidth`/`minHeight` last; a floored half keeps its
+top/left anchor instead of pushing the header off-screen. `readShellInsets`
+uses the union of the titlebar and a top dock rather than summing their
+heights, and `SNAP_ZONES` is the single source for the union and the persisted
+validator.
 
-`Alt+Arrow` uses `nextSnapZone`: an arrow selects a half from no snap or from
-a corner, a perpendicular arrow refines a half into a corner, and a same-axis
-arrow switches halves. `pinSide` accepts all eight zones, validates persisted
-values through `isSnapZone`, and `togglePin` re-snaps any known zone instead of
-the old left/right-only branch. Legacy vertical zones load unchanged.
+`detectSnapZone` checks corners before edges at the existing 48 px threshold;
+the drag preview and the committed geometry share one call. `Alt+Arrow` uses
+`nextSnapZone`: an arrow selects a half from no snap or from a corner, a
+perpendicular arrow refines a half into a corner, and a same-axis arrow
+switches halves. `pinSide` accepts all eight zones, validates persisted values
+through `isSnapZone`, and `togglePin` re-snaps any known zone instead of the
+old left/right-only branch. Legacy vertical zones load unchanged; held keys
+do not re-tile because repeat events are ignored.
 
-The frame adds the eight `pinned-*` classes and their edge styling. Tests: 17
-geometry/detection/state-machine/inset cases, 30 `WindowBase.snapping` cases
+The frame adds the eight `pinned-*` classes and their edge styling, scoped so
+maximized and docked frames keep their own radius and border. Tests: 21
+geometry/detection/state-machine/inset cases, 33 `WindowBase.snapping` cases
 (top/bottom/corner geometry, persistence, legacy zones, minimums, shell
-insets) and 31 `WindowFrame` cases (top and corner drag previews/commits, the
-keyboard state machine, existing half/pin regressions); the broader
+insets, reload re-pin) and 53 `WindowFrame` cases (all-zone preview/commit
+equality, top and corner drags, pointercancel, the keyboard state machine,
+classes, focus guards, detach re-snap); the broader
 `WindowBase`/`WindowManager` suites stay at 71. `npm run check` reports 0
 errors and the existing 6 warnings; ESLint is clean.
 

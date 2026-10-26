@@ -33,15 +33,18 @@
 export const SNAP_EDGE_THRESHOLD_PX = 48;
 
 /** A half or a quarter of the usable viewport. */
-export type SnapZone =
-    | "left"
-    | "right"
-    | "top"
-    | "bottom"
-    | "top-left"
-    | "top-right"
-    | "bottom-left"
-    | "bottom-right";
+export const SNAP_ZONES = [
+    "left",
+    "right",
+    "top",
+    "bottom",
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right",
+] as const;
+
+export type SnapZone = (typeof SNAP_ZONES)[number];
 
 /** Keyboard direction; the arrow names become zones through `nextSnapZone`. */
 export type SnapDirection = "left" | "right" | "up" | "down";
@@ -65,20 +68,11 @@ export interface SnapGeometry {
     height: number;
 }
 
-const SNAP_ZONES = new Set<string>([
-    "left",
-    "right",
-    "top",
-    "bottom",
-    "top-left",
-    "top-right",
-    "bottom-left",
-    "bottom-right",
-]);
+const SNAP_ZONE_SET: ReadonlySet<string> = new Set(SNAP_ZONES);
 
 /** Narrows a persisted `pinSide` without trusting JSON. */
 export function isSnapZone(value: unknown): value is SnapZone {
-    return typeof value === "string" && SNAP_ZONES.has(value);
+    return typeof value === "string" && SNAP_ZONE_SET.has(value);
 }
 
 /**
@@ -174,65 +168,69 @@ export function computeSnapGeometry(
 
     const availableWidth = right - left;
     const availableHeight = bottom - top;
-    const halfWidth = Math.max(minWidth, Math.round(availableWidth / 2));
-    const halfHeight = Math.max(minHeight, Math.round(availableHeight / 2));
+    const fullWidth = Math.max(minWidth, availableWidth);
+    const fullHeight = Math.max(minHeight, availableHeight);
+    const leftWidth = Math.max(minWidth, Math.floor(availableWidth / 2));
+    const rightWidth = Math.max(minWidth, availableWidth - leftWidth);
+    const topHeight = Math.max(minHeight, Math.floor(availableHeight / 2));
+    const bottomHeight = Math.max(minHeight, availableHeight - topHeight);
 
     switch (zone) {
         case "left":
             return {
                 x: left,
                 y: top,
-                width: halfWidth,
-                height: availableHeight,
+                width: leftWidth,
+                height: fullHeight,
             };
         case "right":
             return {
-                x: right - halfWidth,
+                x: Math.max(left, right - rightWidth),
                 y: top,
-                width: halfWidth,
-                height: availableHeight,
+                width: rightWidth,
+                height: fullHeight,
             };
         case "top":
             return {
                 x: left,
                 y: top,
-                width: availableWidth,
-                height: halfHeight,
+                width: fullWidth,
+                height: topHeight,
             };
         case "bottom":
             return {
                 x: left,
-                y: bottom - halfHeight,
-                width: availableWidth,
-                height: halfHeight,
+                y: Math.max(top, bottom - bottomHeight),
+                width: fullWidth,
+                height: bottomHeight,
             };
         case "top-left":
             return {
                 x: left,
                 y: top,
-                width: halfWidth,
-                height: halfHeight,
+                width: leftWidth,
+                height: topHeight,
             };
         case "top-right":
             return {
-                x: right - halfWidth,
+                x: Math.max(left, right - rightWidth),
                 y: top,
-                width: halfWidth,
-                height: halfHeight,
+                width: rightWidth,
+                height: topHeight,
             };
         case "bottom-left":
             return {
                 x: left,
-                y: bottom - halfHeight,
-                width: halfWidth,
-                height: halfHeight,
+                y: Math.max(top, bottom - bottomHeight),
+                width: leftWidth,
+                height: bottomHeight,
             };
         case "bottom-right":
             return {
-                x: right - halfWidth,
-                y: bottom - halfHeight,
-                width: halfWidth,
-                height: halfHeight,
+                x: Math.max(left, right - rightWidth),
+                y: Math.max(top, bottom - bottomHeight),
+                width: rightWidth,
+                height: bottomHeight,
             };
     }
 }
@@ -259,7 +257,15 @@ export function readShellInsets(): SnapInsets {
     const titlebar = document.querySelector<HTMLElement>("#wco-titlebar");
     if (titlebar) {
         const rect = titlebar.getBoundingClientRect();
-        if (rect.height > 0) top += rect.height;
+        if (rect.height > 0) {
+            // Use the bottom edge: the titlebar can start below the viewport
+            // top (env(titlebar-area-y)), and a top dock can overlap it.
+            const edge = Math.max(
+                Number.isFinite(rect.bottom) ? rect.bottom : 0,
+                rect.height,
+            );
+            top = Math.max(top, edge);
+        }
     }
 
     let bottom = 0;
@@ -267,8 +273,15 @@ export function readShellInsets(): SnapInsets {
     if (dock) {
         const rect = dock.getBoundingClientRect();
         if (rect.height > 0) {
-            if (dock.classList.contains("dock-top")) top += rect.height;
-            else bottom = rect.height;
+            if (dock.classList.contains("dock-top")) {
+                const edge = Math.max(
+                    Number.isFinite(rect.bottom) ? rect.bottom : 0,
+                    rect.height,
+                );
+                top = Math.max(top, edge);
+            } else {
+                bottom = rect.height;
+            }
         }
     }
 

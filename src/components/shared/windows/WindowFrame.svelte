@@ -192,6 +192,7 @@
                       : null;
         if (!direction) return;
         if (isTypingTarget(e.target)) return;
+        if (e.repeat) return;
         e.preventDefault();
         e.stopPropagation();
         snapZone = null;
@@ -1233,45 +1234,44 @@
         outline: 2px solid var(--accent-color);
         outline-offset: -2px;
     }
-    .window-frame.pinned-left {
+    .window-frame.pinned-left:not(.maximized):not(.minimized) {
         border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
         border-left: none;
     }
-    .window-frame.pinned-right {
+    .window-frame.pinned-right:not(.maximized):not(.minimized) {
         border-radius: var(--radius-xl) 0 0 var(--radius-xl);
         border-right: none;
     }
-    .window-frame.pinned-top {
+    .window-frame.pinned-top:not(.maximized):not(.minimized) {
         border-radius: 0 0 var(--radius-xl) var(--radius-xl);
         border-top: none;
     }
-    .window-frame.pinned-bottom {
+    .window-frame.pinned-bottom:not(.maximized):not(.minimized) {
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         border-bottom: none;
     }
-    .window-frame.pinned-top-left {
+    .window-frame.pinned-top-left:not(.maximized):not(.minimized) {
         border-radius: 0 0 var(--radius-xl) 0;
         border-top: none;
         border-left: none;
     }
-    .window-frame.pinned-top-right {
+    .window-frame.pinned-top-right:not(.maximized):not(.minimized) {
         border-radius: 0 0 0 var(--radius-xl);
         border-top: none;
         border-right: none;
     }
-    .window-frame.pinned-bottom-left {
+    .window-frame.pinned-bottom-left:not(.maximized):not(.minimized) {
         border-radius: 0 var(--radius-xl) 0 0;
         border-bottom: none;
         border-left: none;
     }
-    .window-frame.pinned-bottom-right {
+    .window-frame.pinned-bottom-right:not(.maximized):not(.minimized) {
         border-radius: var(--radius-xl) 0 0 0;
         border-bottom: none;
         border-right: none;
     }
     .window-frame.focused {
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--border-color);
     }
     .window-frame.dragging {
         opacity: 0.9;
