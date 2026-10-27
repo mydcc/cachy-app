@@ -1,7 +1,0 @@
-[no issue]
-
-- **📦 What**: Minor and patch dependency updates via `npm update --save`. Packages updated: @commitlint/cli, @commitlint/config-conventional, @playwright/test, @typescript-eslint/eslint-plugin, @typescript-eslint/parser, @vitest/ui, eslint, fake-indexeddb, puppeteer, vitest, @sveltejs/kit, autoprefixer, chart.js, jsdom, marked, openai, postcss, spacetimedb, undici, vite.
-- **🔍 Breaking-change check**: Updates were made according to the specified semver ranges which denote safe bumps.
-- **🚨 Majors listed, not applied**: Added FEAT-0743 to document major upgrades not applied.
-- **🔐 Audit**: `npm audit fix` was run for low hanging fruit. Found 2 vulnerabilities (1 moderate, 1 high) which could not be automatically fixed (in ip-address and undici, bundled in npm). Triage is Sentinel's lane.
-- **✅ Verification**: `npm ci && bash ./scripts/build_wasm.sh && npm run check && npm run lint && npm test:unit && bash ./scripts/build_wasm.sh && npm run build` run successfully after applying the updates. (NOTE: `svelte`, `svelte-check`, and `svelte-eslint-parser` bumps were excluded as they introduced regressions during testing).
