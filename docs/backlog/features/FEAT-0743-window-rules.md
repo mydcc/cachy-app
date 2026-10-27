@@ -45,6 +45,12 @@ A first, deliberately small rules slice:
   defaults and the per-window snapshot are restored, and before the frame is
   first rendered. Rule fields win over the restored snapshot; fields the rule
   does not set keep the restored value.
+- Application site: `WindowBase.restoreState()`, next to where the per-window
+  snapshot is read, so the rule lands before the first paint and no component
+  has to re-apply it. This makes `src/lib/windows/` read the settings store;
+  that layer reads no store today, so this is the one coupling the slice
+  deliberately adds — the alternative is a caller that passes the rule in, and
+  that would leave the open path split across two places.
 - Geometry goes through the existing size/position clamping
   (`updateSize`/`updatePosition`) so a rule cannot strand a window off-screen.
   A maximized rule wins over the x/y/width/height fields.
@@ -96,6 +102,11 @@ These need a product decision before `ready`:
 - Rule geometry in absolute pixels versus viewport fractions. The proposal uses
   pixels for the first slice; fractions would survive monitor changes better
   but need a resize policy.
+- Multi-instance types: the acceptance criteria require both instances to
+  receive the same rule, which puts two charts or two news windows at identical
+  coordinates. Accept the overlap, cascade the second instance by a fixed
+  offset, or skip rules for types that carry a per-instance storage key
+  (`customStorageKey`)?
 - Should "Apply now" exist for the focused window, or is next-open-only enough?
 - Should a rule setting `isMaximized` also remember a floating rectangle to
   restore to, or is the last per-window rectangle good enough?
