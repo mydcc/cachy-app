@@ -35,9 +35,9 @@ The consequences are visible in the stored rule:
 - `frequency` is absent, which the core reads as `once`. A drawing alert cannot
   be set to repeat.
 - There is no note, and no expiry.
-- Until [`FEAT-0542`](FEAT-0542-view-and-edit-armed-alert-from-manage.md)
-  ships there is also no way to change any of it afterwards; after it ships, the
-  edit path would still have to invent values the builder never asked for.
+- [`FEAT-0542`](FEAT-0542-view-and-edit-armed-alert-from-manage.md) now
+  offers an edit path, but these fields were never asked for when the rule was
+  armed, so it can only show the defaults the rule was stored with.
 
 So the same system has two creation paths with different capabilities, and the
 one that bypasses the builder is the one a trader reaches by selecting a drawing
@@ -103,10 +103,10 @@ the footer the moment the footer changes.
 ## Result
 
 Shipped in the builder: the chart's bell seeds a drawing draft instead of
-arming it; the panel shows only the Drawing tab for that draft, with the
-lifecycle footer; the arm press rebuilds the rule through `armDrawingAlert`
-with the price of that moment, and reuses the draft's id so arming twice
-replaces instead of duplicating.
+arming it; the panel shows the Drawing tab for that draft, with the lifecycle
+footer (plus Manage since FEAT-0542 — a list, not a builder), and the arm press
+rebuilds the rule through `armDrawingAlert` with the price of that moment, and
+reuses the draft's id so arming twice replaces instead of duplicating.
 
 Two places where the implementation differs from the Proposal above, recorded so
 the next reader is not surprised:

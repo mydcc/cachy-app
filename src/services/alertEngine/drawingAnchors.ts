@@ -89,7 +89,12 @@ export function readDrawingAnchorLedger(): DrawingAnchorLedgerSnapshot {
     const missing: DrawingAnchorLedgerSnapshot = { present: false, ledger: EMPTY };
     if (!browser) return missing;
     try {
-        const raw = safeLocalStorage.getItem(RULE_DRAWING_STORAGE_KEY);
+        // Deliberately `localStorage` rather than `safeLocalStorage`: that
+        // wrapper turns a thrown read into `null`, which is indistinguishable
+        // from "no ledger was ever written". Here a read failure must come
+        // back as `present: false`, or a drawing-bound rule is shown as a
+        // plain price rule and re-armed as one.
+        const raw = localStorage.getItem(RULE_DRAWING_STORAGE_KEY);
         // No key, no bindings: the honest empty, not a loss.
         if (raw === null) return { present: true, ledger: EMPTY };
         const parsed: unknown = JSON.parse(raw);

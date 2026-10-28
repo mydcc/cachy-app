@@ -206,6 +206,29 @@ describe("arming it", () => {
         });
     });
 
+    it("keeps the edited draft's evaluation mode and provenance — FEAT-0542", () => {
+        const result = armDrawingAlert(
+            request({
+                evaluationMode: "intrabar",
+                provenance: {
+                    source: "model",
+                    created_at_ms: 7,
+                    model: "test-model",
+                },
+            }),
+        );
+
+        expect(result.ok).toBe(true);
+        expect(storedRules()[0]).toMatchObject({
+            evaluation_mode: "intrabar",
+            provenance: {
+                source: "model",
+                created_at_ms: 7,
+                model: "test-model",
+            },
+        });
+    });
+
     it("reuses the id the panel supplies, so arming twice replaces — FEAT-0752", () => {
         // The panel keeps its draft id and passes it in; without that, a second
         // press after a missed toast would leave two alerts on the same line.

@@ -35,6 +35,8 @@ import { alertState } from "../../stores/alerts.svelte";
 import { drawingStore } from "../../stores/drawings.svelte";
 import { marketState } from "../../stores/market.svelte";
 import { uiState } from "../../stores/ui.svelte";
+import { readRuleStates, RULE_STATE_STORAGE_KEY } from "../../services/alertEngine/ruleStateStore";
+import { RULES_STORAGE_KEY } from "../../services/alertEngine/migrateAlertsToRules";
 import { Decimal } from "decimal.js";
 import type { Condition } from "../../lib/rules/types";
 
@@ -47,12 +49,16 @@ vi.mock("../../services/logger", () => ({
 // else in this suite reaches armRule -- the arm button is disabled until a
 // builder produces a condition.
 const armRuleSpy = vi.fn();
-vi.mock("../../services/alertEngine/armRule", () => ({
-  armRule: (...args: unknown[]) => armRuleSpy(...args),
-  RuleStoreUnreadableError: class RuleStoreUnreadableError extends Error {
-    translationKey = "dashboard.alerts.panel.storeUnreadable";
-  },
-}));
+vi.mock("../../services/alertEngine/armRule", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../services/alertEngine/armRule")>();
+  return {
+    ...actual,
+    // Only the write is stubbed. The readers — `readRuleStore` in particular —
+    // stay real, so `loadForEdit` exercises the same seam production does.
+    armRule: (...args: unknown[]) => armRuleSpy(...args),
+  };
+});
 
 // FEAT-0752: the drawing branch arms through the anchor path instead of
 // `armRule`. Stubbed so the test asserts which path the button chose and what
@@ -119,6 +125,8 @@ describe("FEAT-0389: AlertPanelView shell", () => {
   beforeEach(() => {
     target = document.createElement("div");
     document.body.appendChild(target);
+    localStorage.clear();
+    alertPanelState.closePanel();
     alertPanelState.reset("BTCUSDT");
     alertState.engineStatus = "idle";
     vi.clearAllMocks();
@@ -184,7 +192,7 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     armButton!.click();
   }
 
-  it("shows only the drawing tab, selected, with the header fixed — FEAT-0752", () => {
+  it("shows the drawing tab and Manage, with the header fixed — FEAT-0752", () => {
     seedDrawing("TABUSDT");
     alertPanelState.setTimeframe("30m");
 
@@ -193,10 +201,13 @@ describe("FEAT-0389: AlertPanelView shell", () => {
       t.textContent?.trim(),
     );
 
-    expect(tabs).toEqual(["Drawing"]);
+    expect(tabs).toEqual(["Drawing", "Manage"]);
     expect(
       el.querySelector("#alert-tab-drawing")?.getAttribute("aria-selected"),
     ).toBe("true");
+    expect(
+      el.querySelector("#alert-tab-manage")?.getAttribute("aria-selected"),
+    ).toBe("false");
     expect(
       el.querySelector('[role="tabpanel"]')?.getAttribute("aria-labelledby"),
     ).toBe("alert-tab-drawing");
@@ -226,6 +237,8 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     alertPanelState.draft.frequency = "every_time";
     alertPanelState.draft.trigger_methods = ["sound"];
     alertPanelState.draft.note = "line watch";
+    alertPanelState.setEvaluationMode("intrabar");
+    alertPanelState.draft.provenance = { source: "model", created_at_ms: 7 };
     const validate = vi
       .spyOn(alertPanelState, "validateDraft")
       .mockReturnValue(alertPanelState.draft);
@@ -242,6 +255,8 @@ describe("FEAT-0389: AlertPanelView shell", () => {
       currentPrice: Decimal;
       nowMs: number;
       timeframe: string;
+      evaluationMode?: string;
+      provenance?: { source: string; created_at_ms: number };
       lifecycle?: {
         frequency?: string;
         trigger_methods?: string[];
@@ -254,6 +269,10 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     expect(request.timeframe).toBe(alertPanelState.draft.trigger_timeframe);
     expect(request.nowMs).toBeGreaterThanOrEqual(before);
     expect(request.nowMs).toBeLessThanOrEqual(Date.now());
+    // FEAT-0542: a drawing rule loaded for editing keeps the mode and the
+    // provenance the draft carries; only the level is rebuilt from the line.
+    expect(request.evaluationMode).toBe("intrabar");
+    expect(request.provenance).toEqual({ source: "model", created_at_ms: 7 });
     expect(request.lifecycle).toMatchObject({
       frequency: "every_time",
       trigger_methods: ["sound"],
@@ -430,6 +449,116 @@ describe("FEAT-0389: AlertPanelView shell", () => {
 
     expect(el.querySelector("#alert-tab-combo")?.getAttribute("aria-selected")).toBe("true");
     expect(first.getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("FEAT-0542: loads a stored rule into the builders and the footer", async () => {
+    localStorage.setItem(
+      RULES_STORAGE_KEY,
+      JSON.stringify([
+        {
+          schema_version: 2,
+          id: "edit-rule",
+          name: "BTC breakout",
+          symbol: "ETHUSDT",
+          trigger_timeframe: "4h",
+          evaluation_mode: "intrabar",
+          conditions: {
+            kind: "cross",
+            left: { kind: "price", field: "close", source: "mark" },
+            direction: "above",
+            right: { kind: "constant", value: "4200" },
+            timeframe: "4h",
+          },
+          action: { consequence_level: "notify" },
+          enabled: true,
+          provenance: { source: "human", created_at_ms: 1 },
+          frequency: "every_time",
+          valid_until_ms: Date.parse("2030-01-01T12:00:00Z"),
+          trigger_methods: ["sound"],
+          note: "watch it",
+        },
+      ]),
+    );
+
+    expect(alertPanelState.loadForEdit("edit-rule")).toBe("loaded");
+
+    const el = render();
+    // The tab is loaded through a dynamic import; wait for the chunk instead
+    // of assuming a fixed number of microtasks is enough on a slow runner.
+    await vi.waitFor(
+      () => expect(el.querySelector(".price-tab")).not.toBeNull(),
+      { timeout: 10_000 },
+    );
+    flushSync();
+
+    const symbol = el.querySelector<HTMLInputElement>('header input[type="text"]');
+    expect(symbol?.value).toBe("ETHUSDT");
+
+    const selects = [...el.querySelectorAll<HTMLSelectElement>("header select")];
+    expect(selects[0]?.value).toBe("close");
+    expect(selects[1]?.value).toBe("4h");
+    expect(selects[2]?.value).toBe("intrabar");
+
+    const threshold = el.querySelector<HTMLInputElement>(
+      '.price-tab input[inputmode="decimal"]',
+    );
+    expect(threshold?.value).toBe("4200");
+    // The mark/last series lives in the builder, and it has to come back too.
+    expect(el.querySelector<HTMLSelectElement>(".price-tab select")?.value).toBe("mark");
+
+    const footer = el.querySelector(".panel-footer") as HTMLElement;
+    expect(footer.querySelector<HTMLSelectElement>("select")?.value).toBe("every_time");
+    const validUntil = footer.querySelector<HTMLInputElement>(
+      'input[type="datetime-local"]',
+    );
+    expect(validUntil).not.toBeNull();
+    expect(validUntil!.value).not.toBe("");
+    expect(footer.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe("watch it");
+  });
+
+  it("FEAT-0542: re-arming a fired one-shot rule clears its fire state", () => {
+    localStorage.setItem(
+      RULES_STORAGE_KEY,
+      JSON.stringify([
+        {
+          schema_version: 2,
+          id: "spent",
+          name: "spent alert",
+          symbol: "BTCUSDT",
+          trigger_timeframe: "1h",
+          conditions: {
+            kind: "cross",
+            left: { kind: "price", field: "close" },
+            direction: "above",
+            right: { kind: "constant", value: "70000" },
+            timeframe: "1h",
+          },
+          action: { consequence_level: "notify" },
+          enabled: false,
+          provenance: { source: "human", created_at_ms: 1 },
+          frequency: "once",
+        },
+      ]),
+    );
+    localStorage.setItem(
+      RULE_STATE_STORAGE_KEY,
+      JSON.stringify({ spent: { fired_count: 1 } }),
+    );
+
+    expect(alertPanelState.loadForEdit("spent")).toBe("loaded");
+    expect(alertPanelState.rearmedFromDisarmed).toBe(true);
+
+    const validate = vi
+      .spyOn(alertPanelState, "validateDraft")
+      .mockReturnValue(alertPanelState.draft);
+    const el = render();
+    (el.querySelector(".arm-btn") as HTMLButtonElement).click();
+
+    // A stored enabled=true is not enough: the core refuses a `once` rule
+    // while its fired count is set, so the write must also forget that count.
+    expect(armRuleSpy).toHaveBeenCalledTimes(1);
+    expect(readRuleStates()["spent"]).toBeUndefined();
+    validate.mockRestore();
   });
 });
 

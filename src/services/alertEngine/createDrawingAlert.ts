@@ -47,7 +47,7 @@ import { Decimal } from "decimal.js";
 
 import { levelAt } from "../../lib/chart/drawings/levelAt";
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
-import type { RuleDocument } from "../../lib/rules/types";
+import type { EvaluationMode, Provenance, RuleDocument } from "../../lib/rules/types";
 import { generateId } from "../../utils/utils";
 import { logger } from "../logger";
 import { armRule, removeRule } from "./armRule";
@@ -74,6 +74,13 @@ export interface DrawingAlertRequest {
      * omits it: nothing is written there.
      */
     id?: string;
+    /**
+     * The draft's evaluation mode and provenance, carried over when a stored
+     * drawing rule is edited (FEAT-0542). The rebuild replaces the condition
+     * and the symbol; these identity fields still belong to the draft.
+     */
+    evaluationMode?: EvaluationMode;
+    provenance?: Provenance;
     /**
      * The four lifecycle fields the builder footer owns — FEAT-0752.
      *
@@ -133,6 +140,7 @@ export function buildDrawingAlert(request: DrawingAlertRequest): DrawingAlertRes
             name: request.name ?? defaultName(request.drawing),
             symbol: request.drawing.symbol,
             trigger_timeframe: request.timeframe,
+            evaluation_mode: request.evaluationMode,
             conditions: {
                 kind: "compare",
                 left: { kind: "price", field: "close" },
@@ -142,7 +150,10 @@ export function buildDrawingAlert(request: DrawingAlertRequest): DrawingAlertRes
             },
             action: { consequence_level: "notify" },
             enabled: true,
-            provenance: { source: "human", created_at_ms: request.nowMs },
+            provenance: request.provenance ?? {
+                source: "human",
+                created_at_ms: request.nowMs,
+            },
             ...request.lifecycle,
         } as RuleDocument,
     };

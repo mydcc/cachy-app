@@ -58,6 +58,8 @@ import {
   type BuilderSlot,
 } from "../lib/alerts/conditionSlots";
 import { templateDocument, type AlertTemplate } from "../lib/alerts/templateLibrary";
+import { readRuleStore } from "../services/alertEngine/armRule";
+import { readDrawingAnchorLedger } from "../services/alertEngine/drawingAnchors";
 import { logger } from "../services/logger";
 import { generateId } from "../utils/utils";
 
@@ -111,6 +113,9 @@ export interface AlertPanelSeed {
   drawing?: { id: string; symbol: string };
 }
 
+/** What `loadForEdit()` found (FEAT-0542). */
+export type LoadForEditOutcome = "loaded" | "missing" | "bot" | "unreadable";
+
 /**
  * The evaluation anchor a fresh draft starts on.
  *
@@ -162,6 +167,18 @@ class AlertPanelStore {
    * rebuild the rule at arm time and show the level read-only.
    */
   drawingDraft = $state<{ id: string; symbol: string } | null>(null);
+
+  /**
+   * True when the open draft came from a stored rule that was disarmed
+   * (FEAT-0542) — in practice, a one-shot rule that has fired.
+   *
+   * Re-arming must forget that rule's fire state, not just rewrite the
+   * document: the core's `once` frequency refuses to announce again while
+   * `fired_count` is non-zero, so an "armed" toast over a spent counter is
+   * the BUG-0382 shape. The flag is set by `loadForEdit`, consumed by the
+   * shell after a successful arm, and cleared by `reset()`.
+   */
+  rearmedFromDisarmed = $state(false);
 
   /** The rule under construction. Every tab writes into this one document. */
   draft = $state<RuleDocument>(blankDraft("BTCUSDT"));
@@ -273,6 +290,7 @@ class AlertPanelStore {
   reset(symbol: string) {
     this.draft = blankDraft(symbol);
     this.drawingDraft = null;
+    this.rearmedFromDisarmed = false;
     this.priceField = "close";
     this.priceSeries = "last";
     this.refusals = [];
@@ -394,6 +412,114 @@ class AlertPanelStore {
       name,
     );
     this.activeTab = "combo";
+  }
+
+  /**
+   * Loads the stored rule `ruleId` into the draft (FEAT-0542).
+   *
+   * `id` is kept, so arming writes the same rule back — `armRule` replaces by
+   * id — rather than leaving a duplicate beside it. The draft also carries the
+   * stored `provenance`; the drawing arm path keeps it too (FEAT-0542).
+   *
+   * The tab follows the condition's own shape (`slotOf`): a builder that
+   * cannot render a condition would hydrate blank, and its mount-time write
+   * would delete the leg. More than one leg, or a shape no single builder
+   * claims, opens Combo — it either renders the legs or locks itself
+   * read-only, and the footer still edits the lifecycle either way.
+   *
+   * A drawing-bound rule has no condition slot. Its binding lives in the
+   * anchor ledger, so it opens the Drawing tab with `drawingDraft` set,
+   * exactly as the chart's bell does. When that ledger cannot be read,
+   * editing is refused: the rule might be drawing-bound, and showing it as a
+   * fixed price alert would let a trader edit a threshold the evaluator
+   * overwrites from the line.
+   *
+   * Called from Manage, while the panel is mounted; `seedPending` is left
+   * alone on purpose. An entry point that ever calls this while the panel is
+   * closed would need the same treatment `seed()` gives its draft.
+   *
+   * Returns what it found so Manage can say why nothing opened.
+   */
+  loadForEdit(ruleId: string): LoadForEditOutcome {
+    let stored: RuleDocument[];
+    try {
+      stored = readRuleStore();
+    } catch (e) {
+      logger.error("alerts", "stored rules could not be read for editing", e);
+      return "unreadable";
+    }
+
+    const rule = stored.find((candidate) => candidate?.id === ruleId);
+    if (!rule) return "missing";
+    // Any level other than `notify` is not this panel's to edit. Bots
+    // (`simulate`) are the current case; `send` is the next one, and loading
+    // it as a notification draft would silently strip its order intent.
+    const level = rule.action?.consequence_level;
+    if (level !== undefined && level !== "notify") return "bot";
+
+    const anchors = readDrawingAnchorLedger();
+    if (!anchors.present) return "unreadable";
+    const anchor = anchors.ledger[ruleId];
+
+    const draft = structuredClone(rule);
+
+    // `alarmRows` tolerates a malformed entry so the trader can see and delete
+    // it. Loading one into the shell would dereference `conditions.kind` in a
+    // `$derived` and take the panel down; refuse before touching any state.
+    const conditions = draft.conditions as { kind?: unknown } | null | undefined;
+    if (
+      !conditions ||
+      typeof conditions !== "object" ||
+      typeof conditions.kind !== "string"
+    ) {
+      return "unreadable";
+    }
+
+    // A migrated legacy alert may predate `action`. A draft without one
+    // cannot be validated by the core, and `notify` is what such a rule was.
+    if (!draft.action) {
+      draft.action = { consequence_level: "notify" };
+    }
+    // A one-shot rule is disarmed when it fires (`enabled: false`); a
+    // repeating rule stays enabled. The draft sets `true` in either case,
+    // because pressing Arm means armed — carrying `false` would write a rule
+    // nothing evaluates.
+    draft.enabled = true;
+    // A drawing rule is rebuilt on the line's market; keep the header on the
+    // ledger's symbol so a drifted document cannot show another market.
+    if (anchor) draft.symbol = anchor.symbol;
+
+    this.draft = draft;
+    this.drawingDraft = anchor
+      ? { id: anchor.drawingId, symbol: anchor.symbol }
+      : null;
+    // Only a stored `false` means the firing path disarmed it. An absent
+    // `enabled` is the legacy default and not evidence of a spent rule.
+    this.rearmedFromDisarmed = rule.enabled === false;
+    this.priceField = "close";
+    this.priceSeries = "last";
+    this.refusals = [];
+    this.hasValidated = false;
+    this.coreUnavailable = false;
+    this.activeTab = anchor ? "drawing" : this.tabForConditions(draft);
+    return "loaded";
+  }
+
+  /** The builder that owns the loaded condition, or Combo when none does. */
+  private tabForConditions(rule: RuleDocument): AlertPanelTab {
+    const members = conditionMembers(rule.conditions);
+    if (members.length === 1) {
+      const member = members[0];
+      // Every single-condition builder rewrites its leg with the rule's
+      // timeframe. A stored leg anchored elsewhere would be moved by that
+      // mount-time write, so Combo locks the document instead of changing it.
+      if ("timeframe" in member && member.timeframe !== rule.trigger_timeframe) {
+        return "combo";
+      }
+      const slot = slotOf(member);
+      if (slot) return slot;
+    }
+    return "combo";
   }
 
   setSymbol(symbol: string) {

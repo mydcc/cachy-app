@@ -33,6 +33,8 @@ import { flushSync, mount, unmount } from "svelte";
 import en from "../../../locales/locales/en.json";
 import ManageTab from "./ManageTab.svelte";
 import { alertState } from "../../../stores/alerts.svelte";
+import { alertPanelState } from "../../../stores/alertPanel.svelte";
+import { uiState } from "../../../stores/ui.svelte";
 
 // The cutover notice reads localStorage behind a promise and is FEAT-0388's
 // concern, not this tab's list behaviour. Answering "no" keeps its banner out
@@ -132,6 +134,10 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     alertState.legacyMigrationReport = null;
     alertState.drawingReport = null;
     alertState.unevaluableReport = [];
+    alertPanelState.closePanel();
+    alertPanelState.reset("BTCUSDT");
+    alertPanelState.activeTab = "manage";
+    vi.restoreAllMocks();
   });
 
   afterEach(() => {
@@ -139,6 +145,7 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     component = null;
     target.remove();
     localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   function render() {
@@ -264,5 +271,99 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     const fineRow = rows.find((r) => r.textContent?.includes("ETHUSDT"));
     expect(fineRow?.querySelector(".broken-badge")).toBeNull();
+  });
+
+  it("FEAT-0542: the pencil loads that row's rule, keeps focus in the panel and toasts nothing", () => {
+    seedRules([
+      rule({
+        id: "keep",
+        symbol: "BTCUSDT",
+        conditions: {
+          kind: "cross",
+          left: { kind: "price", field: "close" },
+          direction: "above",
+          right: { kind: "constant", value: "70000" },
+          timeframe: "1m",
+        },
+      }),
+      rule({
+        id: "drop",
+        symbol: "ETHUSDT",
+        conditions: {
+          kind: "cross",
+          left: { kind: "price", field: "close" },
+          direction: "above",
+          right: { kind: "constant", value: "4200" },
+          timeframe: "1m",
+        },
+      }),
+    ]);
+
+    const el = render();
+    const panel = document.createElement("div");
+    panel.id = "alert-tab-panel";
+    panel.tabIndex = -1;
+    target.appendChild(panel);
+
+    const rows = [...el.querySelectorAll(".alert-item")];
+    const ethRow = rows.find((r) => r.textContent?.includes("ETHUSDT"));
+    const edit = ethRow?.querySelector<HTMLButtonElement>(".edit-btn");
+
+    expect(edit).not.toBeNull();
+    expect(edit?.getAttribute("aria-label")).toBe(en.dashboard.alerts.editAlert);
+    expect(edit?.tagName).toBe("BUTTON");
+
+    edit!.focus();
+    expect(document.activeElement).toBe(edit);
+
+    const toast = vi.spyOn(uiState, "showToast");
+    edit!.click();
+    flushSync();
+
+    // The ETH row, not the first row: a pencil hoisted above the {#each}
+    // would load "keep" and pass a single-row test.
+    expect(alertPanelState.draft.id).toBe("drop");
+    expect(alertPanelState.activeTab).toBe("price");
+    expect(document.activeElement).toBe(panel);
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it("FEAT-0542: reports the rule vanished when it is deleted after render", () => {
+    seedRules([rule()]);
+    const el = render();
+    const toast = vi.spyOn(uiState, "showToast");
+
+    localStorage.removeItem(RULES_KEY);
+    (el.querySelector(".edit-btn") as HTMLButtonElement).click();
+    flushSync();
+
+    expect(toast).toHaveBeenCalledWith(en.dashboard.alerts.editMissing, "error");
+  });
+
+  it("FEAT-0542: reports stored data it cannot read", () => {
+    seedRules([rule()]);
+    const el = render();
+    const toast = vi.spyOn(uiState, "showToast");
+
+    localStorage.setItem(RULES_KEY, "{not json");
+    (el.querySelector(".edit-btn") as HTMLButtonElement).click();
+    flushSync();
+
+    expect(toast).toHaveBeenCalledWith(en.dashboard.alerts.editUnreadable, "error");
+  });
+
+  it("FEAT-0542: says a bot is not editable here", () => {
+    seedRules([rule()]);
+    const el = render();
+    vi.spyOn(alertPanelState, "loadForEdit").mockReturnValue("bot");
+    const toast = vi.spyOn(uiState, "showToast");
+
+    (el.querySelector(".edit-btn") as HTMLButtonElement).click();
+    flushSync();
+
+    expect(toast).toHaveBeenCalledWith(
+      en.dashboard.alerts.editNotEditable,
+      "error",
+    );
   });
 });
