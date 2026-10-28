@@ -21,8 +21,9 @@ estimate: 5
 
 Every alert type goes through the Super-Alert builder and its lifecycle footer —
 channels, frequency, expiry, note — except one. A drawing is armed directly from
-the chart: `CandleView` calls `armDrawingAlert`, which builds the document and
-writes it, with no footer in between.
+the chart: selecting it and pressing the bell runs `alertOnSelectedDrawing()`,
+which calls `armDrawingAlert`, builds the document and writes it, with no footer
+in between.
 
 The consequences are visible in the stored rule:
 
@@ -37,24 +38,29 @@ The consequences are visible in the stored rule:
   edit path would still have to invent values the builder never asked for.
 
 So the same system has two creation paths with different capabilities, and the
-one that bypasses the builder is the one a trader reaches by right-clicking the
-chart — the fastest, most casual path.
+one that bypasses the builder is the one a trader reaches by selecting a drawing
+and pressing the bell in the chart's drawing overlay — the fastest, most casual
+path.
 
 ## Proposal
 
 One authoring surface stays the rule: the panel. Add a **Drawing** tab that the
 chart seeds the way the indicator card seeds the Indicators tab.
 
-1. `AlertPanelSeed` gains the drawing condition and a `drawing` tab. The chart's
-   alert action seeds it instead of calling `armDrawingAlert` directly.
-2. The tab shows the drawing read-only — the level comes from the geometry, so
-   there is nothing to type — with the condition in plain language, and the
-   standard footer (`RuleLifecycleFields`) below it: channels, frequency,
-   expiry, note.
+1. `AlertPanelSeed` gains the drawing and a `drawing` tab: the seed carries the
+   drawing id, its symbol and its timeframe (not a `Condition` — the condition
+   is the drawing). The chart's alert action seeds it instead of calling
+   `armDrawingAlert` directly. The tab resolves the drawing from the drawing
+   store for the read-only level; a drawing that no longer exists refuses with
+   the same reason the chart shows today.
+2. The tab shows no editable condition — the level is the drawing's — with the
+   condition in plain language, and the standard footer
+   (`RuleLifecycleFields`) below it: channels, frequency, expiry, note.
 3. Arming still goes through `armDrawingAlert`, so the drawing↔rule anchor
    (`recordDrawingAnchor`) and its rollback stay in one place; the builder only
-   supplies the lifecycle fields. Reconciliation
-   (`reconcileDrawingRules`) is unchanged.
+   supplies the lifecycle fields. `DrawingAlertRequest` gains an optional
+   lifecycle object, and the arm press supplies `Date.now()` plus a price read
+   at that moment, not the price captured when the seed was created.
 4. A drawing the core cannot express keeps today's behaviour: the action refuses
    and names the reason, exactly like an unexpressible indicator card.
 
@@ -65,10 +71,12 @@ the footer the moment the footer changes.
 
 ## Acceptance criteria
 
-- [ ] Right-clicking a drawing and choosing the alert action opens the panel on
-      a Drawing tab, with the drawing's condition already in the draft.
-- [ ] The tab shows exactly one editable condition — none; the level is the
-      drawing's — and the standard lifecycle footer below it.
+- [ ] Selecting a drawing and using the bell in the chart's drawing overlay opens
+      the panel on a Drawing tab, with the drawing's condition already in the
+      draft. Right-clicking the chart still seeds the price alert; this item does
+      not change that path.
+- [ ] The tab shows no editable condition — the level is the drawing's, rendered
+      read-only — with the standard lifecycle footer below it.
 - [ ] Channels, frequency, expiry and note chosen in the footer are persisted on
       the rule; absent channels still mean "the policy decides", as everywhere
       else.
@@ -80,8 +88,8 @@ the footer the moment the footer changes.
       not duplicate the document construction.
 - [ ] No second authoring surface is added: the chart does not grow its own
       channel picker.
-- [ ] German and English strings for the tab, its empty state and the seeded
-      sentence.
+- [ ] German and English strings exist for the tab, its empty state and the
+      seeded sentence.
 
 ## Out of scope
 
@@ -97,6 +105,10 @@ the footer the moment the footer changes.
   symbol, which may differ from the chart's. Proposal: the seed carries the
   drawing's symbol, and switching symbols drops the seed rather than retargeting
   the alert.
+- What price does the arm press use if the panel stays open while the market
+  moves? Proposal: read it at arm time from the same chart-price source the seed
+  came from. The displayed level is the drawing's live level, so the two cannot
+  disagree.
 - Should the tab be hidden from the rail entry (a trader without a seeded
   drawing has nothing to put in it)? Proposal: yes — it appears only for a
   seeded draft, like a builder that starts from a condition.
