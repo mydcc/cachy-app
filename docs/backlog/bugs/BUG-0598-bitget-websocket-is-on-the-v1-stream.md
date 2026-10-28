@@ -11,7 +11,7 @@ editions: [community, pro, private]
 area: exchange
 data_class: none
 adr: none
-depends_on: [BUG-0581, IDEA-0620]
+depends_on: [BUG-0581]
 branch: fix/bug-0598-ws-private-lifecycle
 ---
 

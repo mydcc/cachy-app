@@ -14,11 +14,13 @@ depends_on: []
 
 # BUG-0757 — Journal date filter uses local end bound against UTC start bound
 
-> **Renumbered (2026-10-28).** This item was filed as `BUG-0573` and its file was removed by
-> accident in #3680 (a stale-sandbox PR that deleted 39 backlog files). While it was gone,
-> `FEAT-0573` took the number — numbers are shared across types — so the restored file is
-> `BUG-0757`. Title, evidence and acceptance criteria are unchanged; the issue that mirrors it
-> is the same one, relabelled to `backlog-id:BUG-0757`.
+> **Renumbered (2026-10-28).** The file was removed by accident in #3680, a stale-sandbox
+> PR that deleted 39 files in total — 7 of them backlog items — including this item's test
+> companion `FEAT-0574`, restored alongside it as `FEAT-0758`. Numbers are shared across types, and
+> 0573 was never free: `FEAT-0573` had held it since #3699, was deleted by the same stale diff
+> in #3692 that introduced this bug, and was restored in #3718. So the restored file is
+> `BUG-0757`. Title, evidence and acceptance criteria are unchanged; the mirror issue is the
+> same one, relabelled to `backlog-id:BUG-0757`.
 
 ## Symptom
 

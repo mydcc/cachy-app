@@ -10,7 +10,7 @@ editions: [community, pro, private]
 area: exchange
 data_class: none
 adr: none
-depends_on: [BUG-0596, BUG-0580, IDEA-0620]
+depends_on: [BUG-0596, BUG-0580]
 ---
 
 # Migrate the Bitget order write paths to V2
@@ -103,7 +103,8 @@ needs paper mode, Part 2 needs a funded position. The account holder reports
 **Backlog note.** IDEA-0620 declares `depends_on: [BUG-0597]`, and this item's
 remaining criteria are exactly IDEA-0620's steps. The direction is right — the
 protocol is the remaining work, not a prerequisite — but it means neither can
-close alone, and both stay `ready` until the trader acts.
+close alone, and both stay open until the trader acts: this item `specced`, the
+protocol `ready` under `assignee: human`.
 
 ## Symptom
 

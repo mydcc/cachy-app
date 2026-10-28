@@ -10,13 +10,15 @@ milestone: none
 editions: ["community", "pro", "private"]
 data_class: none
 adr: none
-depends_on: [IDEA-0620]
+depends_on: []
 branch: fix/bitget-v2-market-data
 ---
 
 # Migrate the Bitget integration from the decommissioned V1 API to V2
 
 > **State note.** Blocked on **IDEA-0620** — the trader test protocol. The code work is landed (see the merged PR for this item's branch); what is missing is live verification against the exchange, which needs a human with API keys. No agent can close that.
+>
+> **What the protocol already records.** IDEA-0620's Part 1, step 1 (Reads — balance, margin, PnL, positions, orders, history) **passed** on 2026-10-07 against a deployed build, with no API error in the console or the network tab. This item's remaining criterion is that same read path, so whether the pass discharges it is a human decision, not an agent's.
 
 ## Progress — 2026-10-03: there is a third generation, and Cachy cannot reach it
 
