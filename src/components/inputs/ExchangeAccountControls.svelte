@@ -18,10 +18,12 @@
 <!--
   FEAT-0068 — the exchange's own account settings, from the trade panel.
   FEAT-0328 — two labelled chips that open confirming dialogs.
+  FEAT-0378 — a third labelled column names the account those chips change.
 
-  This component emits TWO sibling columns (leverage, margin/position) with no
-  wrapper of its own, so the parent can lay them out in one row beside its own
-  fee column. Svelte allows multiple roots; that is what is being used here.
+  This component emits THREE sibling columns (account, leverage,
+  margin/position) with no wrapper of its own, so the parent can lay them out
+  in one row beside its own fee column. Svelte allows multiple roots; that is
+  what is being used here.
 
   BUG-0668 — the columns render on every venue, including ones that declare
   no `accountSettings` support. UTA offers no set-leverage / set-margin /
@@ -70,6 +72,8 @@ import { Decimal } from "decimal.js";
   import { marketState } from "../../stores/market.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { settingsState } from "../../stores/settings.svelte";
+  import { activeAccountLabel } from "../../stores/settings/activeAccount";
+  import ActiveAccountChip from "../shared/ActiveAccountChip.svelte";
   import { paperState } from "../../stores/paperTrading.svelte";
   import { modalState } from "../../stores/modal.svelte";
   import { activeExchange } from "../../services/exchange";
@@ -568,8 +572,16 @@ import { Decimal } from "decimal.js";
           to: desired.toString(),
         },
       });
+      // FEAT-0378: name the account first — this dialog changes the exchange
+      // account, and it can be reached from a modal that has scrolled the
+      // panel header (and its chip) out of view.
+      const accountLine = $_("common.accountLine", {
+        values: { account: activeAccountLabel() },
+      });
       const message =
-        sideLines.length > 0 ? base + "\n\n" + sideLines.join("\n") : base;
+        accountLine +
+        "\n\n" +
+        (sideLines.length > 0 ? base + "\n\n" + sideLines.join("\n") : base);
 
       const confirmed = await modalState.show(
         $_("exchange.accountSettings.confirmLeverageTitle"),
@@ -628,7 +640,12 @@ import { Decimal } from "decimal.js";
       confirmationPolicyStore.requires("margin-mode-change");
 
     if (modeNeedsAsking) {
-      const lines = [$_("exchange.accountSettings.confirmModesMessage")];
+      const lines = [
+        $_("common.accountLine", {
+          values: { account: activeAccountLabel() },
+        }),
+        $_("exchange.accountSettings.confirmModesMessage"),
+      ];
       if (changes.marginMode) {
         lines.push(
           $_("exchange.accountSettings.confirmMarginModeLine", {
@@ -685,6 +702,18 @@ import { Decimal } from "decimal.js";
     if (!failed) modeOpen = false;
   }
 </script>
+
+  <!--
+    FEAT-0378: the account these two chips change. The order panel header
+    names it too, but that header can scroll out of view above this row, and
+    the dialogs behind the chips write to the exchange account, not to Cachy.
+  -->
+  <div class="flex w-fit min-w-0 flex-col gap-1">
+    <span class="text-[11px] font-medium text-[var(--text-secondary)]"
+      >{$_("settings.connections.accounts.activeAccount")}</span
+    >
+    <ActiveAccountChip compact />
+  </div>
 
   <!-- Leverage column. Gated by nothing; see the header comment. -->
   <div class="flex flex-col gap-1 min-w-0">

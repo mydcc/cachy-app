@@ -46,6 +46,7 @@
   import { projectLiquidation } from "../../lib/calculators/liquidation";
   import { normalizeMarginMode } from "../../utils/marginMode";
   import ModalFrame from "./ModalFrame.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
 
   interface Props {
     /** The value to seed the draft with — the exchange's, or the local one. */
@@ -204,6 +205,10 @@
   height={400}
   compact
 >
+  {#snippet headerExtra()}
+    <ActiveAccountChip compact />
+  {/snippet}
+
   <div class="flex flex-col gap-3 p-4 min-w-[300px]">
     <!-- A verified fact, not reassurance — see the header comment. -->
     <p class="note-info" data-track-id="note-leverage-anytime">

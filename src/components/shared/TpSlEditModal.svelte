@@ -22,10 +22,12 @@
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import TpSlPriceInput from "./TpSlPriceInput.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
+  import { activeAccountLabel } from "../../stores/settings/activeAccount";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
   import { validateTpSlPrice, normalizePositionSide, resolveTpSlPosition, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
@@ -273,6 +275,8 @@
     // a qty the dialog never displayed must never be dispatched on its
     // confirmation.
     const facts = [
+      // FEAT-0378: which account this TP/SL change will be signed for.
+      { label: get(_)("orderGate.fields.account"), value: activeAccountLabel() },
       { label: get(_)("orderGate.fields.symbol"), value: snapshot.symbol },
       {
         label:
@@ -299,6 +303,10 @@
   height={335}
   compact
 >
+  {#snippet headerExtra()}
+    <ActiveAccountChip compact />
+  {/snippet}
+
   <div class="flex flex-col gap-4 p-4 min-w-[300px]">
     <div class="text-sm text-[var(--text-secondary)] mb-2">
       {$_("journal.symbol")}: <span class="text-[var(--text-primary)] font-bold"

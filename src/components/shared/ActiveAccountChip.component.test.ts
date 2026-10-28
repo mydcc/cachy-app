@@ -109,6 +109,20 @@ describe("ActiveAccountChip — one label for the default account", () => {
         expect(host.querySelector(".venue")).toBeNull();
     });
 
+    it("shows the account the gate will sign for, not the stored id's venue", () => {
+        // FEAT-0378: the helper resolves through `activeAccountFor`, which
+        // repairs a stored id that belongs to the other venue.
+        settingsStateMock.accounts = [
+            { id: "bu-1", name: "Main", exchange: "bitunix" },
+            { id: "bg-1", name: "Scalp", exchange: "bitget" },
+        ];
+        settingsStateMock.activeAccountId = "bg-1";
+        settingsStateMock.apiProvider = "bitunix";
+        render();
+        expect(text()).toContain("Main");
+        expect(text()).not.toContain("Scalp");
+    });
+
     it("is a label, never a button", () => {
         render();
         expect(host.querySelector("button")).toBeNull();

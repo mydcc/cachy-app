@@ -38,6 +38,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import ModalFrame from "./ModalFrame.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import PartialCloseInput from "./PartialCloseInput.svelte";
   import { isFullClose, type PartialCloseContext } from "../../lib/calculators/partialClose";
 
@@ -185,6 +186,10 @@
   height={320}
   compact
 >
+  {#snippet headerExtra()}
+    <ActiveAccountChip compact />
+  {/snippet}
+
   <div class="flex flex-col gap-4 p-4 min-w-[300px]">
     <div class="text-sm text-[var(--text-secondary)]">
       {$_("journal.symbol")}:

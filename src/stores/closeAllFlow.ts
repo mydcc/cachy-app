@@ -50,6 +50,7 @@ import { uiState } from "./ui.svelte";
 import { tpSlState } from "./tpsl.svelte";
 import { activeExchange } from "../services/exchange";
 import { logger } from "../services/logger";
+import { activeAccountLabel } from "./settings/activeAccount";
 
 function t(key: string, values?: Record<string, string>): string {
     return get(_)(key as TranslationKey, values ? { values } : undefined);
@@ -103,10 +104,12 @@ export async function confirmAndCloseAllPositions(symbol?: string): Promise<Clos
         );
         const confirmed = await modalState.show(
             t("trade.closeAllConfirmTitle"),
-            t("trade.closeAllConfirmMessage", {
-                count: String(inScope.length),
-                notional: notional.toFixed(2),
-            }),
+            t("common.accountLine", { account: activeAccountLabel() }) +
+                "\n\n" +
+                t("trade.closeAllConfirmMessage", {
+                    count: String(inScope.length),
+                    notional: notional.toFixed(2),
+                }),
             "confirm",
         );
         if (confirmed !== true) return null;

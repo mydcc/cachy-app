@@ -58,6 +58,7 @@
   import PositionsSidebar from "../components/shared/PositionsSidebar.svelte";
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
+  import ActiveAccountChip from "../components/shared/ActiveAccountChip.svelte";
   import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
@@ -423,6 +424,14 @@
           <h1 class="text-2xl sm:text-3xl font-bold">
             {$_("app.title")}
           </h1>
+          <!--
+            FEAT-0378: the shell is a read-only surface; the chip names the
+            account every panel below acts on. It sits in the title cluster
+            rather than beside `ConnectionStatus`, which positions itself
+            absolutely in the panel corner — a sibling there would land at the
+            top-left of the panel instead.
+          -->
+          <ActiveAccountChip compact />
         </div>
         {#each headerEntries as item (item.entry.id)}
           <HeaderJournalButton entry={item.entry} variant="mobile" />

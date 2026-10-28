@@ -19,6 +19,7 @@
   import { onMount, untrack } from "svelte";
   import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
+  import { activeAccountLabel } from "../../stores/settings/activeAccount";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { accountEpoch } from "../../services/accountEpoch.svelte";
   import { accountReadOrder, pendingOrdersReadOrder, positionsReadOrder } from "../../services/accountReadOrder";
@@ -1014,6 +1015,9 @@
 
     const pnl = pos.unrealizedPnl ?? new Decimal(0);
     return [
+      // FEAT-0378: the account first — flash close is reachable from a chart
+      // window where the sidebar chip is not in view.
+      { label: $_("orderGate.fields.account"), value: activeAccountLabel() },
       { label: $_("positionsList.symbol"), value: pos.symbol },
       { label: $_("positionsList.side"), value: pos.side.toUpperCase() },
       { label: $_("positionsList.size"), value: formatDynamicDecimal(pos.amount) },

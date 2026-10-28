@@ -46,6 +46,7 @@
   import { tradeState } from "../../stores/trade.svelte";
   import { resultsState } from "../../stores/results.svelte";
   import { settingsState } from "../../stores/settings.svelte";
+  import { activeAccountLabel } from "../../stores/settings/activeAccount";
   import { paperState } from "../../stores/paperTrading.svelte";
   import { modalState } from "../../stores/modal.svelte";
   import { uiState } from "../../stores/ui.svelte";
@@ -599,6 +600,7 @@
           : $_("orderEntry.confirm.titleLive"),
         $_("orderEntry.confirm.message", {
           values: {
+            account: activeAccountLabel(),
             side: facts.side,
             qty: facts.qty.toString(),
             symbol: facts.symbol,
