@@ -45,7 +45,7 @@
 import { Decimal } from "decimal.js";
 import { activeExchange, type TpSlOrder } from "../services/exchange";
 import { logger } from "../services/logger";
-import { planSideMatchesEntry } from "../services/tpslNormalize";
+import { planSideMatchesEntry, readLegFields } from "../services/tpslNormalize";
 
 /**
  * How long a fetched set is treated as current. Plans change when the user
@@ -73,6 +73,23 @@ export interface RawWsTpSl {
     status?: string;
     tpPrice?: string;
     slPrice?: string;
+    /*
+     * BUG-0698 — the per-leg fields the same frame carries. The frame is
+     * sparse: it names what moved, and a leg it does not concern is omitted
+     * rather than nulled. `readLegFields` applies the fetch path's presence
+     * rule, so `"0"` is a value and `""`/`null` are absent.
+     *
+     * Types stay loose because the channel is forwarded verbatim; `String()`
+     * in `readLegFields` is the single place that narrows them.
+     */
+    tpStopType?: string | number | null;
+    slStopType?: string | number | null;
+    tpOrderType?: string | number | null;
+    slOrderType?: string | number | null;
+    tpQty?: string | number | null;
+    slQty?: string | number | null;
+    tpOrderPrice?: string | number | null;
+    slOrderPrice?: string | number | null;
     /**
      * BUG-0524 — the position this plan protects, as the venue reports it
      * (`08_websocket.md` §`tp_sl`). Carried onto the legs below so the
@@ -342,7 +359,8 @@ class TpSlManager {
                 ? String(data.positionId)
                 : undefined;
 
-        const applyLeg = (leg: "tp" | "sl", planType: "PROFIT" | "LOSS", price: string | undefined) => {
+        const frame = data as unknown as Record<string, unknown>;
+        const applyLeg = (leg: "tp" | "sl", planType: "PROFIT" | "LOSS") => {
             const legId = `${orderId}-${leg}`;
             const index = this._orders.findIndex((o) => o.orderId === legId);
             /*
@@ -371,44 +389,62 @@ class TpSlManager {
                 return;
             }
             /*
-             * A push concerns whichever of the two legs it carries, so a
-             * missing price is normal here rather than anomalous.
+             * A leg needs a trigger price to exist; an *update* does not.
              *
-             * It is also where a renamed price field would die, and no log
-             * belongs here: a rename makes *both* legs price-less on every
+             * The frame is sparse and may name only what moved (`tpStopType`
+             * without `tpPrice`), so requiring a price before merging would
+             * drop exactly the update BUG-0698 is about. A push that names no
+             * price and matches no stored leg is still dropped: creating a leg
+             * without a trigger would put a stop on screen the venue does not
+             * hold.
+             *
+             * A renamed price field would make *both* legs price-less on every
              * frame, which is indistinguishable from this frame being about the
-             * other leg. The fetch path is what surfaces a rename, within the
-             * cache window. The `orderId`/`symbol` guard above is the one that
-             * can tell a malformed frame from a narrow one, which is why it is
-             * the one that speaks.
+             * other leg. The fetch path is what surfaces that, within the cache
+             * window. The `orderId`/`symbol` guard above is the one that can
+             * tell a malformed frame from a narrow one, which is why it is the
+             * one that speaks.
              */
-            if (price === undefined) return;
+            const fields = readLegFields(frame, leg);
+            const stored = index !== -1 ? this._orders[index] : undefined;
+            const triggerPrice = fields.price ?? stored?.triggerPrice;
+            if (triggerPrice === undefined) return;
             /*
              * Merge into the stored leg rather than rebuilding it (BUG-0665).
              *
              * The frame names the venue row and carries what changed about
              * it. What it cannot carry is what this app *derived* from the
-             * row: the `scopeGuess` create-versus-edit turns on, the
-             * timestamps the list renders, the stop type the create modal
-             * prefills, the quantity the row was fetched with. Rebuilding
-             * from the frame alone dropped all of it on the first push.
+             * row: the `scopeGuess` create-versus-edit turns on and the
+             * timestamps the list renders. Rebuilding from the frame alone
+             * dropped those on the first push.
              *
-             * `sourceOrderId` is the exception, and the reason this is filed
-             * as a bug: the frame names the row itself, so the id cancel and
-             * edit address the venue with (BUG-0292) is known here — it does
-             * not have to be inherited, and a leg the push *creates* gets it
-             * too.
+             * BUG-0698: the per-leg fields the frame *does* carry — stop type,
+             * order type, quantity, order price — replace the fetched value.
+             * A frame that omits one says nothing about it, so the fetched
+             * value stays and only a fetch can clear it. `scopeGuess` is
+             * derived from the quantity, so a push that names one recomputes
+             * it rather than carrying the old guess.
+             *
+             * `sourceOrderId` is the exception, and the reason BUG-0665 was
+             * filed: the frame names the row itself, so the id cancel and edit
+             * address the venue with (BUG-0292) is known here — it does not
+             * have to be inherited, and a leg the push *creates* gets it too.
              */
-            const stored = index !== -1 ? this._orders[index] : undefined;
             const updated: TpSlOrder = {
                 ...stored,
                 sourceOrderId: orderId,
                 orderId: legId,
                 symbol,
                 planType,
-                triggerPrice: price,
+                triggerPrice,
                 status: data.status ?? "NEW",
                 ...(positionId !== undefined ? { positionId } : {}),
+                ...(fields.stopType !== undefined ? { workingType: fields.stopType } : {}),
+                ...(fields.orderType !== undefined ? { orderType: fields.orderType } : {}),
+                ...(fields.orderPrice !== undefined ? { price: fields.orderPrice } : {}),
+                ...(fields.qty !== undefined
+                    ? { qty: fields.qty, scopeGuess: "partial" as const }
+                    : {}),
             };
             if (index !== -1) this._orders[index] = updated;
             else this._orders.push(updated);
@@ -426,8 +462,8 @@ class TpSlManager {
          */
         if (closed) this.generation++;
 
-        applyLeg("tp", "PROFIT", data.tpPrice);
-        applyLeg("sl", "LOSS", data.slPrice);
+        applyLeg("tp", "PROFIT");
+        applyLeg("sl", "LOSS");
     }
 
     /**

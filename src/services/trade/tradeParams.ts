@@ -33,6 +33,12 @@ export interface TpSlOrder {
     clientOrderId?: string;
     reduceOnly?: boolean;
     workingType?: string;
+    /**
+     * The child order's type (`LIMIT`/`MARKET`), as the TP/SL row and the
+     * WebSocket frame name it. Declared rather than left to the index
+     * signature because the push now maintains it (BUG-0698).
+     */
+    orderType?: string;
     timeInForce?: string;
     /**
      * The id of the venue row this leg was split out of (BUG-0292).

@@ -914,3 +914,226 @@ describe("tpSlState — against the venue's actual response shape (BUG-0292)", (
         expect(tpSlState.plansFor("BTCUSDT").profit?.sourceOrderId).toBe("123");
     });
 });
+
+/*
+ * BUG-0698 — the push carries the live truth of the per-leg fields BUG-0665
+ * taught the merge to preserve from the fetch.
+ *
+ * A modify that changes a stop's trigger type, its order type, its quantity or
+ * its order price arrives on this channel; before this fix the store kept the
+ * fetched value until the 30 s cache expired. `TpSlCreateModal` prefills from
+ * `workingType` and `TpSlList` renders `qty`, so a trader could save an edit
+ * against a value the venue no longer used.
+ *
+ * `orderType` and `price` have no consumer today — these assertions are the
+ * store-boundary proof, as with BUG-0665.
+ */
+describe("tpSlState — a push updates the fields it carries (BUG-0698)", () => {
+    /** A fetched leg carrying all four fields the frame can also carry. */
+    const FETCHED = {
+        orderId: "88-tp",
+        symbol: "BTCUSDT",
+        planType: "PROFIT" as const,
+        triggerPrice: "50000",
+        status: "NEW",
+        sourceOrderId: "88",
+        qty: "0.5",
+        workingType: "MARK_PRICE",
+        orderType: "LIMIT",
+        price: "49990",
+        scopeGuess: "partial" as const,
+        ctime: 1_700_000_000_000,
+    };
+
+    async function hydrate(): Promise<void> {
+        fetchTpSl.mockResolvedValue([{ ...FETCHED }]);
+        await tpSlState.ensureFresh();
+    }
+
+    it("replaces stop type, order type, quantity and order price from the frame", async () => {
+        await hydrate();
+
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpPrice: "50000",
+            tpStopType: "LAST_PRICE",
+            tpOrderType: "MARKET",
+            tpQty: "1.25",
+            tpOrderPrice: "49980",
+        });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.workingType).toBe("LAST_PRICE");
+        expect(leg?.orderType).toBe("MARKET");
+        expect(leg?.qty).toBe("1.25");
+        expect(leg?.price).toBe("49980");
+    });
+
+    it("gives a leg the push creates the fields it names", () => {
+        tpSlState.updateFromWs({
+            orderId: "99",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpPrice: "60000",
+            tpStopType: "MARK_PRICE",
+            tpOrderType: "LIMIT",
+            tpQty: "0.1",
+            tpOrderPrice: "59990",
+        });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg).toMatchObject({
+            triggerPrice: "60000",
+            workingType: "MARK_PRICE",
+            orderType: "LIMIT",
+            qty: "0.1",
+            price: "59990",
+            scopeGuess: "partial",
+        });
+    });
+
+    it("merges a field-only frame into an existing leg without a price", async () => {
+        // The frame is sparse: it may name what moved and nothing else. A
+        // price guard ahead of the merge would drop exactly this update.
+        await hydrate();
+
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpStopType: "LAST_PRICE",
+        });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.workingType).toBe("LAST_PRICE");
+        expect(leg?.triggerPrice).toBe("50000");
+    });
+
+    it("still drops a price-less frame that matches no stored leg", () => {
+        // Creating a leg needs a trigger; a type alone would put a stop on
+        // screen that the venue does not hold.
+        tpSlState.updateFromWs({
+            orderId: "55",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpStopType: "MARK_PRICE",
+        });
+
+        expect(tpSlState.orders).toEqual([]);
+    });
+
+    it("keeps the fetched values on a push that omits them (BUG-0665 no-regress)", async () => {
+        await hydrate();
+
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpPrice: "51000",
+        });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.triggerPrice).toBe("51000");
+        expect(leg?.workingType).toBe("MARK_PRICE");
+        expect(leg?.orderType).toBe("LIMIT");
+        expect(leg?.qty).toBe("0.5");
+        expect(leg?.price).toBe("49990");
+    });
+
+    it("does not blank a live value with an empty string or a null", async () => {
+        await hydrate();
+
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpStopType: "LAST_PRICE",
+        });
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpStopType: "",
+            tpOrderPrice: null,
+        });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.workingType).toBe("LAST_PRICE");
+        expect(leg?.price).toBe("49990");
+    });
+
+    it("treats a zero quantity as a value, not as absent", async () => {
+        // The channel documents that `"0"` is sent as `"0"`, and
+        // `normalizeTpSlRow` derives `partial` from the field's presence.
+        tpSlState.updateFromWs({
+            orderId: "77",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpPrice: "60000",
+            tpQty: "0",
+        });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.qty).toBe("0");
+        expect(leg?.scopeGuess).toBe("partial");
+    });
+
+    it("recomputes scopeGuess when the frame names a quantity", async () => {
+        fetchTpSl.mockResolvedValue(
+            normalizeTpSlRows([
+                { orderId: "88", symbol: "BTCUSDT", status: "NEW", tpPrice: "50000" },
+            ]),
+        );
+        await tpSlState.ensureFresh();
+        expect(tpSlState.plansFor("BTCUSDT").profit?.scopeGuess).toBe("position");
+
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpPrice: "50000",
+            tpQty: "0.25",
+        });
+
+        expect(tpSlState.plansFor("BTCUSDT").profit?.scopeGuess).toBe("partial");
+    });
+
+    it("updates only the leg the frame names", async () => {
+        fetchTpSl.mockResolvedValue(
+            normalizeTpSlRows([
+                {
+                    orderId: "77",
+                    symbol: "BTCUSDT",
+                    status: "NEW",
+                    tpPrice: "60000",
+                    tpStopType: "MARK_PRICE",
+                    tpOrderType: "LIMIT",
+                    tpQty: "0.5",
+                    tpOrderPrice: "59990",
+                    slPrice: "50000",
+                    slStopType: "LAST_PRICE",
+                    slOrderType: "LIMIT",
+                    slQty: "0.5",
+                    slOrderPrice: "49990",
+                },
+            ]),
+        );
+        await tpSlState.ensureFresh();
+
+        tpSlState.updateFromWs({
+            orderId: "77",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            tpOrderType: "MARKET",
+        });
+
+        const loss = tpSlState.plansFor("BTCUSDT").loss;
+        expect(loss?.workingType).toBe("LAST_PRICE");
+        expect(loss?.orderType).toBe("LIMIT");
+        expect(loss?.qty).toBe("0.5");
+        expect(loss?.price).toBe("49990");
+        expect(tpSlState.plansFor("BTCUSDT").profit?.orderType).toBe("MARKET");
+    });
+});
