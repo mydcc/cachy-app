@@ -11,12 +11,16 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [BUG-0596, BUG-0580]
-branch: docs/bug-0597-remove-demo-key-narrative
+assignee: human
 ---
 
 # Migrate the Bitget order write paths to V2
 
-> **State note.** Blocked on **IDEA-0620** — the trader test protocol. The code work is landed (see the merged PR for this item's branch); what is missing is live verification against the exchange, which needs a human with API keys. No agent can close that.
+> **State note (2026-10-28).** The code work (Phases A–F) is merged. What is
+> missing is live verification against the exchange, which needs a human with
+> API keys — **IDEA-0620** is that protocol, and the account holder cannot place
+> orders at present. The acceptance criteria were re-checked against HEAD on
+> 2026-10-28 (audit below), not against the phase PRs.
 
 Row 1 and 4 of the mapping table in
 [`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md), split out of
@@ -63,6 +67,34 @@ and fee behaviour, and whether the account's mode can be switched in futures
 settings (the UTA API has no set-position-mode endpoint — mode switches in
 app UI per vendor support). Plus one precondition on the account holder:
 the account's current holdMode.
+
+## Audit (2026-10-28) — proven at HEAD vs observation-gated
+
+| Criterion | At HEAD | Where |
+|---|---|---|
+| Writes ride UTA | done | `restSigningPlan.ts:310-325` — `place-order` (also serves `close-position`), `cancel-order`, `modify-order` |
+| V1 fields cannot travel | done | `bitgetUtaWrites.test.ts:183-194` |
+| Hedge close carries `posSide` | done, test added today | `venueBodies.ts:119`; `venueBodies.test.ts:315` |
+| One-way close carries `reduceOnly` | done | `bitgetUtaWrites.test.ts:79-101` |
+| `presetStop*` shape evaluated | done, refusal stays | Phase F; `bitgetCapabilities.ts:40-43` |
+| Close returns the position to flat | **not proven** | needs a real position (IDEA-0620 Part 2) |
+| Populated order response observed | **not observed** | BUG-0590 |
+
+**One test was missing and is added here.** The close route refuses a body
+without `posSide` (`venueBodies.ts:119`), but nothing failed when that guard was
+removed — the existing tests either supplied `posSide` or tripped an earlier
+check. The new case asserts the specific `VALIDATION_ERROR` with an otherwise
+valid payload, and was checked red with the guard removed.
+
+**Why no agent can close this item.** The two open criteria are observations,
+not code. IDEA-0620 is the protocol for them: its Part 1 is balance-neutral but
+needs paper mode, Part 2 needs a funded position. The account holder reports
+(2026-10-28) that no order can be placed at present, so both wait.
+
+**Backlog note.** IDEA-0620 declares `depends_on: [BUG-0597]`, and this item's
+remaining criteria are exactly IDEA-0620's steps. The direction is right — the
+protocol is the remaining work, not a prerequisite — but it means neither can
+close alone, and both stay `ready` until the trader acts.
 
 ## Symptom
 
@@ -145,21 +177,38 @@ field a verified shape.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect and fails without the fix — no
+Re-checked against HEAD 2026-10-28. Ticked means proven by code plus a test at
+HEAD; the observation-gated ones stay open and name their blocker.
+
+- [x] A test reproduces the defect and fails without the fix — no
       `/api/mix/v1/` path in `BITGET_ORDER_PATHS`
-- [ ] No request body contains `timInForceValue`
-- [ ] `place-order` sends `productType` and `marginMode`
+      (`src/utils/exchange/restSigningPlan.ts:311-325`; the write paths are
+      asserted in `venueBodies.test.ts:340-347`)
+- [x] No request body contains `timInForceValue` — the builder sends `force`;
+      the string survives only in the refusal list that rejects V1 fields
+      (`bitgetUtaWrites.test.ts:190`)
+- [x] `place-order` sends the UTA category and an explicit `marginMode` — UTA's
+      field is `category`, not the Classic `productType` this item was written
+      with (`bitgetBodies.ts:115`, `:124`; required, never defaulted)
 - [ ] A close on a **hedge-mode** account returns the position to flat,
-      verified against a real position — not merely a 200 response
-- [ ] A test fails if a close is sent without its close-carrying field
-      (`tradeSide` on Classic V2; on UTA hedge that field is `posSide`)
-- [ ] One-way mode is handled explicitly, on its own branch, since `tradeSide`
-      is ignored there
+      verified against a real position — not merely a 200 response —
+      **observation-gated** (IDEA-0620 Part 2; the trader cannot place orders
+      at present)
+- [x] A test fails if a close is sent without its close-carrying field — on UTA
+      hedge that field is `posSide`; added 2026-10-28 and proven to go red when
+      the guard is removed (`venueBodies.test.ts`, "does not name its side")
+- [x] One-way mode is handled explicitly, on its own branch — `reduceOnly`
+      instead of `posSide`, plus the refusal of both at once
+      (`bitgetUtaWrites.test.ts:79-101`)
 - [ ] The order response shape is observed in a live V2 call and recorded, not
-      taken from the documentation alone
-- [ ] `bitgetCapabilities.tpSlAtEntry` is re-evaluated against V2, with a test
-      added before the value is flipped
-- [ ] The test passes with the fix
+      taken from the documentation alone — **observation-gated**; no populated
+      order response exists (BUG-0590)
+- [x] `bitgetCapabilities.tpSlAtEntry` is re-evaluated against V2, with a test
+      added before the value is flipped — Phase F landed the `presetStop*`
+      shape with tests; the value deliberately stays `false` until a live order
+      proves it (`bitgetCapabilities.ts:40-43`)
+- [x] The test passes with the fix — `bitgetUtaWrites.test.ts` and
+      `venueBodies.test.ts`: 46 passed, 2026-10-28
 
 ## Links
 
