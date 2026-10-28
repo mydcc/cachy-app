@@ -1,6 +1,6 @@
 ---
 id: BUG-0723
-title: Security: exchange proxy and order placement hardening (passphrase, fail-open, replay, type safety)
+title: "Security: exchange proxy and order placement hardening (passphrase, fail-open, replay, type safety)"
 type: bug
 status: done
 assignee: opencode

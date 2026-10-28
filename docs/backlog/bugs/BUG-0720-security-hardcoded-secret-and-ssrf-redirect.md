@@ -1,6 +1,6 @@
 ---
 id: BUG-0720
-title: Security: hardcoded ImgBB API key in shipped bundle and SSRF via HTTP redirect following
+title: "Security: hardcoded ImgBB API key in shipped bundle and SSRF via HTTP redirect following"
 type: bug
 status: done
 priority: P0

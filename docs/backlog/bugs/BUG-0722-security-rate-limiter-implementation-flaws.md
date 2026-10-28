@@ -1,6 +1,6 @@
 ---
 id: BUG-0722
-title: Security: rate limiter implementation flaws allow bypass of all abuse ceilings
+title: "Security: rate limiter implementation flaws allow bypass of all abuse ceilings"
 type: bug
 status: done
 priority: P1

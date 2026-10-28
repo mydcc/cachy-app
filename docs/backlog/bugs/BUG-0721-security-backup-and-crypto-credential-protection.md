@@ -1,6 +1,6 @@
 ---
 id: BUG-0721
-title: Security: backup export leaks encrypted provider configs and restore injects credentials without validation
+title: "Security: backup export leaks encrypted provider configs and restore injects credentials without validation"
 type: bug
 status: done
 priority: P0

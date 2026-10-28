@@ -1,6 +1,6 @@
 ---
 id: BUG-0724
-title: Security: AI proxy hardening (error leakage, prompt injection, unbounded inputs, model validation)
+title: "Security: AI proxy hardening (error leakage, prompt injection, unbounded inputs, model validation)"
 type: bug
 status: done
 assignee: opencode

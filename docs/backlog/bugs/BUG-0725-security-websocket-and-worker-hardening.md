@@ -1,6 +1,6 @@
 ---
 id: BUG-0725
-title: Security: WebSocket frame size limits, prototype pollution guards, and worker validation
+title: "Security: WebSocket frame size limits, prototype pollution guards, and worker validation"
 type: bug
 status: done
 assignee: opencode

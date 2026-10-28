@@ -1,6 +1,6 @@
 ---
 id: BUG-0727
-title: Security: defense-in-depth hygiene (error leakage, token attachment, sanitizer cleanup, CSV validation, gitignore)
+title: "Security: defense-in-depth hygiene (error leakage, token attachment, sanitizer cleanup, CSV validation, gitignore)"
 type: bug
 status: done
 assignee: opencode
