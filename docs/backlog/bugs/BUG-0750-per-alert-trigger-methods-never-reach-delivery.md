@@ -5,7 +5,7 @@ type: bug
 status: done
 assignee: opencode
 branch: fix/bug-0750-per-alert-channels
-shipped: v1.6.0-beta.463
+shipped: v1.6.0-beta.463 (PR #4394)
 priority: P2
 milestone: none
 editions: [community, pro, private]
