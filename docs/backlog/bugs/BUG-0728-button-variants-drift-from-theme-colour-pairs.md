@@ -5,7 +5,7 @@ type: bug
 status: specced
 priority: P2
 milestone: none
-created: "2026-10-22"
+created: 2026-10-22
 editions: [community, pro, private]
 area: ui
 data_class: none

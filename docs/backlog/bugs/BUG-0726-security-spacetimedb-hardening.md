@@ -1,6 +1,6 @@
 ---
 id: BUG-0726
-title: Security: SpacetimeDB global chat hardening (auth, rate limits, input validation)
+title: "Security: SpacetimeDB global chat hardening (auth, rate limits, input validation)"
 type: bug
 status: done
 assignee: opencode
