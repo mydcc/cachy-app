@@ -62,6 +62,7 @@ import { externalChannelsStore } from "../stores/externalChannels.svelte";
 import {
     DEFAULT_NOTIFICATION_POLICY,
     NOTIFICATION_CATEGORIES,
+    NOTIFICATION_CHANNELS,
     normalizeNotificationPolicy,
 } from "../lib/notificationPolicy";
 
@@ -461,5 +462,153 @@ describe("the external channels — FEAT-0397", () => {
             expect(DEFAULT_NOTIFICATION_POLICY[category].discord).toBe(false);
             expect(DEFAULT_NOTIFICATION_POLICY[category].telegram).toBe(false);
         }
+    });
+});
+
+/*
+ * BUG-0750 — a rule's own channel choice.
+ *
+ * The builder's footer writes `trigger_methods` and `armRule` stores it, but
+ * before this fix nothing read it: the category policy alone decided where an
+ * alarm was heard. The decision is that the three *local* channels belong to
+ * the rule — the specific choice on the alert outranks the category default —
+ * while `email`, `discord` and `telegram` stay policy-only, because they are
+ * the one path by which Class A content leaves the device (ADR-0018).
+ */
+describe("a rule's own channel selection — BUG-0750", () => {
+    function alertWith(localChannels: readonly ("in-app" | "browser" | "sound")[]) {
+        return notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-1@0",
+            message: "BTCUSDT crossed 70000",
+            localChannels,
+        });
+    }
+
+    it("delivers only what the rule selected, even where the policy wants more", () => {
+        // The builder promises "in-app only" and the policy has sound and an OS
+        // notification armed. The rule's choice is the narrower, more specific
+        // one, so it wins.
+        notificationPolicyStore.setChannel("alert-fired", "sound", true);
+        notificationPolicyStore.setChannel("alert-fired", "browser", true);
+        const ctor = stubNotification("granted");
+
+        const delivered = alertWith(["in-app"]);
+
+        expect(delivered).toEqual(["in-app"]);
+        expect(soundMock.play).not.toHaveBeenCalled();
+        expect(ctor).not.toHaveBeenCalled();
+    });
+
+    it("switches on a local channel the category leaves off", () => {
+        // Sound is off for `alert-fired` out of the box; a rule that ticks it is
+        // an explicit request for that one alarm, and honouring it is the point
+        // of the control. Ignoring it here is what a silent alarm looks like.
+        expect(DEFAULT_NOTIFICATION_POLICY["alert-fired"].sound).toBe(false);
+
+        const delivered = alertWith(["sound"]);
+
+        expect(delivered).toEqual(["sound"]);
+        expect(soundMock.play).toHaveBeenCalledWith("alarm");
+        expect(toastMock.info).not.toHaveBeenCalled();
+    });
+
+    it("leaves the category policy in charge when the rule selected nothing", () => {
+        // A rule authored before the footer existed, or one where the trader
+        // ticked nothing, keeps announcing exactly as it does today.
+        expect(alertWith([])).toEqual(["in-app"]);
+        expect(toastMock.info).toHaveBeenCalledTimes(1);
+    });
+
+    it("stays silent when the trader silenced the whole category", () => {
+        // A rule cannot resurrect a category the trader switched off entirely.
+        // The per-rule choice narrows the category; it does not overrule the
+        // "don't announce this kind of event at all" switch.
+        for (const channel of NOTIFICATION_CHANNELS) {
+            notificationPolicyStore.setChannel("alert-fired", channel, false);
+        }
+
+        expect(alertWith(["sound"])).toEqual([]);
+        expect(soundMock.play).not.toHaveBeenCalled();
+    });
+
+    it("leaves the external channels to the policy", () => {
+        // The rule's list is about the three local channels. Egress stays where
+        // the trader configured it, so a rule selecting only in-app neither
+        // adds nor blocks Discord (ADR-0018).
+        externalChannelsStore.setDiscord({
+            enabled: true,
+            webhookUrl: "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_",
+            format: "minimal",
+        });
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        const delivered = alertWith(["in-app"]);
+
+        expect(delivered).toEqual(["in-app"]);
+        expect(externalMock.dispatchExternal).toHaveBeenCalledWith(
+            ["discord"],
+            "BTCUSDT crossed 70000",
+            expect.any(String),
+        );
+    });
+
+    it("cannot open an external channel the policy has turned off", () => {
+        // The other direction of the same boundary: a per-alert switch must not
+        // become a way around the trader's egress decision. Discord is
+        // configured and the rule picks in-app — nothing may leave the device.
+        externalChannelsStore.setDiscord({
+            enabled: true,
+            webhookUrl: "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_",
+            format: "minimal",
+        });
+
+        const delivered = alertWith(["in-app"]);
+
+        expect(delivered).toEqual(["in-app"]);
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+    });
+
+    it("delivers a browser tick as an OS notification", () => {
+        // The positive half of the mapping: without it, an implementation that
+        // silently dropped `browser` would pass every other test.
+        const ctor = stubNotification("granted");
+
+        const delivered = alertWith(["browser", "sound"]);
+
+        expect(delivered).toEqual(["browser", "sound"]);
+        expect(ctor).toHaveBeenCalledTimes(1);
+        expect(toastMock.info).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the toast when the chosen channel cannot deliver", () => {
+        // Permission was never granted, so the OS notification refuses. Without
+        // the floor the alarm is heard by nobody and a `once` rule is spent.
+        stubNotification("default");
+
+        const delivered = alertWith(["browser"]);
+
+        expect(delivered).toEqual(["in-app"]);
+        expect(toastMock.info).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not fall back to a toast the category has switched off", () => {
+        // The floor is an availability guard, not a way to overrule a
+        // deliberate "no toasts for alerts". Discord keeps the category
+        // non-silent so `isSilent` does not short-circuit first.
+        stubNotification("default");
+        notificationPolicyStore.setChannel("alert-fired", "in-app", false);
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        expect(alertWith(["browser"])).toEqual([]);
+        expect(toastMock.info).not.toHaveBeenCalled();
+    });
+
+    it("ignores a channel it does not know instead of trusting the list", () => {
+        // A caller that names something outside the vocabulary must fall back to
+        // the policy, not mute the alarm by selecting nothing deliverable.
+        notificationPolicyStore.setChannel("alert-fired", "sound", true);
+
+        expect(alertWith(["email" as never])).toEqual(["in-app", "sound"]);
     });
 });

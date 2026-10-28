@@ -40,9 +40,11 @@ import { recordFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
 import { alertNotificationKey } from "../lib/notificationPolicy";
+import type { LocalNotificationChannel } from "../lib/notificationPolicy";
 import type { FiringSink, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
 import type { RuleDocument } from "../lib/rules/types";
+import type { TriggerMethod } from "../lib/rules/types";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
 import { paperState } from "./paperTrading.svelte";
@@ -386,6 +388,47 @@ export function reportBotOrderRefusal(
     );
 }
 
+/**
+ * BUG-0750 — the rule's channel vocabulary is snake_case, delivery's is
+ * kebab-case, and this is the only place the two meet.
+ *
+ * A `Map` rather than an object literal for a reason: `{...}["toString"]` is a
+ * function inherited from `Object.prototype`, which would survive the
+ * `undefined` filter and become an authoritative "selection" matching no
+ * channel — the silent alarm this mapping exists to prevent.
+ *
+ * Anything the core would not have written is dropped rather than forwarded,
+ * and a rule left with no readable method means "no opinion".
+ */
+const LOCAL_CHANNEL_BY_METHOD = new Map<TriggerMethod, LocalNotificationChannel>([
+    ["in_app", "in-app"],
+    ["browser", "browser"],
+    ["sound", "sound"],
+]);
+
+function ruleLocalChannels(rule: RuleDocument): LocalNotificationChannel[] | undefined {
+    // `readRuleStore` casts parsed JSON without validating its fields, so this
+    // can hold anything a hand edit or an older schema left behind. A non-array
+    // must mean "no opinion" rather than throw: a throw here lands in the sink's
+    // catch and skips the firing bookkeeping, leaving a `once` rule armed and
+    // re-throwing on every candle.
+    const methods: readonly unknown[] = Array.isArray(rule.trigger_methods)
+        ? rule.trigger_methods
+        : [];
+
+    const channels = methods
+        .map((method) =>
+            typeof method === "string"
+                ? LOCAL_CHANNEL_BY_METHOD.get(method as TriggerMethod)
+                : undefined,
+        )
+        .filter((channel): channel is LocalNotificationChannel => channel !== undefined);
+
+    // Empty means "no opinion": the notification policy decides, which is what
+    // every rule authored before the footer existed means.
+    return channels.length > 0 ? channels : undefined;
+}
+
 export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
     try {
         // Keyed per candle, not per rule: the service's 60s duplicate window is
@@ -397,6 +440,7 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
             eventId: alertNotificationKey(rule.id, anchorMs),
             message: firingMessage(rule),
             tone: "success",
+            localChannels: ruleLocalChannels(rule),
         });
 
         recordRuleFiring(rule.id, anchorMs);

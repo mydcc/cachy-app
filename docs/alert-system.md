@@ -160,14 +160,24 @@ and English**. A rule a trader cannot read back is a rule they cannot trust.
 
 ## When a rule fires
 
-The verdict goes to `notificationService`, which owns channel policy. In-app, browser and sound (FEAT-0392) are built in. Built-in channels
-never reach the network — the rule and its evaluation
-stay on the device. External channels (Email, Discord, Telegram) are **opt-in** via
-[`FEAT-0397`](backlog/features/FEAT-0397-notification-channels.md): the trader configures
-credentials, the service calls external APIs only if those channels are armed. Which
-channels announce a firing is decided by the notification policy in Settings — a
-per-channel, per-category, opt-in matrix ([ADR-0018](adr/0018-user-directed-egress-of-class-a-announcements.md), decision 1). A rule's
-stored `trigger_methods` are not read when a firing is announced.
+The verdict goes to `notificationService`. In-app, browser and sound (FEAT-0392)
+are built in and never reach the network — the rule and its evaluation stay on
+the device. External channels (Email, Discord, Telegram) are **opt-in** via
+[`FEAT-0397`](backlog/features/FEAT-0397-notification-channels.md): the trader
+configures credentials, and the service calls those APIs only where the policy
+asks for it.
+
+Which channels announce a firing is decided in two steps. A rule's stored
+`trigger_methods` are the whole local decision for that rule: once at least one
+is ticked, exactly the ticked channels among in-app, browser and sound announce,
+including one the category leaves off. With none ticked, the notification policy
+in Settings decides — a per-channel, per-category, opt-in matrix
+([ADR-0018](adr/0018-user-directed-egress-of-class-a-announcements.md), decision 1).
+If every ticked local channel refuses at the moment it fires (permission never
+granted, a muted tab), in-app stands in where the category still wants it: an
+alarm the trader armed must not be heard by nobody. The external channels follow
+the policy alone — a per-alert switch can neither add nor remove one — and a
+category with no channel enabled at all stays silent.
 
 Above `notify`, the verdict instead becomes an order intent, and every existing
 guard — the order gate, the risk limits, the confirmation settings — applies

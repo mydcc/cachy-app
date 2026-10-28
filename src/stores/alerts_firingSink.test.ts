@@ -378,3 +378,78 @@ describe("the announcement names what actually fired — BUG-0481", () => {
     expect(message.indexOf("firedWithNote")).toBeLessThan(message.indexOf("firedIntrabar"));
   });
 });
+
+/*
+ * BUG-0750 — the rule's own channel choice reaches delivery.
+ *
+ * The builder's footer writes `trigger_methods`, `armRule` stores it
+ * hash-excluded, and until this fix the list stopped at the store: the global
+ * category policy alone decided where an alarm was heard. The sink is where the
+ * rule's snake_case vocabulary becomes the delivery vocabulary, so this is the
+ * boundary the defect is pinned at.
+ */
+describe("the rule's channel choice reaches delivery", () => {
+  it("forwards the rule's methods as the local channels", () => {
+    fire(ruleDoc({ trigger_methods: ["in_app", "sound"] }));
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: "alert-fired",
+        localChannels: ["in-app", "sound"],
+      }),
+    );
+  });
+
+  it("forwards an empty selection as `no opinion`, which lets the policy decide", () => {
+    // Empty and absent both mean "the policy decides" — a rule authored before
+    // the footer existed must keep announcing exactly as it did.
+    fire(ruleDoc({ trigger_methods: [] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("forwards nothing when the rule predates the field", () => {
+    fire(ruleDoc());
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("forwards a browser tick as the browser channel", () => {
+    // Pins the mapping itself: `browser: "in-app"` would type-check and pass
+    // every other test in this file.
+    fire(ruleDoc({ trigger_methods: ["browser"] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toEqual(["browser"]);
+  });
+
+  it("keeps the alarm announcing when the stored methods are unreadable", () => {
+    // A corrupt store must not turn into a silent alert: an unknown method is
+    // dropped, and a list that ends up empty falls back to the policy.
+    fire(ruleDoc({ trigger_methods: ["carrier_pigeon" as never] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("treats an Object.prototype key as unreadable, not as a channel", () => {
+    // A plain object lookup returns a function for `toString`, which would
+    // survive an `undefined` filter and mute every local channel.
+    fire(ruleDoc({ trigger_methods: ["toString" as never] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("treats a non-array selection as no opinion instead of throwing", () => {
+    // A throw here would land in the sink's catch and skip the firing
+    // bookkeeping, leaving a `once` rule armed and re-throwing every candle.
+    fire(ruleDoc({ trigger_methods: "sound" as never }));
+
+    expect(mockNotify).toHaveBeenCalledTimes(1);
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("drops only the unreadable method and keeps the valid one", () => {
+    fire(ruleDoc({ trigger_methods: ["in_app", "carrier_pigeon"] as never }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toEqual(["in-app"]);
+  });
+});
