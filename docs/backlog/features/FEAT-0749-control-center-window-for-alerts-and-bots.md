@@ -60,12 +60,18 @@ keep-above and a window switcher (FEAT-0737–0742).
 6. Keyboard: the registry route and the window switcher both reach the window;
    focus moves into the list on open; Escape closes without arming or deleting
    anything.
+7. **Unread count on the rail entry.** The entry that opens the control center
+   (the existing `alerts` entry, repointed at the window) carries the number of
+   firings recorded since the window was last opened or focused. The count comes
+   from the firing ledger (`cachy_shadow_firings_v1`), is cleared on open, and
+   does not increment while the window is open and focused. The registry gains
+   an optional count provider for it; entries without one render as today.
 
 ## Acceptance criteria
 
 - [ ] `entry-points.ts` contains the control center entry (unique id, icon,
-      label/title/description, opener, rail placement, keyboard route), and the
-      registry guard (FEAT-0736) is green with it.
+      label/title/description, opener, rail placement, keyboard route, optional
+      count provider), and the registry guard (FEAT-0736) is green with it.
 - [ ] The bell opens the control center on the Alerts tab; "New alert" opens the
       Super-Alert panel blank; chart right-click and the indicator card still
       seed that panel directly.
@@ -81,6 +87,9 @@ keep-above and a window switcher (FEAT-0737–0742).
 - [ ] The Alerts tab mounts the FEAT-0747 components rather than a second list
       implementation; a test or a static check pins that there is one list
       component.
+- [ ] The rail entry carries an unread count of firings since the window was
+      last opened or focused; opening clears it, and a firing while the window
+      is open and focused does not increment it.
 - [ ] German and English strings exist for every new label.
 - [ ] No server import or call is added. The architecture data-flow diagram is
       unchanged because no data crosses a boundary; the PR says so explicitly.

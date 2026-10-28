@@ -46,30 +46,34 @@ Two gaps remain:
    local channels (the rule) and the external ones (the policy), including the
    availability floor when a chosen channel refuses. This item adds the external
    half and the test send; it does not restate the precedence.
-2. **External channels per rule, decided by FEAT-0623.** If the audit says
-   per-alert external selection is useful, extend `TriggerMethod` on both sides
+2. **External channels per rule.** The FEAT-0623 audit decided that per-rule
+   external selection is wanted. Extend `TriggerMethod` on both sides
    (`technicals-wasm/src/rule/lifecycle.rs` and `src/lib/rules/types.ts`) with
-   `email | discord | telegram`. The field is hash-excluded, so no migration of
-   journal linkage is owed; the schema version and the read path still need the
-   same care every core change gets. If the audit says external delivery stays
-   global, the UI must say so plainly instead of implying a per-rule choice.
-   This item does not pretend to be `ready` before that answer exists.
+   `email | discord | telegram`, and amend ADR-0018 before the first variant
+   ships. The policy stays the ceiling: a rule may select a channel the trader
+   configured, never open one they have not. The field is hash-excluded, so no
+   migration of journal linkage is owed; the schema version and the read path
+   still need the same care every core change gets.
 3. **Test announcement.** A "Send test" action on the lifecycle footer and on
    the control center's rule row. It goes through the same delivery service,
    is labelled as a test in the message, and must not touch rule state: no
    `fired_count`, no anchor, no `enabled` flip, no journal entry.
-4. **Show the effective set.** The list row and the control center show which
-   channels a rule will actually use (for example "in-app + sound"), so the
-   answer is visible without opening the builder.
+4. **Show the effective set.** The builder's footer, the list row and the
+   control center name the channels a rule will actually use: the local ones the
+   rule selected (or the policy's, when it selected none), plus the external
+   ones the policy enables. The existing hint stays; the concrete set is added
+   beside it.
 5. A channel that is not configured is not offered and cannot be selected — no
    switch that silently delivers nothing. External channels remain opt-in, and
    their credentials stay in Settings (ADR-0018).
 
 ## Acceptance criteria
 
-- [ ] The BUG-0750 boundary tests still pass unchanged; if FEAT-0623 concludes
-      that external channels become selectable per rule, this item records that
-      decision and amends ADR-0018 rather than relaxing those tests.
+- [ ] `TriggerMethod` accepts `email | discord | telegram` on both sides, and a
+      rule selecting one delivers only when the policy also wants it and the
+      channel is configured and active; ADR-0018 is amended in the same PR.
+- [ ] The BUG-0750 boundary tests still pass unchanged for the local three
+      channels.
 - [ ] The external-channel question is resolved by the FEAT-0623 audit and the
       resolution is visible in both the rule and the UI: either the three
       channels are selectable per rule, or the UI states that they are global.
@@ -78,6 +82,10 @@ Two gaps remain:
       `enabled` unchanged — pinned by a test.
 - [ ] Unconfigured channels are absent from the selector, not present and
       inert.
+- [ ] When no local channel is ticked, the builder's footer names the effective
+      channels — the policy's local ones plus any external channel the policy
+      enables — and keeps the existing hint. If the policy enables none, it says
+      so.
 - [ ] The effective channel set is readable on the list row in both locales.
 - [ ] Every new control is keyboard reachable and labelled.
 
@@ -91,9 +99,6 @@ Two gaps remain:
 
 ## Open questions
 
-- Per-rule external channels: extend the core enum or keep external delivery
-  global? FEAT-0623 answers this; the acceptance criteria are written for
-  either answer.
 - Should a test announcement be rate-limited? Proposal: yes, one per channel
   per few seconds, reusing the service's duplicate window rather than inventing
   a second throttle.

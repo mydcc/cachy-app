@@ -2,7 +2,9 @@
 id: FEAT-0623
 title: Audit the Super Alert system for gaps and UI/UX design
 type: feature
-status: ready
+status: done
+assignee: opencode
+branch: docs/feat-0623-super-alert-audit
 priority: P2
 milestone: none
 created: "2026-10-05"
@@ -52,21 +54,36 @@ drift.
 
 ## Acceptance criteria
 
-- [ ] A gap table covers the full flow per alert type (price, indicator,
+- [x] A gap table covers the full flow per alert type (price, indicator,
       drawing): trigger configuration, delivery channels, and announcement
       (banner, sound) — existing versus missing
-- [ ] A UI/UX findings table covers every alert surface: the side panel, the
+- [x] A UI/UX findings table covers every alert surface: the side panel, the
       indicator alert controls, the notification settings, and the external
       channels
-- [ ] Every gap is filed as a follow-up item and linked here, or deferred with
+- [x] Every gap is filed as a follow-up item and linked here, or deferred with
       a recorded reason
-- [ ] Every UI/UX finding is filed as a follow-up item and linked here, or
+- [x] Every UI/UX finding is filed as a follow-up item and linked here, or
       deferred with a recorded reason
-- [ ] Channel configuration (email, webhook, messenger equivalents) is checked
+- [x] Channel configuration (email, webhook, messenger equivalents) is checked
       for dead ends: a channel that can be configured but never fires, or
       fires but cannot be configured, is a `BUG`, not a finding
-- [ ] The audit states which alert types support per-type sound or banner
+- [x] The audit states which alert types support per-type sound or banner
       configuration and which do not
+
+## Result
+
+The audit is
+[`assets/FEAT-0623/alert-system-audit.md`](../assets/FEAT-0623/alert-system-audit.md):
+two tables (§2 gaps per alert type, §4 findings per surface), a channel
+dead-end check (§3), the deferrals with reasons (§5) and the follow-up index
+(§7).
+
+It filed five follow-ups and decided the question FEAT-0748 was waiting on. The
+dead-end check found one case, which is why it is a bug and not a finding: the
+external-channel matrix and delivery disagree about what "switched on" means.
+
+Per-type sound and banner do not exist; the decision to keep them out is
+recorded in §5 rather than left as an open question.
 
 ## Out of scope
 
@@ -81,12 +98,14 @@ drift.
 
 ## Open questions
 
-- Should per-type sound configuration exist at all, or is one global sound
-  enough? The gap table answers what is missing; whether it should exist is
-  a product decision for the follow-up item.
+None. What was open — per-type sound and per-rule external channels — is
+recorded as a decision in the audit (§5 and §2) and carried by FEAT-0748.
 
 ## Links
 
+- Result: [`assets/FEAT-0623/alert-system-audit.md`](../assets/FEAT-0623/alert-system-audit.md)
+- Follow-ups filed by the audit: §7 of the result document (the drawing path,
+  three list/channel defects, one accessibility item)
 - Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §5
 - [FEAT-0389](FEAT-0389-super-alert-panel.md) — the side panel this audits
 - [FEAT-0395](FEAT-0395-alert-entry-points.md) — chart and indicator entry points
