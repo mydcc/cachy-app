@@ -378,3 +378,47 @@ describe("the announcement names what actually fired — BUG-0481", () => {
     expect(message.indexOf("firedWithNote")).toBeLessThan(message.indexOf("firedIntrabar"));
   });
 });
+
+/*
+ * BUG-0750 — the rule's own channel choice reaches delivery.
+ *
+ * The builder's footer writes `trigger_methods`, `armRule` stores it
+ * hash-excluded, and until this fix the list stopped at the store: the global
+ * category policy alone decided where an alarm was heard. The sink is where the
+ * rule's snake_case vocabulary becomes the delivery vocabulary, so this is the
+ * boundary the defect is pinned at.
+ */
+describe("the rule's channel choice reaches delivery", () => {
+  it("forwards the rule's methods as the local channels", () => {
+    fire(ruleDoc({ trigger_methods: ["in_app", "sound"] }));
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: "alert-fired",
+        localChannels: ["in-app", "sound"],
+      }),
+    );
+  });
+
+  it("forwards an empty selection as `no opinion`, which lets the policy decide", () => {
+    // Empty and absent both mean "the policy decides" — a rule authored before
+    // the footer existed must keep announcing exactly as it did.
+    fire(ruleDoc({ trigger_methods: [] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("forwards nothing when the rule predates the field", () => {
+    fire(ruleDoc());
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("keeps the alarm announcing when the stored methods are unreadable", () => {
+    // A corrupt store must not turn into a silent alert: an unknown method is
+    // dropped, and a list that ends up empty falls back to the policy.
+    fire(ruleDoc({ trigger_methods: ["carrier_pigeon" as never] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+});

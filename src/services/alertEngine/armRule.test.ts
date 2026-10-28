@@ -155,7 +155,7 @@ describe("forget wiring (BUG-0486)", () => {
         expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
     });
 
-    it("keeps anchors when only lifecycle fields change (note, frequency)", () => {
+    it("keeps anchors when only lifecycle fields change (note, frequency, channels)", () => {
         // FEAT-0393 lifecycle is outside the content hash on purpose: a note
         // edit on a just-fired once rule must not make its already-seen
         // candle decidable again.
@@ -167,6 +167,13 @@ describe("forget wiring (BUG-0486)", () => {
         expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
 
         armRule({ ...rule("a", "70000"), frequency: "every_time" });
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+
+        // BUG-0750: the per-rule channel choice is persisted and hash-excluded
+        // like the other lifecycle fields — otherwise turning an alarm's tone
+        // on would re-open a candle it had already announced.
+        armRule({ ...rule("a", "70000"), trigger_methods: ["in_app", "sound"] });
         expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
         expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
     });

@@ -43,6 +43,7 @@ import { registerOrderTransitionObserver } from "./omsService";
 import { formatDynamicDecimal } from "../utils/utils";
 import type { OMSOrder } from "./omsTypes";
 import type { NotificationCategory } from "../lib/notificationPolicy";
+import type { LocalNotificationChannel } from "../lib/notificationPolicy";
 
 /** What the caller knows about the event, already translated. */
 export interface NotificationRequest {
@@ -53,6 +54,24 @@ export interface NotificationRequest {
     message: string;
     /** Colours the toast. Rejections read as errors, fills as successes. */
     tone?: "success" | "error" | "info";
+    /**
+     * The local channels this particular announcement asks for — BUG-0750.
+     *
+     * Non-empty: authoritative for `in-app`, `browser` and `sound`. A rule that
+     * says "in-app only" then stays off the OS notification and the tone even
+     * when the category policy switches both on. It may also switch one on that
+     * the category leaves off: the specific choice on the alert outranks the
+     * general one, and the failure this subsystem exists to prevent is an alarm
+     * that looks armed and is heard by nobody.
+     *
+     * Absent or empty: the category policy decides, which is what every rule
+     * authored before this field existed means.
+     *
+     * The external channels are deliberately not selectable here; see
+     * `LocalNotificationChannel`. A category the trader silenced entirely stays
+     * silent — `isSilent` is checked before this field is read.
+     */
+    localChannels?: readonly LocalNotificationChannel[];
 }
 
 /**
@@ -102,13 +121,29 @@ class NotificationService {
     /**
      * Announce an event, on whichever channels the policy wants.
      *
+     * `request.localChannels`, when present and non-empty, takes over the three
+     * local channels: the trader picked them on this rule, and a specific choice
+     * on the alert outranks the category default (BUG-0750). The external
+     * channels stay policy-only either way.
+     *
      * Returns the channels actually delivered on, so a test can assert the
      * absence of delivery rather than the presence of a message.
      */
     public notify(request: NotificationRequest): string[] {
-        const { category, eventId, message, tone = "info" } = request;
+        const { category, eventId, message, tone = "info", localChannels } = request;
 
         if (notificationPolicyStore.isSilent(category)) return [];
+
+        /*
+         * One place for the precedence, so the toast, the OS notification and
+         * the tone cannot disagree about who decides. A rule's list only ever
+         * touches the local channels; `undefined` and `[]` both mean "the
+         * policy decides".
+         */
+        const wantsLocal = (channel: LocalNotificationChannel): boolean =>
+            localChannels !== undefined && localChannels.length > 0
+                ? localChannels.includes(channel)
+                : notificationPolicyStore.wants(category, channel);
 
         const key = notificationKey(category, eventId);
         if (this.isDuplicate(key)) return [];
@@ -116,14 +151,14 @@ class NotificationService {
 
         const delivered: string[] = [];
 
-        if (notificationPolicyStore.wants(category, "in-app")) {
+        if (wantsLocal("in-app")) {
             if (tone === "success") toastService.success(message);
             else if (tone === "error") toastService.error(message);
             else toastService.info(message);
             delivered.push("in-app");
         }
 
-        if (notificationPolicyStore.wants(category, "browser") && this.showBrowser(message)) {
+        if (wantsLocal("browser") && this.showBrowser(message)) {
             delivered.push("browser");
         }
 
@@ -135,7 +170,7 @@ class NotificationService {
          * from the list rather than claimed.
          */
         if (
-            notificationPolicyStore.wants(category, "sound") &&
+            wantsLocal("sound") &&
             soundChannel.play(TONE_FOR_CATEGORY[category])
         ) {
             delivered.push("sound");

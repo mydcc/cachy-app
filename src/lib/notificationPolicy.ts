@@ -100,6 +100,17 @@ export function isExternalChannel(channel: NotificationChannel): boolean {
     return (EXTERNAL_NOTIFICATION_CHANNELS as readonly string[]).includes(channel);
 }
 
+/**
+ * The channels a single announcement may choose for itself — BUG-0750.
+ *
+ * The three local ones, and only those: none of them leaves the device, so a
+ * per-alert choice cannot widen egress. `email`, `discord` and `telegram` are
+ * deliberately absent — they stay policy-only, because a per-alert switch that
+ * could open them would be a way around the trader's global egress decision
+ * (ADR-0018).
+ */
+export type LocalNotificationChannel = "in-app" | "browser" | "sound";
+
 export type NotificationPolicy = Record<
     NotificationCategory,
     Record<NotificationChannel, boolean>

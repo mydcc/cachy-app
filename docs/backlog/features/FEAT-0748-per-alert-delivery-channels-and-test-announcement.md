@@ -41,10 +41,13 @@ Two gaps remain after the defect is fixed:
 ## Proposal
 
 1. **BUG-0750 first.** Pass the rule's `trigger_methods` into the delivery
-   path. The rule's list narrows the global policy (intersection): a channel
-   must be both wanted by the policy and selected by the rule. Absent or empty
-   keeps today's behaviour exactly, as `types.ts` documents. The policy stays
-   the safety ceiling; a rule may never widen it.
+   path. The rule is authoritative for the three local channels — what it ticks
+   is what happens, including switching one on that the category leaves off —
+   while the category policy stays the ceiling for the external ones. Absent or
+   empty keeps the policy's decision, and a category the trader silenced
+   entirely stays silent. See
+   [`BUG-0750`](../bugs/BUG-0750-per-alert-trigger-methods-never-reach-delivery.md)
+   for the reasoning.
 2. **External channels per rule, decided by FEAT-0623.** If the audit says
    per-alert external selection is useful, extend `TriggerMethod` on both sides
    (`technicals-wasm/src/rule/lifecycle.rs` and `src/lib/rules/types.ts`) with
@@ -69,8 +72,10 @@ Two gaps remain after the defect is fixed:
 - [ ] With BUG-0750 fixed, a rule selecting only `in_app` delivers no browser
       or sound announcement even when the global policy enables them; a rule
       with absent or empty methods follows the global policy unchanged.
-- [ ] The precedence is intersection, not override: a channel the policy has
-      disabled is never delivered, even if the rule selects it.
+- [ ] The precedence matches BUG-0750: the rule decides the local channels, so
+      a rule that ticks `sound` is audible even when the category leaves sound
+      off; the external channels stay policy-only and cannot be widened by a
+      rule.
 - [ ] The external-channel question is resolved by the FEAT-0623 audit and the
       resolution is visible in both the rule and the UI: either the three
       channels are selectable per rule, or the UI states that they are global.

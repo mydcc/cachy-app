@@ -165,9 +165,15 @@ never reach the network — the rule and its evaluation
 stay on the device. External channels (Email, Discord, Telegram) are **opt-in** via
 [`FEAT-0397`](backlog/features/FEAT-0397-notification-channels.md): the trader configures
 credentials, the service calls external APIs only if those channels are armed. Which
-channels announce a firing is decided by the notification policy in Settings — a
-per-channel, per-category, opt-in matrix ([ADR-0018](adr/0018-user-directed-egress-of-class-a-announcements.md), decision 1). A rule's
-stored `trigger_methods` are not read when a firing is announced.
+channels announce a firing is decided in two steps. A rule's stored
+`trigger_methods` choose the three **local** channels for that rule — in-app,
+browser and sound — and a tick there wins over the category default, including
+switching on a channel the category leaves off. Without a tick, the notification
+policy in Settings decides: a per-channel, per-category, opt-in matrix
+([ADR-0018](adr/0018-user-directed-egress-of-class-a-announcements.md), decision 1). The
+external channels (Email, Discord, Telegram) stay policy-only — a per-alert
+switch never widens the egress the trader configured, and a category switched off
+entirely stays silent.
 
 Above `notify`, the verdict instead becomes an order intent, and every existing
 guard — the order gate, the risk limits, the confirmation settings — applies
