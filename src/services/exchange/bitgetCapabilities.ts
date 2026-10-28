@@ -34,9 +34,11 @@ import type { ExchangeCapabilities } from "./capabilityTypes";
 export const bitgetCapabilities: ExchangeCapabilities = Object.freeze({
     orderTypes: Object.freeze(["market", "limit"] as const),
 
-    // No verified attached-TP/SL shape. `orderPlacementService` reads this and
-    // places protection as a separate step, which is why the unprotected
-    // window it guards against exists at all.
+    // The `presetStop*` shape is transcribed and unit-tested
+    // (`bitgetUtaPreset.test.ts`), but it has not been observed accepted on a
+    // live order, so the gate stays closed — `orderPlacementService` reads this
+    // and places protection as a separate step, which is why the unprotected
+    // window it guards against exists at all. Flip only after that observation.
     tpSlAtEntry: false,
 
     // No verified standalone-TP/SL shape either (BUG-0503). Every TP/SL verb
