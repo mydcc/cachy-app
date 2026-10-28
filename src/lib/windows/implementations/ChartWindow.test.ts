@@ -86,3 +86,34 @@ describe("ChartWindow.updateHeaderControls", () => {
         expect(save).toHaveBeenCalledTimes(1);
     });
 });
+
+describe("ChartWindow title (FEAT-0378)", () => {
+    const main = { id: "bu-1", name: "Main", exchange: "bitunix" as const, keys: { key: "k", secret: "s" } };
+    const second = { id: "bu-2", name: "Second", exchange: "bitunix" as const, keys: { key: "k2", secret: "s2" } };
+
+    beforeEach(() => {
+        settingsState.accounts = [main, second];
+        settingsState.activeAccountId = "bu-1";
+        settingsState.apiProvider = "bitunix";
+    });
+
+    it("names the active account beside the symbol", () => {
+        const win = new ChartWindow("BTCUSDT");
+
+        expect(win.title).toBe("BTCUSDT · Main");
+    });
+
+    it("persists the bare symbol, not the decorated title", () => {
+        const win = new ChartWindow("BTCUSDT");
+
+        expect(win.serialize().title).toBe("BTCUSDT");
+    });
+
+    it("follows an account switch on an open window", () => {
+        const win = new ChartWindow("BTCUSDT");
+
+        settingsState.activeAccountId = "bu-2";
+
+        expect(win.title).toBe("BTCUSDT · Second");
+    });
+});

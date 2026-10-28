@@ -36,7 +36,7 @@
 -->
 
 <script lang="ts">
-    import { settingsState } from "../../stores/settings.svelte";
+    import { activeAccountLabel, activeAccountVenueLabel } from "../../stores/settings/activeAccount";
     import { _ } from "../../locales/i18n";
 
     interface Props {
@@ -47,30 +47,18 @@
     let { compact = false }: Props = $props();
 
     /*
-     * `accounts?.` deliberately, matching `keysForActiveAccount`'s own
-     * defensiveness. This chip renders on the order panel, and a thrown
-     * `undefined.find` there takes down the surface that places trades —
-     * a far worse outcome than a chip that falls back to the venue name.
-     */
-    const account = $derived(
-        settingsState.accounts?.find(
-            (a) => a.id === settingsState.activeAccountId,
-        ),
-    );
-
-    /**
-     * Falls back to the venue rather than rendering nothing.
+     * Both values come from `activeAccountLabel`'s module, which resolves
+     * through `activeAccountFor` — the gate's own resolver. A local
+     * `accounts.find(id)` would disagree when the stored id names the other
+     * venue, and this chip's whole job is to say which account signs.
      *
-     * A chip that disappears when state is unexpected is worse than useless
-     * here: its whole job is to be present wherever money moves, and a gap
-     * reads as "no account involved".
+     * The helper is total: with no account left it returns the display-cased
+     * venue, so the chip falls back to a name rather than rendering nothing.
+     * A gap here reads as "no account involved", which is worse than useless
+     * on a surface that moves money.
      */
-    const name = $derived(account?.name ?? settingsState.apiProvider);
-    const venue = $derived(
-        (account?.exchange ?? settingsState.apiProvider) === "bitget"
-            ? "Bitget"
-            : "Bitunix",
-    );
+    const name = $derived(activeAccountLabel());
+    const venue = $derived(activeAccountVenueLabel());
 
     /*
      * The default account is named after its venue, so name and venue read

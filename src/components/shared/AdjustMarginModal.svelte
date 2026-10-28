@@ -48,6 +48,7 @@
   import type { OMSPosition } from "../../services/omsTypes";
   import type { TranslationKey } from "../../locales/schema";
   import ModalFrame from "./ModalFrame.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
 
   interface Props {
     position: OMSPosition | null;
@@ -241,6 +242,10 @@
   height={375}
   compact
 >
+  {#snippet headerExtra()}
+    <ActiveAccountChip />
+  {/snippet}
+
   <div class="flex flex-col gap-3 p-4 min-w-[300px]">
     <div class="text-sm text-[var(--text-secondary)]">
       {$_("journal.symbol")}:

@@ -21,6 +21,7 @@
   import type { NormalizedOrder } from "../../types/exchange";
   import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
   import { clampPopoverPosition } from "../../utils/tooltipPosition";
+  import { activeAccountLabel } from "../../stores/settings/activeAccount";
 
   interface Props {
     orders?: NormalizedOrder[];
@@ -231,7 +232,13 @@
   }
 
   function handleCancel(order: NormalizedOrder) {
-    if (confirm($_("dashboard.confirmCancelOrder"))) {
+    // FEAT-0378: a native confirm cannot render a chip, so the account is the
+    // first line of the prompt. Cancelling cannot open a position, but it can
+    // cancel the wrong account's order when two are configured.
+    const accountLine = $_("common.accountLine", {
+      values: { account: activeAccountLabel() },
+    });
+    if (confirm(accountLine + "\n\n" + $_("dashboard.confirmCancelOrder"))) {
         oncancel?.(order.id || order.orderId, order.symbol);
     }
   }

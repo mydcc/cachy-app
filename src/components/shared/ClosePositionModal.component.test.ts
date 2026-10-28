@@ -125,6 +125,17 @@ afterEach(() => {
 });
 
 describe("BUG-0347 — ClosePositionModal keeps an edited quantity on price ticks", () => {
+    it("names the active account in its header", () => {
+        // FEAT-0378: the modal opens from a chart window with no sidebar in
+        // view; the chip is rendered through ModalFrame's headerExtra.
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+        expect(host.querySelector(".chip")?.textContent).toContain("Bitunix");
+    });
+
     it("seeds the full size on open", () => {
         component = mount(ClosePositionLiveWrapper, {
             target: host,

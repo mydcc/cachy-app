@@ -2186,6 +2186,7 @@
       "accounts": {
         "switchFrom": "Current account",
         "switchTo": "Switching to",
+        "activeAccount": "Account",
         "active": "Active",
         "name": "Account name",
         "namePlaceholder": "e.g. Scalping",
@@ -2797,6 +2798,7 @@
     "pairsCount": "{count} Pairs"
   },
   "common": {
+    "accountLine": "Account: {account}",
     "windowMenu": "Window menu",
     "toggleVideoTooltip": "Left-Click: Toggle Genesis | Right-Click: More Channels",
     "channels": "Channels",
@@ -4629,7 +4631,7 @@
     "confirm": {
       "titleLive": "Place this order?",
       "titlePaper": "Place this paper order?",
-      "message": "{side} {qty} {symbol} as a {type} order.<br>Take profit: {takeProfit}<br>Stop: {stop}<br>Leverage: {leverage}<br>Continue?",
+      "message": "Account: {account}<br>{side} {qty} {symbol} as a {type} order.<br>Take profit: {takeProfit}<br>Stop: {stop}<br>Leverage: {leverage}<br>Continue?",
       "takeProfitLeg": "TP{index} at {price} ({percent})",
       "noTakeProfit": "no take profit",
       "noStopLoss": "No stop loss",

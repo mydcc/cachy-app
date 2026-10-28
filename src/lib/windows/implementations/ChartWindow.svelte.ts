@@ -24,6 +24,7 @@ import { WindowBase, type HeaderControl, type WindowSerializedState } from "../W
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
+import { activeAccountLabel } from "../../../stores/settings/activeAccount";
 import { safeTfToMs } from "../../../utils/timeUtils";
 import CandleChartView from "./CandleChartView.svelte";
 import type { WindowOptions, ContextMenuAction } from "../types";
@@ -74,6 +75,21 @@ export class ChartWindow extends WindowBase {
         // must not schedule a save before the window is registered.
         if (options.timeframe) this._timeframe = options.timeframe;
         this.updateHeaderControls();
+    }
+
+    /**
+     * `${symbol} · ${account}` — FEAT-0378. A standalone chart window has no
+     * ancestor chip, so its title is the only place the account can be named.
+     * The getter reads settings state while `WindowFrame` renders `win.title`,
+     * so an account switch updates open windows instead of leaving a stale
+     * name on a surface that can close a position.
+     */
+    override get title(): string {
+        return `${super.title} · ${activeAccountLabel()}`;
+    }
+
+    override set title(value: string) {
+        super.title = value;
     }
 
     /**
@@ -186,6 +202,9 @@ export class ChartWindow extends WindowBase {
     public serialize(): WindowSerializedState & { symbol: string; timeframe: string } {
         return {
             ...super.serialize(),
+            // The decorated getter appends the account (FEAT-0378); persist
+            // the bare symbol so a restore cannot prepend it a second time.
+            title: super.title,
             symbol: this.symbol,
             timeframe: this.timeframe
         };

@@ -43,6 +43,7 @@
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
+    import { activeAccountLabel } from "../../../stores/settings/activeAccount";
     import { keysForActiveAccount } from "../../../stores/settings/accounts";
     import { accountState } from "../../../stores/account.svelte";
     import { paperAccountFeed } from "../../../services/paperAccountFeed";
@@ -1050,6 +1051,8 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         // The gate's own field labels, so the dialog reads in the same
         // vocabulary as the refusal it is guarding against.
         return [
+            // FEAT-0378: which account the pending TP/SL change will use.
+            { label: get(_)("orderGate.fields.account"), value: activeAccountLabel() },
             { label: get(_)("orderGate.fields.symbol"), value: request.symbol },
             {
                 label:

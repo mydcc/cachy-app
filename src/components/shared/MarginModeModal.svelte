@@ -44,6 +44,7 @@
   import { untrack } from "svelte";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
 
   type MarginMode = "ISOLATION" | "CROSS";
   type PositionMode = "ONE_WAY" | "HEDGE";
@@ -134,6 +135,10 @@
   height={540}
   compact
 >
+  {#snippet headerExtra()}
+    <ActiveAccountChip />
+  {/snippet}
+
   <div class="flex flex-col gap-4 p-4 min-w-[320px] max-w-[26rem]">
     <!-- Margin mode: per symbol. -->
     <section class="flex flex-col gap-2">

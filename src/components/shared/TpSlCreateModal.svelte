@@ -40,6 +40,7 @@ import { Decimal } from "decimal.js";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import TpSlPriceInput from "./TpSlPriceInput.svelte";
   import { tpSlState } from "../../stores/tpsl.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -313,6 +314,10 @@ import { Decimal } from "decimal.js";
   height={760}
   compact
 >
+  {#snippet headerExtra()}
+    <ActiveAccountChip />
+  {/snippet}
+
   <div class="flex flex-col gap-4 p-4 min-w-[320px] max-w-[380px]">
     <div class="text-sm text-[var(--text-secondary)]">
       {$_("journal.symbol")}: <span class="text-[var(--text-primary)] font-bold">{position.symbol}</span>

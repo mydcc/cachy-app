@@ -2,7 +2,7 @@
 id: FEAT-0378
 title: Name the active account on the surfaces FEAT-0026 did not reach
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [FEAT-0026]
+shipped: "PR #4403"
 estimate: 2
 size: S
 target_date: 2026-12-21
@@ -44,9 +45,13 @@ does not fit — on:
 | `TpSlCreateModal.svelte` / `TpSlEditModal.svelte` | same |
 | `AdjustMarginModal.svelte` | changes margin on a live position |
 | `LeverageModal.svelte` / `MarginModeModal.svelte` | change what a position size is checked against |
-| `ExchangeAccountControls.svelte` | `venueName` exists at `:79` but is used *only* inside blocked-reason strings, so it is invisible exactly when the control works |
-| `ChartWindow.svelte.ts:53` | the standalone chart window has no ancestor chip; its title is the only place — `${symbol} · ${accountName}` |
-| `+page.svelte:322` | the shell, next to `ConnectionStatus` — read-only |
+| `AddToPositionModal.svelte` | adds to a live position, from a chart-window action |
+| `ExchangeAccountControls.svelte` | its `venueName` is used only inside blocked-reason strings, so the venue is invisible exactly when the control works |
+| `ExchangeAccountControls` leverage / mode confirmations | the final free-text dialog changes exchange settings and names no account |
+| `closeAllFlow.ts` confirmation | bulk close states count and notional, not the account |
+| `OpenOrdersList.handleCancel` / `TpSlList.handleCancel` | native `confirm()` names the order, not the account |
+| `ChartWindow.svelte.ts` title accessor | the standalone chart window has no ancestor chip; its title is the only place — `${symbol} · ${accountName}` |
+| `+page.svelte` title cluster | the shell, read-only (the account chip sits beside the app title; `ConnectionStatus` positions itself absolutely in the corner) |
 
 Also: `PlaceOrderPanel.svelte:210-228` still confirms through free-text
 `modalState.show()`. Extend `orderEntry.confirm.message` with an `{account}`
@@ -61,12 +66,46 @@ Its FEAT-0012 paper-mode badge is already invisible for that reason.
 anything added for it must live inside the component, never be injected by the
 parent.
 
+## Resolution (2026-10-28)
+
+**One derivation, reused on every order surface in this item.** `src/stores/settings/activeAccount.ts`
+wraps `activeAccountFor(accounts, activeAccountId, apiProvider)` — the gate's
+own resolver — and exposes `activeAccountLabel()` / `activeAccountVenueLabel()`.
+The chip used to call `accounts.find(activeAccountId)`, which can name an
+account the gate will not sign for: `resolveActiveId` keeps a stored id even
+when it belongs to the other venue, and `activeAccountFor` repairs that by
+falling back to the venue's first account. Chip, titles and confirmations now
+label what will be signed. With no account left, the label is the display-cased
+venue, not the lowercase provider slug.
+
+- The six modals and `AddToPositionModal` show the chip in the header via
+  `ModalFrame`'s `headerExtra`; `ModalFrameWindow` marks the header visible
+  when a snippet is present.
+- `ExchangeAccountControls` gains a third labelled column (account) in its own
+  row, ahead of leverage and margin mode; its header comment now says three.
+- `ChartWindow.title` is an overridden accessor: `${symbol} · ${account}`.
+  `WindowFrame` reads it during render, so an account switch updates open
+  windows. `serialize()` keeps the bare symbol so a restore cannot append the
+  account a second time.
+- Free-text confirmations that cannot host a chip prepend
+  `common.accountLine`: place order, close-all, leverage, margin/position mode,
+  and both native cancel prompts (open orders, pending TP/SL). The HTML
+  dialogs separate it with `<br><br>`; `DialogView` renders the message as
+  HTML, so a newline would collapse into a space.
+- `ConfirmActionModal` callers that move money lead with
+  `orderGate.fields.account`; the two account-switch dialogs already lead with
+  from/to and stay unchanged.
+- Shell: the chip sits in the title cluster. `ConnectionStatus` positions
+  itself absolutely in the panel corner, so a sibling would land elsewhere.
+
+No `$effect` was added: the chip derives, the chart title is a getter.
+
 ## Acceptance criteria
 
-- [ ] Every surface above names the account an action will use
-- [ ] `ConfirmActionModal` callers pass the account as their **first** fact
-- [ ] German and English strings
-- [ ] No `$effect` added without a cleanup return
+- [x] Every surface above names the account an action will use
+- [x] `ConfirmActionModal` callers pass the account as their **first** fact
+- [x] German and English strings
+- [x] No `$effect` added without a cleanup return (none added)
 
 ## Out of scope
 
