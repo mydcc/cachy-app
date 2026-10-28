@@ -130,7 +130,8 @@ export function checkBacklogFlip(inputs: FlipInputs): FlipVerdict {
         outcome: "fail",
         detail:
             `#${declared} links to backlog item ${itemId}, but this PR does not flip ` +
-            `it to done. Set \`status: done\` in the item file, regenerate the index ` +
-            `(\`node scripts/backlog-index.mjs\`) and commit both — no bot does it after the merge.`,
+            `it to done. Set \`status: done\` in the item file — the index is ` +
+            `generated on demand and gitignored, so never commit it. No bot does ` +
+            `the flip after the merge.`,
     };
 }

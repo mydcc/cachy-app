@@ -50,7 +50,7 @@ open's skip (recorded, not silent — see `availableMarginUnmeasured`).
 - [ ] A quantity-increasing modify whose resulting margin exceeds the free balance is refused with `insufficientMargin`
 - [ ] A funded increase still passes; price-only and reducing modifies are unaffected (regression tests)
 - [ ] Absent balance on a modify records the skip instead of silently passing
-- [ ] `npm run backlog:check` passes with this item (index regenerated in the same PR)
+- [ ] `npm run backlog:check` passes with this item (the index is generated on demand and never committed)
 
 ## Links
 

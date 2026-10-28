@@ -62,7 +62,8 @@ Der Dispatcher nimmt genau diese Items, keine eigene Interpretation.
 Welche das gerade sind, steht in `docs/backlog/INDEX.md` — der Dispatcher
 nimmt genau diese. Ein Item von `specced` auf `ready` heben heißt: im Front-Matter `status: ready` setzen, `depends_on` sind
 tatsächlich alle `done`, ein `adr: required` hat eine existierende ADR — dann
-`npm run backlog:index` laufen lassen und committen. Das bleibt bewusst ein
+`npm run backlog:check` laufen lassen. Der Index wird bei Bedarf erzeugt und
+nie committet. Das bleibt bewusst ein
 manueller Schritt: die Einschätzung "ist das wirklich unblockiert" soll ein
 Mensch treffen, nicht der Dispatcher.
 

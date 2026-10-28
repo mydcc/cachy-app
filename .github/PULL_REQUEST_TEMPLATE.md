@@ -25,7 +25,7 @@ Fixes #<issue_number>
 
 <!-- Only if this closes a backlog mirror with a `backlog-id:` label. -->
 - [ ] N/A
-- [ ] Item flipped to `status: done` and `node scripts/backlog-index.mjs` regenerated in this PR
+- [ ] Item flipped to `status: done` in its own file (the index is generated on demand and never committed)
 
 ## Test plan
 
