@@ -10,7 +10,7 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [FEAT-0026]
-shipped: PR #4403
+shipped: "PR #4403"
 estimate: 2
 size: S
 target_date: 2026-12-21
@@ -49,7 +49,7 @@ does not fit — on:
 | `ExchangeAccountControls.svelte` | its `venueName` is used only inside blocked-reason strings, so the venue is invisible exactly when the control works |
 | `ExchangeAccountControls` leverage / mode confirmations | the final free-text dialog changes exchange settings and names no account |
 | `closeAllFlow.ts` confirmation | bulk close states count and notional, not the account |
-| `OpenOrdersList.handleCancel` | native `confirm()` names the order, not the account |
+| `OpenOrdersList.handleCancel` / `TpSlList.handleCancel` | native `confirm()` names the order, not the account |
 | `ChartWindow.svelte.ts` title accessor | the standalone chart window has no ancestor chip; its title is the only place — `${symbol} · ${accountName}` |
 | `+page.svelte` title cluster | the shell, read-only (the account chip sits beside the app title; `ConnectionStatus` positions itself absolutely in the corner) |
 
@@ -68,7 +68,7 @@ parent.
 
 ## Resolution (2026-10-28)
 
-**One derivation, reused everywhere.** `src/stores/settings/activeAccount.ts`
+**One derivation, reused on every order surface in this item.** `src/stores/settings/activeAccount.ts`
 wraps `activeAccountFor(accounts, activeAccountId, apiProvider)` — the gate's
 own resolver — and exposes `activeAccountLabel()` / `activeAccountVenueLabel()`.
 The chip used to call `accounts.find(activeAccountId)`, which can name an
@@ -89,7 +89,9 @@ venue, not the lowercase provider slug.
   account a second time.
 - Free-text confirmations that cannot host a chip prepend
   `common.accountLine`: place order, close-all, leverage, margin/position mode,
-  and the native cancel prompt.
+  and both native cancel prompts (open orders, pending TP/SL). The HTML
+  dialogs separate it with `<br><br>`; `DialogView` renders the message as
+  HTML, so a newline would collapse into a space.
 - `ConfirmActionModal` callers that move money lead with
   `orderGate.fields.account`; the two account-switch dialogs already lead with
   from/to and stay unchanged.

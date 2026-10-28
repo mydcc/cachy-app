@@ -431,7 +431,7 @@
             absolutely in the panel corner — a sibling there would land at the
             top-left of the panel instead.
           -->
-          <ActiveAccountChip compact />
+          <ActiveAccountChip />
         </div>
         {#each headerEntries as item (item.entry.id)}
           <HeaderJournalButton entry={item.entry} variant="mobile" />

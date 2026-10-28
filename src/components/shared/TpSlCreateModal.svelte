@@ -315,7 +315,7 @@ import { Decimal } from "decimal.js";
   compact
 >
   {#snippet headerExtra()}
-    <ActiveAccountChip compact />
+    <ActiveAccountChip />
   {/snippet}
 
   <div class="flex flex-col gap-4 p-4 min-w-[320px] max-w-[380px]">

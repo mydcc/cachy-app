@@ -105,7 +105,7 @@ export async function confirmAndCloseAllPositions(symbol?: string): Promise<Clos
         const confirmed = await modalState.show(
             t("trade.closeAllConfirmTitle"),
             t("common.accountLine", { account: activeAccountLabel() }) +
-                "\n\n" +
+                "<br><br>" +
                 t("trade.closeAllConfirmMessage", {
                     count: String(inScope.length),
                     notional: notional.toFixed(2),

@@ -580,8 +580,8 @@ import { Decimal } from "decimal.js";
       });
       const message =
         accountLine +
-        "\n\n" +
-        (sideLines.length > 0 ? base + "\n\n" + sideLines.join("\n") : base);
+        "<br><br>" +
+        (sideLines.length > 0 ? base + "<br><br>" + sideLines.join("<br><br>") : base);
 
       const confirmed = await modalState.show(
         $_("exchange.accountSettings.confirmLeverageTitle"),
@@ -663,7 +663,7 @@ import { Decimal } from "decimal.js";
 
       const confirmed = await modalState.show(
         $_("exchange.accountSettings.confirmModesTitle"),
-        lines.join("\n\n"),
+        lines.join("<br><br>"),
         "confirm",
       );
       if (confirmed !== true) return;
@@ -712,7 +712,7 @@ import { Decimal } from "decimal.js";
     <span class="text-[11px] font-medium text-[var(--text-secondary)]"
       >{$_("settings.connections.accounts.activeAccount")}</span
     >
-    <ActiveAccountChip compact />
+    <ActiveAccountChip />
   </div>
 
   <!-- Leverage column. Gated by nothing; see the header comment. -->

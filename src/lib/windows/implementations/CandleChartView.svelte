@@ -43,7 +43,7 @@
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
-  import { activeAccountLabel } from "../../../stores/settings/activeAccount";
+    import { activeAccountLabel } from "../../../stores/settings/activeAccount";
     import { keysForActiveAccount } from "../../../stores/settings/accounts";
     import { accountState } from "../../../stores/account.svelte";
     import { paperAccountFeed } from "../../../services/paperAccountFeed";

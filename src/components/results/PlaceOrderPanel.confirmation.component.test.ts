@@ -284,6 +284,11 @@ describe("BUG-0555 — confirmation renders the normalized plan", () => {
         }
         expect(message).toContain("49000");
         expect(message).toContain("10x (ISOLATION)");
+        // FEAT-0378: the account is the first line, and the placeholder is
+        // actually filled — the test's settings mock has no accounts, so the
+        // label is the venue.
+        expect(message).toContain("Account: Bitunix");
+        expect(message).not.toContain("{account}");
     });
 
     it("shows each TP leg with its configured portion", async () => {
@@ -354,5 +359,9 @@ describe("BUG-0555 — confirmation renders the normalized plan", () => {
         }
         expect(message).toContain("49000");
         expect(message).toContain("10x (ISOLATION)");
+        // FEAT-0378: paper names the paper account, not the live one — the
+        // simulator fills this order and reads no credentials.
+        expect(message).toContain("Account: Paper");
+        expect(message).not.toContain("{account}");
     });
 });

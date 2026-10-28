@@ -206,7 +206,7 @@
   compact
 >
   {#snippet headerExtra()}
-    <ActiveAccountChip compact />
+    <ActiveAccountChip />
   {/snippet}
 
   <div class="flex flex-col gap-3 p-4 min-w-[300px]">

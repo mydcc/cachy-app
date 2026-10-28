@@ -600,7 +600,9 @@
           : $_("orderEntry.confirm.titleLive"),
         $_("orderEntry.confirm.message", {
           values: {
-            account: activeAccountLabel(),
+            account: isPaper
+              ? $_("header.paperMode.badge")
+              : activeAccountLabel(),
             side: facts.side,
             qty: facts.qty.toString(),
             symbol: facts.symbol,

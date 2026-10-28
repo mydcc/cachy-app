@@ -29,6 +29,7 @@
   import { OrderRefusedError } from "../../services/orderGate";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { tpSlState } from "../../stores/tpsl.svelte";
+  import { activeAccountLabel } from "../../stores/settings/activeAccount";
 
   interface Props {
     isActive?: boolean;
@@ -84,7 +85,12 @@
   }
 
   async function handleCancel(order: TpSlOrder) {
-    if (!confirm($_("dashboard.alerts.confirmCancel"))) return;
+    // FEAT-0378: cancelling a plan is an order-alteration on live credentials,
+    // and the native prompt cannot show a chip.
+    const accountLine = $_("common.accountLine", {
+      values: { account: activeAccountLabel() },
+    });
+    if (!confirm(accountLine + "\n\n" + $_("dashboard.alerts.confirmCancel"))) return;
 
     try {
       await activeExchange().trading.cancelTpSlOrder(order);

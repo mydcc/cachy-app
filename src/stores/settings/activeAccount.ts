@@ -1,5 +1,5 @@
 import { settingsState } from "../settings.svelte";
-import { activeAccountFor, type ExchangeAccount } from "./accounts";
+import { activeAccountFor, defaultAccountName, type ExchangeAccount } from "./accounts";
 
 /**
  * The account an action will use — one derivation for every label.
@@ -23,7 +23,7 @@ export function activeAccount(): ExchangeAccount | undefined {
  * Display-cased venue, for when there is no account to name.
  */
 export function activeAccountVenueLabel(): string {
-    return settingsState.apiProvider === "bitget" ? "Bitget" : "Bitunix";
+    return defaultAccountName(settingsState.apiProvider);
 }
 
 /**
