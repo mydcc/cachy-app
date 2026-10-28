@@ -2,7 +2,7 @@
 id: BUG-0597
 title: "Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made"
 type: bug
-status: ready
+status: specced
 priority: P0
 milestone: none
 created: "2026-09-30"
@@ -103,7 +103,8 @@ needs paper mode, Part 2 needs a funded position. The account holder reports
 **Backlog note.** IDEA-0620 declares `depends_on: [BUG-0597]`, and this item's
 remaining criteria are exactly IDEA-0620's steps. The direction is right — the
 protocol is the remaining work, not a prerequisite — but it means neither can
-close alone, and both stay `ready` until the trader acts.
+close alone, and both stay open until the trader acts: this item `specced`, the
+protocol `ready` under `assignee: human`.
 
 ## Symptom
 
