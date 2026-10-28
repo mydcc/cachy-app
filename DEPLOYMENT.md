@@ -688,6 +688,8 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 
 If `./scripts/jules/monitor-production.sh` or the daily automated production monitor reports missing security headers (e.g., `Strict-Transport-Security`, `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) or a Lighthouse performance score below the threshold the monitor was configured with (`PERF_THRESHOLD`, 70 by default):
 
+> ⚠️ **Branch & Deploy Mapping:** `https://cachy.app` runs from the stable branch (`main`), while pull requests targeting `develop` deploy to staging (`dev.cachy.app`). A fix submitted to `develop` only reaches production after `develop` is merged to `main` and `./deploy.sh` is run for production.
+
 Start by telling the two reports apart. They have **different** causes, and the Nginx config is only ever the fix for one of them.
 
 ```bash
