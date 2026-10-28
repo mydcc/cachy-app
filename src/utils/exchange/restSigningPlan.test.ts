@@ -24,6 +24,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ROUTE_SIGNING_PLAN,
+  bitgetUpstreamPath,
   canonicalQueryParamsInput,
   canonicalQueryString,
   planForRoute,
@@ -157,5 +158,32 @@ describe("canonicalQueryParamsInput", () => {
 
   it("is empty for no parameters", () => {
     expect(canonicalQueryParamsInput({})).toBe("");
+  });
+});
+
+describe("bitgetUpstreamPath writes (BUG-0597)", () => {
+  it("pins every Bitget write action to its UTA endpoint", () => {
+    expect(bitgetUpstreamPath("/api/orders", "place-order")).toBe("/api/v3/trade/place-order");
+    expect(bitgetUpstreamPath("/api/orders", "close-position")).toBe("/api/v3/trade/place-order");
+    expect(bitgetUpstreamPath("/api/orders", "cancel-order")).toBe("/api/v3/trade/cancel-order");
+    expect(bitgetUpstreamPath("/api/orders", "modify-order")).toBe("/api/v3/trade/modify-order");
+  });
+
+  it("never routes a Bitget write to the decommissioned V1 generation", () => {
+    for (const action of ["place-order", "close-position", "cancel-order", "modify-order"]) {
+      const path = bitgetUpstreamPath("/api/orders", action);
+
+      expect(path).not.toBeNull();
+      expect(path).not.toMatch(/^\/api\/(mix\/v1|v2\/mix)\//);
+    }
+  });
+
+  it("answers null for an action Bitget has no endpoint for, instead of guessing", () => {
+    // `order-detail` is deliberately absent: the venue module answers null for
+    // it, and a path row here would let an account sign a request that is then
+    // refused downstream.
+    expect(bitgetUpstreamPath("/api/orders", "order-detail")).toBeNull();
+    expect(bitgetUpstreamPath("/api/orders")).toBeNull();
+    expect(bitgetUpstreamPath("/api/orders", "not-an-action")).toBeNull();
   });
 });

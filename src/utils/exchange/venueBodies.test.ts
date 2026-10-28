@@ -313,11 +313,12 @@ describe("buildVenueBody refuses silently-dropped protection on Bitget", () => {
   });
 
   it("rejects a Bitget close-position that does not name its side", () => {
-    // UTA hedge closes carry the close intent in `posSide`. Without it the
-    // body is a valid open of the opposite side, which the venue answers with
-    // 00000 — the failure this guard exists to prevent (BUG-0597). The rest of
-    // the payload is valid, and the assertion names the refusal, so a throw
-    // from a different guard cannot stand in for this one.
+    // UTA hedge closes carry the close intent in `posSide`. Omitting it
+    // violates a documented requirement; whether the venue rejects the body or
+    // opens the opposite side is unobserved (`docs/bitget-api/15_uta_writes.md`,
+    // "The close matrix (hedge mode)"), and either outcome is unacceptable. The payload is
+    // otherwise valid — non-zero amount, explicit marginMode — so no earlier
+    // guard can throw in this one's place.
     expect(() =>
       buildVenueBody(
         "bitget",
