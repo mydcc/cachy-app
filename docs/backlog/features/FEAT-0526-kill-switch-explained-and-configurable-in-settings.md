@@ -2,7 +2,7 @@
 id: FEAT-0526
 title: Explain the kill switch in Settings and make its behaviour configurable
 type: feature
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,7 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
-assignee: opencode
-branch: feat/feat-0526-kill-switch-settings
+shipped: "PR #4405"
 ---
 
 # FEAT-0526 — Kill switch explained and configurable in Settings
