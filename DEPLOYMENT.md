@@ -230,11 +230,13 @@ had actually finished). The fix is to stop compiling on the server entirely:
    for `main`). The download URL is fixed.
 2. `./deploy.sh --beta --ci` then downloads that URL, extracts the artifact
    (`build/`, `server.js`, `server-headers.js`) into the shadow directory,
-   refreshes production dependencies with `npm ci --omit=dev` (cheap on memory,
-   unlike a full build), and runs the same backup → swap → restart →
-   health-check sequence as a local deploy. The wrapper files travel with the
-   artifact because `build/index.js` is rewritten to delegate to `server.js`,
-   so `node build` resolves them on hosts without a full checkout.
+   stages production dependencies with `npm ci --omit=dev` in `.deps_work`
+   (cheap on memory, unlike a full build), and runs the same backup → swap →
+   restart → health-check sequence as a local deploy. The live `node_modules`
+   is only replaced after the install and its `@sveltejs/kit` check pass. The
+   wrapper files travel with the artifact because `build/index.js` is rewritten
+   to delegate to `server.js`, so `node build` resolves them on hosts without
+   a full checkout.
 
 Everything else — concurrency lock, backup, atomic swap, graceful shutdown,
 health check — is shared with the local-build path. A failed download aborts
@@ -262,10 +264,11 @@ CI_ARTIFACT_TAG_BETA="deploy-beta-previous"
 The preserved tag is replaced on the next successful build, so only the most
 recent previous artifact is kept.
 
-> ⚠️ `--ci` still runs `git pull` first and refreshes `node_modules` with
-> `npm ci --omit=dev` at the project root. After a failed deploy, a subsequent
-> local build (`./deploy.sh` without `--ci`) re-installs the dev dependencies
-> automatically.
+> ⚠️ `--ci` still runs `git pull` first and stages `node_modules` with
+> `npm ci --omit=dev` in `.deps_work`; the live tree is only swapped after the
+> install and its `@sveltejs/kit` check pass. After a failed deploy, a
+> subsequent local build (`./deploy.sh` without `--ci`) re-installs the dev
+> dependencies automatically.
 
 Which domain, branch and port each mode uses comes from `.deploy.conf`
 (`STABLE_*` / `BETA_*`). Copy `.deploy.conf.example` and adjust it before the
@@ -307,7 +310,7 @@ Features:
 - ✅ Atomic build in a shadow directory — a failed build never touches the live one
 - ✅ Graceful service shutdown (SIGTERM → SIGKILL)
 - ✅ Build artifact validation
-- ✅ Dependency refresh before the swap (`npm ci --omit=dev`, local builds) — the live tree cannot run a build against a different framework version than it was compiled with
+- ✅ Staged dependency install before the swap (`npm ci --omit=dev` into `.deps_work`, both modes) with an `@sveltejs/kit` resolution check — an interrupted install cannot strip the running app, and `build/` and `node_modules` always move together
 - ✅ Health check against `/api/health`
 - ✅ Auto-rollback on failure
 - ✅ Optional Discord notifications
@@ -322,8 +325,8 @@ Features:
 6. **Create backup** - full build + package-lock.json + Git commit
 7. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
 8. **Validate build** - checks that `build/index.js` exists
-9. **Refresh production dependencies** (local build only) - `npm ci --omit=dev` at the project root, before the swap. The shadow build compiles against its own fresh `npm ci`, but the swap replaces only `build/` — without this the live tree keeps whatever `node_modules` it had, so the server can be built against one framework version and executed against another. `--ci` skips it: that path already refreshed deps while fetching the artifact. **A failed install aborts before the swap.**
-10. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` (fixed name, so nothing accumulates), move the new one in. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
+9. **Stage production dependencies** (both modes) - `npm ci --omit=dev` in `.deps_work`, then verify that the staged tree resolves `@sveltejs/kit`. `npm ci` deletes its target before writing, so installing into the live tree meant an interrupted install could take the running app's module resolution with it: every rendered route returned 500, and the next restart failed with `ERR_MODULE_NOT_FOUND`. The live `node_modules` is untouched until the swap. **A failed install or an unresolvable `@sveltejs/kit` aborts before the swap.**
+10. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` and the old `node_modules` as `node_modules_previous` (fixed names, so nothing accumulates), move the new ones in. Both stay until the health check passes, and both are restored together if it fails. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
 11. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
     Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
     start command (e.g. a bad path) is flagged before the health check even begins.
@@ -559,11 +562,16 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 2. **A previous run left work behind:**
 
     ```bash
-    ls -d .deploy_work build_previous   # shadow build dir and superseded build
+    ls -d .deploy_work .deps_work build_previous node_modules_previous
     ```
 
-   `deploy.sh` removes `.deploy_work` itself on both success and build failure.
-   If it is still there, the run was interrupted — it is safe to delete.
+   `deploy.sh` removes `.deploy_work` and `.deps_work` itself on both success and
+   failure. If either is still there, the run was interrupted — both are safe to
+   delete. `build_previous` and `node_modules_previous` are the pre-swap
+   generation and are removed after a passing health check (unless
+   `KEEP_PREVIOUS=1`). If `node_modules` is missing, leave
+   `node_modules_previous` in place: the next deploy restores it before doing
+   anything else.
 
    > A concurrency lock prevents this: a second `./deploy.sh` refuses to start
    > while another is running. It is a `flock` on `.deploy.lock`, held for as
@@ -588,13 +596,14 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
    - The build runs in `.deploy_work`, so a failure leaves the live deployment untouched
    - Try manually: `npm ci --legacy-peer-deps && npm run build`
 
-4. **`❌ Dependency install FAILED!`** — the pre-swap `npm ci --omit=dev` at the
-   project root failed, so the deploy aborted before the swap and the running
+4. **`❌ Dependency install FAILED!`** — the staged `npm ci --omit=dev` in
+   `.deps_work` failed, so the deploy aborted before the swap and the running
    deployment was never touched. The reason is in the same build log
    (`logs/build_<timestamp>.log`). Fix the install (usually a lockfile/`package.json`
    mismatch after a dependency bump), then re-run. This is the failure #3892's
    refresh step exists to surface early rather than as a health-check timeout: a
    live tree left on old `node_modules` fails at runtime, not at install time.
+   The same abort covers `Installed dependencies cannot resolve @sveltejs/kit`.
 
 5. **A change you just merged appears to have done nothing** — the log shows the
    deploy pulling in the commit, the build succeeds, and the old behavior is
@@ -660,6 +669,14 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
         non-interactively-executed script still fails — test through an actual script file
         (`bash /path/to/test.sh`, not typed at the prompt) to reproduce this faithfully. Fix: a scoped
         `Defaults:<user> !use_pty`.
+   - **`Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@sveltejs/kit'` in the start log:** the
+     installed dependency tree does not match the build. `deploy.sh` stages and verifies the production
+     tree before swapping it in, so this should only appear when `node_modules` was changed outside a deploy
+     (for example a manual `npm ci` run as the wrong user, or an interrupted install under an older
+     script). Let the deploy own the tree instead of repairing it by hand:
+     `chown -R www:www /www/wwwroot/dev.cachy.app`, then `sudo -u www bash deploy.sh --beta --ci`.
+     Do not run `npm ci` as root — it leaves root-owned directories that the next `www` install cannot
+     replace.
 
 2. **Endpoint not responding:**
    - Verify service is running: `curl http://localhost:3001/api/health`

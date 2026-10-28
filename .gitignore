@@ -133,9 +133,12 @@ docs/backlog/backlog.generated.json
 # ports and start commands. deploy.sh regenerates it from the template if absent.
 .deploy.conf
 
-# Runtime artefacts of deploy.sh: the concurrency lock and the shadow build dir.
+# Runtime artefacts of deploy.sh: the concurrency lock, the shadow build dir,
+# the staged dependency tree and the pre-swap dependency generation.
 .deploy.lock
 .deploy_work/
+.deps_work/
+node_modules_previous/
 build_old_*/
 
 # Per-agent git worktrees (AGENTS.md § Git Cleanliness) — never tracked.

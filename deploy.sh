@@ -316,26 +316,33 @@ health_check() {
     log "${RED}Health check FAILED after ${elapsed}s. Last observed: ${last_state:-no response at all}${NC}"
     # A port that never opens at all (as opposed to opening and then failing to
     # answer) means the process died during startup, and the start log holds the
-    # reason. The one class of that failure that is specific to this script: the
-    # local build path compiles in a shadow copy and swaps only build/, so a
-    # stale node_modules can leave a freshly built server unable to resolve its
-    # own framework. Name it here instead of letting the next operator guess.
+    # reason. The one class of that failure that is specific to this script is a
+    # dependency tree that does not match the build. Do not suggest a manual
+    # `npm ci` here: that is the in-place install the staged swap replaces, and
+    # run as root it leaves directories the next www deploy cannot replace.
     if [[ "${last_state:-}" == *"port"*"not open"* ]]; then
         log "${YELLOW}  Tip: the server never bound the port, so it crashed during startup.${NC}"
         log "${YELLOW}       Read the start log above first. If it is an import/module error,${NC}"
-        log "${YELLOW}       check whether node_modules matches the current build:${NC}"
-        log "${YELLOW}         npm ci --omit=dev --legacy-peer-deps${NC}"
+        log "${YELLOW}       the installed tree does not match the build. Let the deploy own it:${NC}"
+        log "${YELLOW}         sudo -u www bash deploy.sh --beta --ci${NC}"
     fi
     return 1
 }
 
 rollback_to_previous() {
-    # Restores the build that was swapped aside as build_previous and restarts
-    # the service. Returns 0 when the previous build passes the health check.
+    # Restores the build and node_modules that were swapped aside and restarts
+    # the service. Returns 0 when the previous generation passes the health
+    # check.
     log "${YELLOW}[ROLLBACK]${NC} Restoring previous build..."
     rm -rf build
     mv build_previous build
     chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
+    if [[ -d node_modules_previous ]]; then
+        log "${YELLOW}[ROLLBACK]${NC} Restoring previous node_modules..."
+        rm -rf node_modules
+        mv node_modules_previous node_modules
+        chown -R www:www node_modules 2>/dev/null || true
+    fi
     graceful_shutdown "$PORT"
     START_LOG="$LOG_DIR/start_$(date +%Y%m%d_%H%M%S).log"
     log "Rollback start command output: $START_LOG"
@@ -378,6 +385,92 @@ check_disk_space() {
     done
 }
 
+# Run a git command and, if it fails, make the command's own reason the last
+# line of output. The deploy runner reports only the job's final line, so a
+# bare `git pull || error_exit "Git pull failed"` surfaced the fetch header
+# ("From https://github.com/...") instead of the reason — the difference
+# between "the host has local commits" and "deploy.sh is broken".
+run_git_step() {
+    local label="$1"
+    shift
+    local output
+    if ! output=$("$@" 2>&1); then
+        printf '%s\n' "$output" | tail -n 5 >&2
+        local reason
+        reason=$(printf '%s\n' "$output" | grep -v '^[[:space:]]*$' | tail -n 1)
+        error_exit "${label} failed: ${reason:-no output}"
+    fi
+}
+
+# Install the production dependency tree into a staging directory, never into
+# the live node_modules. `npm ci` deletes its target before it writes, so an
+# install that dies half-way (OOM, full disk, permission change) used to take
+# the running app's module resolution with it: the process stayed up, every
+# rendered route returned 500 once a chunk needed a package that was gone, and
+# the next restart failed outright with ERR_MODULE_NOT_FOUND. Staging keeps
+# the live tree intact until swap_production_dependencies runs.
+install_production_dependencies() {
+    local log_file="$1"
+    if [[ ! -f package-lock.json ]]; then
+        rm -rf "$WORK_DIR_TMP"
+        error_exit "package-lock.json is missing; cannot install production dependencies."
+    fi
+
+    rm -rf "$DEPS_DIR"
+    mkdir -p "$DEPS_DIR"
+    cp package.json package-lock.json "$DEPS_DIR"/
+    if [[ -f .npmrc ]]; then
+        # npm reads the project config from the install directory, not from a
+        # parent, so the file has to travel. Keep it owner-only: the registry
+        # config may carry an auth token, and the staging directory survives a
+        # SIGKILL between install and swap.
+        cp .npmrc "$DEPS_DIR"/
+        chmod 600 "$DEPS_DIR/.npmrc"
+    fi
+
+    log "${CYAN}[DEPS]${NC} Installing production dependencies into a staging directory..."
+    if ! (cd "$DEPS_DIR" && npm ci --omit=dev --legacy-peer-deps) >> "$log_file" 2>&1; then
+        echo -e "${RED}❌ Dependency install FAILED!${NC}"
+        echo -e "${YELLOW}--- Last 15 lines of the install log ---${NC}"
+        tail -n 15 "$log_file"
+        echo -e "${YELLOW}----------------------------------------${NC}"
+        rm -rf "$DEPS_DIR" "$WORK_DIR_TMP"
+        error_exit "Production dependency install failed. The live deployment was not touched."
+    fi
+
+    # build/server/chunks/internal.js resolves @sveltejs/kit at runtime, and a
+    # tree without it produces a process that dies before it binds the port.
+    # Resolve from inside the staged tree and require the result to live there:
+    # a bare `require.resolve` from $DEPS_DIR also walks up through parent
+    # node_modules, so it would return the live tree at $SCRIPT_DIR/node_modules
+    # and pass the gate even when the staged install is missing the package.
+    local deps_real resolved
+    deps_real=$(cd "$DEPS_DIR" && pwd -P)
+    resolved=$(cd "$DEPS_DIR" && node -e "console.log(require.resolve('@sveltejs/kit/package.json'))" 2>/dev/null) || resolved=""
+    if [[ "$resolved" != "$deps_real"/node_modules/* ]]; then
+        rm -rf "$DEPS_DIR" "$WORK_DIR_TMP"
+        error_exit "Installed dependencies cannot resolve @sveltejs/kit. The live deployment was not touched."
+    fi
+}
+
+# Move the staged tree into place, keeping the previous one until the health
+# check passes (the same generation discipline as build_previous). Both renames
+# stay on the project's filesystem, so they are atomic; a crash between them
+# leaves node_modules_previous behind, which the next run removes.
+swap_production_dependencies() {
+    if [[ ! -d "$DEPS_DIR/node_modules" ]]; then
+        error_exit "Staged node_modules is missing; the live tree was left untouched."
+    fi
+    log "${CYAN}[DEPS]${NC} Swapping production dependencies into place..."
+    rm -rf node_modules_previous
+    if [[ -e node_modules ]]; then
+        mv node_modules node_modules_previous
+    fi
+    mv "$DEPS_DIR/node_modules" ./node_modules
+    rm -rf "$DEPS_DIR"
+    chown -R www:www node_modules 2>/dev/null || true
+}
+
 # --- 5. Environment & Mode Selection ---
 # --beta selects the staging environment (dev.cachy.app / develop).
 # --ci skips the local compile and deploys the artifact that deploy-build.yml
@@ -413,10 +506,11 @@ mkdir -p "$LOG_DIR" 2>/dev/null || true
 # Concurrency lock.
 #
 # Everything below this point mutates shared state: it checks out branches,
-# stashes, resets and pulls, builds into .deploy_work, swaps build/ aside and
-# restarts the service. Two runs at once would interleave all of that — the
-# second run's rsync into .deploy_work while the first is building there is
-# enough to produce a corrupt deployment that still passes its health check.
+# stashes, resets and pulls, builds into .deploy_work, stages dependencies in
+# .deps_work, swaps build/ and node_modules aside and restarts the service. Two
+# runs at once would interleave all of that — the second run's rsync into
+# .deploy_work while the first is building there is enough to produce a corrupt
+# deployment that still passes its health check.
 #
 # flock is used rather than a PID file because the kernel owns it: it is held for
 # as long as some process still has the descriptor open, and released when the
@@ -444,6 +538,16 @@ fi
 
 # Change to project root to allow execution from anywhere
 cd "$SCRIPT_DIR" || error_exit "Could not enter script directory"
+
+# An interrupted swap can leave node_modules moved aside and the staged tree not
+# yet in place. Restore the orphaned generation before anything below can treat
+# it as disposable: without this, a later rollback would restore build_previous
+# and keep the new dependencies, producing exactly the mixed generation the
+# staged swap exists to prevent.
+if [[ ! -e node_modules && ! -L node_modules && -d node_modules_previous ]]; then
+    log "${YELLOW}[DEPS]${NC} Recovering node_modules from an interrupted swap."
+    mv node_modules_previous node_modules
+fi
 
 clear
 echo -e "${GOLD}"
@@ -486,7 +590,7 @@ if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
                  error_exit "Cannot switch branches with uncommitted changes."
              fi
         fi
-        git checkout "$TARGET_BRANCH" || error_exit "Could not switch to $TARGET_BRANCH"
+        run_git_step "Git checkout" git checkout "$TARGET_BRANCH"
         CURRENT_BRANCH=$(git branch --show-current)
     else
         error_exit "Mode $ENV_TYPE requires branch '$TARGET_BRANCH'."
@@ -514,8 +618,8 @@ notify_deployment_start "$ENVIRONMENT" "${USER:-root}" 2>/dev/null || true
 
 # 1. Update Source
 log "${CYAN}[SYNC]${NC} Updating source via Git..."
-git reset --hard HEAD || error_exit "Git reset failed"
-git pull || error_exit "Git pull failed"
+run_git_step "Git reset" git reset --hard HEAD
+run_git_step "Git pull" git pull
 
 # 2. Backup
 log "${CYAN}[BACKUP]${NC} Securing current state..."
@@ -537,6 +641,7 @@ fi
 notify_build_start 2>/dev/null || true
 BUILD_START_TIME=$(date +%s)
 WORK_DIR_TMP="$SCRIPT_DIR/.deploy_work"
+DEPS_DIR="$SCRIPT_DIR/.deps_work"
 BUILD_LOG="$LOG_DIR/build_$(date +%Y%m%d_%H%M%S).log"
 LAST_TIME_FILE="$SCRIPT_DIR/.last_build_time"
 
@@ -563,10 +668,9 @@ if [[ "$CI_MODE" == "1" ]]; then
     CI_ARTIFACT_URL="https://github.com/${CI_REPO}/releases/download/${CI_ARTIFACT_TAG}/cachy-build.tar.gz"
     log "CI artifact: ${LIME}$CI_ARTIFACT_URL${NC}"
 
-    # Download + extract the artifact, then refresh production dependencies.
-    # `npm ci --omit=dev` is cheap on memory (unlike a full build) and keeps
-    # node_modules in sync with the lockfile. Runs at the project root, where
-    # node_modules lives — the extracted build/ lands in $WORK_DIR_TMP.
+    # Download + extract the artifact only. The live tree is not touched here:
+    # production dependencies are staged in step 3b and swapped in together
+    # with build/, so an interrupted install cannot strip the running app.
     (
         set -e
         echo "Downloading $CI_ARTIFACT_URL ..."
@@ -574,8 +678,6 @@ if [[ "$CI_MODE" == "1" ]]; then
             -o "$WORK_DIR_TMP/cachy-build.tar.gz" "$CI_ARTIFACT_URL"
         echo "Extracting artifact ..."
         tar -xzf "$WORK_DIR_TMP/cachy-build.tar.gz" -C "$WORK_DIR_TMP"
-        echo "Refreshing production dependencies (npm ci --omit=dev) ..."
-        npm ci --omit=dev --legacy-peer-deps
         echo "Done."
     ) > "$BUILD_LOG" 2>&1 &
     BUILD_PID=$!
@@ -596,7 +698,18 @@ if [[ "$CI_MODE" == "1" ]]; then
 else
     # Local build path (unchanged): compile in a shadow copy so a failure never
     # touches the live deployment.
-    rsync -aq --exclude '.deploy_work' --exclude 'node_modules' --exclude 'build' --exclude '.git' ./ "$WORK_DIR_TMP/"
+    # Exclude every runtime artefact: a staged or pre-swap dependency tree left
+    # behind by an interrupted run is hundreds of megabytes and may contain
+    # .npmrc credentials, so it must never be copied into the shadow build.
+    rsync -aq \
+        --exclude '.deploy_work' \
+        --exclude '.deps_work' \
+        --exclude 'node_modules' \
+        --exclude 'node_modules_previous' \
+        --exclude 'build' \
+        --exclude 'build_previous' \
+        --exclude '.git' \
+        ./ "$WORK_DIR_TMP/"
 
     # Run build in background and show eater
     (cd "$WORK_DIR_TMP" && npm ci --legacy-peer-deps && npm run build) > "$BUILD_LOG" 2>&1 &
@@ -624,35 +737,27 @@ echo "$BUILD_DURATION" > "$LAST_TIME_FILE"
 log "Build successful in ${BUILD_DURATION}s (Log: $BUILD_LOG)"
 notify_build_success "${BUILD_DURATION}s" 2>/dev/null || true
 
-# 3b. Refresh the live tree's production dependencies.
+# 3b. Stage the production dependency tree.
 #
-# The local build path compiles inside a shadow copy with its own fresh
-# `npm ci`, but the swap below replaces only build/. Without this step the live
-# tree keeps whatever node_modules it had, so the deployed server can be built
-# against one framework version and executed against another. That is not
-# hypothetical: the SvelteKit 3 server output resolves `@sveltejs/kit/internal`
-# at runtime and imports `HandledHttpError`, which only exists from Kit 3 on.
-# With a Kit 2 node_modules still in place, `node server.js` throws a
-# SyntaxError before it ever calls listen(), the port never opens, and the
-# health check only reports the outcome 90 seconds later.
+# The live tree must not receive the install: `npm ci` deletes its target
+# before it writes, so a run that dies half-way (OOM, full disk, permission
+# change) leaves the running process unable to resolve packages it has not
+# imported yet (500 on every rendered route) and the next restart unable to
+# start at all (ERR_MODULE_NOT_FOUND). Staging into .deps_work and swapping in
+# step 4 keeps build/ and node_modules from the same checkout moving together.
 #
-# Skipped in CI mode: that path already ran `npm ci --omit=dev` while fetching
-# the artifact. Runs before the swap and aborts on failure, so a broken install
-# never reaches the running deployment. Cheap by design — `--omit=dev` skips
-# the full build-time dependency tree.
-if [[ "$CI_MODE" != "1" ]]; then
-    log "${CYAN}[DEPS]${NC} Refreshing production dependencies (npm ci --omit=dev)..."
-    if ! npm ci --omit=dev --legacy-peer-deps >> "$BUILD_LOG" 2>&1; then
-        echo -e "${RED}❌ Dependency install FAILED!${NC}"
-        echo -e "${YELLOW}--- Last 15 lines of build log ---${NC}"
-        tail -n 15 "$BUILD_LOG"
-        echo -e "${YELLOW}----------------------------------${NC}"
-        rm -rf "$WORK_DIR_TMP"
-        error_exit "Production dependencies could not be installed. Production was not affected."
-    fi
-fi
+# Both modes install here: the CI artifact path no longer refreshes during
+# download. Aborts on failure before anything live is touched. Cheap by design
+# — `--omit=dev` skips the full build-time dependency tree.
+install_production_dependencies "$BUILD_LOG"
 
 # 4. Permissions & Swap
+# Refuse before either swap if the staged tree is gone: replacing build/ without
+# a matching node_modules is the half-swapped state this script exists to avoid.
+if [[ ! -d "$DEPS_DIR/node_modules" ]]; then
+    error_exit "Staged node_modules is missing; nothing was swapped."
+fi
+
 log "${CYAN}[SWAP]${NC} Setting permissions and swapping build..."
 chown -R www:www "$WORK_DIR_TMP/build" 2>/dev/null || true
 chmod -R 755 "$WORK_DIR_TMP/build" 2>/dev/null || true
@@ -664,6 +769,8 @@ rm -rf build_previous
 [[ -d "build" ]] && mv build build_previous
 mv "$WORK_DIR_TMP/build" ./
 rm -rf "$WORK_DIR_TMP"
+
+swap_production_dependencies
 
 # 5. Restart & Health
 log "${CYAN}[HEALTH]${NC} Restarting service and health check..."
@@ -736,13 +843,13 @@ DURATION_SEC=$((TOTAL_DURATION % 60))
 chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
 
 # The health check passed, so the versioned copy in BACKUP_DIR is enough
-# history. Drop the swap-aside previous build unless the operator opted into
-# keeping one generation on disk (KEEP_PREVIOUS=1). Either way the disk can no
-# longer fill up with builds.
+# history. Drop the swap-aside previous build and dependency tree unless the
+# operator opted into keeping one generation on disk (KEEP_PREVIOUS=1). Either
+# way the disk can no longer fill up with builds.
 if [[ "${KEEP_PREVIOUS:-0}" == "1" ]]; then
-    log "${GREY}Keeping previous build in build_previous (KEEP_PREVIOUS=1)${NC}"
+    log "${GREY}Keeping previous build and node_modules on disk (KEEP_PREVIOUS=1)${NC}"
 else
-    rm -rf build_previous
+    rm -rf build_previous node_modules_previous
 fi
 rotate_logs
 
