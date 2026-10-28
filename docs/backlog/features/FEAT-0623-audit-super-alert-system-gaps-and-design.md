@@ -75,19 +75,15 @@ drift.
 The audit is
 [`assets/FEAT-0623/alert-system-audit.md`](../assets/FEAT-0623/alert-system-audit.md):
 two tables (§2 gaps per alert type, §4 findings per surface), a channel
-dead-end check (§3), and the deferrals with reasons (§5).
+dead-end check (§3), the deferrals with reasons (§5) and the follow-up index
+(§7).
 
-It produced one new item —
-[`FEAT-0752`](FEAT-0752-route-drawing-alerts-through-the-lifecycle-footer.md),
-the only alert type that bypasses the builder — and sharpened two existing ones:
-FEAT-0748 gains the "effective set when nothing is ticked" criterion, FEAT-0749
-gains the unread count on the rail entry. No channel dead end was found: every
-channel is configurable and has a send path, and every undeliverable state is
-reported where it is configured.
+It filed five follow-ups and decided the question FEAT-0748 was waiting on. The
+dead-end check found one case, which is why it is a bug and not a finding: the
+external-channel matrix and delivery disagree about what "switched on" means.
 
-Per-type sound and banner do not exist, and are deferred with a reason rather
-than filed: all alerts share the `alert-fired` category, and per-rule channel
-selection covers the practical need.
+Per-type sound and banner do not exist; the decision to keep them out is
+recorded in §5 rather than left as an open question.
 
 ## Out of scope
 
@@ -102,15 +98,14 @@ selection covers the practical need.
 
 ## Open questions
 
-- Should per-type sound configuration exist at all, or is one global sound
-  enough? The gap table answers what is missing; whether it should exist is
-  a product decision for the follow-up item.
+None. What was open — per-type sound and per-rule external channels — is
+recorded as a decision in the audit (§5 and §2) and carried by FEAT-0748.
 
 ## Links
 
 - Result: [`assets/FEAT-0623/alert-system-audit.md`](../assets/FEAT-0623/alert-system-audit.md)
-- Follow-up filed by the audit:
-  [`FEAT-0752`](FEAT-0752-route-drawing-alerts-through-the-lifecycle-footer.md)
+- Follow-ups filed by the audit: §7 of the result document (the drawing path,
+  three list/channel defects, one accessibility item)
 - Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §5
 - [FEAT-0389](FEAT-0389-super-alert-panel.md) — the side panel this audits
 - [FEAT-0395](FEAT-0395-alert-entry-points.md) — chart and indicator entry points
