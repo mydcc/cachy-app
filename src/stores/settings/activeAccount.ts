@@ -23,7 +23,13 @@ export function activeAccount(): ExchangeAccount | undefined {
  * Display-cased venue, for when there is no account to name.
  */
 export function activeAccountVenueLabel(): string {
-    return defaultAccountName(settingsState.apiProvider);
+    // Total on purpose: a partial settings mock (an "unknown exchange" test)
+    // can leave the provider undefined, and this label renders on a money
+    // surface. Falling back to Bitunix is the same answer the app gives when
+    // it cannot name a venue.
+    return defaultAccountName(
+        settingsState.apiProvider === "bitget" ? "bitget" : "bitunix",
+    );
 }
 
 /**
