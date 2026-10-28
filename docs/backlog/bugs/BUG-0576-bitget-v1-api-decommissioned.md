@@ -2,7 +2,7 @@
 id: BUG-0576
 title: "Bitget integration calls the decommissioned V1 API, so every signed REST call fails"
 type: bug
-status: ready
+status: specced
 priority: P0
 area: exchange
 created: "2026-09-28"
@@ -10,7 +10,7 @@ milestone: none
 editions: ["community", "pro", "private"]
 data_class: none
 adr: none
-depends_on: []
+depends_on: [IDEA-0620]
 branch: fix/bitget-v2-market-data
 ---
 

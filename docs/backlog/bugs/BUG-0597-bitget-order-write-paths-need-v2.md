@@ -2,7 +2,7 @@
 id: BUG-0597
 title: "Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made"
 type: bug
-status: ready
+status: specced
 priority: P0
 milestone: none
 created: "2026-09-30"
@@ -10,7 +10,7 @@ editions: [community, pro, private]
 area: exchange
 data_class: none
 adr: none
-depends_on: [BUG-0596, BUG-0580]
+depends_on: [BUG-0596, BUG-0580, IDEA-0620]
 ---
 
 # Migrate the Bitget order write paths to V2

@@ -2,7 +2,7 @@
 id: BUG-0598
 title: "The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles"
 type: bug
-status: ready
+status: specced
 assignee: unassigned
 priority: P1
 milestone: none
@@ -11,7 +11,7 @@ editions: [community, pro, private]
 area: exchange
 data_class: none
 adr: none
-depends_on: [BUG-0581]
+depends_on: [BUG-0581, IDEA-0620]
 branch: fix/bug-0598-ws-private-lifecycle
 ---
 
