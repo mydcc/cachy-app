@@ -71,7 +71,7 @@ global policy:
 
 External channels (`email`, `discord`, `telegram`) are policy-global and not
 expressible in `TriggerMethod` today. Whether they become per-rule is
-[`FEAT-0748`](FEAT-0748-per-alert-delivery-channels-and-test-announcement.md)'s
+[`FEAT-0748`](../features/FEAT-0748-per-alert-delivery-channels-and-test-announcement.md)'s
 decision, not this bug's.
 
 ## Acceptance criteria
@@ -109,4 +109,4 @@ decision, not this bug's.
 - `src/components/alerts/RuleLifecycleFields.svelte` — the per-rule selector
 - `src/services/alertEngine/armRule.ts` — persistence and hash exclusion
 - [`docs/alert-system.md`](../../alert-system.md) — the claim that is false today
-- [`FEAT-0748`](FEAT-0748-per-alert-delivery-channels-and-test-announcement.md)
+- [`FEAT-0748`](../features/FEAT-0748-per-alert-delivery-channels-and-test-announcement.md)
