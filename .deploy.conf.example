@@ -70,6 +70,16 @@ BACKUP_DIR="/backups/cachy"
 # deploy.sh falls back to http://localhost:$PORT/api/health.
 HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
 
+# The health check also compares the build id the process reports at
+# /api/health with build/client/_app/version.json. That is what catches an old
+# process that survived the restart and keeps serving the previous build.
+# Set to 0 only when the health URL is not this app (the build id then cannot
+# be verified). Defaults to 1.
+# HEALTH_VERIFY_BUILD=1
+
+# Wall-clock limit for the health check. Defaults to 90 seconds.
+# HEALTH_MAX_WAIT=90
+
 # Backups kept per environment. Defaults to 5 when unset.
 MAX_BACKUPS=5
 

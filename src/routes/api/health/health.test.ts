@@ -19,13 +19,17 @@ import { describe, it, expect } from "vitest";
 import { GET } from "./+server";
 
 describe("GET /api/health", () => {
-  it("reports status and version without disclosing the environment (BUG-0727)", async () => {
-    const response = await GET({} as unknown as Parameters<typeof GET>[0]);
+  it("reports status, version and build id without disclosing the environment (BUG-0727)", async () => {
+    const response = await GET({
+      locals: { buildId: "test-build" },
+    } as unknown as Parameters<typeof GET>[0]);
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.status).toBe("ok");
     expect(body.version).toBeDefined();
+    // Comes from the hook, i.e. the build this process started from.
+    expect(body.buildId).toBe("test-build");
     expect(body).not.toHaveProperty("environment");
   });
 });

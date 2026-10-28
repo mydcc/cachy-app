@@ -246,18 +246,62 @@ create_backup() {
     fi
 }
 
+# Print the PIDs listening on a TCP port, one per line. lsof stays the first
+# choice, but the deploy must not depend on it: a host without lsof gave
+# graceful_shutdown nothing to kill, the old process kept the port, and the
+# health check then passed against a build the deploy never started.
+port_pids() {
+    local port="$1" pids=""
+    if command -v lsof >/dev/null 2>&1; then
+        pids=$(lsof -ti:"$port" 2>/dev/null || true)
+    fi
+    if [[ -z "$pids" ]] && command -v ss >/dev/null 2>&1; then
+        pids=$(ss -ltnp 2>/dev/null \
+            | awk -v suffix=":$port" '$4 ~ suffix "$" {print $0}' \
+            | grep -o 'pid=[0-9]*' \
+            | cut -d= -f2 \
+            | sort -u || true)
+    fi
+    if [[ -z "$pids" ]] && command -v fuser >/dev/null 2>&1; then
+        pids=$(fuser -n tcp "$port" 2>/dev/null \
+            | awk -F: '{print $2}' \
+            | tr ' ' '\n' \
+            | grep -E '^[0-9]+$' \
+            | sort -u || true)
+    fi
+    printf '%s\n' "$pids"
+}
+
 graceful_shutdown() {
     local port="$1"
-    log "Shutting down service on port $port..."
-    if command -v lsof >/dev/null 2>&1 && lsof -ti:$port > /dev/null 2>&1; then
-        local pid=$(lsof -ti:$port)
-        kill -SIGTERM $pid 2>/dev/null || true
-        local count=0
-        while [[ $count -lt 10 ]] && lsof -ti:$port > /dev/null 2>&1; do
-            sleep 1
-            count=$((count + 1))
-        done
-        [[ $count -eq 10 ]] && kill -SIGKILL $(lsof -ti:$port) 2>/dev/null || true
+    local pids remaining
+    pids=$(port_pids "$port")
+    if [[ -z "$pids" ]]; then
+        log "No process listening on port $port — nothing to stop."
+        return 0
+    fi
+
+    log "Shutting down service on port $port (PID(s): $(printf '%s' "$pids" | tr '\n' ' '))..."
+    # Word splitting is intended: one PID per argument.
+    # shellcheck disable=SC2086
+    kill -SIGTERM $pids 2>/dev/null || true
+
+    local count=0
+    while [[ $count -lt 10 ]] && [[ -n "$(port_pids "$port")" ]]; do
+        sleep 1
+        count=$((count + 1))
+    done
+
+    remaining=$(port_pids "$port")
+    if [[ -n "$remaining" ]]; then
+        log "${YELLOW}Port $port still bound after ${count}s — sending SIGKILL.${NC}"
+        # shellcheck disable=SC2086
+        kill -SIGKILL $remaining 2>/dev/null || true
+        sleep 1
+        remaining=$(port_pids "$port")
+    fi
+    if [[ -n "$remaining" ]]; then
+        log "${RED}Port $port is still bound after SIGKILL; the new process cannot start.${NC}"
     fi
 }
 
@@ -269,12 +313,31 @@ health_check() {
         url="http://localhost:$PORT/api/health"
     fi
 
-    local max_wait=90
+    # A 200 says the port answers, not which build answers. If the old process
+    # survived the restart it keeps serving the previous build, and a
+    # status-only check reports success for a deploy that never took effect.
+    # Compare the build id the process reports (bound at its startup) with the
+    # build that is on disk now.
+    local verify_build="${HEALTH_VERIFY_BUILD:-1}"
+    local version_file="$SCRIPT_DIR/build/client/_app/version.json"
+    local expected_build="" expected_app_version=""
+    if [[ -f "$version_file" ]]; then
+        expected_build=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$version_file" | head -n 1)
+    fi
+    expected_app_version=$(node -p "require('./package.json').version" 2>/dev/null || true)
+    if [[ "$verify_build" == "0" ]]; then
+        log "${YELLOW}Build verification disabled (HEALTH_VERIFY_BUILD=0); checking HTTP status only.${NC}"
+    elif [[ -z "$expected_build" || "$expected_build" == "unknown" ]]; then
+        log "${YELLOW}No build id at $version_file; checking HTTP status only.${NC}"
+        verify_build="0"
+    fi
+
+    local max_wait="${HEALTH_MAX_WAIT:-90}"
     local check_start=$(date +%s)
     log "Running health check on $url (Waiting up to ${max_wait}s)..."
 
     local last_state=""
-    local http_code curl_exit state elapsed
+    local http_code curl_exit state elapsed body served_build served_version
 
     # Wall-clock bound: honour ${max_wait}s regardless of per-attempt latency.
     while [[ $(( $(date +%s) - check_start )) -lt $max_wait ]]; do
@@ -289,18 +352,43 @@ health_check() {
         fi
 
         if [[ "$http_code" == "200" ]]; then
-            elapsed=$(( $(date +%s) - check_start ))
-            log "${GREEN}Health check passed after ${elapsed}s (HTTP 200)${NC}"
-            return 0
-        fi
+            if [[ "$verify_build" == "0" ]]; then
+                elapsed=$(( $(date +%s) - check_start ))
+                log "${GREEN}Health check passed after ${elapsed}s (HTTP 200)${NC}"
+                return 0
+            fi
 
-        # Classify why we are still waiting, so the log is actionable on failure.
-        case "$curl_exit" in
-            0)  state="server responded HTTP ${http_code} (waiting for 200)" ;;
-            7)  state="port ${PORT} not open yet — Node process still starting" ;;
-            28) state="request timed out (>5s) — process listening but unresponsive" ;;
-            *)  state="curl failed (exit ${curl_exit}, http ${http_code})" ;;
-        esac
+            # One body read per successful poll: buildId is fixed for the
+            # lifetime of the process, so this is the process identity.
+            body=$(curl -sS --max-time 5 "$url" 2>/dev/null || true)
+            served_build=$(printf '%s' "$body" | sed -n 's/.*"buildId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+            served_version=$(printf '%s' "$body" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
+            if [[ "$served_build" == "$expected_build" ]]; then
+                elapsed=$(( $(date +%s) - check_start ))
+                log "${GREEN}Health check passed after ${elapsed}s (HTTP 200, build $served_build)${NC}"
+                return 0
+            fi
+
+            # A build that predates the buildId field cannot prove which
+            # process answered. Accept it only when its package version matches
+            # the tree on disk, so a rollback to such a build still succeeds.
+            if [[ -z "$served_build" && -n "$expected_app_version" && "$served_version" == "$expected_app_version" ]]; then
+                elapsed=$(( $(date +%s) - check_start ))
+                log "${YELLOW}Health check passed after ${elapsed}s (HTTP 200; build id unavailable, version matches).${NC}"
+                return 0
+            fi
+
+            state="HTTP 200, build ${served_build:-unreported} (expected $expected_build)"
+        else
+            # Classify why we are still waiting, so the log is actionable.
+            case "$curl_exit" in
+                0)  state="server responded HTTP ${http_code} (waiting for 200)" ;;
+                7)  state="port ${PORT} not open yet — Node process still starting" ;;
+                28) state="request timed out (>5s) — process listening but unresponsive" ;;
+                *)  state="curl failed (exit ${curl_exit}, http ${http_code})" ;;
+            esac
+        fi
 
         # Log only on state change to avoid ~90 identical lines.
         if [[ "$state" != "$last_state" ]]; then
@@ -314,6 +402,10 @@ health_check() {
 
     elapsed=$(( $(date +%s) - check_start ))
     log "${RED}Health check FAILED after ${elapsed}s. Last observed: ${last_state:-no response at all}${NC}"
+    if [[ "${last_state:-}" == *"HTTP 200, build"* ]]; then
+        log "${YELLOW}  Tip: the port is held by a process serving a different build.${NC}"
+        log "${YELLOW}       Stop it (aaPanel, or kill it as its owner) and re-run the deploy.${NC}"
+    fi
     # A port that never opens at all (as opposed to opening and then failing to
     # answer) means the process died during startup, and the start log holds the
     # reason. The one class of that failure that is specific to this script is a

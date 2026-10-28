@@ -242,6 +242,12 @@ Everything else — concurrency lock, backup, atomic swap, graceful shutdown,
 health check — is shared with the local-build path. A failed download aborts
 before the live deployment is touched, exactly like a failed local build.
 
+The xyOps job can report completion before the host has finished the swap, so
+`.github/workflows/deploy-staging.yml` waits after the job until
+`https://dev.cachy.app/_app/version.json` matches the build id of the artifact
+that was deployed, and fails the workflow otherwise. The repo variable
+`STAGING_URL` overrides that URL.
+
 The URL is `https://github.com/<CI_REPO>/releases/download/<tag>/cachy-build.tar.gz`
 with `<CI_REPO>` and the tags coming from `.deploy.conf` (defaults
 `mydcc/cachy-app`, `deploy-stable`, `deploy-beta` — existing configs need no
@@ -311,7 +317,7 @@ Features:
 - ✅ Graceful service shutdown (SIGTERM → SIGKILL)
 - ✅ Build artifact validation
 - ✅ Staged dependency install before the swap (`npm ci --omit=dev` into `.deps_work`, both modes) with an `@sveltejs/kit` resolution check — an interrupted install cannot strip the running app, and `build/` and `node_modules` always move together
-- ✅ Health check against `/api/health`
+- ✅ Health check against `/api/health` **and** the process's build id, so an old process that survived the restart cannot pass
 - ✅ Auto-rollback on failure
 - ✅ Optional Discord notifications
 
@@ -330,7 +336,7 @@ Features:
 11. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
     Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
     start command (e.g. a bad path) is flagged before the health check even begins.
-12. **Health check** - verify the service responds at `/api/health`
+12. **Health check** - verify the service responds at `/api/health`, then compare the `buildId` that process reports with `build/client/_app/version.json`. A 200 from a process that survived the restart would otherwise report success for a build that never took effect. `HEALTH_VERIFY_BUILD=0` disables the comparison for a health URL that is not this app; `HEALTH_MAX_WAIT` changes the 90-second limit.
 13. **Auto-rollback** - restore `build_previous` and restart when the health check fails; the previous build is deleted only after the health check passes (unless `KEEP_PREVIOUS=1`)
 
 ### Why the script runs from a snapshot
@@ -451,13 +457,16 @@ Response:
   "status": "ok",
   "timestamp": 1234567890,
   "version": "1.0.0",
-  "environment": "production"
+  "buildId": "1793216548069"
 }
 ```
 
-`version` comes from `package.json` through `APP_VERSION`, so it is a reliable
-way to confirm *which* build is actually running. `environment` reflects
-`NODE_ENV`.
+`version` comes from `package.json` through `APP_VERSION`, so it identifies the
+release, not an individual build — two deploys of the same version share it.
+`buildId` is the value in `build/client/_app/version.json`, read once when the
+process starts: it changes on every build, and `deploy.sh` compares it with the
+file on disk to prove the restart replaced the old process. The endpoint
+deliberately has no `environment` field (BUG-0727).
 
 The endpoint is unauthenticated by design — `deploy.sh` calls it to verify the
 service started correctly, before any token is in play.
@@ -677,6 +686,10 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
      `chown -R www:www /www/wwwroot/dev.cachy.app`, then `sudo -u www bash deploy.sh --beta --ci`.
      Do not run `npm ci` as root — it leaves root-owned directories that the next `www` install cannot
      replace.
+   - **`Health check FAILED ... build X (expected Y)`:** the port is held by a process serving a
+     different build than the one now on disk. Stop that process (aaPanel, or `kill <pid>` as its
+     owner) and re-run the deploy. If `HEALTH_CHECK_URL` points at something other than this app,
+     set `HEALTH_VERIFY_BUILD=0` — the comparison cannot work there.
 
 2. **Endpoint not responding:**
    - Verify service is running: `curl http://localhost:3001/api/health`
