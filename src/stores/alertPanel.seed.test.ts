@@ -26,7 +26,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { alertPanelState } from "./alertPanel.svelte";
+import { alertPanelState, DEFAULT_ALERT_PANEL_TABS } from "./alertPanel.svelte";
 import type { Condition } from "../lib/rules/types";
 
 const level: Condition = {
@@ -39,6 +39,8 @@ const level: Condition = {
 
 describe("alertPanelState seeding", () => {
   beforeEach(() => {
+    // Singleton store: start every test unmounted, as a fresh page would.
+    alertPanelState.closePanel();
     alertPanelState.reset("BTCUSDT");
     alertPanelState.activeTab = "manage";
   });
@@ -95,5 +97,83 @@ describe("alertPanelState seeding", () => {
 
     expect(alertPanelState.draft.action.consequence_level).toBe("notify");
     expect(alertPanelState.hasValidated).toBe(false);
+  });
+});
+
+/*
+ * FEAT-0752 — the drawing seed.
+ *
+ * The drawing is not a condition: it is an anchor the evaluator re-reads. The
+ * store has to remember which drawing the open draft belongs to so the shell
+ * can rebuild the rule at arm time and show the level read-only.
+ */
+describe("alertPanelState seeding a drawing", () => {
+  beforeEach(() => {
+    // The store is a module singleton: a test that mounted the panel would
+    // otherwise leave it looking mounted to the next one, and a seed would be
+    // applied "live" rather than waiting for the mount that consumes it.
+    alertPanelState.closePanel();
+    alertPanelState.reset("BTCUSDT");
+    alertPanelState.activeTab = "manage";
+  });
+
+  it("remembers the drawing and opens its tab", () => {
+    alertPanelState.seed({
+      symbol: "BTCUSDT",
+      tab: "drawing",
+      condition: level,
+      timeframe: "4h",
+      drawing: { id: "draw-1", symbol: "BTCUSDT" },
+    });
+
+    expect(alertPanelState.drawingDraft).toEqual({
+      id: "draw-1",
+      symbol: "BTCUSDT",
+    });
+    expect(alertPanelState.activeTab).toBe("drawing");
+  });
+
+  it("keeps the drawing through the mount, and drops it on the next open", () => {
+    alertPanelState.seed({
+      symbol: "BTCUSDT",
+      tab: "drawing",
+      condition: level,
+      drawing: { id: "draw-1", symbol: "BTCUSDT" },
+    });
+
+    // The mount that consumes the seed must keep it: `openFor` is what the
+    // panel calls on mount, and clearing here would blank the draft the chart
+    // just handed over.
+    alertPanelState.openFor("BTCUSDT");
+    expect(alertPanelState.drawingDraft).toEqual({
+      id: "draw-1",
+      symbol: "BTCUSDT",
+    });
+    expect(alertPanelState.activeTab).toBe("drawing");
+
+    alertPanelState.openFor("BTCUSDT");
+
+    expect(alertPanelState.drawingDraft).toBeNull();
+  });
+
+  it("does not resurrect a draft seeded while the panel was already open", () => {
+    // A live seed applies to the mounted panel; it must not stay "pending" and
+    // come back on the next open as if it were still waiting for a mount.
+    alertPanelState.openFor("BTCUSDT");
+    alertPanelState.seed({
+      symbol: "BTCUSDT",
+      tab: "drawing",
+      condition: level,
+      drawing: { id: "draw-1", symbol: "BTCUSDT" },
+    });
+    alertPanelState.closePanel();
+
+    alertPanelState.openFor("BTCUSDT");
+
+    expect(alertPanelState.drawingDraft).toBeNull();
+  });
+
+  it("keeps the drawing tab out of the default strip", () => {
+    expect(DEFAULT_ALERT_PANEL_TABS).not.toContain("drawing");
   });
 });

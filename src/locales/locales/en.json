@@ -370,8 +370,23 @@
           "price": "Price",
           "indicators": "Indicators",
           "candlesticks": "Candlesticks",
+          "drawing": "Drawing",
           "manage": "Manage"
         },
+        "drawing": {
+          "lead": "This alert watches the selected drawing and is checked on the candle close; which side it watches is decided when you arm.",
+          "symbol": "Market",
+          "kindLabel": "Drawing",
+          "level": "Level",
+          "levelFollowsLine": "follows the line",
+          "symbolFixed": "The drawing sets the market; price source and evaluation mode do not apply.",
+          "kind": {
+            "horizontal": "Horizontal line",
+            "trend": "Trend line"
+          }
+        },
+        "drawingMissing": "The drawing no longer exists.",
+        "priceStale": "The last price is too old to place the alert safely.",
         "symbol": "Symbol",
         "priceSource": "Price source",
         "timeframe": "Timeframe",

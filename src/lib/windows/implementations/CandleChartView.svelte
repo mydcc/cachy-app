@@ -37,7 +37,7 @@
     import { drawingStore } from "../../../stores/drawings.svelte";
     import { DrawingManager } from "../../../services/chart/drawingManager";
     import { DrawingPrimitive } from "../../../services/chart/drawingPrimitive";
-    import { armDrawingAlert } from "../../../services/alertEngine/createDrawingAlert";
+    import { buildDrawingAlert } from "../../../services/alertEngine/createDrawingAlert";
     import type { ChartRow } from "../../../lib/chart/seriesMap";
     import IndicatorPaneHeader from "../../../components/shared/IndicatorPaneHeader.svelte";
     import { marketState } from "../../../stores/market.svelte";
@@ -772,30 +772,39 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             return;
         }
 
-        const result = armDrawingAlert({
+        const tf = ruleTimeframeFor(timeframe) ?? DEFAULT_RULE_TIMEFRAME;
+
+        /*
+         * FEAT-0752: seed the builder instead of arming here. The draft gets a
+         * complete document the panel can render; `armDrawingAlert` rebuilds
+         * the rule at arm time with the price of that moment, so a panel left
+         * open while the market moved cannot arm a stale direction.
+         */
+        const built = buildDrawingAlert({
             drawing,
-            timeframe,
+            timeframe: tf,
             currentPrice: new Decimal(price),
             nowMs: Date.now(),
         });
 
-        if (result.ok) {
-            toastService.success($_("chartView.drawings.alertArmed"));
+        if (!built.ok) {
+            // The same refusals as a direct arm. An anchor failure cannot
+            // happen here: nothing is written until the panel's arm press.
+            toastService.error(
+                $_(built.reason === "drawing-has-no-level"
+                    ? "chartView.drawings.alertNoLevel"
+                    : "chartView.drawings.alertOnTheLine"),
+            );
             return;
         }
-        // Each refusal tells the trader what is actually missing: on the line
-        // there is no side to cross from, without a level there is nothing to
-        // watch at all, and without a persisted anchor the line would never be
-        // followed. The developer-facing distinction stays in the type.
-        toastService.error(
-            $_(
-                result.reason === "drawing-has-no-level"
-                    ? "chartView.drawings.alertNoLevel"
-                    : result.reason === "drawing-anchor-not-persisted"
-                      ? "chartView.drawings.alertAnchorFailed"
-                      : "chartView.drawings.alertOnTheLine",
-            ),
-        );
+
+        openAlertPanelWith({
+            symbol: drawing.symbol,
+            tab: "drawing",
+            condition: built.rule.conditions,
+            timeframe: tf,
+            drawing: { id: drawing.id, symbol: drawing.symbol },
+        });
     }
 
     function deleteSelectedDrawing(): void {

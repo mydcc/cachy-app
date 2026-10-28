@@ -370,8 +370,23 @@
           "price": "Preis",
           "indicators": "Indikatoren",
           "candlesticks": "Candlesticks",
+          "drawing": "Zeichnung",
           "manage": "Verwalten"
         },
+        "drawing": {
+          "lead": "Dieser Alarm beobachtet die ausgewählte Zeichnung und wird zum Kerzenschluss geprüft; welche Seite er beobachtet, entscheidet sich beim Bewaffnen.",
+          "symbol": "Markt",
+          "kindLabel": "Zeichnung",
+          "level": "Niveau",
+          "levelFollowsLine": "folgt der Linie",
+          "symbolFixed": "Die Zeichnung bestimmt den Markt; Preisquelle und Auswertungsmodus gelten hier nicht.",
+          "kind": {
+            "horizontal": "Horizontale Linie",
+            "trend": "Trendlinie"
+          }
+        },
+        "drawingMissing": "Die Zeichnung existiert nicht mehr.",
+        "priceStale": "Der letzte Preis ist zu alt, um den Alarm sicher zu setzen.",
         "symbol": "Symbol",
         "priceSource": "Preisquelle",
         "timeframe": "Zeiteinheit",

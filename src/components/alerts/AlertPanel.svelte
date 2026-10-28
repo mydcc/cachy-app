@@ -59,6 +59,7 @@
 
         return () => {
             windowManager.close(win.id);
+            alertPanelState.closePanel();
             instance = null;
         };
     });

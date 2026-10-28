@@ -21,9 +21,10 @@
  * FEAT-0029 criterion: an alert on a horizontal line fires on crossing.
  *
  * "On crossing" is built from two choices this file pins down — the direction
- * is taken from where price currently sits, and `frequency` is left absent so
- * the core reads it as `once`. Get either wrong and the alert announces itself
- * the moment it is armed.
+ * is taken from where price currently sits, and `frequency` is left absent when
+ * no lifecycle is supplied, so the core reads it as `once`. Get either wrong and
+ * the alert announces itself the moment it is armed. FEAT-0752 adds the path
+ * where the builder supplies that lifecycle and the panel's rule id.
  */
 
 import { Decimal } from "decimal.js";
@@ -72,6 +73,12 @@ function request(overrides: Partial<Parameters<typeof buildDrawingAlert>[0]> = {
 function comparison(result: ReturnType<typeof buildDrawingAlert>) {
     if (!result.ok) throw new Error("expected a rule");
     return result.rule.conditions as { op: string; right: { value: string } };
+}
+
+/** The rule store as it stands after an arm. */
+function storedRules(): unknown[] {
+    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    return raw === null ? [] : (JSON.parse(raw) as unknown[]);
 }
 
 beforeEach(() => {
@@ -123,6 +130,28 @@ describe("the rule it builds", () => {
         expect(result.ok && "frequency" in result.rule).toBe(false);
     });
 
+    it("carries the lifecycle the builder footer supplies — FEAT-0752", () => {
+        // The panel arms through this path, so the footer's fields have to
+        // arrive on the document; otherwise a drawing alert is the one type
+        // that cannot choose a channel, a repeat, an expiry or a note.
+        const result = buildDrawingAlert(
+            request({
+                lifecycle: {
+                    frequency: "every_time",
+                    trigger_methods: ["in_app", "sound"],
+                    valid_until_ms: T0 + HOUR,
+                    note: "watched overnight",
+                },
+            }),
+        );
+
+        if (!result.ok) throw new Error("expected a rule");
+        expect(result.rule.frequency).toBe("every_time");
+        expect(result.rule.trigger_methods).toEqual(["in_app", "sound"]);
+        expect(result.rule.valid_until_ms).toBe(T0 + HOUR);
+        expect(result.rule.note).toBe("watched overnight");
+    });
+
     it("seeds the threshold with the level at that moment", () => {
         const result = buildDrawingAlert(
             request({ drawing: sloped, nowMs: T0 + 5 * HOUR, currentPrice: new Decimal("49000") }),
@@ -152,6 +181,43 @@ describe("the rule it builds", () => {
 });
 
 describe("arming it", () => {
+    it("stores the lifecycle the footer supplied — FEAT-0752", () => {
+        const result = armDrawingAlert(
+            request({
+                id: "panel-rule",
+                lifecycle: {
+                    frequency: "once_per_candle_close",
+                    trigger_methods: ["sound"],
+                    valid_until_ms: T0 + HOUR,
+                    note: "line watch",
+                },
+            }),
+        );
+
+        expect(result.ok).toBe(true);
+        const stored = JSON.parse(
+            localStorage.getItem(RULES_STORAGE_KEY) ?? "[]",
+        ) as Array<Record<string, unknown>>;
+        expect(stored[0]).toMatchObject({
+            frequency: "once_per_candle_close",
+            trigger_methods: ["sound"],
+            valid_until_ms: T0 + HOUR,
+            note: "line watch",
+        });
+    });
+
+    it("reuses the id the panel supplies, so arming twice replaces — FEAT-0752", () => {
+        // The panel keeps its draft id and passes it in; without that, a second
+        // press after a missed toast would leave two alerts on the same line.
+        const first = armDrawingAlert(request({ id: "panel-rule" }));
+        const second = armDrawingAlert(
+            request({ id: "panel-rule", currentPrice: new Decimal("51000") }),
+        );
+
+        expect(first.ok && second.ok).toBe(true);
+        expect(storedRules()).toHaveLength(1);
+    });
+
     it("stores the rule and records which drawing it watches", () => {
         const result = armDrawingAlert(request());
 

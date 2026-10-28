@@ -31,7 +31,9 @@ validity period and note.
 2. Each Manage row gets an edit affordance that loads the rule into the draft
    and switches to the builder tab owning its condition slot (price /
    indicators / candlesticks / combo), reusing the slot-hydration builders
-   already use on mount.
+   already use on mount. A drawing-anchored rule has no condition slot: load it
+   by re-seeding `drawingDraft` from its ledger entry (`drawingAnchors`) and
+   opening the Drawing tab.
 3. Non-`notify` rules (bots) stay excluded from Manage editing — bots are
    managed on the Automation tab (see FEAT-0544). A migrated legacy alert
    without `action` loads as a `notify` draft.
