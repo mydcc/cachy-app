@@ -367,8 +367,13 @@ class RiskManagementService {
     }
 
     /**
-     * Whether an order creates or increases exposure, and is therefore
-     * something the kill switch stops.
+     * Whether an order creates or increases exposure.
+     *
+     * This is the classification the risk limits read: `checkLimits` uses it
+     * to decide which intents face the size, daily-loss and loss-per-trade
+     * caps. It is deliberately NOT the kill switch's scope — FEAT-0526 made
+     * that configurable in `killSwitchBlocks`, whose defaults match this
+     * rule. Narrowing the switch must not narrow the limits.
      *
      * The carve-outs are the point of the feature, not an oversight:
      *
@@ -381,16 +386,15 @@ class RiskManagementService {
      *   happens to widen it, and deciding "widening vs tightening" needs the
      *   position side and mark price — getting that wrong refuses a
      *   legitimate stop move at the worst possible moment.
-     * - **Pending-order amendments (`modify-order`) are blocked.** Those can
+     * - **Pending-order amendments (`modify-order`) are exposure.** Those can
      *   raise quantity or price on a resting order, and cancelling is always
      *   available instead.
      */
     public increasesExposure(intent: OrderIntent): boolean {
         if (intent.kind === "open") return true;
         // An add is an opening order by another name (FEAT-0334) — it buys
-        // more of the same exposure. A kill switch that let scaling-in through
-        // would be a kill switch in name only, and this is the one place that
-        // has to know it, because `add` is otherwise verified like a reduce.
+        // more of the same exposure, so the limits must check it even though
+        // `add` is otherwise verified like a reduce.
         if (intent.kind === "add") return true;
         if (intent.kind === "modify") return intent.endpoint !== "/api/tpsl";
         return false;
@@ -433,20 +437,18 @@ class RiskManagementService {
 
     /**
      * The same predicate the hook uses, exposed for the Settings explanation.
-     * The UI renders sentences from these booleans instead of re-deriving the
-     * rule in prose, so a config change cannot leave the text behind.
+     * Only the configurable dimensions are returned: opens are blocked and
+     * TP/SL adjusts are permitted by construction in `blocksKind`, and the
+     * fixed copy states those two. Returning invariants as if a toggle could
+     * change them would invite the UI to claim a derivation it does not have.
      */
     public killSwitchScope(): {
-        opensBlocked: boolean;
         addsBlocked: boolean;
         nonTpSlModifiesBlocked: boolean;
-        tpSlModifiesBlocked: boolean;
     } {
         return {
-            opensBlocked: this.blocksKind("open"),
             addsBlocked: this.blocksKind("add"),
             nonTpSlModifiesBlocked: this.blocksKind("modify", "/api/orders"),
-            tpSlModifiesBlocked: this.blocksKind("modify", "/api/tpsl"),
         };
     }
 
@@ -467,12 +469,28 @@ class RiskManagementService {
         if (suppressedFor !== null && suppressedFor === utcDayStart(now)) return;
         const threshold = riskState.killSwitchAutoEngageLimit();
         if (!threshold) return;
-        const assessment = this.assessDailyLoss(now);
-        if (!assessment.complete) return;
-        const loss = assessment.loss.isNegative()
-            ? assessment.loss.abs()
-            : new Decimal(0);
-        if (loss.gte(threshold)) riskState.engageKillSwitch(now);
+        /*
+         * `verify` reaches this from the kill-switch hook on every intent,
+         * including closes and cancels that never needed a daily-loss
+         * measurement before. A journal that cannot be read must not turn a
+         * close into a thrown exception at the gate: log it and do not arm —
+         * guessing a loss and refusing an exit are the same mistake in
+         * opposite directions.
+         */
+        try {
+            const assessment = this.assessDailyLoss(now);
+            if (!assessment.complete) return;
+            const loss = assessment.loss.isNegative()
+                ? assessment.loss.abs()
+                : new Decimal(0);
+            if (loss.gte(threshold)) riskState.engageKillSwitch(now);
+        } catch (error) {
+            logger.error(
+                "data",
+                "[RMS] Auto-engage assessment failed; switch stays as it is",
+                error,
+            );
+        }
     }
 
     /**

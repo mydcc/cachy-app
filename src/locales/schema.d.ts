@@ -2171,6 +2171,8 @@ export type TranslationKey =
   | "settings.risk.killSwitch.autoEngage.cause.no-exit-date"
   | "settings.risk.killSwitch.autoEngage.cause.unknown-status"
   | "settings.risk.killSwitch.autoEngage.cause.stale-sync"
+  | "settings.risk.killSwitch.autoEngage.engaged"
+  | "settings.risk.killSwitch.autoEngage.reached"
   | "settings.risk.closeAll.title"
   | "settings.risk.closeAll.description"
   | "settings.risk.closeAll.button"

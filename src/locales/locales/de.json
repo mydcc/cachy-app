@@ -2439,12 +2439,12 @@
         "title": "Kill Switch",
         "engaged": "Kill Switch ist AKTIV — es werden keine neuen Positionen eröffnet",
         "disengaged": "Kill Switch ist aus — Orders werden normal gesendet",
-        "description": "Blockiert sofort jede Order, die eine Position eröffnen oder vergrößern würde, bis du ihn wieder löst. Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin — ein Notaus, der dich zusätzlich in deinen Trades einsperrt, macht aus einem Schreck einen Verlust. Er überlebt einen Reload.",
+        "description": "Blockiert die unten aufgeführten Orders, sofort und bis du ihn löst. Positionen schließen, Orders stornieren und Stops anpassen funktionieren weiterhin — ein Panikknopf, der dich auch in deinen Trades einsperrt, würde aus einem Schrecken einen Verlust machen. Er überlebt einen Reload.",
         "engagedSince": "Aktiv seit {time}",
         "engage": "Kill Switch aktivieren",
         "release": "Kill Switch lösen",
         "confirmTitle": "Kill Switch lösen?",
-        "confirmMessage": "Ab sofort werden wieder Orders gesendet, die Positionen eröffnen oder vergrößern. Fortfahren?",
+        "confirmMessage": "Orders, die der Kill Switch abdeckt, werden ab jetzt wieder gesendet. Fortfahren?",
         "scope": {
           "opensBlocked": "Blockiert: eine neue Position eröffnen.",
           "addsBlocked": "Blockiert: eine bestehende Position vergrößern.",
@@ -2454,11 +2454,20 @@
           "alwaysPermitted": "Immer erlaubt: Position schließen, alle schließen, Order stornieren und TP/SL anpassen."
         },
         "configTitle": "Was er tut und wie er auslöst",
-        "blockAdds": { "label": "Zukäufe blockieren", "hint": "Standardmäßig an. Aus: eine bestehende Position kann trotz aktivem Switch vergrößert werden. Risikolimits gelten weiter." },
-        "blockModifies": { "label": "Nicht-TP/SL-Änderungen blockieren", "hint": "Standardmäßig an. Aus: eine ruhende Order kann trotz aktivem Switch geändert werden; TP/SL-Anpassungen sind nie blockiert." },
-        "confirmEngage": { "label": "Vor dem Aktivieren fragen", "hint": "Standardmäßig an. Aus: der Aktivieren-Button wirkt sofort. Das Lösen fragt immer." },
+        "blockAdds": {
+          "label": "Zukäufe blockieren",
+          "hint": "Standardmäßig an. Aus: eine bestehende Position kann trotz aktivem Switch vergrößert werden. Risikolimits gelten weiter."
+        },
+        "blockModifies": {
+          "label": "Nicht-TP/SL-Änderungen blockieren",
+          "hint": "Standardmäßig an. Aus: eine ruhende Order kann trotz aktivem Switch geändert werden; TP/SL-Anpassungen sind nie blockiert. Risikolimits gelten weiter."
+        },
+        "confirmEngage": {
+          "label": "Vor dem Aktivieren fragen",
+          "hint": "Standardmäßig an. Aus: der Aktivieren-Button wirkt sofort. Das Lösen fragt immer."
+        },
         "engageConfirmTitle": "Kill Switch aktivieren?",
-        "engageConfirmMessage": "Orders, die das Risiko erhöhen, sind blockiert, bis du ihn löst. Schließen, Stornieren und TP/SL-Anpassungen funktionieren weiterhin.",
+        "engageConfirmMessage": "Orders, die der Kill Switch abdeckt, sind blockiert, bis du ihn löst. Schließen, Stornieren und TP/SL-Anpassungen funktionieren weiterhin.",
         "autoEngage": {
           "label": "Automatisch aktivieren nach Tagesverlust",
           "hint": "Leer = aus. Wird bei der nächsten Order-Prüfung und beim Öffnen der Einstellungen ausgewertet; nach einem manuellen Lösen bleibt er für den Rest des UTC-Tags aus. Er löst sich nie selbst.",
@@ -2472,7 +2481,9 @@
             "no-exit-date": "einem geschlossenen Trade fehlt das Schließdatum",
             "unknown-status": "ein Trade hat einen Status, den der Zähler nicht zuordnen kann",
             "stale-sync": "der heutige Positionsverlauf-Sync ist nicht gelaufen"
-          }
+          },
+          "engaged": "Aktiv — der Switch wurde automatisch oder manuell aktiviert.",
+          "reached": "Schwelle erreicht — aktiviert bei der nächsten Order-Prüfung."
         }
       },
       "closeAll": {

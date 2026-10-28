@@ -99,6 +99,41 @@ describe("FEAT-0526 — kill-switch config persistence", () => {
         expect(riskState.killSwitchAutoEngageLimit()).toBeNull();
     });
 
+    it("keeps an uninterpretable stored threshold visible and flags it", () => {
+        // A hand-edited blob must not read as "off": that would silently
+        // disable the protection and leave the field looking empty.
+        writeLegacy({
+            limits: {},
+            killSwitchEngagedAt: null,
+            lastHistorySyncAt: null,
+            killSwitch: { autoEngageDailyLossUsdt: "-5" },
+        });
+        riskState.reloadFromStorage();
+
+        expect(riskState.killSwitchConfig.autoEngageDailyLossUsdt).toBe("-5");
+        expect(riskState.killSwitchAutoEngageLimit()).toBeNull();
+        expect(riskState.hasInvalidAutoEngageThreshold).toBe(true);
+    });
+
+    it("does not flag a threshold that is simply unset", () => {
+        expect(riskState.hasInvalidAutoEngageThreshold).toBe(false);
+    });
+
+    it("clears the invalid flag once a valid threshold is saved", () => {
+        writeLegacy({
+            limits: {},
+            killSwitchEngagedAt: null,
+            lastHistorySyncAt: null,
+            killSwitch: { autoEngageDailyLossUsdt: "abc" },
+        });
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidAutoEngageThreshold).toBe(true);
+
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "100");
+
+        expect(riskState.hasInvalidAutoEngageThreshold).toBe(false);
+    });
+
     it("resetLimits does not weaken the switch configuration", () => {
         riskState.setKillSwitchOption("blockAdds", false);
         riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "100");

@@ -150,6 +150,23 @@ function persistableInvalidMaxOpenPositions(value: unknown): unknown {
     return String(value);
 }
 
+/**
+ * The auto-engage threshold, kept verbatim when it cannot be interpreted.
+ *
+ * Reading a corrupt or negative value as "off" would silently disable an
+ * opt-in protection and leave nothing to repair — the same failure the
+ * max-open-positions field is stored raw for. `killSwitchAutoEngageLimit()`
+ * decides whether the text is usable; the raw string stays visible in the
+ * field so the trader can fix it.
+ */
+const killSwitchThreshold = z
+    .union([z.string(), z.number()])
+    .transform((val) => {
+        const text = String(val);
+        return text === "" ? null : text;
+    })
+    .catch(null);
+
 const RiskStateSchema = z.object({
     limits: z
         .object({
@@ -169,7 +186,7 @@ const RiskStateSchema = z.object({
             blockAdds: z.boolean().catch(true),
             blockNonTpSlModifies: z.boolean().catch(true),
             confirmEngage: z.boolean().catch(true),
-            autoEngageDailyLossUsdt: numericLimit,
+            autoEngageDailyLossUsdt: killSwitchThreshold,
         })
         .partial()
         .catch({}),
@@ -241,6 +258,19 @@ class RiskManager {
         } catch {
             return null;
         }
+    }
+
+    /**
+     * True when storage holds a threshold that is not a positive number.
+     *
+     * `killSwitchAutoEngageLimit()` reads it as "off", which is the safe
+     * behaviour but a silent one: the protection the trader opted into is not
+     * armed and the field would otherwise look empty. The UI shows the raw
+     * text and an inline error instead.
+     */
+    get hasInvalidAutoEngageThreshold(): boolean {
+        const raw = this._killSwitchConfig.autoEngageDailyLossUsdt;
+        return raw !== null && raw !== "" && this.killSwitchAutoEngageLimit() === null;
     }
 
     /**

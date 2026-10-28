@@ -2439,12 +2439,12 @@
         "title": "Kill Switch",
         "engaged": "Kill switch is ENGAGED — no new positions are being opened",
         "disengaged": "Kill switch is off — orders are sent normally",
-        "description": "Blocks every order that would open or increase a position, immediately and until you clear it. Closing positions, cancelling orders and adjusting stops keep working — a panic button that also trapped you in your trades would turn a scare into a loss. It survives a reload.",
+        "description": "Blocks the orders listed below, immediately and until you clear it. Closing positions, cancelling orders and adjusting stops keep working — a panic button that also trapped you in your trades would turn a scare into a loss. It survives a reload.",
         "engagedSince": "Engaged since {time}",
         "engage": "Engage kill switch",
         "release": "Release kill switch",
         "confirmTitle": "Release the kill switch?",
-        "confirmMessage": "Orders that open or increase a position will be sent again from this moment on. Continue?",
+        "confirmMessage": "Orders the kill switch covers will be sent again from this moment on. Continue?",
         "scope": {
           "opensBlocked": "Blocked: opening a new position.",
           "addsBlocked": "Blocked: adding to an existing position.",
@@ -2454,11 +2454,20 @@
           "alwaysPermitted": "Always permitted: closing a position, closing all, cancelling an order, and adjusting TP/SL."
         },
         "configTitle": "What it does and how it engages",
-        "blockAdds": { "label": "Block adds", "hint": "On by default. Off: scaling into an existing position stays possible while engaged. Risk limits still apply." },
-        "blockModifies": { "label": "Block non-TP/SL changes", "hint": "On by default. Off: editing a resting order stays possible while engaged; TP/SL adjusts are never blocked." },
-        "confirmEngage": { "label": "Ask before engaging", "hint": "On by default. Off: the engage button acts immediately. A release always asks." },
+        "blockAdds": {
+          "label": "Block adds",
+          "hint": "On by default. Off: scaling into an existing position stays possible while engaged. Risk limits still apply."
+        },
+        "blockModifies": {
+          "label": "Block non-TP/SL changes",
+          "hint": "On by default. Off: editing a resting order stays possible while engaged; TP/SL adjusts are never blocked. Risk limits still apply."
+        },
+        "confirmEngage": {
+          "label": "Ask before engaging",
+          "hint": "On by default. Off: the engage button acts immediately. A release always asks."
+        },
         "engageConfirmTitle": "Engage the kill switch?",
-        "engageConfirmMessage": "Trading that increases exposure is blocked until you release it. Closing, cancelling and TP/SL adjusts keep working.",
+        "engageConfirmMessage": "Orders the kill switch covers are blocked until you release it. Closing, cancelling and TP/SL adjusts keep working.",
         "autoEngage": {
           "label": "Auto-engage after a daily loss",
           "hint": "Empty = off. Evaluated at the next order check and when Settings opens; a manual release keeps it off for the rest of the UTC day. It never releases itself.",
@@ -2472,7 +2481,9 @@
             "no-exit-date": "a closed trade has no close date",
             "unknown-status": "a trade has a status the counter cannot attribute",
             "stale-sync": "today's position-history sync has not run"
-          }
+          },
+          "engaged": "Engaged — the switch was armed automatically or manually.",
+          "reached": "Threshold reached — engages at the next order check."
         }
       },
       "closeAll": {

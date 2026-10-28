@@ -53,23 +53,30 @@ in both locales; `npm run i18n` parity stays green.
 is the switch's scope; `increasesExposure` stays untouched because
 `checkLimits` reads it to decide which limits apply. Turning "block adds" off
 narrows the switch only — the size, daily-loss and loss-per-trade caps still
-check adds. `killSwitchScope()` returns the same booleans for the Settings
-text, so a toggle cannot leave the prose describing the old rule; permitted
-cases are stated, not merely omitted.
+check adds. `killSwitchScope()` returns the two configurable booleans for the
+Settings text, so a toggle cannot leave the prose describing the old rule;
+permitted cases are stated, not merely omitted, and the fixed rows say what
+cannot be configured.
 
 **Configuration** lives in `riskState` (Class A, same synchronous persist as
 the switch timestamp): `blockAdds`, `blockNonTpSlModifies`, `confirmEngage`
 (default on) and `autoEngageDailyLossUsdt` (empty = off, must be positive).
 Missing keys in a pre-item blob read as the old rule; `resetLimits` leaves the
-configuration alone.
+configuration alone. The threshold field keeps a local draft and commits on
+`change` (blur or Enter), not on every keystroke: typing "1000" passes through
+"1", and a commit per keystroke could arm the switch mid-typing. A stored
+value that cannot be interpreted stays visible with an inline error instead of
+reading as "off".
 
 **Auto-engage** is evaluated at the kill-switch gate hook, before the verdict,
 so the order that first sees the threshold is the one refused. It compares the
 day's *positive realised loss* (a green day never arms it) and refuses to guess
-on an unmeasurable day (BUG-0499). A manual release records the UTC day and
-suppresses auto-engage until the next one, so the human's explicit override is
-not undone by the next click. Nothing releases the switch automatically —
-pinned by a test that advances ten days.
+on an unmeasurable day (BUG-0499); a failing assessment is logged and leaves
+the switch alone rather than throwing on a close. A manual release records the
+UTC day and suppresses auto-engage until the next one, so the human's explicit
+override is not undone by the next click. Nothing releases the switch
+automatically — pinned by a test that advances ten days onto another losing
+day.
 
 The Settings status line names the real precondition (threshold, current loss,
 or the concrete cause that makes today unmeasurable) instead of claiming the
@@ -78,7 +85,8 @@ switch is armed.
 ## Acceptance criteria
 
 - [x] Settings shows what the switch blocks and what stays permitted, in both
-      locales, matching `increasesExposure` exactly
+      locales, derived from `killSwitchBlocks` (the defaults are exactly the
+      `increasesExposure` rule)
 - [x] Each block-scope toggle changes gate behaviour, proven by a test per
       toggle (gate refuses/permits the corresponding intent while engaged)
 - [x] Confirm-before-engage on blocks accidental engagement, proven by a test

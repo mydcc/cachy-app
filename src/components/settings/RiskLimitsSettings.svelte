@@ -51,16 +51,38 @@
     assessment.loss.isNegative() ? assessment.loss.abs() : new Decimal(0),
   );
 
+  /*
+   * A minute tick, so a Settings panel left open across 00:00 UTC stops
+   * claiming yesterday's suppression and yesterday's reset time. The clock
+   * is a `$state` cell rather than a bare `Date.now()` inside `$derived`,
+   * because nothing would invalidate the derivation at midnight.
+   */
+  let clockNow = $state(Date.now());
+  $effect(() => {
+    const id = setInterval(() => {
+      clockNow = Date.now();
+    }, 60_000);
+    return () => clearInterval(id);
+  });
+
   const nextResetLocal = $derived.by(() => {
-    const next = utcDayStart(Date.now()) + 24 * 60 * 60 * 1000;
+    const next = utcDayStart(clockNow) + 24 * 60 * 60 * 1000;
     return new Date(next).toLocaleString();
   });
 
-  let autoEngageRejected = $state(false);
+  /*
+   * The threshold field edits a draft, not the store (FEAT-0526 review).
+   * Committing on every keystroke made "1000" pass through "1" — a value
+   * below a real 300 USDT loss, which would arm the switch mid-typing and
+   * then leave the trader with a released, day-suppressed switch. The store
+   * is written on `change` only (blur or Enter); `input` just validates.
+   */
+  let autoEngageDraft = $state(riskState.killSwitchConfig.autoEngageDailyLossUsdt ?? "");
+  let autoEngageRejected = $state(riskState.hasInvalidAutoEngageThreshold);
 
   const autoEngageThreshold = $derived(riskState.killSwitchAutoEngageLimit());
   const suppressedToday = $derived(
-    riskState.killSwitchAutoEngageSuppressedFor === utcDayStart(Date.now()),
+    riskState.killSwitchAutoEngageSuppressedFor === utcDayStart(clockNow),
   );
   const causeLabel = $derived(
     assessment.cause === null
@@ -69,13 +91,28 @@
   );
 
   // The status line names the real precondition instead of claiming the
-  // switch is armed while the day cannot be measured.
+  // switch is armed while the day cannot be measured, the threshold has
+  // already been crossed, or the switch is engaged.
   const autoEngageStatus = $derived.by(() => {
+    if (riskState.hasInvalidAutoEngageThreshold) {
+      return $_("settings.risk.killSwitch.autoEngage.invalid");
+    }
     if (autoEngageThreshold === null) return $_("settings.risk.killSwitch.autoEngage.off");
+    if (riskState.isKillSwitchEngaged) {
+      return $_("settings.risk.killSwitch.autoEngage.engaged");
+    }
     if (suppressedToday) return $_("settings.risk.killSwitch.autoEngage.suppressedToday");
     if (!assessment.complete) {
       return $_("settings.risk.killSwitch.autoEngage.unmeasurable", {
         values: { cause: causeLabel },
+      });
+    }
+    if (realizedLoss.gte(autoEngageThreshold)) {
+      return $_("settings.risk.killSwitch.autoEngage.reached", {
+        values: {
+          threshold: autoEngageThreshold.toFixed(2),
+          loss: fmt(realizedLoss),
+        },
       });
     }
     return $_("settings.risk.killSwitch.autoEngage.armed", {
@@ -195,15 +232,31 @@
     riskState.setKillSwitchOption(key, checked);
   }
 
+  /** Validate without committing — the store is written on `change` only. */
+  function thresholdIsValid(raw: string): boolean {
+    if (raw.trim() === "") return true;
+    try {
+      const value = new Decimal(raw);
+      return value.isFinite() && !value.isNaN() && value.gt(0);
+    } catch {
+      return false;
+    }
+  }
+
   function onAutoEngageInput(event: Event) {
-    const value = (event.currentTarget as HTMLInputElement).value;
+    autoEngageDraft = (event.currentTarget as HTMLInputElement).value;
+    autoEngageRejected = !thresholdIsValid(autoEngageDraft);
+  }
+
+  function onAutoEngageCommit() {
     const ok = riskState.setKillSwitchOption(
       "autoEngageDailyLossUsdt",
-      value === "" ? null : value,
+      autoEngageDraft.trim() === "" ? null : autoEngageDraft,
     );
     autoEngageRejected = !ok;
     // Saving a threshold today, when today is already over it, must arm now
-    // rather than wait for an order that may never come.
+    // rather than wait for an order that may never come. Only a committed
+    // value is evaluated: a half-typed "1" of "1000" must not arm anything.
     if (ok) rmsService.maybeAutoEngageKillSwitch();
   }
 
@@ -308,14 +361,14 @@
         </p>
 
         <div class="flex items-start justify-between gap-3">
-          <div>
+          <label class="cursor-pointer" for="kill-switch-block-adds">
             <p class="text-xs font-semibold">
               {$_("settings.risk.killSwitch.blockAdds.label")}
             </p>
             <p class="text-[10px] text-[var(--text-secondary)]">
               {$_("settings.risk.killSwitch.blockAdds.hint")}
             </p>
-          </div>
+          </label>
           <Toggle
             id="kill-switch-block-adds"
             checked={config.blockAdds}
@@ -324,14 +377,14 @@
         </div>
 
         <div class="flex items-start justify-between gap-3">
-          <div>
+          <label class="cursor-pointer" for="kill-switch-block-modifies">
             <p class="text-xs font-semibold">
               {$_("settings.risk.killSwitch.blockModifies.label")}
             </p>
             <p class="text-[10px] text-[var(--text-secondary)]">
               {$_("settings.risk.killSwitch.blockModifies.hint")}
             </p>
-          </div>
+          </label>
           <Toggle
             id="kill-switch-block-modifies"
             checked={config.blockNonTpSlModifies}
@@ -340,14 +393,14 @@
         </div>
 
         <div class="flex items-start justify-between gap-3">
-          <div>
+          <label class="cursor-pointer" for="kill-switch-confirm-engage">
             <p class="text-xs font-semibold">
               {$_("settings.risk.killSwitch.confirmEngage.label")}
             </p>
             <p class="text-[10px] text-[var(--text-secondary)]">
               {$_("settings.risk.killSwitch.confirmEngage.hint")}
             </p>
-          </div>
+          </label>
           <Toggle
             id="kill-switch-confirm-engage"
             checked={config.confirmEngage}
@@ -368,8 +421,9 @@
               class:border-danger={autoEngageRejected}
               aria-invalid={autoEngageRejected}
               placeholder={$_("settings.risk.killSwitch.autoEngage.off")}
-              value={config.autoEngageDailyLossUsdt ?? ""}
+              value={autoEngageDraft}
               oninput={onAutoEngageInput}
+              onchange={onAutoEngageCommit}
             />
             <span class="text-[11px] text-[var(--text-secondary)] w-10 shrink-0"
               >USDT</span

@@ -49,6 +49,7 @@ vi.mock("../stores/journal.svelte", () => ({
 
 import { rmsService } from "./rmsService";
 import { riskState } from "../stores/riskLimits.svelte";
+import { StorageHelper } from "../utils/storageHelper";
 import { orderGate, type OrderIntent } from "./orderGate";
 
 const ACCOUNT = { provider: "bitunix", accountFingerprint: "abcd…wxyz" };
@@ -250,10 +251,8 @@ describe("FEAT-0526 — default scope equals the pre-existing rule", () => {
 
     it("reports the same scope the explanation renders", () => {
         expect(rmsService.killSwitchScope()).toEqual({
-            opensBlocked: true,
             addsBlocked: true,
             nonTpSlModifiesBlocked: true,
-            tpSlModifiesBlocked: false,
         });
     });
 });
@@ -381,11 +380,53 @@ describe("FEAT-0526 — auto-engage on a daily loss", () => {
         journal.entries = [closedTrade("-500", NOON)];
         expect(orderGate.verify(openIntent()).refusal?.field).toBe("killSwitch");
 
-        // Ten days later, a fresh profitable day: still engaged.
-        vi.setSystemTime(NOON + 10 * 24 * 60 * 60 * 1000);
-        journal.entries = [closedTrade("+1000", NOON + 10 * 24 * 60 * 60 * 1000)];
+        // Ten days later, a fresh day that crosses the threshold again: the
+        // switch must still be engaged. A profitable day would prove nothing
+        // about auto-release, because nothing would have armed it either.
+        const later = NOON + 10 * 24 * 60 * 60 * 1000;
+        vi.setSystemTime(later);
+        journal.entries = [closedTrade("-250", later)];
 
         expect(orderGate.verify(openIntent()).refusal?.field).toBe("killSwitch");
         expect(riskState.isKillSwitchEngaged).toBe(true);
+    });
+
+    it("keeps a close working when the daily-loss assessment throws", () => {
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "100");
+        const assessment = vi
+            .spyOn(rmsService, "assessDailyLoss")
+            .mockImplementation(() => {
+                throw new Error("journal unreadable");
+            });
+
+        try {
+            // Before FEAT-0526 a close never reached the assessment. A throw
+            // here would turn "exit my position" into an exception at the
+            // gate — the one failure worse than refusing.
+            expect(orderGate.verify(closeIntent()).approved).toBe(true);
+            expect(riskState.isKillSwitchEngaged).toBe(false);
+        } finally {
+            assessment.mockRestore();
+        }
+    });
+
+    it("persists an auto-engage once across repeated verifies", () => {
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "100");
+        journal.entries = [closedTrade("-200", NOON)];
+        const writes = vi.spyOn(StorageHelper, "safeSave");
+
+        try {
+            expect(orderGate.verify(openIntent()).refusal?.field).toBe("killSwitch");
+            const engagedAt = riskState.killSwitchEngagedAt;
+            const afterFirst = writes.mock.calls.length;
+            expect(afterFirst).toBeGreaterThan(0);
+
+            // `verify` documents this write; it must not repeat it.
+            expect(orderGate.verify(openIntent()).refusal?.field).toBe("killSwitch");
+            expect(riskState.killSwitchEngagedAt).toBe(engagedAt);
+            expect(writes.mock.calls.length).toBe(afterFirst);
+        } finally {
+            writes.mockRestore();
+        }
     });
 });

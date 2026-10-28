@@ -38,11 +38,19 @@ import de from "../../locales/locales/de.json";
 import { CONSTANTS } from "../../lib/constants";
 
 /** Resolves a dotted key against a locale bundle, as `$_` would. */
-function lookup(bundle: unknown, key: string): string {
+function lookup(
+    bundle: unknown,
+    key: string,
+    values: Record<string, string | number> = {},
+): string {
     const value = key
         .split(".")
         .reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], bundle);
-    return typeof value === "string" ? value : key;
+    if (typeof value !== "string") return key;
+    return Object.entries(values).reduce(
+        (text, [name, replacement]) => text.split(`{${name}}`).join(String(replacement)),
+        value,
+    );
 }
 
 const locale = vi.hoisted(() => ({ current: "en" as "en" | "de" }));
@@ -97,35 +105,53 @@ vi.mock("../../stores/journal.svelte", () => ({
 vi.mock("../../stores/closeAllFlow", () => ({
     confirmAndCloseAllPositions: vi.fn(async () => {}),
 }));
+
+// Mutable so the status-line branches are reachable: a fixed `complete: true,
+// loss: 0` assessment could only ever render "armed".
+const dailyLoss = vi.hoisted(() => ({
+    loss: "0",
+    complete: true,
+    cause: null as "no-amount" | "no-exit-date" | "unknown-status" | "stale-sync" | null,
+}));
+
 vi.mock("../../services/rmsService", async () => {
     const { Decimal } = await import("decimal.js");
     const { riskState: store } = await import("../../stores/riskLimits.svelte");
     return {
         rmsService: {
-            realizedPnlToday: () => new Decimal(0),
+            realizedPnlToday: () => new Decimal(dailyLoss.loss),
             assessDailyLoss: () => ({
-                loss: new Decimal(0),
-                complete: true,
-                cause: null,
+                loss: new Decimal(dailyLoss.loss),
+                complete: dailyLoss.complete,
+                cause: dailyLoss.cause,
             }),
             maybeAutoEngageKillSwitch: vi.fn(),
             killSwitchScope: () => {
                 const config = store.killSwitchConfig;
                 return {
-                    opensBlocked: true,
                     addsBlocked: config.blockAdds,
                     nonTpSlModifiesBlocked: config.blockNonTpSlModifies,
-                    tpSlModifiesBlocked: false,
                 };
             },
         },
-        utcDayStart: (now: number) => now,
+        // The real boundary, not `(now) => now`: the suppression flag is
+        // compared against a UTC day start, so an identity stub could never
+        // satisfy the comparison.
+        utcDayStart: (now: number) => {
+            const date = new Date(now);
+            return Date.UTC(
+                date.getUTCFullYear(),
+                date.getUTCMonth(),
+                date.getUTCDate(),
+            );
+        },
     };
 });
 
 import RiskLimitsSettings from "./RiskLimitsSettings.svelte";
 import { riskState } from "../../stores/riskLimits.svelte";
 import { modalState } from "../../stores/modal.svelte";
+import { rmsService } from "../../services/rmsService";
 
 let host: HTMLDivElement;
 let component: Record<string, unknown> | null = null;
@@ -140,6 +166,13 @@ function typeInto(el: HTMLInputElement, value: string): void {
     el.dispatchEvent(new Event("focus"));
     el.value = value;
     el.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+}
+
+/** Blur/Enter — the threshold field commits on `change`, not on `input`. */
+function commit(el: HTMLInputElement, value?: string): void {
+    if (value !== undefined) el.value = value;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
     flushSync();
 }
 
@@ -159,6 +192,17 @@ function button(label: string): HTMLButtonElement {
     return match;
 }
 
+/**
+ * Re-render after mutating the mocked assessment. The component derives the
+ * figure from the journal's length, and this test's mock journal is a plain
+ * array — nothing would invalidate the derivation otherwise.
+ */
+function remount(): void {
+    if (component) unmount(component as never);
+    component = mount(RiskLimitsSettings, { target: host }) as Record<string, unknown>;
+    flushSync();
+}
+
 function maxPositions(): HTMLInputElement {
     return input("risk-maxOpenPositions");
 }
@@ -173,6 +217,9 @@ beforeEach(() => {
     riskState.setKillSwitchOption("blockNonTpSlModifies", true);
     riskState.setKillSwitchOption("confirmEngage", true);
     riskState.setKillSwitchOption("autoEngageDailyLossUsdt", null);
+    dailyLoss.loss = "0";
+    dailyLoss.complete = true;
+    dailyLoss.cause = null;
     host = document.createElement("div");
     document.body.appendChild(host);
     component = mount(RiskLimitsSettings, { target: host }) as Record<string, unknown>;
@@ -367,6 +414,15 @@ describe("FEAT-0526 — kill switch explanation and configuration", () => {
         expect(riskState.isKillSwitchEngaged).toBe(false);
     });
 
+    it("engages when the confirmation is accepted", async () => {
+        vi.mocked(modalState.show).mockResolvedValueOnce(true);
+
+        button(lookup(en, "settings.risk.killSwitch.engage")).click();
+
+        await vi.waitFor(() => expect(riskState.isKillSwitchEngaged).toBe(true));
+        expect(modalState.show).toHaveBeenCalledTimes(1);
+    });
+
     it("engages immediately when the confirmation is off", async () => {
         riskState.setKillSwitchOption("confirmEngage", false);
         flushSync();
@@ -401,13 +457,51 @@ describe("FEAT-0526 — kill switch explanation and configuration", () => {
         );
     });
 
+    it("commits the auto-engage threshold on change, not on every keystroke", () => {
+        const field = input("kill-switch-auto-engage");
+        vi.mocked(rmsService.maybeAutoEngageKillSwitch).mockClear();
+
+        // Typing "1000" passes through "1": a threshold of 1 is below a real
+        // loss, so committing per keystroke would arm the switch mid-typing.
+        for (const partial of ["1", "10", "100", "1000"]) {
+            typeInto(field, partial);
+            expect(riskState.killSwitchConfig.autoEngageDailyLossUsdt).toBeNull();
+        }
+        expect(rmsService.maybeAutoEngageKillSwitch).not.toHaveBeenCalled();
+
+        commit(field);
+
+        expect(riskState.killSwitchConfig.autoEngageDailyLossUsdt).toBe("1000");
+        expect(rmsService.maybeAutoEngageKillSwitch).toHaveBeenCalledTimes(1);
+    });
+
     it("stores the auto-engage threshold and rejects a zero", () => {
-        typeInto(input("kill-switch-auto-engage"), "250");
+        const field = input("kill-switch-auto-engage");
+        typeInto(field, "250");
+        commit(field);
         expect(riskState.killSwitchConfig.autoEngageDailyLossUsdt).toBe("250");
 
-        typeInto(input("kill-switch-auto-engage"), "0");
+        typeInto(field, "0");
+        commit(field);
 
         expect(riskState.killSwitchConfig.autoEngageDailyLossUsdt).toBe("250");
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.invalid"),
+        );
+    });
+
+    it("shows a stored threshold that cannot be interpreted instead of hiding it", () => {
+        // A hand-edited or corrupted blob: the schema keeps the raw text, and
+        // the form must not present it as "off".
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: {}, killSwitch: { autoEngageDailyLossUsdt: "-5" } }),
+        );
+        riskState.reloadFromStorage();
+        remount();
+
+        expect(riskState.hasInvalidAutoEngageThreshold).toBe(true);
+        expect(input("kill-switch-auto-engage").value).toBe("-5");
         expect(host.textContent).toContain(
             lookup(en, "settings.risk.killSwitch.autoEngage.invalid"),
         );
@@ -417,13 +511,84 @@ describe("FEAT-0526 — kill switch explanation and configuration", () => {
         riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "250");
         flushSync();
 
-        expect(host.textContent).toContain("250");
-        expect(host.textContent).toContain("Armed");
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.armed", {
+                threshold: "250.00",
+                loss: "0.00",
+            }),
+        );
+    });
+
+    it("says the threshold is already reached instead of claiming it is armed", () => {
+        dailyLoss.loss = "-300";
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "250");
+        remount();
+
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.reached", {
+                threshold: "250.00",
+                loss: "300.00",
+            }),
+        );
+    });
+
+    it("says the switch is engaged rather than describing a future engagement", () => {
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "250");
+        riskState.engageKillSwitch();
+        flushSync();
+
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.engaged"),
+        );
+    });
+
+    it("says auto-engage is suppressed for the rest of the UTC day", () => {
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "250");
+        riskState.engageKillSwitch();
+        riskState.releaseKillSwitch({ confirmed: true });
+        flushSync();
+
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.suppressedToday"),
+        );
+    });
+
+    it("names the cause when today cannot be measured", () => {
+        dailyLoss.complete = false;
+        dailyLoss.cause = "no-exit-date";
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "250");
+        remount();
+
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.unmeasurable", {
+                cause: lookup(en, "settings.risk.killSwitch.autoEngage.cause.no-exit-date"),
+            }),
+        );
     });
 
     it("renders the off state when no threshold is set", () => {
         expect(host.textContent).toContain(
             lookup(en, "settings.risk.killSwitch.autoEngage.off"),
         );
+    });
+
+    it("evaluates auto-engage when the panel opens", () => {
+        // A threshold saved before today's loss crossed must arm on open.
+        expect(rmsService.maybeAutoEngageKillSwitch).toHaveBeenCalled();
+    });
+
+    it("associates each toggle with its visible label", () => {
+        const labels: Array<[string, string]> = [
+            ["kill-switch-block-adds", "settings.risk.killSwitch.blockAdds.label"],
+            ["kill-switch-block-modifies", "settings.risk.killSwitch.blockModifies.label"],
+            ["kill-switch-confirm-engage", "settings.risk.killSwitch.confirmEngage.label"],
+        ];
+        for (const [id, key] of labels) {
+            const label = Array.from(host.querySelectorAll("label")).find(
+                (candidate) => candidate.getAttribute("for") === id,
+            );
+            expect(label, `no label for ${id}`).toBeTruthy();
+            expect(label?.textContent).toContain(lookup(en, key));
+        }
     });
 });
