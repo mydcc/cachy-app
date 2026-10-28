@@ -392,19 +392,36 @@ export function reportBotOrderRefusal(
  * BUG-0750 — the rule's channel vocabulary is snake_case, delivery's is
  * kebab-case, and this is the only place the two meet.
  *
- * A value the core would not have written is dropped rather than forwarded: an
- * unknown method must not become `localChannels: [undefined]`, which is
- * non-empty and would therefore silence the alarm instead of announcing it.
+ * A `Map` rather than an object literal for a reason: `{...}["toString"]` is a
+ * function inherited from `Object.prototype`, which would survive the
+ * `undefined` filter and become an authoritative "selection" matching no
+ * channel — the silent alarm this mapping exists to prevent.
+ *
+ * Anything the core would not have written is dropped rather than forwarded,
+ * and a rule left with no readable method means "no opinion".
  */
-const LOCAL_CHANNEL_BY_METHOD: Record<TriggerMethod, LocalNotificationChannel> = {
-    in_app: "in-app",
-    browser: "browser",
-    sound: "sound",
-};
+const LOCAL_CHANNEL_BY_METHOD = new Map<TriggerMethod, LocalNotificationChannel>([
+    ["in_app", "in-app"],
+    ["browser", "browser"],
+    ["sound", "sound"],
+]);
 
 function ruleLocalChannels(rule: RuleDocument): LocalNotificationChannel[] | undefined {
-    const channels = (rule.trigger_methods ?? [])
-        .map((method) => LOCAL_CHANNEL_BY_METHOD[method])
+    // `readRuleStore` casts parsed JSON without validating its fields, so this
+    // can hold anything a hand edit or an older schema left behind. A non-array
+    // must mean "no opinion" rather than throw: a throw here lands in the sink's
+    // catch and skips the firing bookkeeping, leaving a `once` rule armed and
+    // re-throwing on every candle.
+    const methods: readonly unknown[] = Array.isArray(rule.trigger_methods)
+        ? rule.trigger_methods
+        : [];
+
+    const channels = methods
+        .map((method) =>
+            typeof method === "string"
+                ? LOCAL_CHANNEL_BY_METHOD.get(method as TriggerMethod)
+                : undefined,
+        )
         .filter((channel): channel is LocalNotificationChannel => channel !== undefined);
 
     // Empty means "no opinion": the notification policy decides, which is what

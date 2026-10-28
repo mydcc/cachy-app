@@ -552,4 +552,63 @@ describe("a rule's own channel selection — BUG-0750", () => {
             expect.any(String),
         );
     });
+
+    it("cannot open an external channel the policy has turned off", () => {
+        // The other direction of the same boundary: a per-alert switch must not
+        // become a way around the trader's egress decision. Discord is
+        // configured and the rule picks in-app — nothing may leave the device.
+        externalChannelsStore.setDiscord({
+            enabled: true,
+            webhookUrl: "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_",
+            format: "minimal",
+        });
+
+        const delivered = alertWith(["in-app"]);
+
+        expect(delivered).toEqual(["in-app"]);
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+    });
+
+    it("delivers a browser tick as an OS notification", () => {
+        // The positive half of the mapping: without it, an implementation that
+        // silently dropped `browser` would pass every other test.
+        const ctor = stubNotification("granted");
+
+        const delivered = alertWith(["browser", "sound"]);
+
+        expect(delivered).toEqual(["browser", "sound"]);
+        expect(ctor).toHaveBeenCalledTimes(1);
+        expect(toastMock.info).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the toast when the chosen channel cannot deliver", () => {
+        // Permission was never granted, so the OS notification refuses. Without
+        // the floor the alarm is heard by nobody and a `once` rule is spent.
+        stubNotification("default");
+
+        const delivered = alertWith(["browser"]);
+
+        expect(delivered).toEqual(["in-app"]);
+        expect(toastMock.info).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not fall back to a toast the category has switched off", () => {
+        // The floor is an availability guard, not a way to overrule a
+        // deliberate "no toasts for alerts". Discord keeps the category
+        // non-silent so `isSilent` does not short-circuit first.
+        stubNotification("default");
+        notificationPolicyStore.setChannel("alert-fired", "in-app", false);
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        expect(alertWith(["browser"])).toEqual([]);
+        expect(toastMock.info).not.toHaveBeenCalled();
+    });
+
+    it("ignores a channel it does not know instead of trusting the list", () => {
+        // A caller that names something outside the vocabulary must fall back to
+        // the policy, not mute the alarm by selecting nothing deliverable.
+        notificationPolicyStore.setChannel("alert-fired", "sound", true);
+
+        expect(alertWith(["email" as never])).toEqual(["in-app", "sound"]);
+    });
 });

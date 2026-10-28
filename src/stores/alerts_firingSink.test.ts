@@ -414,11 +414,42 @@ describe("the rule's channel choice reaches delivery", () => {
     expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
   });
 
+  it("forwards a browser tick as the browser channel", () => {
+    // Pins the mapping itself: `browser: "in-app"` would type-check and pass
+    // every other test in this file.
+    fire(ruleDoc({ trigger_methods: ["browser"] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toEqual(["browser"]);
+  });
+
   it("keeps the alarm announcing when the stored methods are unreadable", () => {
     // A corrupt store must not turn into a silent alert: an unknown method is
     // dropped, and a list that ends up empty falls back to the policy.
     fire(ruleDoc({ trigger_methods: ["carrier_pigeon" as never] }));
 
     expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("treats an Object.prototype key as unreadable, not as a channel", () => {
+    // A plain object lookup returns a function for `toString`, which would
+    // survive an `undefined` filter and mute every local channel.
+    fire(ruleDoc({ trigger_methods: ["toString" as never] }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("treats a non-array selection as no opinion instead of throwing", () => {
+    // A throw here would land in the sink's catch and skip the firing
+    // bookkeeping, leaving a `once` rule armed and re-throwing every candle.
+    fire(ruleDoc({ trigger_methods: "sound" as never }));
+
+    expect(mockNotify).toHaveBeenCalledTimes(1);
+    expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
+  });
+
+  it("drops only the unreadable method and keeps the valid one", () => {
+    fire(ruleDoc({ trigger_methods: ["in_app", "carrier_pigeon"] as never }));
+
+    expect(mockNotify.mock.calls[0][0].localChannels).toEqual(["in-app"]);
   });
 });

@@ -109,7 +109,17 @@ export function isExternalChannel(channel: NotificationChannel): boolean {
  * could open them would be a way around the trader's global egress decision
  * (ADR-0018).
  */
-export type LocalNotificationChannel = "in-app" | "browser" | "sound";
+export const LOCAL_NOTIFICATION_CHANNELS = ["in-app", "browser", "sound"] as const;
+
+export type LocalNotificationChannel = (typeof LOCAL_NOTIFICATION_CHANNELS)[number];
+
+/** Narrows arbitrary input to a channel an announcement may select. */
+export function isLocalNotificationChannel(value: unknown): value is LocalNotificationChannel {
+    return (
+        typeof value === "string" &&
+        (LOCAL_NOTIFICATION_CHANNELS as readonly string[]).includes(value)
+    );
+}
 
 export type NotificationPolicy = Record<
     NotificationCategory,

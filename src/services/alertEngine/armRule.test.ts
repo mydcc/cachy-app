@@ -176,6 +176,7 @@ describe("forget wiring (BUG-0486)", () => {
         armRule({ ...rule("a", "70000"), trigger_methods: ["in_app", "sound"] });
         expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
         expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+        expect(stored()[0].trigger_methods).toEqual(["in_app", "sound"]);
     });
 
     it("does not forget a brand-new rule", () => {

@@ -16,9 +16,11 @@
  *
  * Notification delivery — FEAT-0025.
  *
- * One announcement in, zero or more channels out. The policy decides where;
- * this decides whether it is the same announcement twice, and what to do when
- * a channel is unavailable.
+ * One announcement in, zero or more channels out. The local channels either come
+ * from the request (a rule's own choice, BUG-0750) or from the policy, and the
+ * policy alone decides the external ones (ADR-0018). This file also decides
+ * whether it is the same announcement twice, and what to do when a channel is
+ * unavailable.
  *
  * Nothing here reaches the network. The browser channel is the OS's own
  * notification, rendered locally by the user's browser, and the sound channel is
@@ -44,6 +46,7 @@ import { formatDynamicDecimal } from "../utils/utils";
 import type { OMSOrder } from "./omsTypes";
 import type { NotificationCategory } from "../lib/notificationPolicy";
 import type { LocalNotificationChannel } from "../lib/notificationPolicy";
+import { isLocalNotificationChannel } from "../lib/notificationPolicy";
 
 /** What the caller knows about the event, already translated. */
 export interface NotificationRequest {
@@ -119,7 +122,9 @@ class NotificationService {
     }
 
     /**
-     * Announce an event, on whichever channels the policy wants.
+     * Announce an event on the channels that apply to it: the local ones the
+     * request selected, or the policy's local choice when it selected none, plus
+     * the external ones the policy asks for.
      *
      * `request.localChannels`, when present and non-empty, takes over the three
      * local channels: the trader picked them on this rule, and a specific choice
@@ -135,14 +140,21 @@ class NotificationService {
         if (notificationPolicyStore.isSilent(category)) return [];
 
         /*
+         * Sanitised here rather than trusted from the caller: this is a service
+         * boundary, and a value delivery does not recognise must fall back to
+         * the policy instead of becoming a selection that matches nothing —
+         * which would mute the alarm rather than announce it.
+         */
+        const selected = localChannels?.filter(isLocalNotificationChannel) ?? [];
+
+        /*
          * One place for the precedence, so the toast, the OS notification and
-         * the tone cannot disagree about who decides. A rule's list only ever
-         * touches the local channels; `undefined` and `[]` both mean "the
-         * policy decides".
+         * the tone cannot disagree about who decides. `undefined` and `[]` both
+         * mean "the policy decides".
          */
         const wantsLocal = (channel: LocalNotificationChannel): boolean =>
-            localChannels !== undefined && localChannels.length > 0
-                ? localChannels.includes(channel)
+            selected.length > 0
+                ? selected.includes(channel)
                 : notificationPolicyStore.wants(category, channel);
 
         const key = notificationKey(category, eventId);
@@ -152,9 +164,7 @@ class NotificationService {
         const delivered: string[] = [];
 
         if (wantsLocal("in-app")) {
-            if (tone === "success") toastService.success(message);
-            else if (tone === "error") toastService.error(message);
-            else toastService.info(message);
+            this.showToast(message, tone);
             delivered.push("in-app");
         }
 
@@ -177,6 +187,25 @@ class NotificationService {
         }
 
         /*
+         * Availability floor — BUG-0750. A rule that named a channel has no
+         * other way to be heard, and `showBrowser` and `play` refuse for reasons
+         * the trader did not choose: permission never granted, a muted tab, an
+         * autoplay lock. A `once` rule is spent after this call either way, so
+         * announcing nothing would be the silent alarm the per-rule choice
+         * exists to avoid. In-app stands in — but only where the category policy
+         * still wants it, so this cannot overrule a deliberate "no toasts for
+         * alerts".
+         */
+        if (
+            selected.length > 0 &&
+            delivered.length === 0 &&
+            notificationPolicyStore.wants(category, "in-app")
+        ) {
+            this.showToast(message, tone);
+            delivered.push("in-app");
+        }
+
+        /*
          * The external channels — FEAT-0397. Absent from `delivered` on purpose:
          * each one is a `fetch`, and a synchronous return cannot honestly say
          * whether Discord accepted the message. Claiming delivery here would
@@ -188,6 +217,13 @@ class NotificationService {
         if (external.length > 0) dispatchExternal(external, message, this.subjectFor(category));
 
         return delivered;
+    }
+
+    /** The in-app channel. One shape, whether it was chosen or stood in. */
+    private showToast(message: string, tone: "success" | "error" | "info"): void {
+        if (tone === "success") toastService.success(message);
+        else if (tone === "error") toastService.error(message);
+        else toastService.info(message);
     }
 
     /**
