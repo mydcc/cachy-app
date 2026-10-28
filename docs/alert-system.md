@@ -131,7 +131,7 @@ not alter `symbol` or threshold (see `FEAT-0388`'s acceptance criteria).
 | Bell → Super-Alert panel | The full builder: templates, combos, price, indicators, candlestick patterns |
 | Right-click on the chart | "Alert here", price pre-filled from the click |
 | Indicator settings | "Alert on this indicator", parameters carried over as they are configured |
-| Persistent chart drawing | An alert bound to the drawing's level — support, resistance, channels (FEAT-0029, FEAT-0480) |
+| Persistent chart drawing | An alert bound to the drawing's level — horizontal support/resistance levels and trend lines (FEAT-0029, FEAT-0480) |
 | Settings → Automation | Bots, one document each |
 
 A drawing-bound alert follows the drawing, not the price it was created at.
@@ -164,8 +164,10 @@ The verdict goes to `notificationService`, which owns channel policy. In-app, br
 never reach the network — the rule and its evaluation
 stay on the device. External channels (Email, Discord, Telegram) are **opt-in** via
 [`FEAT-0397`](backlog/features/FEAT-0397-notification-channels.md): the trader configures
-credentials, the service calls external APIs only if those channels are armed. The trigger
-method chosen on the rule selects which channels announce it.
+credentials, the service calls external APIs only if those channels are armed. Which
+channels announce a firing is decided by the notification policy in Settings; a
+rule's stored `trigger_methods` are not read today ([ADR-0018](adr/0018-user-directed-egress-of-class-a-announcements.md) defers per-rule
+channel selection).
 
 Above `notify`, the verdict instead becomes an order intent, and every existing
 guard — the order gate, the risk limits, the confirmation settings — applies

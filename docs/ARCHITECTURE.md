@@ -20,7 +20,8 @@ server exists for three reasons and no others: proxying exchange, AI and
 external-data requests that cannot be made from the browser, issuing client
 tokens, and serving the app. It holds no user data — see
 [ADR-0001](adr/0001-local-first-boundary.md). Its own code lives in
-`src/routes/api/` plus the server-only helpers under `src/utils/server/`.
+`src/routes/api/` plus the server-only helpers under `src/utils/server/` and
+`src/lib/server/`.
 
 ```
 browser                                                 server (SvelteKit node adapter)
@@ -56,10 +57,12 @@ browser                                                 server (SvelteKit node a
   modal frame, news frame, symbol picker).
 - **`spacetimedb/`** — generated client bindings. **Never hand-edited**; regenerate
   with `spacetime generate` instead.
-- **`server/`** — code imported only by `src/routes/api/**` server routes:
-  `logger.ts` (with key redaction), `clientToken.ts`, `aiEndpoint.ts`,
-  `urlValidator.ts`, `sanitizer.ts`, `rateLimit.ts`, `cache.ts`,
-  `ollamaBaseUrl.ts`. Note that `appAuth.ts` is **not** here — it sits at
+- **`server/`** — code imported only by server-side entry points
+  (`src/routes/api/**`, `src/hooks.server.ts`): `logger.ts` (with key redaction),
+  `clientToken.ts`, `aiEndpoint.ts`, `aiProxyError.ts`, `aiRequestGuard.ts`,
+  `clientAddress.ts`, `urlValidator.ts`, `sanitizer.ts`, `rateLimit.ts`,
+  `cache.ts`, `klineCache.ts`, `klineCacheKey.ts`, `ollamaBaseUrl.ts`.
+  Note that `appAuth.ts` is **not** here — it sits at
   `src/lib/appAuth.ts` and is client-shared (imported by `PortfolioInputs.svelte`,
   `PositionsSidebar.svelte` and the chart/iframe windows), so treat it as
   client code, not as a server boundary.
@@ -90,7 +93,7 @@ detects a lost key instead of decrypting to garbage).
 
 `settings.svelte.ts` is a facade since FEAT-0342 /
 [ADR-0024](adr/0024-settings-store-split-behind-facade.md): the `display`
-(65 fields) and `core` (97 fields) schema groups live in the
+(71 fields) and `core` (97 fields) schema groups live in the
 `DisplaySettingsStore` / `CoreSettingsStore` sub-stores, and autosave tracking
 is a declared list in `tracking.ts` (generated from the schema, not a
 `toJSON()` side effect). The manager keeps every field name via delegating
@@ -101,7 +104,7 @@ orchestration.
 
 ### `src/services/` — logic and I/O
 
-After `components/`, the largest module directory — 152 non-test `.ts` modules
+After `components/`, the largest module directory — 154 non-test `.ts` modules
 with tests alongside. The groups that matter:
 
 | Group | Modules | Note |
@@ -124,13 +127,14 @@ with tests alongside. The groups that matter:
 
 ### `src/utils/` — helpers, and the server-side venue transport
 
-55 non-test modules. Two things here are load-bearing and easy to miss:
+59 non-test modules. Two things here are load-bearing and easy to miss:
 
 - **`server/`** — the outbound transport to the venues, imported only by
-  `src/routes/api/**`: `venues/` (`bitget`, `bitunix`, `types`, `upstreamRetry`,
-  `index`), the per-venue builders `bitget.ts` and `bitunix.ts`,
-  `presignedEnvelope.ts`, `fetchWithTimeout.ts`, `requestUtils.ts`,
-  `httpErrors.ts`, and `exchangeResponse.ts` (which owns `readExchangeJson`, the
+  server-side code (`src/routes/api/**`, `src/lib/server/`): `venues/` (`bitget`,
+  `bitunix`, `types`, `upstreamRetry`, `index`), the per-venue builders
+  `bitget.ts` and `bitunix.ts`, `presignedEnvelope.ts`, `fetchWithTimeout.ts`,
+  `requestUtils.ts`, `httpErrors.ts`, `marketDataError.ts`, `symbolParam.ts`,
+  and `exchangeResponse.ts` (which owns `readExchangeJson`, the
   19-digit-ID-safe reader).
 - **`technicalsCalculator.ts` / `statefulTechnicalsCalculator.ts` /
   `indicators.ts`** — the JS indicator path, next to `../shaders/*.wgsl` for
@@ -161,8 +165,14 @@ Cloud, Connections, System, Trading, Visuals, plus indicator configuration),
   (`external/{cmc,news,article-content,check-frame-support}`, `rss-fetch`), auth
   (`auth/token`), plus `health` and `stream-logs`.
 
-  All of them authenticate — [ADR-0002](adr/0002-api-authentication-fails-closed.md)
-  makes that fail closed. Exchange responses are read through
+  `checkClientToken` guards every route that spends credentials or reads
+  account data — [ADR-0002](adr/0002-api-authentication-fails-closed.md) makes
+  that fail closed. Three groups are deliberately open instead: `auth/token`
+  (rate-limited, issues the client token), `health`, and the public market-data
+  routes (`klines`, `tickers`, `funding-rate`, `position-tiers`,
+  `trading-pairs`, `bitget/contracts`) — they carry no credentials and no user
+  data. `stream-logs` is guarded by `LOG_STREAM_KEY` rather than a client token.
+  Exchange responses are read through
   `readExchangeJson` rather than `response.json()`, because `JSON.parse` rounds
   19-digit order IDs; `src/routes/api/sync/orders/security.test.ts` guards it.
 

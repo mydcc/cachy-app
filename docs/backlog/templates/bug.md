@@ -49,4 +49,8 @@ What to change, and what to leave alone.
 - [ ] The test passes with the fix
 - [ ] …
 
+## Out of scope
+
+What this item deliberately does not fix, so nobody helpfully widens it anyway.
+
 ## Links

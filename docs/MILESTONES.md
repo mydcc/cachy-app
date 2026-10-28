@@ -28,7 +28,7 @@ record the version it actually landed in, in this file, next to the target. A
 target that drifted by six minors is information, not a failure — it says the
 milestone was bigger than it looked.
 
-Current version: **1.6.0-beta.364** on `develop` (see `package.json` as single source); the next
+Current version: **1.6.0-beta.462** on `develop` (see `package.json` as single source); the next
 planned cut is the **1.6.0** stable release from `main`.
 
 ---
@@ -71,9 +71,9 @@ first means there is a known-good line to compare against.
   the numeric-zero target price ([`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md)),
   the order-map eviction rule ([`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md)).
 - `docs/TODO.md` item 1 (the shared imgbb key): ✅ **RESOLVED** (Aug 2, 2026).
-  Hybrid approach: users must provide own imgbb key via Settings, default key
-  provided as fallback with link to https://api.imgbb.com/. Key rotatable
-  at any time.
+  Users provide their own imgbb key via Settings; the shipped fallback key was
+  removed in BUG-0720, so `defaultSettings.imgbbApiKey` is empty. Link to
+  https://api.imgbb.com/ provided in the UI.
 - `npm run check` clean, full test suite green, `npx eslint .` clean.
 
 **Explicitly not in scope.** New features. M0 is a closing milestone.

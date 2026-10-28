@@ -16,7 +16,7 @@ Both are defensible, and the app already contains both conventions:
 
 - `roiPercentFromPrice` in [`src/lib/calculators/tpsl.ts`](../../src/lib/calculators/tpsl.ts)
   is gross — it is pure price arithmetic.
-- `calculateIndividualTp` in [`src/lib/calculators/core.ts:158-163`](../../src/lib/calculators/core.ts)
+- `calculateIndividualTp` in [`src/lib/calculators/core.ts:220`](../../src/lib/calculators/core.ts)
   reports `returnOnCapital` **net**, derived from `netProfit`, which subtracts
   both the entry and the exit fee.
 
@@ -33,8 +33,9 @@ What settled it was not the arithmetic but **how well the input is known**:
    ([`src/stores/trade.svelte.ts:177`](../../src/stores/trade.svelte.ts)) is a
    single hand-entered percentage, defaulting to `CONSTANTS.DEFAULT_FEES`
    (`"0.0140"`). `tradeState.remoteMakerFee` / `remoteTakerFee` exist and are
-   read by `GeneralInputs.svelte`'s `syncFee()`, but **nothing assigns them** —
-   the sync can never fire.
+   read by `GeneralInputs.svelte:133`, and `feeRateService.ts:77-78` assigns
+   them from the account's own fills — so they are populated, but only after a
+   sync and only for that account.
 2. **Even a correct rate does not fix it.** Which leg pays which rate depends
    on how the order resolves, and that is not known when the plan is set: a
    take-profit resting as a limit order pays maker, the same position closed
@@ -107,7 +108,7 @@ what is allowed to have been displayed as authoritative in the first place.
   control. Adding one for analysis or journal reporting is fine — the rule is
   about what reaches a venue, not about the arithmetic existing.
 - Extending this to a *measured* value. Realised fees reported by an exchange
-  are facts, not estimates: [`syncService.ts:470-486`](../../src/services/syncService.ts)
+  are facts, not estimates: [`syncService.ts:599-600`](../../src/services/syncService.ts)
   records real per-leg `openFee`/`closeFee` for closed positions, and using
   those in the journal is correct and unaffected by this ADR.
 

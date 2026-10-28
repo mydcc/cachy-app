@@ -54,7 +54,7 @@ and this repository has already paid for that once — see
 | [`alert-system.md`](alert-system.md) | The alert and rule system: the consequence ladder, evaluation on candle close, where a trader arms a rule; bots and promotion in [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md) |
 | [`GLOBAL-CHAT.md`](GLOBAL-CHAT.md) | What the chat stores, how tokens are issued, retention and erasure |
 | [`wire-format.md`](wire-format.md) | GCX1 compact wire format referenced by the generated gortex skill docs |
-| [`calculation-engine.md`](calculation-engine.md), [`calculation-engine-dev.md`](calculation-engine-dev.md) | The risk/position maths |
+| [`calculation-engine.md`](calculation-engine.md), [`calculation-engine-dev.md`](calculation-engine-dev.md) | The technicals indicator engine: engine selection, degradation, and how to add an indicator |
 | [`bitunix-api/`](bitunix-api/README.md) | Bitunix API notes and quick reference |
 | [`bitget-api/`](bitget-api/README.md) | Bitget Classic Futures API reference — all 67 endpoints, and the V1 decommission that makes 9 of Cachy 10 REST calls fail (BUG-0576) |
 | [`backlog/ideas/IDEA-0326-feedback-system.md`](backlog/ideas/IDEA-0326-feedback-system.md) | The in-app feedback path |

@@ -31,7 +31,7 @@ and the exit criteria; the number floats.
 When a group completes, record the version it actually landed in. Drift is
 information — a group that slipped six minors was bigger than it looked.
 
-Current: **1.6.0-beta.364** on `develop` (beta channel; see `package.json` as single source); the next planned cut is
+Current: **1.6.0-beta.462** on `develop` (beta channel; see `package.json` as single source); the next planned cut is
 the **1.6.0** stable release from `main`.
 
 ---
@@ -49,7 +49,7 @@ known-good line to measure everything else against.
 | [BUG-0004](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) | P1 | Legacy credential blobs may decrypt to silent garbage |
 | [BUG-0005](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md) | P2 | GPU Choppiness writes where nothing reads |
 | [BUG-0006](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) | P2 | Sentiment response trusted without validation |
-| [TODO 1](TODO.md) | P0 | Rotate the shared imgbb key and decide whether it stays |
+| [TODO 1](TODO.md) | — | ✅ Resolved 2026-08-02; shipped key removed (BUG-0720) |
 
 [BUG-0001](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md),
 [BUG-0002](backlog/bugs/BUG-0002-numeric-zero-target-price.md),
@@ -172,10 +172,10 @@ shared TP/SL price-entry component (range slider, By PnL/ROI/Change) that
 FEAT-0070, FEAT-0023 and FEAT-0247 each need once they reach their own UI
 work, specified once instead of three times.
 
-**One question blocks [FEAT-0021](backlog/features/FEAT-0021-order-types.md):**
-what happens when the entry fills and the attached stop is rejected. That leaves
-a position unprotected, and the answer (retry, alert, auto-close) is a decision,
-not an implementation detail.
+**One question blocked [FEAT-0021](backlog/features/FEAT-0021-order-types.md):**
+what happens when the entry fills and the attached stop is rejected. It is
+answered now — alert loudly and retry the stop, never auto-close — and the item
+is `done`.
 
 **Exit:** a full session — open, adjust, partially close, close — on both
 exchanges without opening the exchange's own UI.
@@ -332,8 +332,8 @@ Real, wanted, not aimed at a release yet. In
 [BUG-0010](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md) were listed
 here as filler and have since shipped — see `backlog/INDEX.md`.)
 
-The two P3 bugs are `ready` and small — good filler work when a release is
-waiting on a decision.
+The two unscheduled P3 items are `idea`, not `ready` — good filler work once
+someone specifies them.
 
 ---
 

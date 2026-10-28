@@ -24,7 +24,7 @@ crossed the boundary.
 1. **Device Detection**: At startup (lazily, via a cached singleton prefetched by the strategy), Cachy detects which engines the browser supports (WASM, SIMD, WebGPU).
 2. **Pinning**: Auto mode picks WASM when capability detection reports it, TypeScript otherwise, and then keeps that engine for the session. `selectEngine` never sees a candle count.
 3. **Preferred Engine Override**: Users can force a specific engine (TS, WASM, WebGPU) via settings (Technicals settings → Preferred Engine: Auto/TS/WASM/GPU). An explicit choice short-circuits the pinning.
-4. **Degradation and recovery**: If **3 consecutive live runs** of the pinned engine exceed 500ms, `selectEngine` serves `ts` instead. The counter resets on any successful run, and only live runs count — benchmark runs are excluded. After a **5-minute degradation window** elapses the pinned engine is re-probed automatically, so recovery needs neither a page reload nor a settings change. The `lastMedian` field is telemetry-only (it holds the latest single sample, not a median) and does not drive the rule. Degradation is derived in [`calculation-engine-dev.md`](calculation-engine-dev.md).
+4. **Degradation and recovery**: If **3 consecutive live runs** of the pinned engine exceed 500ms, `selectEngine` serves `ts` instead. The counter resets only on a successful run at or under 500ms — a slow success counts as slowness evidence — and only live runs count; benchmark runs are excluded. After a **5-minute degradation window** elapses the pinned engine is re-probed automatically, so recovery needs neither a page reload nor a settings change. The `lastMedian` field is telemetry-only (it holds the latest single sample, not a median) and does not drive the rule. Degradation is derived in [`calculation-engine-dev.md`](calculation-engine-dev.md).
 
 ## Calculation Settings
 
@@ -41,14 +41,14 @@ Two independent concepts — do not conflate them:
 
 Planned features:
 - **Adaptive Learning** (partial): Benchmark infrastructure exists (`src/services/engineBenchmark.ts`) and benchmarks feed `recordMetrics`, but `selectEngine` still only pins an engine and applies the WASM timing rule.
-- **Circuit Breaker** (derived, not enforced): `exportTelemetry()` reports healthy/degraded per engine from the 3-slow-run rule; selection reapplies the timing rule on the next call.
+- **Circuit Breaker** (derived, not enforced): `exportTelemetry()` reports a single `wasm` health entry — `degraded` or `healthy` — from the 3-slow-run rule; other engines have no health entry. Selection reapplies the timing rule on the next call.
 - **Dynamic Quality Modes**: No precision-driven engine switching exists.
 
 ## Debug Panel
 
 Enable **Debug Mode** (Settings → System → Performance sub-tab) to see:
 - Which engines are available on the device
-- Per-engine average time, sample count, health and usage share (p95 is computed by `runBenchmark()` but not shown in the panel)
+- Per-engine median time (last ≤50 runs), sample count, health and usage share (p95 is computed by `runBenchmark()` but not shown in the panel)
 - Recent calculation history (last 10 of max 50 in-memory entries)
 
 ## Performance

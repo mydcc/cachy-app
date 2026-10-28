@@ -25,10 +25,10 @@ None of that is accurate. What the code actually contains:
 **A SpacetimeDB server component, wired up and reachable from the UI.**
 `src/services/cloudService.ts` connects to a SpacetimeDB instance and is used by
 `src/components/settings/tabs/CloudTab.svelte`. The server module lives in
-`server/spacetimedb/src/index.ts` and exposes exactly one reducer,
-`send_message`. Generated client bindings sit in `src/lib/spacetimedb/` (10
-files). The single table, `GlobalMessage`, has three fields: `sender`, `text`,
-`sentAt`.
+`server/spacetimedb/src/index.ts` and exposes three reducers: `send_message`,
+`delete_my_messages` and the scheduled `delete_expired_messages`. Generated
+client bindings sit in `src/lib/spacetimedb/` (12 files). The single table,
+`GlobalMessage`, has three fields: `sender`, `text`, `sentAt`.
 
 **A second, older chat backend — since removed.**
 `src/lib/server/chatStore.ts` persisted messages to `db/chat_messages.json` (up

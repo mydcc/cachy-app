@@ -12,7 +12,7 @@ know about each other.
 | System | Drag implementation | Stacking base | Used by |
 | --- | --- | --- | --- |
 | `WindowManager` + `WindowBase` + `WindowFrame` | Pointer Events, own code | `BASE_Z_INDEX = 11000`, dock `12000`, maximized `20000` | chart, news, guide, changelog, privacy, whitepaper, journal, assistant, settings, symbolpicker, dialog |
-| `ModalFrame.svelte` | none — fixed centre overlay | `10000` (`ModalFrame.svelte:154`) | `AcademyModal`, `MarketDashboardModal`, `TpSlEditModal` |
+| `ModalFrame.svelte` | none — adapter onto the WindowManager | inherits (`ModalFrame.svelte:19-32`) | `AcademyModal`, `MarketDashboardModal`, `TpSlEditModal` |
 | `floatingWindowsStore` + `SidePanel.svelte` | **interactjs** (`SidePanel.svelte:100-190`) | `1000` (`floatingWindows.svelte.ts:23`) | SidePanel |
 | `FlashCard.svelte` | none — fixed overlay | `200` (`FlashCard.svelte:73`) | quiz |
 | `modalState` (`stores/modal.svelte.ts`) | renders through `DialogWindow` | inherits window manager | `uiManager.showReadme()` |
