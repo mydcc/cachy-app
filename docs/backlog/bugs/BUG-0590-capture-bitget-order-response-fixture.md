@@ -191,6 +191,7 @@ fixture commit, the field mapping, the regression test — needs no keys.
   not `filledQty`
 - `src/services/mappers.ts:153` — the remaining `filledQty` fallback in the
   generic OMS mapper (`data.dealAmount || data.filledQty`), on an untyped
-  payload; not one of the two REST paths this item is about
+  payload; not one of the two REST paths this item is about. Tracked as
+  BUG-0751
 - `docs/bitget-api/04_trade.md:479` — `baseVolume`, the field the mirror does
   document
