@@ -2,7 +2,7 @@
 id: BUG-0590
 title: Capture a real Bitget order response and settle which field carries the traded amount
 type: bug
-status: in-progress
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,7 +11,6 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: docs/bug-0590-bitget-capture-evidence
 ---
 
 # BUG-0590 — Capture a Bitget order response and name the traded-amount field
@@ -84,6 +83,26 @@ ideally partially filled — order on `unfilled-orders`, and one on
 `history-orders`, from the trader's live account during normal trading, with
 `orderId`, balances and any key material removed. That is the only step an agent
 cannot perform here.
+
+**2026-10-28, confirmed by the account holder:** they cannot place orders at
+present, so no populated response can be produced on demand. The fixtures and
+the captured-vs-documented correction are in review as PR #4384; the item itself
+stays open by design, not by neglect, and closes when trading resumes and one
+capture per endpoint exists.
+
+### Open points — none of these is inferred
+
+1. **Populated `unfilled-orders` entry.** Which field names an order actually
+   carries (`qty`, `cumExecQty`, `cumExecValue`, `avgPrice`, `orderStatus` are
+   documented, not observed), and whether `filledQty` appears at all.
+2. **Populated `history-orders` entry.** Whether it answers with the same order
+   object and the same cumulative-fill field. Only the empty envelope is proven.
+3. **`cumExecQty` under a partial fill.** The documented name says "cumulative
+   executed quantity"; no partially filled order has ever been seen, so the
+   semantics under a partial fill are unverified.
+4. **Classic `/api/v2/*`.** Dropped by ADR-0023, not pending: a UTA account is
+   refused with `40085`, so the V1/V2 question is out of scope rather than
+   blocked.
 
 ## Symptom
 

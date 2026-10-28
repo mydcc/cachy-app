@@ -41,7 +41,8 @@ Against deciding now: several UTA behaviours are observation-gated, not
 verified — `posSide`-omission behaviour, `clientOid`-resubmission, the one-way
 `holdMode` wire literal, funding/fee behaviour (BUG-0597 Phase A recon). There
 are no demo API keys, only live-account keys, so verification costs real cents
-on the trader's account and agents never hold keys (`14_uta_v3.md:234-249`).
+on the trader's account and agents never hold keys (`14_uta_v3.md`
+§"Demo trading").
 The positions endpoint also answered HTTP 200 with a zero-byte body twice on an
 unchanged account (`:110-136`) — a shape no parser can branch on.
 
@@ -68,9 +69,11 @@ Concretely:
   null guard (`fills` answered `list: null` where `unfilled-orders` answered
   `list: []`). A zero-byte 200 is "no data, retry", not an error to surface.
 - `filled` reads `cumExecQty` (aggregate) / `execQty` (single fill); `filledQty`
-  exists in no generation (`14_uta_v3.md:138-164`).
+  exists in no generation (`14_uta_v3.md` §"Where the traded amount actually
+  lives").
 - Query-parameter byte order stays insertion order for V3 — both orders return
-  `00000` with a wrong-secret `40009` control (`:188-208`). No sorting change.
+  `00000` with a wrong-secret `40009` control (`14_uta_v3.md` §"Query ordering
+  before signing"). No sorting change.
 - No `clientOid` idempotency is assumed (undocumented) — therefore no write
   retries until a duplicate is observed rejected. No `set-position-mode`
   endpoint exists — mode switches happen in the venue app UI; `posMode` is read

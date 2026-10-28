@@ -190,9 +190,9 @@ Both were taken on an **empty account**. They prove three things and no more:
 
 The quantity split above is therefore **Documented, not captured**. A filled or
 partially filled order has never been observed: the account is empty and there
-are no demo keys (`:234-249`). Whether `cumExecQty` carries the cumulative fill
-under a partial fill rests on its documented name alone, and this file does not
-upgrade that to an observation. BUG-0590 tracks that remaining gap.
+are no demo keys ("Demo trading", below). Whether `cumExecQty` carries the
+cumulative fill under a partial fill rests on its documented name alone, and this
+file does not upgrade that to an observation. BUG-0590 tracks that remaining gap.
 
 ## Direction is split the same way in UTA as in V2 Classic — responses only
 
@@ -278,6 +278,11 @@ questions are settled only by trader-side observation during normal trading
 and recorded in `15_uta_writes.md`; "the account is empty, so no order can be
 placed" is answered by waiting for a real position, not by a demo
 environment.
+
+**2026-10-28:** the account holder reports that they cannot place orders at
+present, so a populated order response cannot be produced on demand either.
+The empty-envelope captures above stand; a filled or partially filled order
+remains an observation to be added when trading resumes (BUG-0590).
 
 ## Links
 
