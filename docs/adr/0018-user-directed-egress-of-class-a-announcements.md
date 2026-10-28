@@ -3,6 +3,9 @@
 - **Status:** Accepted
 - **Date:** 2026-09-11
 - **Deciders:** mydcc
+- **Amended:** 2026-10-28 — per-rule selection of the three local channels shipped
+  (BUG-0750); per-rule *external* selection remains deferred, so the egress
+  reasoning below is unchanged for `email`, `discord` and `telegram`.
 
 ## Context
 
@@ -132,8 +135,11 @@ buys nothing except the word.
   preflight showed Mailgun is callable. Worth reconsidering if Mailgun closes
   that door, because the alternative is not another provider — it is a proxy,
   which decision 2 forbids.
-- **Per-rule channel selection via `trigger_methods`.** Deferred, not rejected.
-  `TriggerMethod` in
-  [`src/lib/rules/types.ts`](../../src/lib/rules/types.ts) mirrors a Rust enum and
-  the firing sink does not yet honour the field at all, so extending it is its own
-  item rather than a detail of this one.
+- **Per-rule channel selection via `trigger_methods`.** Resolved for the three
+  local channels by
+  [`BUG-0750`](../backlog/bugs/BUG-0750-per-alert-trigger-methods-never-reach-delivery.md):
+  a rule decides in-app, browser and sound for itself. Per-rule *external*
+  selection stays deferred, not rejected — `TriggerMethod` mirrors a Rust enum,
+  and extending it to `email | discord | telegram` is its own item
+  ([`FEAT-0748`](../backlog/features/FEAT-0748-per-alert-delivery-channels-and-test-announcement.md))
+  with the decision 1 reasoning above applied to it.

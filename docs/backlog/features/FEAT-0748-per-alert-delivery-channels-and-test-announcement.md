@@ -21,13 +21,15 @@ estimate: 5
 
 A rule already carries `trigger_methods` (`in_app`, `browser`, `sound`), the
 builder's lifecycle footer writes them, and `armRule` persists them as a
-hash-excluded field. They never reach delivery: the firing sink calls
+hash-excluded field. Until
+[`BUG-0750`](../bugs/BUG-0750-per-alert-trigger-methods-never-reach-delivery.md)
+they never reached delivery: the firing sink called
 `notificationService.notify({ category, eventId, message, tone })`,
-`NotificationRequest` has no channel field, and the service resolves channels
-from the global category policy alone. That defect is
-[`BUG-0750`](../bugs/BUG-0750-per-alert-trigger-methods-never-reach-delivery.md).
+`NotificationRequest` had no channel field, and the service resolved channels
+from the global category policy alone. That defect is fixed; what remains is the
+external half and the missing way to try a channel.
 
-Two gaps remain after the defect is fixed:
+Two gaps remain:
 
 - **External channels cannot be expressed per rule.** `email`, `discord` and
   `telegram` exist in the notification policy and in
@@ -40,14 +42,10 @@ Two gaps remain after the defect is fixed:
 
 ## Proposal
 
-1. **BUG-0750 first.** Pass the rule's `trigger_methods` into the delivery
-   path. The rule is authoritative for the three local channels — what it ticks
-   is what happens, including switching one on that the category leaves off —
-   while the category policy stays the ceiling for the external ones. Absent or
-   empty keeps the policy's decision, and a category the trader silenced
-   entirely stays silent. See
-   [`BUG-0750`](../bugs/BUG-0750-per-alert-trigger-methods-never-reach-delivery.md)
-   for the reasoning.
+1. **Build on BUG-0750, do not repeat it.** That item settled who decides the
+   local channels (the rule) and the external ones (the policy), including the
+   availability floor when a chosen channel refuses. This item adds the external
+   half and the test send; it does not restate the precedence.
 2. **External channels per rule, decided by FEAT-0623.** If the audit says
    per-alert external selection is useful, extend `TriggerMethod` on both sides
    (`technicals-wasm/src/rule/lifecycle.rs` and `src/lib/rules/types.ts`) with
@@ -69,13 +67,9 @@ Two gaps remain after the defect is fixed:
 
 ## Acceptance criteria
 
-- [ ] With BUG-0750 fixed, a rule selecting only `in_app` delivers no browser
-      or sound announcement even when the global policy enables them; a rule
-      with absent or empty methods follows the global policy unchanged.
-- [ ] The precedence matches BUG-0750: the rule decides the local channels, so
-      a rule that ticks `sound` is audible even when the category leaves sound
-      off; the external channels stay policy-only and cannot be widened by a
-      rule.
+- [ ] The BUG-0750 boundary tests still pass unchanged; if FEAT-0623 concludes
+      that external channels become selectable per rule, this item records that
+      decision and amends ADR-0018 rather than relaxing those tests.
 - [ ] The external-channel question is resolved by the FEAT-0623 audit and the
       resolution is visible in both the rule and the UI: either the three
       channels are selectable per rule, or the UI states that they are global.

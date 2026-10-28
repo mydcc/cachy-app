@@ -5,7 +5,6 @@ type: bug
 status: done
 assignee: opencode
 branch: fix/bug-0750-per-alert-channels
-shipped: v1.6.0-beta.463 (PR #4394)
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -34,7 +33,10 @@ only place that mattered.
 
 ## Evidence
 
-Demonstrated by reading the code, then pinned by the tests below.
+Derived from reading the code, then confirmed by the RED run recorded in
+PR #4394 and pinned by the boundary tests in
+`src/services/notificationService.test.ts` and
+`src/stores/alerts_firingSink.test.ts`.
 
 - `src/components/alerts/RuleLifecycleFields.svelte` writes
   `draft.trigger_methods` and summarises them as the channels a rule uses.
@@ -49,27 +51,34 @@ Demonstrated by reading the code, then pinned by the tests below.
 
 ## Decision
 
-**The rule is authoritative for the three local channels; the policy stays the
-ceiling for the external ones.**
+**The rule is authoritative for the three local channels; the policy is the sole
+decider for the external ones.**
 
 A non-empty `trigger_methods` decides `in-app`, `browser` and `sound` for that
 rule, including switching one on that the category leaves off. The specific
 choice on the alert outranks the general category default, and the failure this
 subsystem exists to prevent is an alarm that looks armed and is heard by
 nobody — a rule ticking "sound" while the category leaves sound off would
-otherwise be silent.
+otherwise announce only where the category happens to send, by default a toast
+the trader who is away from the tab never sees.
 
-`email`, `discord` and `telegram` stay policy-only. They are the one path by
-which Class A content leaves the device, and a per-alert switch must not widen
-egress the trader disabled for the category ([`ADR-0018`](../../adr/0018-user-directed-egress-of-class-a-announcements.md)).
+`email`, `discord` and `telegram` stay policy-only: the rule can neither add one
+nor remove one. They are the only path by which Class A content leaves the
+device, so a per-alert switch must not become a way around the egress the trader
+configured ([`ADR-0018`](../../adr/0018-user-directed-egress-of-class-a-announcements.md)).
 
-Two deliberate limits:
+Two deliberate limits, and one safeguard:
 
 - **Absent or empty keeps today's behaviour.** The category policy decides,
   which is what every rule authored before the footer existed means.
-- **A category silenced entirely stays silent.** `isSilent` is checked before
-  the rule's list: the per-rule choice narrows a category, it does not
-  resurrect one the trader switched off completely.
+- **A category silenced entirely stays silent.** `isSilent` — no channel
+  enabled, external included — is checked before the rule's list: the per-rule
+  choice does not resurrect a category the trader switched off completely.
+- **Availability floor.** If every ticked local channel refuses at the moment
+  it fires (permission never granted, a muted tab, an autoplay lock), in-app
+  stands in where the category still wants it. A `once` rule is spent after that
+  call, so the alternative is an alarm nobody heard. The floor cannot overrule a
+  deliberate "no toasts for alerts": it only runs where the policy wants in-app.
 
 ## Acceptance criteria
 
@@ -79,13 +88,17 @@ Two deliberate limits:
       leaves sound off — the local-channel half of the decision.
 - [x] A rule with absent or empty `trigger_methods` behaves exactly as before,
       pinned by a test so the default cannot drift.
-- [x] A category with every channel switched off stays silent even when a rule
-      selects one.
+- [x] A category with no channel enabled at all — external included — stays
+      silent even when a rule selects one.
+- [x] A rule whose only ticked channel refuses at firing time still reaches the
+      trader through in-app, and does not when the category has in-app switched
+      off; pinned in both directions.
 - [x] External channels are neither blocked nor opened by the rule's list: a
       rule selecting only `in-app` still reaches a configured Discord when the
       policy asks for it, and cannot reach one the policy has off.
 - [x] The content hash does not change when `trigger_methods` changes (the
-      field stays hash-excluded), pinned by the existing arm-time comparison.
+      field stays hash-excluded), pinned by the arm-time lifecycle test, which
+      also asserts the field is persisted.
 - [x] `docs/alert-system.md` describes the implemented behaviour.
 
 ## Out of scope
