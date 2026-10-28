@@ -6,7 +6,7 @@ status: done
 priority: P2
 milestone: none
 created: "2026-10-18"
-shipped: v1.6.0-beta.463
+shipped: v1.6.0-beta.465
 editions: [community, pro, private]
 area: execution
 data_class: none
@@ -95,10 +95,13 @@ thing on both paths: `undefined`, `null` and `""` are absent, `"0"` is a value.
   nor a stored leg is dropped, because inventing a trigger would put a stop on
   screen the venue does not hold.
 
-`tpsl.test.ts` grew nine cases; seven fail on the pre-fix store (the field
+`tpsl.test.ts` grew eleven cases; eight fail on the pre-fix store (the field
 update, the create path, the price-less merge, empty/null handling, `"0"`,
-`scopeGuess`, per-leg isolation), while the BUG-0665 no-regress case passes
-both ways by design. Full file: 70 passed.
+`scopeGuess`, per-leg isolation, and the `sl*` counterpart). Three pass both
+ways: the BUG-0665 no-regress case and the guard that drops a price-less frame
+matching no stored leg pin behaviour that already existed; the other-leg status
+guard passes pre-fix only because the old early return skipped that leg
+entirely. Full file: 72 passed.
 
 ## Acceptance criteria
 

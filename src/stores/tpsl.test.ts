@@ -1136,4 +1136,56 @@ describe("tpSlState — a push updates the fields it carries (BUG-0698)", () => 
         expect(loss?.price).toBe("49990");
         expect(tpSlState.plansFor("BTCUSDT").profit?.orderType).toBe("MARKET");
     });
+
+    it("updates an sl leg from an sl-prefixed frame and leaves the tp leg alone", async () => {
+        await hydrate();
+
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            slPrice: "40000",
+            slStopType: "MARK_PRICE",
+            slOrderType: "LIMIT",
+            slQty: "0.5",
+            slOrderPrice: "39990",
+        });
+        tpSlState.updateFromWs({
+            orderId: "88",
+            symbol: "BTCUSDT",
+            status: "NEW",
+            slStopType: "LAST_PRICE",
+        });
+
+        const loss = tpSlState.plansFor("BTCUSDT").loss;
+        expect(loss?.workingType).toBe("LAST_PRICE");
+        expect(loss?.triggerPrice).toBe("40000");
+        expect(tpSlState.plansFor("BTCUSDT").profit?.workingType).toBe("MARK_PRICE");
+    });
+
+    it("does not rewrite the other leg's status with a frame that names none", async () => {
+        // A TP-only push still runs `applyLeg` for the stop leg. Before the
+        // review fix that stamped `status: "NEW"` onto a leg the frame said
+        // nothing about, contradicting the handler's own contract.
+        fetchTpSl.mockResolvedValue([
+            {
+                orderId: "77-sl",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "50000",
+                status: "PENDING_CANCEL",
+                sourceOrderId: "77",
+            },
+        ]);
+        await tpSlState.ensureFresh();
+
+        tpSlState.updateFromWs({
+            orderId: "77",
+            symbol: "BTCUSDT",
+            tpPrice: "60000",
+        });
+
+        expect(tpSlState.plansFor("BTCUSDT").loss?.status).toBe("PENDING_CANCEL");
+        expect(tpSlState.plansFor("BTCUSDT").profit?.status).toBe("NEW");
+    });
 });

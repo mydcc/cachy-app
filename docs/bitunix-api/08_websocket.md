@@ -354,8 +354,9 @@ TP/SL order updates.
 > not observed frames. Cachy's push handler reads `tpStopType`/`slStopType`,
 > `tpOrderType`/`slOrderType`, `tpQty`/`slQty` and
 > `tpOrderPrice`/`slOrderPrice` as of BUG-0698, but no frame has confirmed any
-> of them — and an unused leg's fields are omitted rather than sent as `null`.
-> If the channel name is wrong, none of these names ever arrive either.
+> of them. An unused leg's *quantity* is omitted rather than sent as `null`;
+> the other fields' omission behaviour is unstated. If the channel name is
+> wrong, none of these names ever arrive either.
 
 ### Push Parameters
 | Parameter      | Type   | Description |

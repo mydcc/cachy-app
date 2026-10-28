@@ -351,6 +351,13 @@ class TpSlManager {
          * shapes, so changing this is a test change, not a refactor.
          */
         const status = data.status;
+        /*
+         * `applyLeg` runs for both legs on every frame. A frame that names one
+         * leg says nothing about the other's status, so an absent or empty
+         * value must leave the stored one alone — otherwise every TP-only
+         * push stamps the stop leg back to `NEW` (BUG-0698 review).
+         */
+        const frameStatus = status !== undefined && status !== "" ? status : undefined;
         const closed =
             data.event === "CLOSE" ||
             (status !== undefined && status !== "" && status !== "NEW");
@@ -437,7 +444,7 @@ class TpSlManager {
                 symbol,
                 planType,
                 triggerPrice,
-                status: data.status ?? "NEW",
+                status: frameStatus ?? stored?.status ?? "NEW",
                 ...(positionId !== undefined ? { positionId } : {}),
                 ...(fields.stopType !== undefined ? { workingType: fields.stopType } : {}),
                 ...(fields.orderType !== undefined ? { orderType: fields.orderType } : {}),

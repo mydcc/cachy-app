@@ -115,8 +115,12 @@ export interface LegFields {
 export function readLegFields(row: Record<string, unknown>, prefix: "tp" | "sl"): LegFields {
     const str = (key: string): string | undefined => {
         const value = row[key];
-        if (value === undefined || value === null || value === "") return undefined;
-        return String(value);
+        // The channel is forwarded verbatim and this is the only runtime
+        // boundary: a boolean or an object must read as absent, not as
+        // "true"/"[object Object]" stored in a price field.
+        if (typeof value === "string") return value === "" ? undefined : value;
+        if (typeof value === "number") return String(value);
+        return undefined;
     };
     return {
         price: str(`${prefix}Price`),
