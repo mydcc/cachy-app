@@ -39,6 +39,8 @@
     } from "../../../services/alertEngine/cutoverNotice";
     import { alarmRows } from "../../../services/alertEngine/ruleLifecycleView";
     import { removeRule } from "../../../services/alertEngine/armRule";
+    import { alertPanelState } from "../../../stores/alertPanel.svelte";
+    import { uiState } from "../../../stores/ui.svelte";
 
     // Declared to satisfy the shell's tab contract, unused since the quick-add
     // form left: this tab lists armed rules, which it reads from the store
@@ -113,6 +115,39 @@
     function deleteRow(id: string) {
         removeRule(id);
         alertState.rulesVersion += 1;
+    }
+
+    /**
+     * FEAT-0542 — load the row's rule into the builder that owns it.
+     *
+     * The button only exists for rows `alarmRows()` returned, so a failure
+     * here is a race (the rule vanished), a non-notification rule promoted
+     * between render and click, or a rule store / drawing ledger that cannot
+     * be read. Each needs its own toast: a click that opens nothing is
+     * otherwise indistinguishable from a broken button.
+     */
+    function editRow(id: string) {
+        const outcome = alertPanelState.loadForEdit(id);
+        switch (outcome) {
+            case "loaded":
+                // The button that had focus belongs to the tab that just
+                // unmounted. Move focus into the panel so its Tab trap keeps
+                // the keyboard user inside it instead of dropping to <body>.
+                document.getElementById("alert-tab-panel")?.focus();
+                return;
+            case "unreadable":
+                uiState.showToast(
+                    $_("dashboard.alerts.editUnreadable"),
+                    "error",
+                );
+                return;
+            case "bot":
+                uiState.showToast($_("dashboard.alerts.editNotEditable"), "error");
+                return;
+            case "missing":
+                uiState.showToast($_("dashboard.alerts.editMissing"), "error");
+                return;
+        }
     }
 
 </script>
@@ -255,14 +290,24 @@
                     <span class="fired-badge">{$_("dashboard.alerts.fired")}</span>
                 {/if}
             </div>
-            <button
-                type="button"
-                class="delete-btn"
-                aria-label={$_("dashboard.alerts.deleteAlert")}
-                onclick={() => deleteRow(row.id)}
-            >
-                ×
-            </button>
+            <div class="row-actions">
+                <button
+                    type="button"
+                    class="edit-btn"
+                    aria-label={$_("dashboard.alerts.editAlert")}
+                    onclick={() => editRow(row.id)}
+                >
+                    ✎
+                </button>
+                <button
+                    type="button"
+                    class="delete-btn"
+                    aria-label={$_("dashboard.alerts.deleteAlert")}
+                    onclick={() => deleteRow(row.id)}
+                >
+                    ×
+                </button>
+            </div>
         </div>
     {:else}
         <div class="empty-state">
@@ -382,6 +427,22 @@
         font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+    }
+    .row-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        flex-shrink: 0;
+    }
+    .edit-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: var(--text-xl);
+        cursor: pointer;
+    }
+    .edit-btn:hover {
+        color: var(--accent-color);
     }
     .delete-btn {
         background: none;

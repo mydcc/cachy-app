@@ -119,3 +119,21 @@ describe("academy.structure DE/EN parity (FEAT-0679 AC5)", () => {
         expect(deKeys).toEqual(enKeys);
     });
 });
+
+describe("dashboard.alerts edit DE/EN parity (FEAT-0542)", () => {
+    it("carries the same edit keys in both languages", () => {
+        const prefix = "dashboard.alerts.edit";
+        const enKeys = (
+            flattenKeys(en as Record<string, unknown>) as string[]
+        )
+            .filter((key) => key.startsWith(prefix))
+            .sort();
+        const deKeys = (
+            flattenKeys(de as Record<string, unknown>) as string[]
+        )
+            .filter((key) => key.startsWith(prefix))
+            .sort();
+        expect(enKeys.length).toBeGreaterThanOrEqual(4);
+        expect(deKeys).toEqual(enKeys);
+    });
+});

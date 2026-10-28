@@ -56,6 +56,7 @@
     import { resolveMarketQuote } from "../../services/priceResolution";
     import { renderRuleSentence, type SentenceTranslator } from "../../lib/rules/ruleSentence";
     import { armRule, RuleStoreUnreadableError } from "../../services/alertEngine/armRule";
+    import { clearRuleState } from "../../services/alertEngine/ruleStateStore";
     import type { EvaluationMode, PriceField, TimeframeString } from "../../lib/rules/types";
     import type { TranslationKey } from "../../locales/schema";
     import { uiState } from "../../stores/ui.svelte";
@@ -206,14 +207,18 @@ let rootElement: HTMLElement | null = null;
     );
 
     /**
-     * FEAT-0752 — a drawing draft shows that one builder and nothing else.
+     * FEAT-0752 — a drawing draft hides the other builders.
      *
-     * Leaving the other tabs visible would let a trader edit a price
-     * condition while the arm button still built the drawing rule, which is
-     * the kind of two-drafts-one-button confusion the footer exists to avoid.
+     * Leaving them visible would let a trader edit a price condition while the
+     * arm button still built the drawing rule, which is the kind of
+     * two-drafts-one-button confusion the footer exists to avoid. Manage stays
+     * (FEAT-0542): it is a list, not a builder, and it is the way back to the
+     * rules a trader came from.
      */
     let visibleTabs = $derived<readonly AlertPanelTab[]>(
-        alertPanelState.drawingDraft ? ["drawing"] : DEFAULT_ALERT_PANEL_TABS,
+        alertPanelState.drawingDraft
+            ? ["drawing", "manage"]
+            : DEFAULT_ALERT_PANEL_TABS,
     );
 
     // A remembered tab can stop existing: the panel keeps its last tab across
@@ -221,9 +226,8 @@ let rootElement: HTMLElement | null = null;
     // than rendering a builder with nothing in it.
     $effect(() => {
         if (!visibleTabs.includes(alertPanelState.activeTab)) {
-            // `manage` is the default tab, but a drawing draft's strip holds
-            // only the drawing tab; falling back to a tab that is not in the
-            // strip would leave the panel with nothing selected.
+            // A drawing draft's strip holds Drawing and Manage; falling back
+            // to a tab outside the strip would leave nothing selected.
             alertPanelState.activeTab = visibleTabs.includes("manage")
                 ? "manage"
                 : (visibleTabs[0] ?? "manage");
@@ -328,6 +332,8 @@ let rootElement: HTMLElement | null = null;
             currentPrice: quote.price,
             nowMs: Date.now(),
             name: accepted.name || undefined,
+            evaluationMode: accepted.evaluation_mode,
+            provenance: accepted.provenance,
             lifecycle: {
                 frequency: accepted.frequency,
                 valid_until_ms: accepted.valid_until_ms,
@@ -337,6 +343,7 @@ let rootElement: HTMLElement | null = null;
         });
 
         if (result.ok) {
+            clearRearmedState(accepted.id);
             alertState.rulesVersion += 1;
             uiState.showToast($_("dashboard.alerts.panel.armed"), "success");
             return;
@@ -356,6 +363,19 @@ let rootElement: HTMLElement | null = null;
         );
     }
 
+    /**
+     * A rule loaded from History was disarmed by the firing path. Pressing
+     * Arm must forget that fire state, or a `once` rule is stored enabled and
+     * can never announce again — the core refuses while `fired_count` is set.
+     * Called only after a successful write; a failed arm must not spend the
+     * trader's history.
+     */
+    function clearRearmedState(ruleId: string) {
+        if (!alertPanelState.rearmedFromDisarmed) return;
+        clearRuleState(ruleId);
+        alertPanelState.rearmedFromDisarmed = false;
+    }
+
     function arm() {
         if (alertPanelState.drawingDraft) {
             armDrawing();
@@ -365,6 +385,7 @@ let rootElement: HTMLElement | null = null;
         if (!accepted) return;
         try {
             armRule(accepted);
+            clearRearmedState(accepted.id);
             // FEAT-0399: Manage derives its list from the rule store, and
             // localStorage is not reactive. Without this bump the alarm is
             // armed and evaluated while the list the trader checks it against
@@ -552,6 +573,7 @@ let rootElement: HTMLElement | null = null;
         class="tab-body"
         id="alert-tab-panel"
         role="tabpanel"
+        tabindex="-1"
         aria-labelledby="alert-tab-{alertPanelState.activeTab}"
     >
         {#if tabLoadFailed}

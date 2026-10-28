@@ -122,6 +122,21 @@ describe("reading the anchor ledger", () => {
         expect(logger.warn).toHaveBeenCalled();
     });
 
+    it("reports loss when storage itself throws on read", () => {
+        const getItem = vi
+            .spyOn(localStorage, "getItem")
+            .mockImplementation(() => {
+                throw new Error("SecurityError: storage is not available");
+            });
+
+        const snapshot = readDrawingAnchorLedger();
+
+        expect(snapshot.present).toBe(false);
+        expect(snapshot.ledger).toEqual({});
+        expect(logger.warn).toHaveBeenCalled();
+        getItem.mockRestore();
+    });
+
     it("reports loss for a document that holds no ledger", () => {
         localStorage.setItem(RULE_DRAWING_STORAGE_KEY, JSON.stringify(["not", "a", "ledger"]));
 

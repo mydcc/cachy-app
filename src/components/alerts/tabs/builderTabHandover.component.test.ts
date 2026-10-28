@@ -36,6 +36,7 @@ import { flushSync, mount, unmount } from "svelte";
 import en from "../../../locales/locales/en.json";
 import IndicatorsTab from "./IndicatorsTab.svelte";
 import PriceTab from "./PriceTab.svelte";
+import ComboTab from "./ComboTab.svelte";
 import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import type { Condition } from "../../../lib/rules/types";
 
@@ -91,7 +92,9 @@ describe("BUG-0443: switching builder tabs", () => {
    * `TabComponent = null` before the next chunk resolves, so the outgoing
    * builder is really gone before the incoming one initialises.
    */
-  function switchTo(tab: typeof PriceTab | typeof IndicatorsTab): HTMLElement {
+  function switchTo(
+    tab: typeof PriceTab | typeof IndicatorsTab | typeof ComboTab,
+  ): HTMLElement {
     if (mounted) unmount(mounted);
     target.replaceChildren();
     mounted = mount(tab, { target, props: { symbol: SYMBOL } });
@@ -204,5 +207,63 @@ describe("BUG-0443: switching builder tabs", () => {
     typeThreshold(el, "");
 
     expect(conditions()).toHaveLength(0);
+  });
+
+  it("FEAT-0542: hydrates a two-leg indicator draft without dropping a leg", () => {
+    // Manage now loads a stored rule into the draft; this is the part of that
+    // path it does not own: the Combo tab has to render both legs and write
+    // both back. A builder that hydrates only the first one is the BUG-0443
+    // wipe with a new trigger.
+    const rsi: Condition = {
+      kind: "compare",
+      left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+      op: "gt",
+      right: { kind: "constant", value: "70" },
+      timeframe: "1h",
+    };
+    const ema: Condition = {
+      kind: "cross",
+      left: { kind: "indicator", indicator: { id: "ema", params: { period: 9 } } },
+      direction: "above",
+      right: { kind: "indicator", indicator: { id: "ema", params: { period: 21 } } },
+      timeframe: "1h",
+    };
+    alertPanelState.draft.conditions = { kind: "group", op: "all", of: [rsi, ema] };
+
+    const el = switchTo(ComboTab);
+
+    const rows = [...el.querySelectorAll("fieldset.row")];
+    expect(rows).toHaveLength(2);
+    expect(
+      rows.map((row) => (row.querySelector("select") as HTMLSelectElement).value),
+    ).toEqual(["rsi", "ema"]);
+    // Whole-document equality, not just the ids: a rebuild that drops the
+    // periods, the right operand or the operator must fail this.
+    expect(conditions()).toEqual([rsi, ema]);
+  });
+
+  it("FEAT-0542: keeps both legs when a loaded combo visits Indicators and returns", () => {
+    const rsi: Condition = {
+      kind: "compare",
+      left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+      op: "gt",
+      right: { kind: "constant", value: "70" },
+      timeframe: "1h",
+    };
+    const ema: Condition = {
+      kind: "cross",
+      left: { kind: "indicator", indicator: { id: "ema", params: { period: 9 } } },
+      direction: "above",
+      right: { kind: "indicator", indicator: { id: "ema", params: { period: 21 } } },
+      timeframe: "1h",
+    };
+    alertPanelState.draft.conditions = { kind: "group", op: "all", of: [rsi, ema] };
+
+    switchTo(ComboTab);
+    switchTo(IndicatorsTab);
+    const el = switchTo(ComboTab);
+
+    expect(conditions()).toEqual([rsi, ema]);
+    expect(el.querySelectorAll("fieldset.row")).toHaveLength(2);
   });
 });
