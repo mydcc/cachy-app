@@ -38,7 +38,7 @@
           "calculator",
           "trade-exec"
         ],
-        "note": "Class A data (journal, settings, API keys, presets) stays in localStorage and never leaves the device."
+        "note": "Journal and portfolio context reach a provider only with AI consent (/api/ai/*, ADR-0011); keys and settings stay local."
       },
       {
         "id": "execution-path",
@@ -50,7 +50,8 @@
         ],
         "note": "Planned position sizes become signed orders on the exchange."
       }
-    ]
+    ],
+    "output": "docs/architecture/cachy-architecture.dataflow.html"
   },
   "stages": [
     {
@@ -119,7 +120,7 @@
       "id": "aggregator",
       "type": "backend",
       "label": "Aggregator",
-      "sublabel": "aggregatorService",
+      "sublabel": "marketState · merge",
       "stage": 2,
       "row": 1,
       "tag": "merge"
@@ -137,7 +138,7 @@
       "id": "rule-engine",
       "type": "backend",
       "label": "Rule Engine",
-      "sublabel": "rules · candle close",
+      "sublabel": "marketState · close",
       "stage": 2,
       "row": 4,
       "tag": "WASM"
@@ -155,7 +156,7 @@
       "id": "local-store",
       "type": "database",
       "label": "localStorage",
-      "sublabel": "storageService · Class A",
+      "sublabel": "safeLocalStorage",
       "stage": 3,
       "row": 2,
       "tag": "never leaves device"
@@ -510,7 +511,7 @@
       "dot": "rose",
       "title": "Local-First Boundary (ADR 0001)",
       "items": [
-        "Class A data — journal, settings, API keys, presets — lives only in localStorage",
+        "Class A data — journal, settings, API keys, presets — lives in localStorage, with secrets in IndexedDB under the device key",
         "Calculator and trade-exec read journal and presets straight from localStorage (read paths not charted)",
         "Core code never imports SpacetimeDB or cloudService",
         "API secrets never leave the device; the proxy forwards client-signed requests (ADR-0013)"

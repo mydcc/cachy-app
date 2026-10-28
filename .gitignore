@@ -173,3 +173,7 @@ info/
 .vscode/
 .pi/
 
+# Archify writes a delivery receipt next to the artifact. It carries an absolute
+# local path and a random receiptId, so it is neither portable nor reviewable.
+docs/architecture/*.delivery.json
+
