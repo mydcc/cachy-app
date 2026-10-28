@@ -1037,6 +1037,13 @@ describe("FEAT-0013 — Class A", () => {
             limits: expect.objectContaining({ maxLeverage: "5" }),
             killSwitchEngagedAt: expect.any(Number),
             lastHistorySyncAt: null,
+            killSwitch: {
+                blockAdds: true,
+                blockNonTpSlModifies: true,
+                confirmEngage: true,
+                autoEngageDailyLossUsdt: null,
+            },
+            killSwitchAutoEngageSuppressedFor: null,
         });
     });
 });

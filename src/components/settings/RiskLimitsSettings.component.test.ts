@@ -50,12 +50,19 @@ const locale = vi.hoisted(() => ({ current: "en" as "en" | "de" }));
 vi.mock("../../locales/i18n", async () => {
     const enBundle = (await import("../../locales/locales/en.json")).default;
     const deBundle = (await import("../../locales/locales/de.json")).default;
-    const resolve = (key: string) => {
+    const resolve = (
+        key: string,
+        options?: { values?: Record<string, string | number> },
+    ) => {
         const bundle = locale.current === "de" ? deBundle : enBundle;
         const value = key
             .split(".")
             .reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], bundle);
-        return typeof value === "string" ? value : key;
+        if (typeof value !== "string") return key;
+        return Object.entries(options?.values ?? {}).reduce(
+            (text, [name, replacement]) => text.split(`{${name}}`).join(String(replacement)),
+            value,
+        );
     };
 
     return {
@@ -92,8 +99,26 @@ vi.mock("../../stores/closeAllFlow", () => ({
 }));
 vi.mock("../../services/rmsService", async () => {
     const { Decimal } = await import("decimal.js");
+    const { riskState: store } = await import("../../stores/riskLimits.svelte");
     return {
-        rmsService: { realizedPnlToday: () => new Decimal(0) },
+        rmsService: {
+            realizedPnlToday: () => new Decimal(0),
+            assessDailyLoss: () => ({
+                loss: new Decimal(0),
+                complete: true,
+                cause: null,
+            }),
+            maybeAutoEngageKillSwitch: vi.fn(),
+            killSwitchScope: () => {
+                const config = store.killSwitchConfig;
+                return {
+                    opensBlocked: true,
+                    addsBlocked: config.blockAdds,
+                    nonTpSlModifiesBlocked: config.blockNonTpSlModifies,
+                    tpSlModifiesBlocked: false,
+                };
+            },
+        },
         utcDayStart: (now: number) => now,
     };
 });
@@ -143,6 +168,11 @@ beforeEach(() => {
     localStorage.clear();
     riskState.reloadFromStorage();
     riskState.resetLimits();
+    vi.clearAllMocks();
+    riskState.setKillSwitchOption("blockAdds", true);
+    riskState.setKillSwitchOption("blockNonTpSlModifies", true);
+    riskState.setKillSwitchOption("confirmEngage", true);
+    riskState.setKillSwitchOption("autoEngageDailyLossUsdt", null);
     host = document.createElement("div");
     document.body.appendChild(host);
     component = mount(RiskLimitsSettings, { target: host }) as Record<string, unknown>;
@@ -318,5 +348,82 @@ describe("BUG-0557 — RiskLimitsSettings keeps no-limit and zero apart", () => 
         expect(maxPositions().getAttribute("inputmode")).toBe("numeric");
         expect(maxPositions().hasAttribute("min")).toBe(false);
         expect(maxPositions().hasAttribute("step")).toBe(false);
+    });
+});
+
+function toggleSwitch(id: string, checked: boolean): void {
+    const el = host.querySelector<HTMLInputElement>(`#${id}`);
+    if (!el) throw new Error(`#${id} not rendered`);
+    el.checked = checked;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+}
+
+describe("FEAT-0526 — kill switch explanation and configuration", () => {
+    it("asks before engaging by default", async () => {
+        button(lookup(en, "settings.risk.killSwitch.engage")).click();
+
+        await vi.waitFor(() => expect(modalState.show).toHaveBeenCalledTimes(1));
+        expect(riskState.isKillSwitchEngaged).toBe(false);
+    });
+
+    it("engages immediately when the confirmation is off", async () => {
+        riskState.setKillSwitchOption("confirmEngage", false);
+        flushSync();
+
+        button(lookup(en, "settings.risk.killSwitch.engage")).click();
+        await vi.waitFor(() => expect(riskState.isKillSwitchEngaged).toBe(true));
+        expect(modalState.show).not.toHaveBeenCalled();
+    });
+
+    it("reflects an add-scope change in the explanation", () => {
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.scope.addsBlocked"),
+        );
+
+        toggleSwitch("kill-switch-block-adds", false);
+
+        expect(riskState.killSwitchConfig.blockAdds).toBe(false);
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.scope.addsPermitted"),
+        );
+        expect(host.textContent).not.toContain(
+            lookup(en, "settings.risk.killSwitch.scope.addsBlocked"),
+        );
+    });
+
+    it("reflects a modify-scope change in the explanation", () => {
+        toggleSwitch("kill-switch-block-modifies", false);
+
+        expect(riskState.killSwitchConfig.blockNonTpSlModifies).toBe(false);
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.scope.modifiesPermitted"),
+        );
+    });
+
+    it("stores the auto-engage threshold and rejects a zero", () => {
+        typeInto(input("kill-switch-auto-engage"), "250");
+        expect(riskState.killSwitchConfig.autoEngageDailyLossUsdt).toBe("250");
+
+        typeInto(input("kill-switch-auto-engage"), "0");
+
+        expect(riskState.killSwitchConfig.autoEngageDailyLossUsdt).toBe("250");
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.invalid"),
+        );
+    });
+
+    it("renders the armed status with the threshold", () => {
+        riskState.setKillSwitchOption("autoEngageDailyLossUsdt", "250");
+        flushSync();
+
+        expect(host.textContent).toContain("250");
+        expect(host.textContent).toContain("Armed");
+    });
+
+    it("renders the off state when no threshold is set", () => {
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.autoEngage.off"),
+        );
     });
 });

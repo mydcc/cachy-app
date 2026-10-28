@@ -2,7 +2,7 @@
 id: FEAT-0526
 title: Explain the kill switch in Settings and make its behaviour configurable
 type: feature
-status: ready
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: feat/feat-0526-kill-switch-settings
 ---
 
 # FEAT-0526 — Kill switch explained and configurable in Settings
@@ -46,21 +48,49 @@ wrong costs nothing; releasing re-opens exposure, so it stays with a human. See
 Every toggle states its default and takes effect without a reload. All strings
 in both locales; `npm run i18n` parity stays green.
 
+## Resolution (2026-10-28)
+
+**The rule and its explanation share one predicate.** `rmsService.killSwitchBlocks`
+is the switch's scope; `increasesExposure` stays untouched because
+`checkLimits` reads it to decide which limits apply. Turning "block adds" off
+narrows the switch only — the size, daily-loss and loss-per-trade caps still
+check adds. `killSwitchScope()` returns the same booleans for the Settings
+text, so a toggle cannot leave the prose describing the old rule; permitted
+cases are stated, not merely omitted.
+
+**Configuration** lives in `riskState` (Class A, same synchronous persist as
+the switch timestamp): `blockAdds`, `blockNonTpSlModifies`, `confirmEngage`
+(default on) and `autoEngageDailyLossUsdt` (empty = off, must be positive).
+Missing keys in a pre-item blob read as the old rule; `resetLimits` leaves the
+configuration alone.
+
+**Auto-engage** is evaluated at the kill-switch gate hook, before the verdict,
+so the order that first sees the threshold is the one refused. It compares the
+day's *positive realised loss* (a green day never arms it) and refuses to guess
+on an unmeasurable day (BUG-0499). A manual release records the UTC day and
+suppresses auto-engage until the next one, so the human's explicit override is
+not undone by the next click. Nothing releases the switch automatically —
+pinned by a test that advances ten days.
+
+The Settings status line names the real precondition (threshold, current loss,
+or the concrete cause that makes today unmeasurable) instead of claiming the
+switch is armed.
+
 ## Acceptance criteria
 
-- [ ] Settings shows what the switch blocks and what stays permitted, in both
+- [x] Settings shows what the switch blocks and what stays permitted, in both
       locales, matching `increasesExposure` exactly
-- [ ] Each block-scope toggle changes gate behaviour, proven by a test per
+- [x] Each block-scope toggle changes gate behaviour, proven by a test per
       toggle (gate refuses/permits the corresponding intent while engaged)
-- [ ] Confirm-before-engage on blocks accidental engagement, proven by a test
-- [ ] Auto-engage fires at the configured daily-loss threshold and not before,
+- [x] Confirm-before-engage on blocks accidental engagement, proven by a test
+- [x] Auto-engage fires at the configured daily-loss threshold and not before,
       proven by a test; default off means no behaviour change for existing users
-- [ ] There is no automatic release path: a test engages the switch, then advances
+- [x] There is no automatic release path: a test engages the switch, then advances
       time and crosses every auto-engage threshold again, and asserts it stays
       engaged until an explicit user action releases it
-- [ ] Changing any setting never weakens the switch silently: the explanation
+- [x] Changing any setting never weakens the switch silently: the explanation
       text always reflects the active configuration
-- [ ] `npm run backlog:check` passes with this item (the index is generated on demand and never committed)
+- [x] `npm run backlog:check` passes with this item (the index is generated on demand and never committed)
 
 ## Out of scope
 

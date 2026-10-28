@@ -2444,7 +2444,36 @@
         "engage": "Engage kill switch",
         "release": "Release kill switch",
         "confirmTitle": "Release the kill switch?",
-        "confirmMessage": "Orders that open or increase a position will be sent again from this moment on. Continue?"
+        "confirmMessage": "Orders that open or increase a position will be sent again from this moment on. Continue?",
+        "scope": {
+          "opensBlocked": "Blocked: opening a new position.",
+          "addsBlocked": "Blocked: adding to an existing position.",
+          "addsPermitted": "Permitted: adding to an existing position.",
+          "modifiesBlocked": "Blocked: changing an order that is not a TP/SL adjust.",
+          "modifiesPermitted": "Permitted: changing an order that is not a TP/SL adjust.",
+          "alwaysPermitted": "Always permitted: closing a position, closing all, cancelling an order, and adjusting TP/SL."
+        },
+        "configTitle": "What it does and how it engages",
+        "blockAdds": { "label": "Block adds", "hint": "On by default. Off: scaling into an existing position stays possible while engaged. Risk limits still apply." },
+        "blockModifies": { "label": "Block non-TP/SL changes", "hint": "On by default. Off: editing a resting order stays possible while engaged; TP/SL adjusts are never blocked." },
+        "confirmEngage": { "label": "Ask before engaging", "hint": "On by default. Off: the engage button acts immediately. A release always asks." },
+        "engageConfirmTitle": "Engage the kill switch?",
+        "engageConfirmMessage": "Trading that increases exposure is blocked until you release it. Closing, cancelling and TP/SL adjusts keep working.",
+        "autoEngage": {
+          "label": "Auto-engage after a daily loss",
+          "hint": "Empty = off. Evaluated at the next order check and when Settings opens; a manual release keeps it off for the rest of the UTC day. It never releases itself.",
+          "off": "Off — never engages automatically",
+          "invalid": "Enter a positive USDT amount, or leave it empty to turn auto-engage off.",
+          "armed": "Armed: engages when today's realised loss reaches {threshold} USDT (currently {loss} USDT).",
+          "suppressedToday": "Off for the rest of the UTC day — you released the switch manually.",
+          "unmeasurable": "Not armed: today's loss cannot be measured yet ({cause}).",
+          "cause": {
+            "no-amount": "a closed trade has no realised amount",
+            "no-exit-date": "a closed trade has no close date",
+            "unknown-status": "a trade has a status the counter cannot attribute",
+            "stale-sync": "today's position-history sync has not run"
+          }
+        }
       },
       "closeAll": {
         "title": "Close all positions",

@@ -2444,7 +2444,36 @@
         "engage": "Kill Switch aktivieren",
         "release": "Kill Switch lösen",
         "confirmTitle": "Kill Switch lösen?",
-        "confirmMessage": "Ab sofort werden wieder Orders gesendet, die Positionen eröffnen oder vergrößern. Fortfahren?"
+        "confirmMessage": "Ab sofort werden wieder Orders gesendet, die Positionen eröffnen oder vergrößern. Fortfahren?",
+        "scope": {
+          "opensBlocked": "Blockiert: eine neue Position eröffnen.",
+          "addsBlocked": "Blockiert: eine bestehende Position vergrößern.",
+          "addsPermitted": "Erlaubt: eine bestehende Position vergrößern.",
+          "modifiesBlocked": "Blockiert: eine Order ändern, die keine TP/SL-Anpassung ist.",
+          "modifiesPermitted": "Erlaubt: eine Order ändern, die keine TP/SL-Anpassung ist.",
+          "alwaysPermitted": "Immer erlaubt: Position schließen, alle schließen, Order stornieren und TP/SL anpassen."
+        },
+        "configTitle": "Was er tut und wie er auslöst",
+        "blockAdds": { "label": "Zukäufe blockieren", "hint": "Standardmäßig an. Aus: eine bestehende Position kann trotz aktivem Switch vergrößert werden. Risikolimits gelten weiter." },
+        "blockModifies": { "label": "Nicht-TP/SL-Änderungen blockieren", "hint": "Standardmäßig an. Aus: eine ruhende Order kann trotz aktivem Switch geändert werden; TP/SL-Anpassungen sind nie blockiert." },
+        "confirmEngage": { "label": "Vor dem Aktivieren fragen", "hint": "Standardmäßig an. Aus: der Aktivieren-Button wirkt sofort. Das Lösen fragt immer." },
+        "engageConfirmTitle": "Kill Switch aktivieren?",
+        "engageConfirmMessage": "Orders, die das Risiko erhöhen, sind blockiert, bis du ihn löst. Schließen, Stornieren und TP/SL-Anpassungen funktionieren weiterhin.",
+        "autoEngage": {
+          "label": "Automatisch aktivieren nach Tagesverlust",
+          "hint": "Leer = aus. Wird bei der nächsten Order-Prüfung und beim Öffnen der Einstellungen ausgewertet; nach einem manuellen Lösen bleibt er für den Rest des UTC-Tags aus. Er löst sich nie selbst.",
+          "off": "Aus — aktiviert nie automatisch",
+          "invalid": "Gib einen positiven USDT-Betrag ein, oder lass das Feld leer, um die Automatik auszuschalten.",
+          "armed": "Scharf: aktiviert, wenn der heutige realisierte Verlust {threshold} USDT erreicht (aktuell {loss} USDT).",
+          "suppressedToday": "Für den Rest des UTC-Tags aus — du hast den Switch manuell gelöst.",
+          "unmeasurable": "Nicht scharf: der heutige Verlust ist noch nicht messbar ({cause}).",
+          "cause": {
+            "no-amount": "ein geschlossener Trade hat keinen realisierten Betrag",
+            "no-exit-date": "einem geschlossenen Trade fehlt das Schließdatum",
+            "unknown-status": "ein Trade hat einen Status, den der Zähler nicht zuordnen kann",
+            "stale-sync": "der heutige Positionsverlauf-Sync ist nicht gelaufen"
+          }
+        }
       },
       "closeAll": {
         "title": "Alle Positionen schließen",
