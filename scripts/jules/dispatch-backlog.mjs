@@ -39,8 +39,7 @@
  *   --phase=rollback   If a session creation failed after that push, its item
  *                      would sit on develop as a ghost in-progress claim. This
  *                      phase flips failed IDs back to status: ready (assignee
- *                      removed) and regenerates the index, so the workflow can
- *                      commit the correction.
+ *                      removed), so the workflow can commit the correction.
  *
  * Running the script WITHOUT --phase keeps the historic one-shot behavior
  * (select → create sessions immediately → mark claims afterwards) for local,
@@ -410,10 +409,10 @@ function resetItemToReady(item) {
 }
 
 /**
- * Regenerates docs/backlog/INDEX.md via npm run backlog:index so it rides in
- * the SAME commit as the front-matter updates — otherwise sync-backlog.yml's
- * index commit could land between our push and Jules' clone. Warns instead of
- * aborting, as before the split.
+ * Refreshes docs/backlog/INDEX.md locally so an operator watching a run can
+ * read the result. The file is gitignored (.gitignore:127), so it is never part
+ * of the commit the workflow pushes — `git add docs/backlog/` skips ignored
+ * paths. Warns instead of aborting, as before the split.
  */
 function regenerateBacklogIndex(changedCount) {
   if (changedCount <= 0) return;

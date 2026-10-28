@@ -60,7 +60,7 @@ in both locales; `npm run i18n` parity stays green.
       engaged until an explicit user action releases it
 - [ ] Changing any setting never weakens the switch silently: the explanation
       text always reflects the active configuration
-- [ ] `npm run backlog:index` output committed in the same PR
+- [ ] `npm run backlog:check` passes with this item (the index is generated on demand and never committed)
 
 ## Out of scope
 

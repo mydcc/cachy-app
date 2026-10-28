@@ -43,4 +43,4 @@ is two seams the review named that only have validator-level proof.
 - [ ] A tick-misaligned modify through the paper seam refuses before transport
 - [ ] A tick-misaligned modify through the live service seam refuses before transport
 - [ ] A chart drop with no matching position toasts and never calls the adapter
-- [ ] `npm run backlog:check` passes with this item (index regenerated in the same PR)
+- [ ] `npm run backlog:check` passes with this item (the index is generated on demand and never committed)
