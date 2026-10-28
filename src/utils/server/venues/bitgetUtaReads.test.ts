@@ -20,11 +20,13 @@
  *
  * What is pinned against a live venue, and what is not:
  *
- * - Envelopes, paths and empty-account shapes were observed live on 2026-10-03
- *   against `api.bitget.com` from a UTA account (`docs/bitget-api/14_uta_v3.md`):
- *   `data: {list, cursor}` on both order endpoints, `data: {list}` with no
- *   cursor and `list: null` on positions, a bare object on account/assets, and
- *   an intermittent 200-with-empty-body on current-position.
+ * - Envelopes, paths and empty-order shapes were observed live against
+ *   `api.bitget.com` from a UTA account: 2026-10-03 for `unfilled-orders` and
+ *   positions, 2026-10-04 for `history-orders`
+ *   (`docs/bitget-api/14_uta_v3.md`): `data: {list, cursor}` on both order
+ *   endpoints, `data: {list}` with no cursor and `list: null` on positions, a
+ *   bare object on account/assets, and an intermittent 200-with-empty-body on
+ *   current-position.
  * - Populated entries are transcribed from the vendor's documented samples
  *   (same file, "Documented" rows), because the account under test is empty
  *   and holds no position and no order. Field *names* come from those samples;
@@ -36,6 +38,8 @@
  * result, not on the URL.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { bitgetVenue } from "./bitget";
 import type { PresignedEnvelope } from "../presignedEnvelope";
 
@@ -59,14 +63,26 @@ function requestedUrl(call = 0): URL {
   return new URL(fetchMock.mock.calls[call][0] as string);
 }
 
-// Live bytes, empty UTA account, 2026-10-03. Nothing secret in them: no keys,
-// no balances, only the envelope the venue actually sends.
-const EMPTY_LIST = (requestTime: number) => ({
-  code: "00000",
-  msg: "success",
-  requestTime,
-  data: { list: [], cursor: null },
-});
+// Captured UTA responses, committed under
+// `src/services/exchange/__fixtures__/bitget/rest/` (provenance in the README
+// there). Nothing secret in them: no keys, no balances, and no order entries —
+// both come from an account with no orders in the queried window, so they prove
+// the envelope and nothing about a populated entry.
+const REST_FIXTURES = path.join(
+  __dirname,
+  "../../../services/exchange/__fixtures__/bitget/rest",
+);
+
+function restFixture(name: string) {
+  const file = path.join(REST_FIXTURES, `${name}.json`);
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (cause) {
+    // A missing or malformed fixture must name the file, or a rename reads as a
+    // parser failure.
+    throw new Error(`could not load captured Bitget response ${file}`, { cause });
+  }
+}
 
 // Vendor-documented samples (`docs/bitget-api/14_uta_v3.md`). Field names are
 // the venue's; the values are the docs', and the tests assert mapping, not
@@ -148,6 +164,29 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
     fetchMock.mockReset();
   });
 
+  describe("captured responses", () => {
+    // Pin provenance itself. The order tests assert mapping, so a swapped or
+    // trimmed fixture would still pass there; these two fail first.
+    const expectCapturedEnvelope = (
+      body: ReturnType<typeof restFixture>,
+      requestTime: number,
+    ) => {
+      expect(body.code).toBe("00000");
+      expect(body.requestTime).toBe(requestTime);
+      expect(Object.keys(body.data).sort()).toEqual(["cursor", "list"]);
+      expect(body.data.list).toEqual([]);
+      expect(body.data.cursor).toBeNull();
+    };
+
+    it("keeps the 2026-10-03 unfilled-orders capture", () => {
+      expectCapturedEnvelope(restFixture("unfilled-orders-empty"), 1791031742023);
+    });
+
+    it("keeps the 2026-10-04 history-orders capture", () => {
+      expectCapturedEnvelope(restFixture("history-orders-empty"), 1791094965683);
+    });
+  });
+
   describe("positions", () => {
     it("asks the UTA position endpoint, not a Classic path", async () => {
       fetchMock.mockResolvedValue(ok({ code: "00000", data: { list: null } }));
@@ -222,7 +261,7 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
 
   describe("orders", () => {
     it("asks the UTA order endpoints, not Classic paths", async () => {
-      fetchMock.mockResolvedValue(ok(EMPTY_LIST(1791031742023)));
+      fetchMock.mockResolvedValue(ok(restFixture("unfilled-orders-empty")));
 
       await bitgetVenue.executeOrder(
         envelope,
@@ -234,7 +273,7 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
     });
 
     it("reads an empty pending list as no orders", async () => {
-      fetchMock.mockResolvedValue(ok(EMPTY_LIST(1791031742023)));
+      fetchMock.mockResolvedValue(ok(restFixture("unfilled-orders-empty")));
 
       const result = await bitgetVenue.executeOrder(
         envelope,
@@ -289,7 +328,7 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
     });
 
     it("asks the UTA history endpoint for history reads", async () => {
-      fetchMock.mockResolvedValue(ok(EMPTY_LIST(1791094965683)));
+      fetchMock.mockResolvedValue(ok(restFixture("history-orders-empty")));
 
       await bitgetVenue.executeOrder(
         envelope,

@@ -233,6 +233,8 @@ item's migration order.
 ## Links
 
 - BUG-0576 — the V2 migration; this is its first step and its gate
+- BUG-0590 — the traded-amount capture this item's wire-format flag leaves open
+  (`filledQty` in no generation; the populated-order capture is still missing)
 - BUG-0001 — never guess an exchange's wire format for a call that moves money
 - [`docs/bitget-api/01_sign.md`](../../bitget-api/01_sign.md) — the vendor
   transcription and the current unresolved marking
