@@ -36,6 +36,12 @@ jobs:
           TAG_SHA=$(gh api "repos/${{ github.repository }}/releases/tags/deploy-beta" \
             --jq '.target_commitish')
           echo "deploy-beta target_commitish=$TAG_SHA"
+          # Pin the asset itself, not the moving tag: a newer build may publish
+          # while this deploy runs, and the final check must compare against the
+          # artifact this run actually deployed.
+          ASSET_ID=$(gh api "repos/${{ github.repository }}/releases/tags/deploy-beta" \
+            --jq '.assets[] | select(.name == "cachy-build.tar.gz") | .id')
+          echo "asset_id=$ASSET_ID" >> "$GITHUB_OUTPUT"
           if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
             echo "::notice::Artifact ($TAG_SHA) != Trigger-Commit ($HEAD_SHA) - Deploy Build wurde uebersprungen ([skip ci]). Staging-Deploy ausgelassen."
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -79,4 +85,33 @@ jobs:
             fi
           done
           echo "::error::Timeout beim Warten auf xyOps Job $JOB_ID"
+          exit 1
+
+      - name: Verify the served build matches the artifact
+        if: steps.artifact.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSET_ID: ${{ steps.artifact.outputs.asset_id }}
+          STAGING_URL: ${{ vars.STAGING_URL || 'https://dev.cachy.app' }}
+        run: |
+          # The xyOps job can report code 0 before the host has finished the
+          # swap: on 2026-10-28 a run reported success at 19:43 while the host
+          # still served beta.466 and only switched to beta.467 at ~19:49. A
+          # single status check is therefore not proof; wait for the build id
+          # published by the artifact to be the one the host serves.
+          gh api "repos/${{ github.repository }}/releases/assets/$ASSET_ID" \
+            -H "Accept: application/octet-stream" > /tmp/cachy-build.tar.gz
+          EXPECTED=$(tar -xzOf /tmp/cachy-build.tar.gz build/client/_app/version.json | jq -r .version)
+          echo "artifact build: $EXPECTED"
+          SERVED=""
+          for i in $(seq 1 60); do
+            SERVED=$(curl -fsS "$STAGING_URL/_app/version.json" 2>/dev/null | jq -r '.version // empty' || true)
+            if [ "$SERVED" = "$EXPECTED" ]; then
+              echo "Staging serves the artifact build ($EXPECTED)."
+              exit 0
+            fi
+            echo "[$i] served build: ${SERVED:-none} (expected $EXPECTED)"
+            sleep 10
+          done
+          echo "::error::Staging still serves ${SERVED:-no build}, expected $EXPECTED"
           exit 1

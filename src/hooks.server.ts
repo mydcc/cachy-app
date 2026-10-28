@@ -19,6 +19,7 @@ import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle } from "@sveltejs/kit/hooks";
 import { building } from "$app/env";
 import { logger } from "#lib/server/logger.js";
+import { BUILD_ID } from "#lib/server/buildId.js";
 import { i18nReady } from "./locales/i18n";
 import { SECURITY_HEADERS, cspHasNonce } from "../server-headers.js";
 
@@ -50,7 +51,9 @@ if (!globalWithPatchFlag._isConsolePatched) {
     originalError.apply(console, args);
   };
 
-  logger.info("Global console patched for CachyLog");
+  // Importing BUILD_ID here also pins it at server start: the health endpoint
+  // exposes the value this process read, not whatever is on disk right now.
+  logger.info(`Global console patched for CachyLog (build ${BUILD_ID})`);
 }
 
 const loggingHandler: Handle = async ({ event, resolve }) => {
@@ -103,6 +106,14 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
 };
 
 export const headersHandler: Handle = async ({ event, resolve }) => {
+  // Bound at server start, before any request can read the swap on disk. The
+  // health endpoint reports this value so a deploy can tell its process from
+  // one that survived the restart. Partial events in unit tests omit locals;
+  // SvelteKit always provides it.
+  if (event.locals) {
+    event.locals.buildId = BUILD_ID;
+  }
+
   const response = await resolve(event);
 
   // Documents must revalidate on every navigation: after a redeploy the old

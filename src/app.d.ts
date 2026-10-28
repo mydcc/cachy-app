@@ -22,7 +22,10 @@
 declare global {
   namespace App {
     // interface Error {}
-    // interface Locals {}
+    interface Locals {
+      /** Build id this server process started from; see lib/server/buildId.ts. */
+      buildId: string;
+    }
     // interface PageData {}
     // interface PageState {}
     // interface Platform {}
