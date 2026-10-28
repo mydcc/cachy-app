@@ -33,6 +33,7 @@
 
 import { browser } from "$app/env";
 import { Decimal } from "decimal.js";
+import { utcDayStart } from "../utils/utcDay";
 import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";
 import { safeJsonParse } from "../utils/safeJson";
@@ -57,6 +58,29 @@ export const INITIAL_RISK_LIMITS: RiskLimitInputs = {
     maxLossPerTradeUsdt: null,
     maxDailyLossUsdt: null,
     maxOpenPositions: null,
+};
+
+/**
+ * What the kill switch blocks while engaged — FEAT-0526.
+ *
+ * Defaults are the pre-existing rule: opens, adds and non-TP/SL modifies are
+ * blocked; closes, cancels, close-all and TP/SL adjusts pass. Turning a toggle
+ * off narrows the *switch*, never the risk limits: `increasesExposure` keeps
+ * classifying adds/modifies for `checkLimits` regardless of this config.
+ */
+export interface KillSwitchConfig {
+    blockAdds: boolean;
+    blockNonTpSlModifies: boolean;
+    confirmEngage: boolean;
+    /** Positive USDT loss; null = auto-engage off. */
+    autoEngageDailyLossUsdt: string | null;
+}
+
+export const DEFAULT_KILL_SWITCH_CONFIG: KillSwitchConfig = {
+    blockAdds: true,
+    blockNonTpSlModifies: true,
+    confirmEngage: true,
+    autoEngageDailyLossUsdt: null,
 };
 
 /**
@@ -126,6 +150,23 @@ function persistableInvalidMaxOpenPositions(value: unknown): unknown {
     return String(value);
 }
 
+/**
+ * The auto-engage threshold, kept verbatim when it cannot be interpreted.
+ *
+ * Reading a corrupt or negative value as "off" would silently disable an
+ * opt-in protection and leave nothing to repair — the same failure the
+ * max-open-positions field is stored raw for. `killSwitchAutoEngageLimit()`
+ * decides whether the text is usable; the raw string stays visible in the
+ * field so the trader can fix it.
+ */
+const killSwitchThreshold = z
+    .union([z.string(), z.number()])
+    .transform((val) => {
+        const text = String(val);
+        return text === "" ? null : text;
+    })
+    .catch(null);
+
 const RiskStateSchema = z.object({
     limits: z
         .object({
@@ -137,6 +178,26 @@ const RiskStateSchema = z.object({
         })
         .partial()
         .catch({}),
+    // FEAT-0526: what the switch blocks and whether it arms itself. Absent
+    // keys are the defaults, so a blob written before this item still reads
+    // as the pre-existing rule (adds and non-TP/SL modifies blocked).
+    killSwitch: z
+        .object({
+            blockAdds: z.boolean().catch(true),
+            blockNonTpSlModifies: z.boolean().catch(true),
+            confirmEngage: z.boolean().catch(true),
+            autoEngageDailyLossUsdt: killSwitchThreshold,
+        })
+        .partial()
+        .catch({}),
+    // UTC day start on which auto-engage was suppressed by a manual release.
+    // A timestamp, not a boolean: it expires by comparison, never by a timer.
+    killSwitchAutoEngageSuppressedFor: z
+        .number()
+        .int()
+        .positive()
+        .nullable()
+        .catch(null),
     // Epoch ms of the moment the switch was engaged, or null. A timestamp
     // rather than a boolean so the UI can say *when* trading was stopped —
     // a switch someone flipped four days ago reads very differently from one
@@ -156,6 +217,8 @@ class RiskManager {
     private _invalidMaxOpenPositionsRaw: unknown = null;
     private _killSwitchEngagedAt = $state<number | null>(null);
     private _lastHistorySyncAt = $state<number | null>(null);
+    private _killSwitchConfig = $state<KillSwitchConfig>({ ...DEFAULT_KILL_SWITCH_CONFIG });
+    private _killSwitchAutoEngageSuppressedFor = $state<number | null>(null);
     /** Set when a persist attempt failed, so the UI can stop lying about it. */
     private _persistFailed = $state(false);
 
@@ -173,6 +236,41 @@ class RiskManager {
 
     get isKillSwitchEngaged(): boolean {
         return this._killSwitchEngagedAt !== null;
+    }
+
+    /** FEAT-0526: the effective scope, defaults included. */
+    get killSwitchConfig(): Readonly<KillSwitchConfig> {
+        return this._killSwitchConfig;
+    }
+
+    /** UTC day start on which a manual release suppressed auto-engage. */
+    get killSwitchAutoEngageSuppressedFor(): number | null {
+        return this._killSwitchAutoEngageSuppressedFor;
+    }
+
+    /** Auto-engage threshold in USDT, or null when off/invalid. */
+    public killSwitchAutoEngageLimit(): Decimal | null {
+        const raw = this._killSwitchConfig.autoEngageDailyLossUsdt;
+        if (raw === null || raw === "") return null;
+        try {
+            const d = new Decimal(raw);
+            return d.isFinite() && !d.isNaN() && d.gt(0) ? d : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * True when storage holds a threshold that is not a positive number.
+     *
+     * `killSwitchAutoEngageLimit()` reads it as "off", which is the safe
+     * behaviour but a silent one: the protection the trader opted into is not
+     * armed and the field would otherwise look empty. The UI shows the raw
+     * text and an inline error instead.
+     */
+    get hasInvalidAutoEngageThreshold(): boolean {
+        const raw = this._killSwitchConfig.autoEngageDailyLossUsdt;
+        return raw !== null && raw !== "" && this.killSwitchAutoEngageLimit() === null;
     }
 
     /**
@@ -220,10 +318,56 @@ class RiskManager {
      * Releases the kill switch. Returns false and changes nothing unless the
      * caller passes an explicit confirmation.
      */
-    public releaseKillSwitch(release: KillSwitchRelease): boolean {
+    public releaseKillSwitch(release: KillSwitchRelease, now = Date.now()): boolean {
         if (release?.confirmed !== true) return false;
         if (this._killSwitchEngagedAt === null) return true;
         this._killSwitchEngagedAt = null;
+        // FEAT-0526: honour the human override for the rest of the UTC day.
+        // Without this the next order would re-arm the switch immediately and
+        // a deliberate release would last exactly one click.
+        this._killSwitchAutoEngageSuppressedFor = utcDayStart(now);
+        this.persist();
+        return true;
+    }
+
+    /**
+     * FEAT-0526: one kill-switch option. Booleans toggle scope or the engage
+     * confirmation; the threshold accepts the same non-negative numeric text
+     * as `setLimit` but must be positive, because a zero threshold would arm
+     * the switch on any loss at all. Empty/null turns auto-engage off.
+     */
+    public setKillSwitchOption(
+        key: "blockAdds" | "blockNonTpSlModifies" | "confirmEngage",
+        value: boolean,
+    ): boolean;
+    public setKillSwitchOption(
+        key: "autoEngageDailyLossUsdt",
+        value: string | number | null,
+    ): boolean;
+    public setKillSwitchOption(
+        key: keyof KillSwitchConfig,
+        value: boolean | string | number | null,
+    ): boolean {
+        if (key === "autoEngageDailyLossUsdt") {
+            const raw = value === null ? null : String(value).trim();
+            if (raw !== null && raw !== "") {
+                try {
+                    const d = new Decimal(raw);
+                    if (!d.isFinite() || d.isNaN() || d.lte(0)) return false;
+                } catch {
+                    return false;
+                }
+            }
+            this._killSwitchConfig = {
+                ...this._killSwitchConfig,
+                autoEngageDailyLossUsdt: raw === "" ? null : raw,
+            };
+        } else {
+            this._killSwitchConfig = {
+                ...this._killSwitchConfig,
+                [key]: Boolean(value),
+            };
+        }
         this.persist();
         return true;
     }
@@ -336,6 +480,9 @@ class RiskManager {
                         : this._limits,
                     killSwitchEngagedAt: this._killSwitchEngagedAt,
                     lastHistorySyncAt: this._lastHistorySyncAt,
+                    killSwitch: this._killSwitchConfig,
+                    killSwitchAutoEngageSuppressedFor:
+                        this._killSwitchAutoEngageSuppressedFor,
                 }),
                 () => uiState.showError("storage.quotaExceeded"),
             );
@@ -369,6 +516,12 @@ class RiskManager {
                 : null;
             this._killSwitchEngagedAt = parsed.data.killSwitchEngagedAt;
             this._lastHistorySyncAt = parsed.data.lastHistorySyncAt ?? null;
+            this._killSwitchConfig = {
+                ...DEFAULT_KILL_SWITCH_CONFIG,
+                ...parsed.data.killSwitch,
+            };
+            this._killSwitchAutoEngageSuppressedFor =
+                parsed.data.killSwitchAutoEngageSuppressedFor ?? null;
         } catch {
             // A wholly corrupt blob leaves the defaults in place. A corrupt
             // maxOpenPositions value is handled above: new positions fail
@@ -384,6 +537,8 @@ class RiskManager {
         this._invalidMaxOpenPositionsRaw = null;
         this._killSwitchEngagedAt = null;
         this._lastHistorySyncAt = null;
+        this._killSwitchConfig = { ...DEFAULT_KILL_SWITCH_CONFIG };
+        this._killSwitchAutoEngageSuppressedFor = null;
         this._persistFailed = false;
         if (browser) this.load();
     }

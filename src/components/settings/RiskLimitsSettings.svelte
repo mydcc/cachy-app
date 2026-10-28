@@ -33,17 +33,100 @@
   import { journalState } from "../../stores/journal.svelte";
   import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
   import Button from "../shared/Button.svelte";
+  import Toggle from "../shared/Toggle.svelte";
+  import { onMount } from "svelte";
 
-  // Recomputed whenever the journal changes, so the figure the user reads is
-  // the same one the gate will measure against.
-  const realizedToday = $derived.by(() => {
+  const config = $derived(riskState.killSwitchConfig);
+  const scope = $derived(rmsService.killSwitchScope());
+
+  // The same assessment the gate reads, recomputed with the journal. The
+  // figure and the auto-engage decision never disagree with what a refusal
+  // would measure.
+  const assessment = $derived.by(() => {
     void journalState.entries.length;
-    return rmsService.realizedPnlToday();
+    return rmsService.assessDailyLoss();
+  });
+  const realizedToday = $derived(assessment.loss);
+  const realizedLoss = $derived(
+    assessment.loss.isNegative() ? assessment.loss.abs() : new Decimal(0),
+  );
+
+  /*
+   * A minute tick, so a Settings panel left open across 00:00 UTC stops
+   * claiming yesterday's suppression and yesterday's reset time. The clock
+   * is a `$state` cell rather than a bare `Date.now()` inside `$derived`,
+   * because nothing would invalidate the derivation at midnight.
+   */
+  let clockNow = $state(Date.now());
+  $effect(() => {
+    const id = setInterval(() => {
+      clockNow = Date.now();
+    }, 60_000);
+    return () => clearInterval(id);
   });
 
   const nextResetLocal = $derived.by(() => {
-    const next = utcDayStart(Date.now()) + 24 * 60 * 60 * 1000;
+    const next = utcDayStart(clockNow) + 24 * 60 * 60 * 1000;
     return new Date(next).toLocaleString();
+  });
+
+  /*
+   * The threshold field edits a draft, not the store (FEAT-0526 review).
+   * Committing on every keystroke made "1000" pass through "1" — a value
+   * below a real 300 USDT loss, which would arm the switch mid-typing and
+   * then leave the trader with a released, day-suppressed switch. The store
+   * is written on `change` only (blur or Enter); `input` just validates.
+   */
+  let autoEngageDraft = $state(riskState.killSwitchConfig.autoEngageDailyLossUsdt ?? "");
+  let autoEngageRejected = $state(riskState.hasInvalidAutoEngageThreshold);
+
+  const autoEngageThreshold = $derived(riskState.killSwitchAutoEngageLimit());
+  const suppressedToday = $derived(
+    riskState.killSwitchAutoEngageSuppressedFor === utcDayStart(clockNow),
+  );
+  const causeLabel = $derived(
+    assessment.cause === null
+      ? ""
+      : $_(`settings.risk.killSwitch.autoEngage.cause.${assessment.cause}`),
+  );
+
+  // The status line names the real precondition instead of claiming the
+  // switch is armed while the day cannot be measured, the threshold has
+  // already been crossed, or the switch is engaged.
+  const autoEngageStatus = $derived.by(() => {
+    if (riskState.hasInvalidAutoEngageThreshold) {
+      return $_("settings.risk.killSwitch.autoEngage.invalid");
+    }
+    if (autoEngageThreshold === null) return $_("settings.risk.killSwitch.autoEngage.off");
+    if (riskState.isKillSwitchEngaged) {
+      return $_("settings.risk.killSwitch.autoEngage.engaged");
+    }
+    if (suppressedToday) return $_("settings.risk.killSwitch.autoEngage.suppressedToday");
+    if (!assessment.complete) {
+      return $_("settings.risk.killSwitch.autoEngage.unmeasurable", {
+        values: { cause: causeLabel },
+      });
+    }
+    if (realizedLoss.gte(autoEngageThreshold)) {
+      return $_("settings.risk.killSwitch.autoEngage.reached", {
+        values: {
+          threshold: autoEngageThreshold.toFixed(2),
+          loss: fmt(realizedLoss),
+        },
+      });
+    }
+    return $_("settings.risk.killSwitch.autoEngage.armed", {
+      values: {
+        threshold: autoEngageThreshold.toFixed(2),
+        loss: fmt(realizedLoss),
+      },
+    });
+  });
+
+  onMount(() => {
+    // A threshold saved before today's loss crossed must arm on open, not
+    // wait for an order that the trader may never place.
+    rmsService.maybeAutoEngageKillSwitch();
   });
 
   const engagedSince = $derived(
@@ -127,8 +210,54 @@
     applyLimit("maxOpenPositions", trimmed === "" ? null : trimmed);
   }
 
-  function engage() {
+  async function engage() {
+    // FEAT-0526: the confirmation is configurable, default on. Auto-engage
+    // cannot prompt, so this only governs the manual button.
+    if (config.confirmEngage) {
+      const confirmed = await modalState.show(
+        $_("settings.risk.killSwitch.engageConfirmTitle"),
+        $_("settings.risk.killSwitch.engageConfirmMessage"),
+        "confirm",
+      );
+      if (confirmed !== true) return;
+    }
     riskState.engageKillSwitch();
+  }
+
+  function onKillSwitchToggle(
+    key: "blockAdds" | "blockNonTpSlModifies" | "confirmEngage",
+    event: Event,
+  ) {
+    const checked = (event.currentTarget as HTMLInputElement).checked;
+    riskState.setKillSwitchOption(key, checked);
+  }
+
+  /** Validate without committing — the store is written on `change` only. */
+  function thresholdIsValid(raw: string): boolean {
+    if (raw.trim() === "") return true;
+    try {
+      const value = new Decimal(raw);
+      return value.isFinite() && !value.isNaN() && value.gt(0);
+    } catch {
+      return false;
+    }
+  }
+
+  function onAutoEngageInput(event: Event) {
+    autoEngageDraft = (event.currentTarget as HTMLInputElement).value;
+    autoEngageRejected = !thresholdIsValid(autoEngageDraft);
+  }
+
+  function onAutoEngageCommit() {
+    const ok = riskState.setKillSwitchOption(
+      "autoEngageDailyLossUsdt",
+      autoEngageDraft.trim() === "" ? null : autoEngageDraft,
+    );
+    autoEngageRejected = !ok;
+    // Saving a threshold today, when today is already over it, must arm now
+    // rather than wait for an order that may never come. Only a committed
+    // value is evaluated: a half-typed "1" of "1000" must not arm anything.
+    if (ok) rmsService.maybeAutoEngageKillSwitch();
   }
 
   async function release() {
@@ -192,6 +321,26 @@
         {$_("settings.risk.killSwitch.description")}
       </p>
 
+      <!--
+        FEAT-0526: derived from `killSwitchScope()`, the same predicate the
+        gate consults, so a toggle cannot leave the text describing the old
+        rule. Permitted cases are stated, not merely omitted.
+      -->
+      <ul class="mt-3 space-y-1 text-[11px] text-[var(--text-secondary)]">
+        <li>{$_("settings.risk.killSwitch.scope.opensBlocked")}</li>
+        <li>
+          {scope.addsBlocked
+            ? $_("settings.risk.killSwitch.scope.addsBlocked")
+            : $_("settings.risk.killSwitch.scope.addsPermitted")}
+        </li>
+        <li>
+          {scope.nonTpSlModifiesBlocked
+            ? $_("settings.risk.killSwitch.scope.modifiesBlocked")
+            : $_("settings.risk.killSwitch.scope.modifiesPermitted")}
+        </li>
+        <li>{$_("settings.risk.killSwitch.scope.alwaysPermitted")}</li>
+      </ul>
+
       {#if engagedSince}
         <p class="text-[11px] mt-2">
           {$_("settings.risk.killSwitch.engagedSince", {
@@ -205,6 +354,97 @@
           {$_("settings.risk.persistFailed")}
         </p>
       {/if}
+
+      <div class="mt-4 space-y-3 border-t border-[var(--border-color)] pt-3">
+        <p class="text-xs font-semibold">
+          {$_("settings.risk.killSwitch.configTitle")}
+        </p>
+
+        <div class="flex items-start justify-between gap-3">
+          <label class="cursor-pointer" for="kill-switch-block-adds">
+            <p class="text-xs font-semibold">
+              {$_("settings.risk.killSwitch.blockAdds.label")}
+            </p>
+            <p class="text-[10px] text-[var(--text-secondary)]">
+              {$_("settings.risk.killSwitch.blockAdds.hint")}
+            </p>
+          </label>
+          <Toggle
+            id="kill-switch-block-adds"
+            checked={config.blockAdds}
+            onchange={(e) => onKillSwitchToggle("blockAdds", e)}
+          />
+        </div>
+
+        <div class="flex items-start justify-between gap-3">
+          <label class="cursor-pointer" for="kill-switch-block-modifies">
+            <p class="text-xs font-semibold">
+              {$_("settings.risk.killSwitch.blockModifies.label")}
+            </p>
+            <p class="text-[10px] text-[var(--text-secondary)]">
+              {$_("settings.risk.killSwitch.blockModifies.hint")}
+            </p>
+          </label>
+          <Toggle
+            id="kill-switch-block-modifies"
+            checked={config.blockNonTpSlModifies}
+            onchange={(e) => onKillSwitchToggle("blockNonTpSlModifies", e)}
+          />
+        </div>
+
+        <div class="flex items-start justify-between gap-3">
+          <label class="cursor-pointer" for="kill-switch-confirm-engage">
+            <p class="text-xs font-semibold">
+              {$_("settings.risk.killSwitch.confirmEngage.label")}
+            </p>
+            <p class="text-[10px] text-[var(--text-secondary)]">
+              {$_("settings.risk.killSwitch.confirmEngage.hint")}
+            </p>
+          </label>
+          <Toggle
+            id="kill-switch-confirm-engage"
+            checked={config.confirmEngage}
+            onchange={(e) => onKillSwitchToggle("confirmEngage", e)}
+          />
+        </div>
+
+        <div class="field-group">
+          <label for="kill-switch-auto-engage"
+            >{$_("settings.risk.killSwitch.autoEngage.label")}</label
+          >
+          <div class="flex items-center gap-2">
+            <input
+              id="kill-switch-auto-engage"
+              type="text"
+              inputmode="decimal"
+              class="input-field w-full min-w-0"
+              class:border-danger={autoEngageRejected}
+              aria-invalid={autoEngageRejected}
+              placeholder={$_("settings.risk.killSwitch.autoEngage.off")}
+              value={autoEngageDraft}
+              oninput={onAutoEngageInput}
+              onchange={onAutoEngageCommit}
+            />
+            <span class="text-[11px] text-[var(--text-secondary)] w-10 shrink-0"
+              >USDT</span
+            >
+          </div>
+          <p class="text-[10px] text-[var(--text-secondary)]">
+            {$_("settings.risk.killSwitch.autoEngage.hint")}
+          </p>
+          {#if autoEngageRejected}
+            <p
+              role="alert"
+              class="text-[10px] font-semibold text-[var(--danger-color)]"
+            >
+              {$_("settings.risk.killSwitch.autoEngage.invalid")}
+            </p>
+          {/if}
+          <p class="text-[10px] text-[var(--text-secondary)]">
+            {autoEngageStatus}
+          </p>
+        </div>
+      </div>
 
       <div class="mt-3">
         {#if riskState.isKillSwitchEngaged}

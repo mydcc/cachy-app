@@ -35,7 +35,9 @@
  *    pass, and passes can only be minted here. See `assertGatePass`.
  *
  * It is local: no network, no server, works offline (ADR-0004 §3). `verify`
- * is pure — same intent in, same verdict out, no I/O and no store reads.
+ * performs no I/O: same intent in, same verdict out. Its only write is the
+ * kill switch's idempotent auto-engage (FEAT-0526), which persists once on
+ * the transition and never touches the wire.
  *
  * Where "displayed state" comes from
  * ----------------------------------
@@ -542,9 +544,9 @@ export type RiskLimitCheck = (intent: OrderIntent) => OrderRefusal | null;
 
 /**
  * Receives the intent, because "stop all trading" is not the same as "stop
- * all traffic": FEAT-0013's switch blocks orders that create or increase
- * exposure and lets closes and cancels through. A switch that also blocked
- * closing would turn a scare into a loss.
+ * all traffic": FEAT-0013's switch blocks the order kinds in its configured
+ * scope (FEAT-0526) and lets closes and cancels through. A switch that also
+ * blocked closing would turn a scare into a loss.
  */
 export type KillSwitchCheck = (intent: OrderIntent) => boolean;
 
@@ -749,9 +751,9 @@ function decimalsAgree(a: Decimal, b: Decimal): boolean {
 class OrderGate {
     /**
      * Fingerprints of intents with a transport call currently in flight
-     * (BUG-0507). `verify` is pure and safe to call twice, but `submit`
-     * sends — a second identical intent while the first is still travelling
-     * is a duplicate order, not a retry.
+     * (BUG-0507). `verify` performs no order-path side effects and is safe to
+     * call twice, but `submit` sends — a second identical intent while the
+     * first is still travelling is a duplicate order, not a retry.
      */
     private inFlight = new Set<string>();
 
@@ -777,8 +779,14 @@ class OrderGate {
     }
 
     /**
-     * Pure verification. No network, no store reads, no side effects — safe
-     * to call with the network down, and safe to call twice.
+     * Verification. No network and no order-path side effects — safe to call
+     * with the network down, and safe to call twice.
+     *
+     * One idempotent write is possible: the registered kill-switch hook may
+     * arm the switch when today's loss has crossed the configured auto-engage
+     * threshold (FEAT-0526). It persists on the transition only; a second
+     * call finds the switch engaged and stores nothing. No order is sent, and
+     * `submit` still runs this same verification before its transport.
      */
     public verify(intent: OrderIntent): OrderGateVerdict {
         const checked: string[] = [];
@@ -1970,7 +1978,8 @@ class OrderGate {
      * is the one refusal nobody can explain afterwards.
      *
      * Returns the verdict when it approves; the caller may submit the same
-     * intent. Verifying twice is safe and cheap — `verify` is pure.
+     * intent. Verifying twice is safe and cheap — `verify` performs no
+     * order-path side effects (the kill switch's auto-engage is idempotent).
      */
     public verifyOrThrow(intent: OrderIntent): OrderGateVerdict {
         const verdict = this.verify(intent);

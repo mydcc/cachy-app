@@ -19,7 +19,8 @@
  * BUG-0507 — the gate refuses a second identical intent while the first is
  * still in flight.
  *
- * `verify` is pure and safe to call twice, but `submit` sends: two
+ * `verify` performs no order-path side effects and is safe to call twice, but
+ * `submit` sends: two
  * invocations are two attempts, and the venue mints two client IDs — two
  * full-risk positions, not a retry. The panel's own flag used to sit past
  * the confirmation dialog, so a second press during the dialog reached the

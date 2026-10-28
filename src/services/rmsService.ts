@@ -27,6 +27,7 @@
  * route around them by constructing an order some other way.
  */
 
+import { utcDayStart } from "../utils/utcDay";
 import { omsService } from "./omsService";
 import { tradeState } from "../stores/trade.svelte";
 import { accountState } from "../stores/account.svelte";
@@ -128,10 +129,9 @@ const DAILY_LOSS_CAUSE_KEYS: Record<DailyLossCause, string> = {
  * in the middle of their evening. The UI states the boundary and shows the
  * next reset in local time so it is never a surprise.
  */
-export function utcDayStart(now: number): number {
-    const d = new Date(now);
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
+// One definition, imported here and re-exported for the settings UI: the
+// auto-engage suppression in `riskLimits` compares against the same boundary.
+export { utcDayStart };
 
 /** When a journal entry's result became real. */
 function closeTimestamp(entry: JournalEntry): number | null {
@@ -367,8 +367,13 @@ class RiskManagementService {
     }
 
     /**
-     * Whether an order creates or increases exposure, and is therefore
-     * something the kill switch stops.
+     * Whether an order creates or increases exposure.
+     *
+     * This is the classification the risk limits read: `checkLimits` uses it
+     * to decide which intents face the size, daily-loss and loss-per-trade
+     * caps. It is deliberately NOT the kill switch's scope — FEAT-0526 made
+     * that configurable in `killSwitchBlocks`, whose defaults match this
+     * rule. Narrowing the switch must not narrow the limits.
      *
      * The carve-outs are the point of the feature, not an oversight:
      *
@@ -381,24 +386,111 @@ class RiskManagementService {
      *   happens to widen it, and deciding "widening vs tightening" needs the
      *   position side and mark price — getting that wrong refuses a
      *   legitimate stop move at the worst possible moment.
-     * - **Pending-order amendments (`modify-order`) are blocked.** Those can
+     * - **Pending-order amendments (`modify-order`) are exposure.** Those can
      *   raise quantity or price on a resting order, and cancelling is always
      *   available instead.
      */
     public increasesExposure(intent: OrderIntent): boolean {
         if (intent.kind === "open") return true;
         // An add is an opening order by another name (FEAT-0334) — it buys
-        // more of the same exposure. A kill switch that let scaling-in through
-        // would be a kill switch in name only, and this is the one place that
-        // has to know it, because `add` is otherwise verified like a reduce.
+        // more of the same exposure, so the limits must check it even though
+        // `add` is otherwise verified like a reduce.
         if (intent.kind === "add") return true;
         if (intent.kind === "modify") return intent.endpoint !== "/api/tpsl";
         return false;
     }
 
-    public isBlockedByKillSwitch(intent: OrderIntent): boolean {
+    public isBlockedByKillSwitch(intent: OrderIntent, now = Date.now()): boolean {
+        // FEAT-0526: evaluate auto-engage before the check, so the order that
+        // first sees the threshold is the one refused. The call is idempotent
+        // and persists only on the transition.
+        this.maybeAutoEngageKillSwitch(now);
         if (!riskState.isKillSwitchEngaged) return false;
-        return this.increasesExposure(intent);
+        return this.killSwitchBlocks(intent);
+    }
+
+    /**
+     * FEAT-0526: the switch's own scope.
+     *
+     * Deliberately separate from `increasesExposure`, which remains the
+     * classification the risk limits use. Turning "block adds" off narrows
+     * the switch; it must not also switch off `maxDailyLossUsdt`,
+     * `maxPositionSize*` and `maxLossPerTradeUsdt` for adds, because
+     * `checkLimits` reads `increasesExposure` to decide what to check.
+     */
+    public killSwitchBlocks(intent: OrderIntent): boolean {
+        return this.blocksKind(
+            intent.kind,
+            intent.kind === "modify" ? intent.endpoint : undefined,
+        );
+    }
+
+    private blocksKind(kind: OrderIntent["kind"], endpoint?: string): boolean {
+        const config = riskState.killSwitchConfig;
+        if (kind === "open") return true;
+        if (kind === "add") return config.blockAdds;
+        if (kind === "modify") {
+            return config.blockNonTpSlModifies && endpoint !== "/api/tpsl";
+        }
+        return false;
+    }
+
+    /**
+     * The same predicate the hook uses, exposed for the Settings explanation.
+     * Only the configurable dimensions are returned: opens are blocked and
+     * TP/SL adjusts are permitted by construction in `blocksKind`, and the
+     * fixed copy states those two. Returning invariants as if a toggle could
+     * change them would invite the UI to claim a derivation it does not have.
+     */
+    public killSwitchScope(): {
+        addsBlocked: boolean;
+        nonTpSlModifiesBlocked: boolean;
+    } {
+        return {
+            addsBlocked: this.blocksKind("add"),
+            nonTpSlModifiesBlocked: this.blocksKind("modify", "/api/orders"),
+        };
+    }
+
+    /**
+     * FEAT-0526: arm the switch when today's realised loss reaches the
+     * configured threshold. Evaluated at the gate — the next order attempt is
+     * the first moment the switch matters, and that attempt is refused.
+     *
+     * - Net PnL is converted to a positive loss; a green day never arms it.
+     * - An unmeasurable day (BUG-0499) does not arm it: guessing a loss is
+     *   the same failure as assuming none.
+     * - A manual release suppresses auto-engage for the rest of the UTC day
+     *   (`releaseKillSwitch`). Nothing releases the switch automatically.
+     */
+    public maybeAutoEngageKillSwitch(now = Date.now()): void {
+        if (riskState.isKillSwitchEngaged) return;
+        const suppressedFor = riskState.killSwitchAutoEngageSuppressedFor;
+        if (suppressedFor !== null && suppressedFor === utcDayStart(now)) return;
+        const threshold = riskState.killSwitchAutoEngageLimit();
+        if (!threshold) return;
+        /*
+         * `verify` reaches this from the kill-switch hook on every intent,
+         * including closes and cancels that never needed a daily-loss
+         * measurement before. A journal that cannot be read must not turn a
+         * close into a thrown exception at the gate: log it and do not arm —
+         * guessing a loss and refusing an exit are the same mistake in
+         * opposite directions.
+         */
+        try {
+            const assessment = this.assessDailyLoss(now);
+            if (!assessment.complete) return;
+            const loss = assessment.loss.isNegative()
+                ? assessment.loss.abs()
+                : new Decimal(0);
+            if (loss.gte(threshold)) riskState.engageKillSwitch(now);
+        } catch (error) {
+            logger.error(
+                "data",
+                "[RMS] Auto-engage assessment failed; switch stays as it is",
+                error,
+            );
+        }
     }
 
     /**

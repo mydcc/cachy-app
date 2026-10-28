@@ -247,10 +247,12 @@ async function flashClosePosition(
          * gate can issue — the kill switch, a risk limit, a price
          * mismatch, a stale account read, an unsupported venue.
          *
-         * `verify` is pure and documented as safe to call twice, so asking
-         * here costs nothing and changes nothing: `gatedRequest` still runs
-         * the same verification, and this cannot approve anything the gate
-         * would refuse. It only moves the refusal to before the damage.
+         * `verify` performs no I/O and no order-path side effects (its only
+         * write is the kill switch's idempotent auto-engage), so asking here
+         * costs nothing and changes nothing about the order: `gatedRequest`
+         * still runs the same verification, and this cannot approve anything
+         * the gate would refuse. It only moves the refusal to before the
+         * damage.
          */
         orderGate.verifyOrThrow(completeIntent(intent, ports.displayedAccount()));
 
