@@ -54,6 +54,7 @@ import {
   buildBitunixPlaceOrderBody,
 } from "./bitunixBodies";
 import { buildBitgetCancelOrderBody } from "./bitgetBodies";
+import { ORDER_ERRORS } from "./orderErrors";
 import { buildVenueBody } from "./venueBodies";
 
 const KEYS = { apiKey: "key-0001-abcdef", apiSecret: "secret-0001-abcdef" };
@@ -309,6 +310,27 @@ describe("buildVenueBody refuses silently-dropped protection on Bitget", () => {
         }),
       ),
     ).toThrow();
+  });
+
+  it("rejects a Bitget close-position that does not name its side", () => {
+    // UTA hedge closes carry the close intent in `posSide`. Without it the
+    // body is a valid open of the opposite side, which the venue answers with
+    // 00000 — the failure this guard exists to prevent (BUG-0597). The rest of
+    // the payload is valid, and the assertion names the refusal, so a throw
+    // from a different guard cannot stand in for this one.
+    expect(() =>
+      buildVenueBody(
+        "bitget",
+        ClosePositionSchema.parse({
+          exchange: "bitget",
+          type: "close-position",
+          symbol: "BTCUSDT",
+          side: "sell",
+          amount: "0.01",
+          marginMode: "cross",
+        }),
+      ),
+    ).toThrow(ORDER_ERRORS.VALIDATION_ERROR);
   });
 
   it("rejects a Bitunix modify-order with non-positive quantity", () => {
