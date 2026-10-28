@@ -44,6 +44,7 @@ The 40085 gate is REST-only.
 | `GET` | `/api/v3/account/assets?category=USDT-FUTURES` | `00000`, object |
 | `GET` | `/api/v3/account/fee-rate?category=SPOT&symbol=BTCUSDT` | `00000`, object |
 | `GET` | `/api/v3/trade/unfilled-orders?category=USDT-FUTURES` | `00000`, `{list: [], cursor: null}` |
+| `GET` | `/api/v3/trade/history-orders?category=USDT-FUTURES` | `00000`, `{list: [], cursor: null}` (captured 2026-10-04) |
 | `GET` | `/api/v3/trade/fills?category=USDT-FUTURES` | `00000`, `{list: null, cursor: null}` |
 | `GET` | `/api/v3/position/current-position?category=USDT-FUTURES` | `00000`, `{list: null}`, no `cursor` — but see trap 3 |
 
@@ -140,8 +141,11 @@ This is the same failure shape BUG-0576 records for the V1 parser, and it is why
 This is the answer to **BUG-0589**, which recorded that Cachy reads `filledQty`
 from V1 endpoints and that the string `filledQty` appears nowhere in the mirror.
 
-**Verified:** `filledQty` exists in neither generation. UTA splits the quantity
-three ways, and all three fields were observed on the wire:
+**Verified absent:** `filledQty` exists in neither generation. No vendor page, no
+code sample and no captured envelope carries it; Cachy's `BitgetRawOrder` only
+declares it as optional, with a comment conceding the shape was never verified
+(`src/utils/server/venues/bitget.ts:51`). UTA's order schema instead splits the
+quantity three ways — **Documented**, transcribed from the vendor's samples:
 
 | Meaning | UTA field | Where |
 |---|---|---|
@@ -156,12 +160,39 @@ The documented fills sample (from `/uta/trade/Get-Order-Fills`) carries
 
 So `NormalizedOrder.filled` should read `cumExecQty` for the aggregate and
 `execQty` for a single fill — they are different quantities at different
-granularities, and neither is named `filledQty`. Both endpoints agree in shape,
-which retires the "pending and history may disagree" question in BUG-0590.
+granularities, and neither is named `filledQty`.
 
-A **filled** order was not observed: the account is empty and no order was
-placed. Field presence on an empty list settles the naming, not the semantics
-under a partial fill.
+### What is captured, and what the capture proves
+
+Two real responses are committed as bytes and loaded by
+`bitgetUtaReads.test.ts` (provenance:
+`src/services/exchange/__fixtures__/bitget/rest/README.md`):
+
+```json
+// unfilled-orders, 2026-10-03
+{"code":"00000","msg":"success","requestTime":1791031742023,
+ "data":{"list":[],"cursor":null}}
+
+// history-orders, 2026-10-04
+{"code":"00000","msg":"success","requestTime":1791094965683,
+ "data":{"list":[],"cursor":null}}
+```
+
+Both were taken on an **empty account**. They prove three things and no more:
+
+- `data` is an object with `list` and `cursor`, not the bare array the old
+  parsers iterated;
+- both order endpoints answer in that same envelope with `list: []` (unlike
+  `/fills`, which answered `null` — trap 2), so "do pending and history agree in
+  shape" is settled **for the envelope**;
+- no order entry was present, so the captures carry **no field name for a
+  populated order**.
+
+The quantity split above is therefore **Documented, not captured**. A filled or
+partially filled order has never been observed: the account is empty and there
+are no demo keys (`:234-249`). Whether `cumExecQty` carries the cumulative fill
+under a partial fill rests on its documented name alone, and this file does not
+upgrade that to an observation. BUG-0590 tracks that remaining gap.
 
 ## Direction is split the same way in UTA as in V2 Classic — responses only
 

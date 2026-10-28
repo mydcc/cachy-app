@@ -2,7 +2,7 @@
 id: BUG-0590
 title: Capture a real Bitget order response and settle which field carries the traded amount
 type: bug
-status: ready
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,7 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: audit/last-2-days-review
+branch: docs/bug-0590-bitget-capture-evidence
 ---
 
 # BUG-0590 — Capture a Bitget order response and name the traded-amount field
@@ -52,6 +52,38 @@ trading and is recorded here; agents never hold keys and never place orders.
 
 Acceptance criteria below stand for the Classic half. Full evidence with captured
 bytes: `docs/bitget-api/14_uta_v3.md`.
+
+## Capture attempt (2026-10-28) — what exists, and what still does not
+
+**Searched, not assumed.** A populated Bitget order has still never been
+observed. Before writing this section, the checkout, every linked worktree, all
+untracked files, the commit history of this item and of `14_uta_v3.md`, and the
+recorded past agent sessions were searched for `cumExecQty` and for a captured
+order response. Nothing was found. No demo API keys exist (2026-10-04, above);
+agents hold no keys and place no orders, so no agent-side probe can produce a
+fill.
+
+**Committed as evidence:** the two responses that *were* captured — an empty
+`/api/v3/trade/unfilled-orders` (2026-10-03) and an empty
+`/api/v3/trade/history-orders` (2026-10-04) — now live as bytes under
+`src/services/exchange/__fixtures__/bitget/rest/` (provenance in the README
+there) and are loaded by `bitgetUtaReads.test.ts` instead of being inlined.
+
+**Correction to the partial resolution above.** It said the quantity fields
+"were observed on the wire" and that "both endpoints agree in shape". Both
+statements overstate the evidence: the captures contain **no order entries**, so
+they prove the envelope (`data: {list, cursor}`, `list: []` on both) and nothing
+about a populated entry. `docs/bitget-api/14_uta_v3.md` now separates *captured*
+from *documented* accordingly. The conclusion is unchanged — `filledQty` is in
+no generation, UTA documents `cumExecQty` for the aggregate — but it is a
+documented field name, not an observed one, and `cumExecQty`'s partial-fill
+semantics remain unverified.
+
+**Still missing, and why this stays open:** one response from a populated —
+ideally partially filled — order on `unfilled-orders`, and one on
+`history-orders`, from the trader's live account during normal trading, with
+`orderId`, balances and any key material removed. That is the only step an agent
+cannot perform here.
 
 ## Symptom
 
@@ -96,14 +128,20 @@ fixture commit, the field mapping, the regression test — needs no keys.
 
 ## Acceptance criteria
 
-- [ ] A captured pending-orders response and a captured order-history response
-      are committed as fixtures, with any secrets stripped
+- [x] A captured pending-orders response and a captured order-history response
+      are committed as fixtures, with any secrets stripped — both are
+      empty-account captures, see "Capture attempt"; they prove the envelope,
+      not a populated entry
 - [ ] The traded-amount field is named from the captured bytes, and the item
-      records which of the three cases it is
+      records which of the three cases it is — **not met**: the captures carry
+      no order entry. Case 1 is recorded from the absence of `filledQty` in
+      every generation and from the documented UTA schema, not from bytes
 - [ ] It is stated explicitly whether the two endpoints use the same field name
-- [ ] BUG-0580 is updated with the V1/V2 finding, or the two are linked with
-      this item as the concrete instance
-- [ ] If the capture cannot be obtained, the item says so and records what was
+      — **not met for populated responses**; only the envelope is proven equal
+- [x] BUG-0580 is updated with the V1/V2 finding, or the two are linked with
+      this item as the concrete instance — linked under Links; BUG-0580 carries
+      the V3 signing result and is `done`
+- [x] If the capture cannot be obtained, the item says so and records what was
       tried, rather than the conclusion being guessed
 
 ## Out of scope

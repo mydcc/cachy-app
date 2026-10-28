@@ -36,6 +36,8 @@
  * result, not on the URL.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "fs";
+import path from "path";
 import { bitgetVenue } from "./bitget";
 import type { PresignedEnvelope } from "../presignedEnvelope";
 
@@ -59,14 +61,18 @@ function requestedUrl(call = 0): URL {
   return new URL(fetchMock.mock.calls[call][0] as string);
 }
 
-// Live bytes, empty UTA account, 2026-10-03. Nothing secret in them: no keys,
-// no balances, only the envelope the venue actually sends.
-const EMPTY_LIST = (requestTime: number) => ({
-  code: "00000",
-  msg: "success",
-  requestTime,
-  data: { list: [], cursor: null },
-});
+// Captured UTA responses, committed as bytes under
+// `src/services/exchange/__fixtures__/bitget/rest/` (provenance in the README
+// there). Nothing secret in them: no keys, no balances, and no order entries —
+// both come from an empty account, so they prove the envelope and nothing about
+// a populated entry.
+const restFixture = (name: string) =>
+  JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, "../../../services/exchange/__fixtures__", "bitget", "rest", `${name}.json`),
+      "utf8",
+    ),
+  );
 
 // Vendor-documented samples (`docs/bitget-api/14_uta_v3.md`). Field names are
 // the venue's; the values are the docs', and the tests assert mapping, not
@@ -222,7 +228,7 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
 
   describe("orders", () => {
     it("asks the UTA order endpoints, not Classic paths", async () => {
-      fetchMock.mockResolvedValue(ok(EMPTY_LIST(1791031742023)));
+      fetchMock.mockResolvedValue(ok(restFixture("unfilled-orders-empty")));
 
       await bitgetVenue.executeOrder(
         envelope,
@@ -234,7 +240,7 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
     });
 
     it("reads an empty pending list as no orders", async () => {
-      fetchMock.mockResolvedValue(ok(EMPTY_LIST(1791031742023)));
+      fetchMock.mockResolvedValue(ok(restFixture("unfilled-orders-empty")));
 
       const result = await bitgetVenue.executeOrder(
         envelope,
@@ -289,7 +295,7 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
     });
 
     it("asks the UTA history endpoint for history reads", async () => {
-      fetchMock.mockResolvedValue(ok(EMPTY_LIST(1791094965683)));
+      fetchMock.mockResolvedValue(ok(restFixture("history-orders-empty")));
 
       await bitgetVenue.executeOrder(
         envelope,
