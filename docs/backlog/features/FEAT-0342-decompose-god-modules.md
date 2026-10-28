@@ -176,7 +176,7 @@ the real coupling, so the Fix text was rewritten to describe what shipped.
       delegation is verbose (~24 thin one-line delegates plus the transport
       and session surface), not because domains are entangled.
 - [x] `settings.svelte.ts` is refactored into smaller isolated state stores. **Met
-      with recorded exception (re-audited 2026-10-09):** `display` (65 fields)
+      with recorded exception (re-audited 2026-10-09):** `display` (71 fields)
       and `core` (97 fields) live in isolated sub-stores
       (`src/stores/settings/display.svelte.ts`, `core.svelte.ts`) behind the
       facade; the manager keeps every name via delegating getters/setters, so

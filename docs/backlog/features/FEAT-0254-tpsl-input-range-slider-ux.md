@@ -194,10 +194,10 @@ models one, so the readout above charges the same rate to both legs:
   `feeMode` covers all four combinations and its newer `entryFeeType` /
   `exitFeeType` supersede it. The panel is the side that is behind.
 - `tradeState.remoteMakerFee` / `remoteTakerFee` are declared, read by
-  `GeneralInputs.svelte`'s `syncFee()`, and **never assigned by anything** —
-  so `targetRemoteFee` is always undefined and the sync control can never
-  fire. Same shape as the freshness check
-  [`FEAT-0021`](FEAT-0021-order-types.md) shipped with nothing to satisfy it.
+  `GeneralInputs.svelte:133`, and assigned by `feeRateService.ts:77-78` from the
+  account's own fills — so `targetRemoteFee` is populated after a fee sync, and
+  the stale claim that nothing assigns them is resolved. The panel is still the
+  side that is behind on `entryFeeType` / `exitFeeType`.
 - `core.ts` applies `values.fees` to both legs, so it has the same limit.
 
 Not fixed here — this item is the TP/SL input, and a per-leg fee model touches

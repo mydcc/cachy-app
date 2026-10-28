@@ -84,8 +84,10 @@ duplicated into the lesson. The catalogue is the single source; the renderer
 reads it; the cards stay the reviewable statement of the same fact.
 
 Both locales carry the same key set under `academy.indicators.*`, and every
-indicator in `REGISTRY_CATALOGUE` has all four in both. `check_translations.sh`
-fails the build when one is missing from either side.
+indicator in `REGISTRY_CATALOGUE` has all four in both.
+`src/lib/academy/indicatorLessons.test.ts` enforces that per locale;
+`check_translations.sh` only fails on empty values and on keys referenced from
+code, so a one-sided key alone does not fail it.
 
 ## Consequences
 
@@ -136,7 +138,7 @@ site and test iterates, to carry a string that is not read like the others.
 
 Where it lives instead: `src/lib/academy/indicatorFormulas.ts`, a
 catalogue-id → LaTeX map beside the catalogue rather than inside it, pinned to
-`INDICATOR_CATALOGUE` by `indicatorFormulas.test.ts`. An indicator without a
+`REGISTRY_CATALOGUE` by `indicatorFormulas.test.ts`. An indicator without a
 formula fails CI; a formula without an indicator is dead weight.
 
 Its renderer is the Markdown/KaTeX Svelte action the two pattern tabs already

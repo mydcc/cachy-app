@@ -186,8 +186,10 @@ why it is listed in the policy table above and not treated as a transient.
 **Text** — formatting marks (bidi controls, zero-width characters, tag
 characters, variation selectors) are removed, a zero-width space becomes a word
 break, and controls, line separators and the listed blank glyphs (braille blank,
-Hangul fillers, Egyptian blanks, bare emoji modifiers) become spaces. Zero-width
-joiners survive so emoji clusters and joining scripts still render. A message
+Hangul fillers, Egyptian blanks) become spaces. Bare emoji modifiers (skin-tone
+selectors) are not replaced; a message made only of them is rejected as
+invisible. Zero-width joiners survive so emoji clusters and joining scripts
+still render. A message
 whose only characters are whitespace, controls, combining marks or one of those
 blank glyphs is rejected by the reducer and by the client.
 
@@ -293,7 +295,7 @@ Concretely:
 
 ## 7. Configuration
 
-All three settings are Class A and live in `localStorage`:
+All four settings are Class A and live in `localStorage`:
 
 | Setting | Default | Meaning |
 | --- | --- | --- |

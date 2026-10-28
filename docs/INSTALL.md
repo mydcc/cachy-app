@@ -12,7 +12,7 @@ reverse proxy, [`DEPLOYMENT.md`](../DEPLOYMENT.md) covers that in detail.
 
 ## 1. Prerequisites
 
-- **Node.js v22.19 or newer** and npm (see `engines` in `package.json`).
+- **Node.js v22.22.2, v24.15.0 or v26+** and npm (see `engines` in `package.json`).
 - **A Rust toolchain is optional.** The build script rebuilds the technical
   indicator module when Rust is available and otherwise falls back to the
   pre-compiled binary committed in `static/wasm/`, so a plain install works out
@@ -67,8 +67,10 @@ Cachy is now at `http://localhost:3001`.
 `server.js` is the production entry point: an Express wrapper around the
 SvelteKit handler with compression and long-lived static-asset caching
 (`server-headers.js`). The server does **not** read `.env` on its own, so
-without `--env-file` flags `PORT` or `ORIGIN` from your `.env` would never
-reach it. (`--env-file` needs Node 20 or newer, which is covered by the required Node v22.19+.)
+without `--env-file` flags `PORT` from your `.env` would never reach it.
+(`--env-file` needs Node 20 or newer, which is covered by the required Node
+versions above.) `ORIGIN` is different: `vite.config.ts` reads it at **build**
+time, so `.env` must already exist when `npm run build` runs.
 Without a `.env`, plain `node server.js` (or `npm start`) works too.
 
 > `node build/index.js` boots the same Express wrapper: `npm run build`
@@ -135,9 +137,9 @@ bucket — see `.env.example` and [`DEPLOYMENT.md`](../DEPLOYMENT.md) for the fi
 Bypassing the browser entirely, mint a token and use it right away:
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/token | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+TOKEN=$(curl -s -X POST http://localhost:3001/api/auth/token | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
 
-curl -i -X POST http://localhost:3000/api/balance \
+curl -i -X POST http://localhost:3001/api/balance \
   -H "Content-Type: application/json" \
   -H "x-app-access-token: $TOKEN" \
   -d '{"exchange":"bitunix","apiKey":"x","apiSecret":"x"}'
@@ -151,10 +153,17 @@ browser.
 
 ## Where your data lives
 
-Everything you enter — journal, settings, exchange API keys, presets, notes, and
-the client access token — stays in your browser's local storage and is never
-sent to a Cachy server. Credentials are encrypted at rest. See
-[ADR-0001](adr/0001-local-first-boundary.md) for the exact boundary.
+Everything you enter — journal, settings, exchange API keys, presets and notes —
+stays in your browser's local storage. Two things are an exception, and only as
+credentials of a request you started: the client access token travels as
+`x-app-access-token` on guarded requests, and when you place or read an order the
+API **key id** and the signature your browser produced travel to your **own**
+server, which forwards them to the exchange. The API **secret** never leaves the
+browser — it signs locally. (Bitget additionally requires its passphrase as a
+header, which is the one credential the server relays.) Credentials are
+encrypted at rest. See
+[ADR-0001](adr/0001-local-first-boundary.md) and
+[ADR-0013](adr/0013-client-side-exchange-signing.md) for the exact boundary.
 
 Because nothing is stored server-side, **backups are your responsibility**:
 Settings → System → Create Backup, optionally password-protected. Since

@@ -35,9 +35,9 @@ allowed origin, and the order path.
 
 **An execution gate already exists, and a second path around it is the classic
 way this goes wrong.** `OrderGate.verify`
-([`src/services/orderGate.ts:467`](../../src/services/orderGate.ts)) and
-`OrderGate.submit` (`:1085`), reached via `TradeService.gatedRequest`
-([`src/services/tradeService.ts:456`](../../src/services/tradeService.ts)),
+([`src/services/orderGate.ts:783`](../../src/services/orderGate.ts)) and
+`OrderGate.submit` (`:1992`), reached via `TradeService.gatedRequest`
+([`src/services/tradeService.ts:748`](../../src/services/tradeService.ts)),
 refuse when what was displayed and what would be sent disagree.
 [ADR-0010](0010-estimates-inform-but-never-determine-what-is-sent.md) recorded
 the cost of letting two conventions coexist on one screen. An automated sender

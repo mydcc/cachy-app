@@ -28,7 +28,7 @@ was in use:
 |---|---|---|
 | The control is not offered | `FEAT-0017` | not built |
 | The adapter refuses locally | `src/services/exchange/` | **missing** |
-| The venue refuses | `routes/api/tpsl/+server.ts:58` | works |
+| The route is Bitunix-only | `routes/api/tpsl/+server.ts:42` | works |
 
 The middle line is the one that still holds when the first is bypassed — a
 panel left open across an exchange switch, a keyboard shortcut, a stale

@@ -40,14 +40,14 @@ References below to "Roadmap item N" mean the engineering log, now at
 
 **What was done:**
 - Old key rotated at imgbb (invalidated)
-- New key placed in `defaultSettings.imgbbApiKey` as functional default
+- The shipped fallback key was later removed entirely (BUG-0720):
+  `defaultSettings.imgbbApiKey` is `""`
 - Settings UI enforces imgbb key as **required** (no screenshot upload without it)
 - Users can rotate the key at any time via Settings → Integrations
 - Link to https://api.imgbb.com/ provided in UI for easy access
 
-**Result:** Screenshot upload still works out of the box with the default key,
-but users are explicitly directed to enter their own key. The shared key is
-known and can be rotated at any time. No silent feature breakage.
+**Result:** Screenshot upload requires the user's own key; nothing shipped is
+known or shared. No silent feature breakage.
 
 ---
 
@@ -736,7 +736,7 @@ Global Chat is currently the only Class B (server-may-hold) data, and
 any *new* Class B feature must satisfy: opt-in and off by default,
 authenticated (no anonymous access), minimal (no Class A data, not even
 as metadata), and non-essential (the calculator/journal/risk tooling
-works fully without it). See also `CLAUDE.md`'s Local-First section.
+works fully without it). See also `AGENTS.md`'s Local-First section.
 
 **The decision:** nothing to decide right now — no feature is proposed; this stays a standing guardrail. When one comes up (more SpacetimeDB tables, a new sync
 feature, anything that would put user data on a Cachy server), it needs
@@ -1258,7 +1258,7 @@ is listed under Out of scope in
 API calls with the same `GITHUB_TOKEN` the workflow sets from
 `secrets.RELEASE_TOKEN` — the job-level `permissions:` block (which grants
 `issues: write` and `pull-requests: write` to the workflow token) does not reach
-those calls. The prerelease path on `release/beta` never loads the plugin, so
+those calls. The prerelease path on `develop` never loads the plugin, so
 the gap is invisible there; the first stable release that tries to comment on
 its released issues and pull requests would fail the same way this bug did.
 
