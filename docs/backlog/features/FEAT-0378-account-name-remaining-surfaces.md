@@ -2,7 +2,7 @@
 id: FEAT-0378
 title: Name the active account on the surfaces FEAT-0026 did not reach
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -10,8 +10,7 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [FEAT-0026]
-assignee: opencode
-branch: feat/feat-0378-account-name-surfaces
+shipped: PR #4403
 estimate: 2
 size: S
 target_date: 2026-12-21
