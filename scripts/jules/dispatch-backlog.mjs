@@ -26,10 +26,10 @@
  *
  *   --phase=status     Select dispatchable items, flip them — plus every item
  *                      an existing session already covers — to status:
- *                      in-progress with assignee: jules, regenerate
- *                      docs/backlog/INDEX.md (it rides in the same commit),
- *                      and report the selected IDs via --report-file=<path>.
- *                      Creates no session.
+ *                      in-progress with assignee: jules, and report the
+ *                      selected IDs via --report-file=<path>. Creates no
+ *                      session. The index is generated on demand and
+ *                      gitignored, so it is not part of that commit.
  *   (workflow)         Commit + push those docs/backlog/ changes to develop.
  *   --phase=sessions   Create the Jules sessions — ONLY for the IDs handed
  *                      over via --ids=A,B,... , still behind the mandatory

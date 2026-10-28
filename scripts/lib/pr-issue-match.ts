@@ -378,8 +378,8 @@ export function missingClosingRefMessage(
             `not complete it, so an inferred \`Fixes #${declined.issueNumber}\` would be a ` +
             `false claim (a later CI step would then demand the item be flipped).\n\n` +
             `Choose one:\n` +
-            `  • This PR DOES finish ${declined.itemId}: set \`status: done\` in its file, run ` +
-            `\`node scripts/backlog-index.mjs\`, commit both, and put ` +
+            `  • This PR DOES finish ${declined.itemId}: set \`status: done\` in its file ` +
+            `(the index is gitignored — never commit it) and put ` +
             `\`Fixes #${declined.issueNumber}\` at the top of this description.\n` +
             `  • It does NOT: put \`${NO_ISSUE_MARKER}\` on its own line to opt out explicitly.`
         );

@@ -25,12 +25,13 @@
  * The --check mode is what PR CI runs: front matter, id/filename agreement,
  * duplicate ids, duplicate numbers, and depends_on targets that actually
  * exist. It deliberately does NOT require a committed INDEX.md to be present
- * or fresh — INDEX.md is regenerated and committed to develop/main by
- * .github/workflows/sync-backlog.yml after merge, not by whoever opens the
- * PR. Requiring every backlog-touching PR to carry a fresh INDEX.md diff is
- * what caused near-constant merge conflicts on its two summary lines (item
- * counts, next free number) when several PRs touched the backlog in
- * parallel — see BUG-0225.
+ * or fresh — INDEX.md is generated on demand and gitignored
+ * (`.gitignore:127`), so nothing commits it: not the PR author, not
+ * sync-backlog.yml, not backlog-dispatch.yml (`git add docs/backlog/` skips
+ * ignored paths). Requiring every backlog-touching PR to carry a fresh
+ * INDEX.md diff is what caused near-constant merge conflicts on its two
+ * summary lines (item counts, next free number) when several PRs touched the
+ * backlog in parallel — see BUG-0225.
  *
  * The YAML parser here is deliberately minimal — it handles exactly the flat
  * scalar/inline-list schema documented in docs/backlog/README.md and rejects
