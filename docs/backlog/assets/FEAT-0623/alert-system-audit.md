@@ -7,6 +7,8 @@
 - **Method:** read the four surfaces and the delivery path, then checked every
   claim against the code. No behaviour was changed by this audit; the defects it
   found are separate items (see §7).
+- **Note (2026-10-28):** the drawing rows below describe the pre-FEAT-0752
+  state; FEAT-0752 closes that builder gap.
 - **Related:** parent [`FEAT-0605`](../../features/FEAT-0605-ui-status-quo-audit.md),
   panel [`FEAT-0389`](../../features/FEAT-0389-super-alert-panel.md).
 

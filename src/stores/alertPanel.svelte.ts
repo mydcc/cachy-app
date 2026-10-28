@@ -61,24 +61,34 @@ import { templateDocument, type AlertTemplate } from "../lib/alerts/templateLibr
 import { logger } from "../services/logger";
 import { generateId } from "../utils/utils";
 
-/**
- * Tabs in strip order. `manage` is last and is the only one that exists today;
- * the builders land into this same list as their own items ship.
- */
+/** Tabs in strip order; `manage` stays last. */
 export const ALERT_PANEL_TABS = [
   "templates",
   "combo",
   "price",
   "indicators",
   "candlesticks",
+  "drawing",
   "manage",
 ] as const;
+
+/**
+ * The tabs a trader can reach without a seeded drawing — FEAT-0752.
+ *
+ * The drawing tab exists only for a draft the chart handed over: without a
+ * drawing there is nothing in it to show, and a builder that opens onto an
+ * empty "drawing" would be a dead tab.
+ */
+export const DEFAULT_ALERT_PANEL_TABS = ALERT_PANEL_TABS.filter(
+  (tab) => tab !== "drawing",
+);
 
 export type AlertPanelTab = (typeof ALERT_PANEL_TABS)[number];
 
 /**
- * A draft handed to the panel from outside it — a right-click on the chart,
- * an action on an indicator card (FEAT-0395).
+ * A draft handed to the panel from outside it — a right-click on the chart, an
+ * action on an indicator card (FEAT-0395), or the bell on a selected drawing
+ * (FEAT-0752).
  *
  * `condition` may be `null`: an entry point that knows the symbol and the tab
  * but not yet a usable condition still opens the panel on the right builder
@@ -90,6 +100,15 @@ export interface AlertPanelSeed {
   condition: Condition | null;
   /** The anchor the condition was built on. Defaults to a fresh draft's. */
   timeframe?: TimeframeString;
+  /**
+   * FEAT-0752 — the drawing this draft arms, when the seed came from the chart.
+   *
+   * The drawing itself is not a `Condition`: it is an anchor in the drawing
+   * store that the evaluator re-reads every candle. The draft carries a
+   * snapshot of its level so the panel has a complete document to render, and
+   * the arm press rebuilds the rule from the live drawing.
+   */
+  drawing?: { id: string; symbol: string };
 }
 
 /**
@@ -133,6 +152,16 @@ function blankDraft(symbol: string): RuleDocument {
 class AlertPanelStore {
   /** Which builder is on screen. Drives the lazy import in the shell. */
   activeTab = $state<AlertPanelTab>("manage");
+
+  /**
+   * FEAT-0752 — the drawing the open draft arms, when the chart seeded one.
+   *
+   * Side state rather than a document field: the rule's condition is an
+   * ordinary price compare, and the binding to the line lives in the drawing
+   * anchor ledger. The panel needs to know which drawing it is about so it can
+   * rebuild the rule at arm time and show the level read-only.
+   */
+  drawingDraft = $state<{ id: string; symbol: string } | null>(null);
 
   /** The rule under construction. Every tab writes into this one document. */
   draft = $state<RuleDocument>(blankDraft("BTCUSDT"));
@@ -182,21 +211,37 @@ class AlertPanelStore {
   private seedPending = false;
 
   /**
+   * Whether the panel is mounted right now.
+   *
+   * `seedPending` only means something across a mount: a seed that lands while
+   * the panel is already open is applied to the live draft, and leaving the
+   * flag set would make the next open resurrect that draft instead of starting
+   * blank — with the drawing binding still attached.
+   */
+  private panelMounted = false;
+
+  /**
    * Opens the panel with a draft an entry point outside it already filled in
    * (FEAT-0395).
    *
-   * The seed writes the *document*, not a tab's form state. That is the whole
-   * contract of this store: what the footer sentence reads back and what the
-   * core is handed are the same object, whether a trader typed it or clicked
-   * it on the chart. A builder tab therefore needs no seeding channel of its
-   * own — it hydrates from the document it was handed.
+   * The seed writes the *document*, plus — since FEAT-0752 — the drawing
+   * binding, which is not document content but names the line the rule has to
+   * be rebuilt from. That is the whole contract of this store: what the footer
+   * sentence reads back and what the core is handed are the same object,
+   * whether a trader typed it or clicked it on the chart. Every other builder
+   * tab needs no seeding channel of its own — it hydrates from the document it
+   * was handed.
    */
-  seed({ symbol, tab, condition, timeframe }: AlertPanelSeed) {
+  seed({ symbol, tab, condition, timeframe, drawing }: AlertPanelSeed) {
     this.reset(symbol);
     if (timeframe) this.setTimeframe(timeframe);
     this.setSingleCondition(condition);
+    this.drawingDraft = drawing ?? null;
     this.activeTab = tab;
-    this.seedPending = true;
+    // A seed has to survive only the mount that follows it. Landing one while
+    // the panel is open applies it live; `seedPending` must not stay set, or
+    // the next open would keep this draft instead of starting blank.
+    this.seedPending = !this.panelMounted;
   }
 
   /**
@@ -205,6 +250,7 @@ class AlertPanelStore {
    * next open without one starts blank again.
    */
   openFor(symbol: string) {
+    this.panelMounted = true;
     if (this.seedPending) {
       this.seedPending = false;
       return;
@@ -212,9 +258,21 @@ class AlertPanelStore {
     this.reset(symbol);
   }
 
+  /**
+   * The panel unmounted. The next open starts from a fresh draft.
+   *
+   * Without this, a seed that arrived while the panel was open would leave
+   * `panelMounted` true forever and the store would treat every later seed as
+   * "live", even though nothing is on screen to apply it to.
+   */
+  closePanel() {
+    this.panelMounted = false;
+  }
+
   /** Starts a fresh draft, e.g. when the panel opens on a new symbol. */
   reset(symbol: string) {
     this.draft = blankDraft(symbol);
+    this.drawingDraft = null;
     this.priceField = "close";
     this.priceSeries = "last";
     this.refusals = [];

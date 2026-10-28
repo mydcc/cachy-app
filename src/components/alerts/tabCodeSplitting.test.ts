@@ -21,14 +21,14 @@
  *
  * This guards the shape of the loader map, not the emitted bundle. The
  * distinction matters, so it is written down rather than implied: whether
- * Vite actually emits six chunks is a build-time fact this suite does not
+ * Vite actually emits seven chunks is a build-time fact this suite does not
  * measure. What it does measure is the one property that decides it — every
  * tab reached through its own literal `import()` specifier.
  *
  * The failure this prevents is specific and quiet. Rewriting the map as
  * `import(`./tabs/${tab}.svelte`)` is shorter, keeps every test passing, and
  * keeps the panel working — while Vite, unable to resolve the specifier
- * statically, bundles all six builders into one chunk that the panel then
+ * statically, bundles all seven builders into one chunk that the panel then
  * downloads on open. Nothing observable breaks; the acceptance criterion
  * just quietly stops being true.
  */
@@ -49,9 +49,9 @@ function moduleNameFor(tab: string): string {
 
 describe("FEAT-0389: the panel's tab loaders stay splittable", () => {
   it("covers every tab in the strip", () => {
-    // Guards the guard: a seventh tab added to ALERT_PANEL_TABS without a
+    // Guards the guard: an eighth tab added to ALERT_PANEL_TABS without a
     // loader would otherwise sail past the assertions below.
-    expect(ALERT_PANEL_TABS.length).toBe(6);
+    expect(ALERT_PANEL_TABS.length).toBe(7);
   });
 
   it.each([...ALERT_PANEL_TABS])("reaches %s through its own literal import", (tab) => {

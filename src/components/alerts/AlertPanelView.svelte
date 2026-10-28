@@ -18,11 +18,14 @@
 <!--
   FEAT-0389 -- the Super-Alert side panel shell.
 
-  Owns four things no builder tab owns: the header that fixes symbol, price
-  source and evaluation anchor for the whole rule; the tab strip and its lazy
-  loader; the plain-language sentence; and the engine-failed banner. Each
-  builder tab (FEAT-0028, FEAT-0030, FEAT-0390, FEAT-0391, FEAT-0394) edits
-  `alertPanelState.draft` and lands into this shell without changing it.
+  Owns four things no builder tab owns: the header that fixes the symbol and
+  the evaluation anchor for the whole rule (price source and evaluation mode
+  apply only where a condition reads them — a drawing rule reads neither); the
+  tab strip and its lazy loader; the plain-language sentence; and the
+  engine-failed banner. Each builder tab (FEAT-0028, FEAT-0030, FEAT-0390,
+  FEAT-0391, FEAT-0394) edits `alertPanelState.draft` and lands into this shell
+  without changing it. The drawing tab is the exception (FEAT-0752): it renders
+  the seeded line read-only and leaves the draft alone.
 
   Dragging, resizing and viewport clamping are not implemented here:
   this component is the body of an `AlertPanelWindow`, and WindowFrame
@@ -41,12 +44,16 @@
     import { _ } from "../../locales/i18n";
     import { alertState } from "../../stores/alerts.svelte";
     import {
-        ALERT_PANEL_TABS,
+        DEFAULT_ALERT_PANEL_TABS,
         alertPanelState,
         refusalsForField,
         unclaimedRefusals,
         type AlertPanelTab,
     } from "../../stores/alertPanel.svelte";
+    import { drawingStore } from "../../stores/drawings.svelte";
+    import { marketState } from "../../stores/market.svelte";
+    import { armDrawingAlert } from "../../services/alertEngine/createDrawingAlert";
+    import { resolveMarketQuote } from "../../services/priceResolution";
     import { renderRuleSentence, type SentenceTranslator } from "../../lib/rules/ruleSentence";
     import { armRule, RuleStoreUnreadableError } from "../../services/alertEngine/armRule";
     import type { EvaluationMode, PriceField, TimeframeString } from "../../lib/rules/types";
@@ -71,6 +78,7 @@ let rootElement: HTMLElement | null = null;
         price: () => import("./tabs/PriceTab.svelte"),
         indicators: () => import("./tabs/IndicatorsTab.svelte"),
         candlesticks: () => import("./tabs/CandlesticksTab.svelte"),
+        drawing: () => import("./tabs/DrawingTab.svelte"),
         manage: () => import("./tabs/ManageTab.svelte"),
     };
 
@@ -94,6 +102,7 @@ let rootElement: HTMLElement | null = null;
         price: "dashboard.alerts.panel.tab.price",
         indicators: "dashboard.alerts.panel.tab.indicators",
         candlesticks: "dashboard.alerts.panel.tab.candlesticks",
+        drawing: "dashboard.alerts.panel.tab.drawing",
         manage: "dashboard.alerts.panel.tab.manage",
     };
 
@@ -196,6 +205,31 @@ let rootElement: HTMLElement | null = null;
             alertPanelState.draft.conditions.of.length > 0,
     );
 
+    /**
+     * FEAT-0752 — a drawing draft shows that one builder and nothing else.
+     *
+     * Leaving the other tabs visible would let a trader edit a price
+     * condition while the arm button still built the drawing rule, which is
+     * the kind of two-drafts-one-button confusion the footer exists to avoid.
+     */
+    let visibleTabs = $derived<readonly AlertPanelTab[]>(
+        alertPanelState.drawingDraft ? ["drawing"] : DEFAULT_ALERT_PANEL_TABS,
+    );
+
+    // A remembered tab can stop existing: the panel keeps its last tab across
+    // closes, and the drawing tab disappears with the seed. Fall back rather
+    // than rendering a builder with nothing in it.
+    $effect(() => {
+        if (!visibleTabs.includes(alertPanelState.activeTab)) {
+            // `manage` is the default tab, but a drawing draft's strip holds
+            // only the drawing tab; falling back to a tab that is not in the
+            // strip would leave the panel with nothing selected.
+            alertPanelState.activeTab = visibleTabs.includes("manage")
+                ? "manage"
+                : (visibleTabs[0] ?? "manage");
+        }
+    });
+
     let otherRefusals = $derived(unclaimedRefusals(alertPanelState.refusals, SHELL_FIELDS));
 
     function selectTab(tab: AlertPanelTab) {
@@ -205,15 +239,15 @@ let rootElement: HTMLElement | null = null;
     /**
      * Arrow-key movement across the tab strip, which is what `role="tablist"`
      * promises a screen-reader user. Without it the strip announces itself as
-     * a tablist and then behaves like six unrelated buttons.
+     * a tablist and then behaves like seven unrelated buttons.
      */
     function onTabKeydown(event: KeyboardEvent, index: number) {
         const delta = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
         if (delta === 0) return;
         event.preventDefault();
-        const next = (index + delta + ALERT_PANEL_TABS.length) % ALERT_PANEL_TABS.length;
-        selectTab(ALERT_PANEL_TABS[next]);
-        document.getElementById(`alert-tab-${ALERT_PANEL_TABS[next]}`)?.focus();
+        const next = (index + delta + visibleTabs.length) % visibleTabs.length;
+        selectTab(visibleTabs[next]);
+        document.getElementById(`alert-tab-${visibleTabs[next]}`)?.focus();
     }
 
     /**
@@ -242,7 +276,91 @@ let rootElement: HTMLElement | null = null;
         }
     }
 
+    /**
+     * FEAT-0752 — a drawing draft arms through the anchor path.
+     *
+     * The rule is rebuilt here with the price of this moment, so a panel left
+     * open while the market moved cannot arm a direction that was true when
+     * the chart was clicked. The footer's four fields travel with the request;
+     * `armDrawingAlert` stays the only writer of a drawing rule.
+     */
+    function armDrawing(): void {
+        const draft = alertPanelState.drawingDraft;
+        if (!draft) return;
+
+        const drawing = drawingStore.byId(draft.id);
+        if (!drawing) {
+            uiState.showToast($_("dashboard.alerts.panel.drawingMissing"), "error");
+            return;
+        }
+
+        const accepted = alertPanelState.validateDraft();
+        if (!accepted) return;
+
+        /*
+         * The ticker, not the chart's kline close the bell used to seed the
+         * draft: the panel has no series of its own, and the market store is
+         * the one price source both surfaces share. A stale tick would pick
+         * the wrong side of the line, so it refuses instead of guessing.
+         */
+        const data = marketState.data[drawing.symbol];
+        const quote = resolveMarketQuote(
+            {
+                lastPrice: data?.lastPrice,
+                lastPriceUpdatedAt: data?.lastPriceUpdatedAt,
+                lastPriceSource: data?.lastPriceSource,
+            },
+            Date.now(),
+        );
+        if (!quote.price) {
+            uiState.showToast($_("chartView.drawings.alertNoPrice"), "error");
+            return;
+        }
+        if (quote.stale) {
+            uiState.showToast($_("dashboard.alerts.panel.priceStale"), "error");
+            return;
+        }
+
+        const result = armDrawingAlert({
+            id: alertPanelState.draft.id,
+            drawing,
+            timeframe: accepted.trigger_timeframe,
+            currentPrice: quote.price,
+            nowMs: Date.now(),
+            name: accepted.name || undefined,
+            lifecycle: {
+                frequency: accepted.frequency,
+                valid_until_ms: accepted.valid_until_ms,
+                trigger_methods: accepted.trigger_methods,
+                note: accepted.note,
+            },
+        });
+
+        if (result.ok) {
+            alertState.rulesVersion += 1;
+            uiState.showToast($_("dashboard.alerts.panel.armed"), "success");
+            return;
+        }
+
+        // The chart's own refusals: this is the same path, so the reason a
+        // trader sees must not depend on which surface they came from.
+        uiState.showToast(
+            $_(
+                result.reason === "drawing-has-no-level"
+                    ? "chartView.drawings.alertNoLevel"
+                    : result.reason === "drawing-anchor-not-persisted"
+                      ? "chartView.drawings.alertAnchorFailed"
+                      : "chartView.drawings.alertOnTheLine",
+            ),
+            "error",
+        );
+    }
+
     function arm() {
+        if (alertPanelState.drawingDraft) {
+            armDrawing();
+            return;
+        }
         const accepted = alertPanelState.validateDraft();
         if (!accepted) return;
         try {
@@ -318,15 +436,35 @@ let rootElement: HTMLElement | null = null;
                 type="text"
                 value={alertPanelState.draft.symbol}
                 oninput={(e) => alertPanelState.setSymbol(e.currentTarget.value)}
+                disabled={alertPanelState.drawingDraft !== null}
+                title={alertPanelState.drawingDraft
+                    ? $_("dashboard.alerts.panel.drawing.symbolFixed")
+                    : undefined}
                 aria-invalid={hasRefusal("symbol")}
                 aria-describedby={SHELL_REFUSAL_IDS.symbol}
             />
             {@render fieldRefusals("symbol")}
+            {#if alertPanelState.drawingDraft}
+                <!--
+                  A disabled control is skipped by keyboard and its `title` is
+                  not reliably announced, so the reason is visible text too.
+                -->
+                <span class="field-hint">
+                    {$_("dashboard.alerts.panel.drawing.symbolFixed")}
+                </span>
+            {/if}
         </label>
 
         <label class="field">
             <span class="field-label">{$_("dashboard.alerts.panel.priceSource")}</span>
-            <select class="field-input" bind:value={alertPanelState.priceField}>
+            <select
+                class="field-input"
+                bind:value={alertPanelState.priceField}
+                disabled={alertPanelState.drawingDraft !== null}
+                title={alertPanelState.drawingDraft
+                    ? $_("dashboard.alerts.panel.drawing.symbolFixed")
+                    : undefined}
+            >
                 {#each PRICE_FIELDS as field (field)}
                     <option value={field}>{$_(PRICE_FIELD_KEYS[field])}</option>
                 {/each}
@@ -345,6 +483,14 @@ let rootElement: HTMLElement | null = null;
                 {#each TIMEFRAMES as tf (tf)}
                     <option value={tf}>{tf}</option>
                 {/each}
+                {#if !TIMEFRAMES.includes(alertPanelState.draft.trigger_timeframe)}
+                    <!-- A chart timeframe the panel does not list (30m, 6h, …)
+                         still has to render, or the select looks empty while
+                         the rule arms on that value. -->
+                    <option value={alertPanelState.draft.trigger_timeframe}>
+                        {alertPanelState.draft.trigger_timeframe}
+                    </option>
+                {/if}
             </select>
             {@render fieldRefusals("trigger_timeframe")}
         </label>
@@ -356,6 +502,10 @@ let rootElement: HTMLElement | null = null;
                 value={alertPanelState.draft.evaluation_mode ?? "close"}
                 onchange={(e) =>
                     alertPanelState.setEvaluationMode(e.currentTarget.value as EvaluationMode)}
+                disabled={alertPanelState.drawingDraft !== null}
+                title={alertPanelState.drawingDraft
+                    ? $_("dashboard.alerts.panel.drawing.symbolFixed")
+                    : undefined}
                 aria-invalid={hasRefusal("evaluation_mode")}
                 aria-describedby={SHELL_REFUSAL_IDS.evaluation_mode}
             >
@@ -381,7 +531,7 @@ let rootElement: HTMLElement | null = null;
     </header>
 
     <div class="tab-strip" role="tablist" aria-label={$_("dashboard.alerts.panel.tabs")}>
-        {#each ALERT_PANEL_TABS as tab, index (tab)}
+        {#each visibleTabs as tab, index (tab)}
             <button
                 id="alert-tab-{tab}"
                 role="tab"
@@ -425,13 +575,18 @@ let rootElement: HTMLElement | null = null;
 
         <!--
           The rule in words, above the arm button and never behind a toggle.
-          This is what a trader actually arms from: the sentence is rendered
-          from the document the core will be handed, not from the form, so the
-          two cannot drift apart.
+          For every builder except a drawing draft this is what a trader arms
+          from: the sentence is rendered from the document the core will be
+          handed, so the two cannot drift apart. A drawing draft hides it
+          deliberately — its seeded condition is a snapshot while the arm press
+          rebuilds the rule from the live line (FEAT-0752) — and the Drawing
+          tab's own text is the readable form.
         -->
         <div class="sentence" aria-live="polite">
-            <span class="sentence-label">{$_("dashboard.alerts.panel.sentenceLabel")}</span>
-            <p class="sentence-text">{sentence}</p>
+            {#if !alertPanelState.drawingDraft}
+                <span class="sentence-label">{$_("dashboard.alerts.panel.sentenceLabel")}</span>
+                <p class="sentence-text">{sentence}</p>
+            {/if}
         </div>
 
         {#if alertPanelState.coreUnavailable}

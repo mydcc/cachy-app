@@ -131,7 +131,7 @@ not alter `symbol` or threshold (see `FEAT-0388`'s acceptance criteria).
 | Bell → Super-Alert panel | The full builder: templates, combos, price, indicators, candlestick patterns |
 | Right-click on the chart | "Alert here", price pre-filled from the click |
 | Indicator settings | "Alert on this indicator", parameters carried over as they are configured |
-| Persistent chart drawing | An alert bound to the drawing's level — horizontal support/resistance levels and trend lines (FEAT-0029, FEAT-0480) |
+| Persistent chart drawing → bell | Opens the panel's Drawing tab, bound to the drawing's level (FEAT-0029, FEAT-0480, FEAT-0752) |
 | Settings → Automation | Bots, one document each |
 
 A drawing-bound alert follows the drawing, not the price it was created at.
@@ -152,11 +152,15 @@ adjustment.
 | Price | Rises above / falls below / rise reaches / fall reaches, last or mark price |
 | Indicators | Indicator, trigger object, rule (Threshold or Crossing), the comparison operand (a value, the price, another indicator, or its own window high/low), parameters |
 | Candlesticks | Single, multiple and structural patterns |
+| Drawing | The drawing's own level, read-only; appears only when the chart seeds the draft, with the lifecycle in the footer (FEAT-0752) |
 | Manage | Armed rules and history |
 
 Every builder ends in the same footer — trigger method, frequency, validity period,
 note — and above the arm button, **the rule written out in plain language, in German
-and English**. A rule a trader cannot read back is a rule they cannot trust.
+and English**. A rule a trader cannot read back is a rule they cannot trust. The one
+exception is a drawing draft: its seeded condition is a snapshot while the arm press
+rebuilds the rule from the live line, so the Drawing tab shows the line's own level
+instead of a sentence built from that snapshot (FEAT-0752).
 
 ## When a rule fires
 

@@ -32,6 +32,11 @@ import en from "../../locales/locales/en.json";
 import AlertPanelView from "./AlertPanelView.svelte";
 import { alertPanelState } from "../../stores/alertPanel.svelte";
 import { alertState } from "../../stores/alerts.svelte";
+import { drawingStore } from "../../stores/drawings.svelte";
+import { marketState } from "../../stores/market.svelte";
+import { uiState } from "../../stores/ui.svelte";
+import { Decimal } from "decimal.js";
+import type { Condition } from "../../lib/rules/types";
 
 vi.mock("../../services/logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -48,6 +53,26 @@ vi.mock("../../services/alertEngine/armRule", () => ({
     translationKey = "dashboard.alerts.panel.storeUnreadable";
   },
 }));
+
+// FEAT-0752: the drawing branch arms through the anchor path instead of
+// `armRule`. Stubbed so the test asserts which path the button chose and what
+// the footer contributed, without writing a rule.
+const armDrawingAlertSpy = vi.hoisted(() =>
+  vi.fn(() => ({ ok: true as const, rule: { id: "drawing-rule" } })),
+);
+vi.mock("../../services/alertEngine/createDrawingAlert", () => ({
+  armDrawingAlert: (...args: unknown[]) => armDrawingAlertSpy(...args),
+  buildDrawingAlert: vi.fn(),
+}));
+
+/** The document a drawing seed carries: a plain price-against-a-level compare. */
+const drawingCondition: Condition = {
+  kind: "compare",
+  left: { kind: "price", field: "close" },
+  op: "gte",
+  right: { kind: "constant", value: "70000" },
+  timeframe: "1h",
+};
 
 const dictionary = en as Record<string, unknown>;
 
@@ -96,6 +121,7 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     document.body.appendChild(target);
     alertPanelState.reset("BTCUSDT");
     alertState.engineStatus = "idle";
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -106,6 +132,7 @@ describe("FEAT-0389: AlertPanelView shell", () => {
   });
 
   function render() {
+    if (component) unmount(component);
     component = mount(AlertPanelView, { target, props: {} });
     flushSync();
     return target;
@@ -129,6 +156,187 @@ describe("FEAT-0389: AlertPanelView shell", () => {
       "Candlesticks",
       "Manage",
     ]);
+  });
+
+  /** Seeds a drawing draft on a symbol of its own, so tests cannot share price state. */
+  function seedDrawing(symbol: string) {
+    const drawing = drawingStore.addHorizontal(symbol, "70000");
+    alertPanelState.seed({
+      symbol,
+      tab: "drawing",
+      condition: drawingCondition,
+      drawing: { id: drawing.id, symbol },
+    });
+    return drawing;
+  }
+
+  /** Gives the symbol a fresh ticker, as the websocket would. */
+  function quote(symbol: string, price: string, ageMs = 0): void {
+    const data = marketState.getOrCreateSymbol(symbol);
+    data.lastPrice = new Decimal(price);
+    data.lastPriceUpdatedAt = Date.now() - ageMs;
+  }
+
+  function clickArm(): void {
+    const el = render();
+    const armButton = el.querySelector<HTMLButtonElement>(".arm-btn");
+    expect(armButton).not.toBeNull();
+    armButton!.click();
+  }
+
+  it("shows only the drawing tab, selected, with the header fixed — FEAT-0752", () => {
+    seedDrawing("TABUSDT");
+    alertPanelState.setTimeframe("30m");
+
+    const el = render();
+    const tabs = [...el.querySelectorAll('[role="tab"]')].map((t) =>
+      t.textContent?.trim(),
+    );
+
+    expect(tabs).toEqual(["Drawing"]);
+    expect(
+      el.querySelector("#alert-tab-drawing")?.getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(
+      el.querySelector('[role="tabpanel"]')?.getAttribute("aria-labelledby"),
+    ).toBe("alert-tab-drawing");
+
+    // The market is the line's; price source and evaluation mode are not read
+    // by a drawing rule, so they must not pretend to be editable.
+    const symbol = el.querySelector<HTMLInputElement>('header input[type="text"]');
+    expect(symbol?.disabled).toBe(true);
+    const selects = [...el.querySelectorAll<HTMLSelectElement>("header select")];
+    expect(selects[0]?.disabled).toBe(true); // price source
+    expect(selects[1]?.disabled).toBe(false); // timeframe is the rule's anchor
+    expect(selects[2]?.disabled).toBe(true); // evaluation mode
+
+    // A chart timeframe the panel does not list still renders in the select.
+    const options = [...selects[1].options].map((o) => o.textContent?.trim());
+    expect(options).toContain("30m");
+
+    // The footer is the editable half; the snapshot sentence is deliberately
+    // hidden for a drawing draft.
+    expect(el.querySelector(".panel-footer")).not.toBeNull();
+    expect(el.querySelector(".sentence-text")).toBeNull();
+  });
+
+  it("arms a drawing through the anchor path with the footer's fields — FEAT-0752", () => {
+    const drawing = seedDrawing("ARMUSDT");
+    quote("ARMUSDT", "69000"); // not the seeded 70000: the arm press reads now
+    alertPanelState.draft.frequency = "every_time";
+    alertPanelState.draft.trigger_methods = ["sound"];
+    alertPanelState.draft.note = "line watch";
+    const validate = vi
+      .spyOn(alertPanelState, "validateDraft")
+      .mockReturnValue(alertPanelState.draft);
+
+    const before = Date.now();
+    clickArm();
+
+    // The drawing branch must not fall through to the plain rule path.
+    expect(armRuleSpy).not.toHaveBeenCalled();
+    expect(armDrawingAlertSpy).toHaveBeenCalledTimes(1);
+    const request = armDrawingAlertSpy.mock.calls[0][0] as {
+      drawing?: { id: string };
+      id?: string;
+      currentPrice: Decimal;
+      nowMs: number;
+      timeframe: string;
+      lifecycle?: {
+        frequency?: string;
+        trigger_methods?: string[];
+        note?: string;
+      };
+    };
+    expect(request.drawing).toMatchObject({ id: drawing.id });
+    expect(request.id).toBe(alertPanelState.draft.id);
+    expect(request.currentPrice.toString()).toBe("69000");
+    expect(request.timeframe).toBe(alertPanelState.draft.trigger_timeframe);
+    expect(request.nowMs).toBeGreaterThanOrEqual(before);
+    expect(request.nowMs).toBeLessThanOrEqual(Date.now());
+    expect(request.lifecycle).toMatchObject({
+      frequency: "every_time",
+      trigger_methods: ["sound"],
+      note: "line watch",
+    });
+
+    validate.mockRestore();
+  });
+
+  it("does not arm when the core refuses the draft — FEAT-0752", () => {
+    seedDrawing("REFUSEUSDT");
+    quote("REFUSEUSDT", "69000");
+    const validate = vi.spyOn(alertPanelState, "validateDraft").mockReturnValue(null);
+
+    clickArm();
+
+    expect(armDrawingAlertSpy).not.toHaveBeenCalled();
+    validate.mockRestore();
+  });
+
+  it("says the drawing is gone instead of arming — FEAT-0752", () => {
+    alertPanelState.seed({
+      symbol: "GONEUSDT",
+      tab: "drawing",
+      condition: drawingCondition,
+      drawing: { id: "deleted-drawing", symbol: "GONEUSDT" },
+    });
+    const toast = vi.spyOn(uiState, "showToast");
+
+    clickArm();
+
+    expect(armDrawingAlertSpy).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      en.dashboard.alerts.panel.drawingMissing,
+      "error",
+    );
+    toast.mockRestore();
+  });
+
+  it("refuses without a price and reports a stale one — FEAT-0752", () => {
+    const validate = vi
+      .spyOn(alertPanelState, "validateDraft")
+      .mockReturnValue(alertPanelState.draft);
+    seedDrawing("NOPRICEUSDT");
+    const toast = vi.spyOn(uiState, "showToast");
+    clickArm();
+    expect(armDrawingAlertSpy).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(en.chartView.drawings.alertNoPrice, "error");
+
+    seedDrawing("STALEUSDT");
+    quote("STALEUSDT", "69000", 60 * 60 * 1000);
+    clickArm();
+    expect(armDrawingAlertSpy).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      en.dashboard.alerts.panel.priceStale,
+      "error",
+    );
+    toast.mockRestore();
+    validate.mockRestore();
+  });
+
+  it("reports a refused arm and leaves the list version alone — FEAT-0752", () => {
+    seedDrawing("LINEUSDT");
+    quote("LINEUSDT", "70000");
+    const validate = vi
+      .spyOn(alertPanelState, "validateDraft")
+      .mockReturnValue(alertPanelState.draft);
+    armDrawingAlertSpy.mockReturnValueOnce({
+      ok: false,
+      reason: "price-on-the-line",
+    } as never);
+    const toast = vi.spyOn(uiState, "showToast");
+    const before = alertState.rulesVersion;
+
+    clickArm();
+
+    expect(toast).toHaveBeenCalledWith(
+      en.chartView.drawings.alertOnTheLine,
+      "error",
+    );
+    expect(alertState.rulesVersion).toBe(before);
+    validate.mockRestore();
+    toast.mockRestore();
   });
 
   it("keeps the engine-failed banner visible across a tab switch", async () => {

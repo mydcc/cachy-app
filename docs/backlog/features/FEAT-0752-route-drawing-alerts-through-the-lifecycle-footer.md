@@ -2,7 +2,9 @@
 id: FEAT-0752
 title: Route drawing alerts through the lifecycle footer
 type: feature
-status: specced
+status: done
+assignee: opencode
+branch: feature/feat-0752-drawing-alert-tab
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -71,25 +73,25 @@ the footer the moment the footer changes.
 
 ## Acceptance criteria
 
-- [ ] Selecting a drawing and using the bell in the chart's drawing overlay opens
+- [x] Selecting a drawing and using the bell in the chart's drawing overlay opens
       the panel on a Drawing tab, with the drawing's condition already in the
       draft. Right-clicking the chart still seeds the price alert; this item does
       not change that path.
-- [ ] The tab shows no editable condition — the level is the drawing's, rendered
+- [x] The tab shows no editable condition — the level is the drawing's, rendered
       read-only — with the standard lifecycle footer below it.
-- [ ] Channels, frequency, expiry and note chosen in the footer are persisted on
+- [x] Channels, frequency, expiry and note chosen in the footer are persisted on
       the rule; absent channels still mean "the policy decides", as everywhere
       else.
-- [ ] The drawing↔rule anchor is written exactly as today, and deleting the
+- [x] The drawing↔rule anchor is written exactly as today, and deleting the
       drawing still suspends the rule with the existing report
       (`reconcileDrawingRules`).
-- [ ] An unexpressible drawing refuses with its named reason and arms nothing.
-- [ ] `armDrawingAlert` remains the only writer of a drawing rule; the panel does
+- [x] An unexpressible drawing refuses with its named reason and arms nothing.
+- [x] `armDrawingAlert` remains the only writer of a drawing rule; the panel does
       not duplicate the document construction.
-- [ ] No second authoring surface is added: the chart does not grow its own
+- [x] No second authoring surface is added: the chart does not grow its own
       channel picker.
-- [ ] German and English strings exist for the tab, its empty state and the
-      seeded sentence.
+- [x] German and English strings exist for the tab, its empty state and the
+      tab's lead sentence (`dashboard.alerts.panel.drawing.lead`).
 
 ## Out of scope
 
@@ -98,20 +100,42 @@ the footer the moment the footer changes.
 - Per-rule external channels — `FEAT-0748`.
 - The control center window — `FEAT-0749`.
 
-## Open questions
+## Result
 
-- Does the seeded draft survive a symbol switch while the panel is open? The
-  seed is consumed on mount today; a drawing alert belongs to the drawing's
-  symbol, which may differ from the chart's. Proposal: the seed carries the
-  drawing's symbol, and switching symbols drops the seed rather than retargeting
-  the alert.
-- What price does the arm press use if the panel stays open while the market
-  moves? Proposal: read it at arm time from the same chart-price source the seed
-  came from. The displayed level is the drawing's live level, so the two cannot
-  disagree.
-- Should the tab be hidden from the rail entry (a trader without a seeded
-  drawing has nothing to put in it)? Proposal: yes — it appears only for a
-  seeded draft, like a builder that starts from a condition.
+Shipped in the builder: the chart's bell seeds a drawing draft instead of
+arming it; the panel shows only the Drawing tab for that draft, with the
+lifecycle footer; the arm press rebuilds the rule through `armDrawingAlert`
+with the price of that moment, and reuses the draft's id so arming twice
+replaces instead of duplicating.
+
+Two places where the implementation differs from the Proposal above, recorded so
+the next reader is not surprised:
+
+- The seed still carries the condition `buildDrawingAlert` produced. It is the
+  snapshot the shell needs to render a complete document; `drawingDraft` holds
+  the binding, and the arm press rebuilds from the live line.
+- The shell's plain-language sentence is hidden for a drawing draft, because
+  the snapshot is not what the arm press stores. The tab's lead and level row
+  are the readable form.
+
+Pinned by `createDrawingAlert.test.ts` (the lifecycle and the id reach the
+store), `alertPanel.seed.test.ts` (the drawing survives the mount and does not
+return on the next open), `AlertPanelView.component.test.ts` (the tab, the fixed
+header, the fresh price and every refusal), `DrawingTab.component.test.ts` (the
+fixed level, the moving line, the deleted drawing) and
+`drawingAlertEntry.test.ts` (the chart seeds instead of arming).
+
+## Decisions recorded by the implementation
+
+- The header's symbol field is fixed while a drawing draft is open, so the
+  alert cannot silently target a market other than the line's. Price source and
+  evaluation mode are fixed too: `buildDrawingAlert` reads neither, and an
+  editable control that changes nothing is a lie.
+- The arm press reads `marketState`'s `lastPrice` for the drawing's symbol —
+  the shared ticker, not the chart's kline close the bell used — and refuses a
+  stale quote rather than picking a side from it.
+- A chart timeframe the panel does not list (30m, 6h, …) is rendered as an
+  extra option, so the anchor the rule will use stays visible.
 
 ## Links
 
@@ -121,6 +145,7 @@ the footer the moment the footer changes.
   being replaced
 - `src/stores/alertPanel.svelte.ts` — `AlertPanelSeed`, `ALERT_PANEL_TABS`
 - `src/components/alerts/RuleLifecycleFields.svelte` — the footer to reuse
+- `src/components/alerts/tabs/DrawingTab.svelte` — the read-only tab this item added
 - [`FEAT-0623`](FEAT-0623-audit-super-alert-system-gaps-and-design.md) —
   the audit that produced this item
 - [`FEAT-0389`](FEAT-0389-super-alert-panel.md) — the panel

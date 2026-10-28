@@ -26,10 +26,11 @@
  * the trader nothing — the line has not been touched, it was already on that
  * side of it.
  *
- * `frequency` is left absent, which the core reads as `once`. Together with
- * the direction above that is what makes this a crossing alert rather than a
- * standing "price is above this" condition: it announces the first time price
- * reaches the line and then stops.
+ * With no lifecycle supplied, `frequency` is left absent, which the core reads
+ * as `once`; together with the direction above that is what makes a rule a
+ * crossing alert rather than a standing "price is above this" condition. The
+ * panel supplies the footer's fields instead (FEAT-0752); the chart only builds
+ * a seed from this function and never arms it.
  *
  * ## The threshold written here is a starting value
  *
@@ -54,7 +55,10 @@ import { recordDrawingAnchor } from "./drawingAnchors";
 
 export interface DrawingAlertRequest {
     drawing: ChartDrawing;
-    /** The chart's timeframe — the rule's evaluation anchor. */
+    /**
+     * The rule's evaluation anchor. The chart seeds it from its own timeframe
+     * (`ruleTimeframeFor`); the panel's header can change it (FEAT-0752).
+     */
     timeframe: string;
     /** Where price is now, which decides the direction the rule watches. */
     currentPrice: Decimal;
@@ -62,7 +66,28 @@ export interface DrawingAlertRequest {
     nowMs: number;
     /** The trader's own name for it. Falls back to a description of the line. */
     name?: string;
+    /**
+     * Reuse an id instead of generating one — FEAT-0752.
+     *
+     * The panel passes its draft's id, so pressing Arm twice replaces the rule
+     * rather than leaving two alerts watching the same line. The chart's seed
+     * omits it: nothing is written there.
+     */
+    id?: string;
+    /**
+     * The four lifecycle fields the builder footer owns — FEAT-0752.
+     *
+     * Absent when a caller only builds the document: the chart's seed validates
+     * and hands off without writing. Present when the panel arms.
+     */
+    lifecycle?: DrawingAlertLifecycle;
 }
+
+/** The hash-excluded fields the builder footer writes, carried into a rule. */
+export type DrawingAlertLifecycle = Pick<
+    RuleDocument,
+    "frequency" | "valid_until_ms" | "trigger_methods" | "note"
+>;
 
 /** Why a drawing could not be armed. */
 export type DrawingAlertRefusal =
@@ -70,7 +95,7 @@ export type DrawingAlertRefusal =
     | "price-on-the-line"
     /**
      * The binding of the rule to its line could not be persisted — BUG-0498.
-     * Refusing is honest: the chart would otherwise report the alert armed on
+     * Refusing is honest: the panel would otherwise report the alert armed on
      * a line it never follows.
      */
     | "drawing-anchor-not-persisted";
@@ -104,7 +129,7 @@ export function buildDrawingAlert(request: DrawingAlertRequest): DrawingAlertRes
         ok: true,
         rule: {
             schema_version: 2,
-            id: generateId(),
+            id: request.id ?? generateId(),
             name: request.name ?? defaultName(request.drawing),
             symbol: request.drawing.symbol,
             trigger_timeframe: request.timeframe,
@@ -118,6 +143,7 @@ export function buildDrawingAlert(request: DrawingAlertRequest): DrawingAlertRes
             action: { consequence_level: "notify" },
             enabled: true,
             provenance: { source: "human", created_at_ms: request.nowMs },
+            ...request.lifecycle,
         } as RuleDocument,
     };
 }
