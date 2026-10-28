@@ -2,10 +2,11 @@
 id: BUG-0698
 title: The TP/SL push carries the live stop type, quantity and order type, and the handler reads none of them
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-18"
+shipped: v1.6.0-beta.465
 editions: [community, pro, private]
 area: execution
 data_class: none
@@ -70,13 +71,48 @@ only what the frame cannot know.
 `scopeGuess` stays derived: it is inferred from the presence of a quantity, so
 it has to be recomputed from the merged `qty` rather than carried.
 
+## Resolution (2026-10-28)
+
+The push and the fetch now read the same per-leg fields through one function,
+`readLegFields` (`src/services/tpslNormalize.ts`), so "present" means the same
+thing on both paths: `undefined`, `null` and `""` are absent, `"0"` is a value.
+
+| Frame field (per leg) | Mandatory leg field |
+|---|---|
+| `tpStopType` / `slStopType` | `workingType` |
+| `tpOrderType` / `slOrderType` | `orderType` (now declared on `TpSlOrder`) |
+| `tpQty` / `slQty` | `qty`; `scopeGuess` recomputed to `partial` |
+| `tpOrderPrice` / `slOrderPrice` | `price` (the child order price, not the trigger) |
+
+`triggerPrice` still comes from `tpPrice`/`slPrice`. Two deliberate limits:
+
+- **Sparse frame, not snapshot.** A field the frame omits keeps the fetched
+  value; only the next fetch can clear it. Omission after a "clear the
+  quantity" edit therefore stays stale until the cache window expires — the
+  same bound BUG-0665 accepted, now named.
+- **A price is required to create, not to update.** A frame naming only
+  `tpStopType` still merges into an existing leg; a frame with neither a price
+  nor a stored leg is dropped, because inventing a trigger would put a stop on
+  screen the venue does not hold.
+
+`tpsl.test.ts` grew eleven cases; eight fail on the pre-fix store (the field
+update, the create path, the price-less merge, empty/null handling, `"0"`,
+`scopeGuess`, per-leg isolation, and the `sl*` counterpart). Three pass both
+ways: the BUG-0665 no-regress case and the guard that drops a price-less frame
+matching no stored leg pin behaviour that already existed; the other-leg status
+guard passes pre-fix only because the old early return skipped that leg
+entirely. Full file: 72 passed.
+
 ## Acceptance criteria
 
-- [ ] `RawWsTpSl` declares the per-leg stop type, order type, quantity and order price
-- [ ] A push carrying `tpStopType` updates `workingType` on the stored leg
-- [ ] A push carrying `tpQty` updates `qty`, and `scopeGuess` is recomputed rather than carried
-- [ ] A push that omits them still leaves the fetched values in place (BUG-0665 does not regress)
-- [ ] The frame's field names are taken from `docs/bitunix-api/08_websocket.md` and recorded there as observed, not inferred
+- [x] `RawWsTpSl` declares the per-leg stop type, order type, quantity and order price
+- [x] A push carrying `tpStopType` updates `workingType` on the stored leg
+- [x] A push carrying `tpQty` updates `qty`, and `scopeGuess` is recomputed rather than carried
+- [x] A push that omits them still leaves the fetched values in place (BUG-0665 does not regress)
+- [x] The frame's field names are taken from `docs/bitunix-api/08_websocket.md`
+      and recorded there as **vendor-documented, not observed** — no live frame
+      exists, and the channel name itself is disputed (`tp_sl` vs `tpsl`).
+      Claiming observation here would be the guess BUG-0001 forbids
 
 ## Out of scope
 

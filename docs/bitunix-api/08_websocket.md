@@ -349,6 +349,14 @@ TP/SL order updates.
 > not come. That is the same failure shape as the Bitget WebSocket field-name
 > mismatch in [`docs/TODO.md`](../TODO.md). **Resolving this needs a
 > credentialed check against the live gateway; documentation cannot settle it.**
+>
+> **What that means for the fields below.** They are transcribed vendor prose,
+> not observed frames. Cachy's push handler reads `tpStopType`/`slStopType`,
+> `tpOrderType`/`slOrderType`, `tpQty`/`slQty` and
+> `tpOrderPrice`/`slOrderPrice` as of BUG-0698, but no frame has confirmed any
+> of them. An unused leg's *quantity* is omitted rather than sent as `null`;
+> the other fields' omission behaviour is unstated. If the channel name is
+> wrong, none of these names ever arrive either.
 
 ### Push Parameters
 | Parameter      | Type   | Description |

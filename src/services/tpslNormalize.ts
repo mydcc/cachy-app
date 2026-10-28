@@ -96,7 +96,8 @@ export function planSideMatchesEntry(planSide: unknown, entrySide: "BUY" | "SELL
 }
 
 /** One leg's worth of fields, as they are named on the wire. */
-interface LegFields {
+export interface LegFields {
+    /** The trigger price (`tpPrice`/`slPrice`), not the order price. */
     price?: string;
     stopType?: string;
     orderType?: string;
@@ -104,11 +105,22 @@ interface LegFields {
     qty?: string;
 }
 
-function readLeg(row: Record<string, unknown>, prefix: "tp" | "sl"): LegFields {
+/**
+ * Reads one leg's prefixed fields off a row or a WebSocket frame.
+ *
+ * Shared with `tpsl.svelte.ts` so the push path and the fetch path agree on
+ * what "present" means: `undefined`, `null` and the empty string are absent,
+ * while `"0"` is a value the venue sends deliberately.
+ */
+export function readLegFields(row: Record<string, unknown>, prefix: "tp" | "sl"): LegFields {
     const str = (key: string): string | undefined => {
         const value = row[key];
-        if (value === undefined || value === null || value === "") return undefined;
-        return String(value);
+        // The channel is forwarded verbatim and this is the only runtime
+        // boundary: a boolean or an object must read as absent, not as
+        // "true"/"[object Object]" stored in a price field.
+        if (typeof value === "string") return value === "" ? undefined : value;
+        if (typeof value === "number") return String(value);
+        return undefined;
     };
     return {
         price: str(`${prefix}Price`),
@@ -168,7 +180,7 @@ export function normalizeTpSlRow(raw: unknown): TpSlOrder[] {
         prefix: "tp" | "sl",
         planType: "PROFIT" | "LOSS",
     ): void => {
-        const leg = readLeg(row, prefix);
+        const leg = readLegFields(row, prefix);
         // No price, no plan. A row can carry one leg only, and inventing the
         // other would put a stop on screen that the venue does not hold.
         if (leg.price === undefined) return;
