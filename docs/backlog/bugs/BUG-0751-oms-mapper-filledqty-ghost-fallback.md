@@ -22,8 +22,11 @@ records for the Bitget REST readers: a field name that exists in no vendor
 document served as a fallback, so a payload that loses its real field reports a
 plausible `0` instead of surfacing the miss.
 
-`filledAmount` feeds the OMS order list. A zero is indistinguishable from "this
-order genuinely has no fill yet", which is the one reading a trader acts on.
+`filledAmount` is stored on the OMS order but currently has **no production
+reader**: no component, service or store consumes it, and `omsService.getAllOrders()`
+has test callers only. The risk is therefore latent — it surfaces the day a
+consumer starts rendering the field, and a zero is then indistinguishable from
+"this order genuinely has no fill yet".
 
 ## Evidence
 
@@ -37,15 +40,17 @@ The fallback cannot match a documented payload:
 
 - `mapToOMSOrder` has exactly one caller — `src/services/bitunixWs/channelDispatch.ts:285`
   and `:290` — and Bitunix sends `dealAmount` (present in both committed
-  fixtures, `__fixtures__/bitunix/order.json` and `order_small_price.json`).
+  fixtures, `src/services/exchange/__fixtures__/bitunix/order.json` and
+  `.../order_small_price.json`).
 - Bitget never reaches this function: its WebSocket bridge normalises
   `accFillSize` into `dealAmount` itself (`src/services/bitgetWs.ts:1184`).
 - `filledQty` itself appears in no Bitget generation, and the declaration that
   once carried it was removed in the BUG-0596 migration (`d842dd837`). See
   BUG-0589.
 
-So the fallback is either dead or it converts a payload that lost `dealAmount`
-into a silent `0`. Neither is a shape any venue documents.
+So the fallback matches no payload any producer emits. It is dead code that
+reads as support for a venue field — which is why it is filed rather than
+silently deleted.
 
 Not demonstrated: no call path is known to deliver a payload without
 `dealAmount`, which is why this is P3 and not a defect with a reproduction.
@@ -53,20 +58,27 @@ Not demonstrated: no call path is known to deliver a payload without
 ## Cause
 
 `mapToOMSOrder(data: any)` accepts an untyped payload, so the compiler cannot
-see a field that never arrives. The fallback was written "just in case" rather
-than from a documented field.
+see a field that never arrives. Why the fallback was written is not recoverable
+from the history — its blame lands on the squashed release commit `42abdb9b3` —
+and `BitgetRawOrder.filledQty?` existed until `d842dd837`, so it may once have
+mirrored a field the readers used. That is provenance, not support: no current
+payload carries `filledQty`.
 
 ## Fix
 
 Pick one and make the type enforce it:
 
-1. Drop the fallback — `parseDecimal(data.dealAmount)` — if `dealAmount` is the
-   only name the only caller's payload carries. Preferred: a miss then reads as
-   `0` only where the venue actually sent nothing, and no ghost field suggests
-   support that does not exist.
-2. Keep a fallback but name a field some venue documents for that payload shape,
-   and type the parameter so a missing field is a compile error rather than a
-   zero.
+1. Drop the fallback — `parseDecimal(data.dealAmount)`. This is
+   **behaviour-preserving**: `parseDecimal` already returns `Decimal(0)` for
+   `undefined`, and no producer emits `filledQty`, so every current payload maps
+   identically. The benefit is deleting a name that implies support for input no
+   venue sends.
+2. If miss-detection is what is actually wanted, that is a separate change: map
+   with `parseDecimalOrUndefined` (or log the miss) so a missing field becomes
+   visible instead of a plausible zero. Type the parameter so the compiler can
+   see the field.
+
+Do not sell option 1 as adding miss-detection — it does not.
 
 Leave `mapToOMSOrder`'s status/side mapping alone. This item is about the
 traded-amount field only.
@@ -74,9 +86,9 @@ traded-amount field only.
 ## Acceptance criteria
 
 - [ ] `src/services/mappers.ts` no longer references `filledQty`
-- [ ] A test covers `filledAmount` with `dealAmount` present and absent, and the
-      absent case states the intended behaviour explicitly (zero-filled by the
-      venue, not by a missing field)
+- [ ] A test covers `filledAmount` with `dealAmount: "0"` and with `dealAmount`
+      absent, and its name records that the two are indistinguishable at this
+      layer (both map to `0`)
 - [ ] The Bitunix WS dispatch path is unchanged: the order still reaches
       `omsService.updateOrder` with the mapped `dealAmount`
 - [ ] `npm run check` and the affected Vitest files stay green
