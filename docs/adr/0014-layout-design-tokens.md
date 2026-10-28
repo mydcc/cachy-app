@@ -5,7 +5,12 @@
 
 ## Context
 
-Cachy's 157 Svelte components style themselves from `<style>` blocks. `src/themes.css` defines color, shadow, motion and z-index tokens, but **no tokens for border-radius, spacing/padding, font-size or font-weight**. Every agent building a UI element invents its own values.
+Cachy's 157 Svelte components style themselves from `<style>` blocks. At the
+time of this ADR, `src/themes.css` defined color, shadow, motion and z-index
+tokens, but **no tokens for border-radius, spacing/padding, font-size or
+font-weight**. Every agent building a UI element invented its own values. (The
+Decision below added them; `--radius-*` and `--space-*` live at
+`src/themes.css:170-186` today.)
 
 Evidence from `src/components/`:
 - `border-radius`: `0`, `0.375rem`, `0.5rem`, `0.75rem`, `8px`, `4px`, `12px`, `50%` — 8 values with no system

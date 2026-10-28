@@ -22,7 +22,7 @@ npm run test:e2e     # Playwright E2E
 `*.component.test.ts` and runs in the `components` Vitest project, which is the
 only place `svelte` resolves to its browser build — `mount()` throws from the
 server entry. Do not set `resolve.conditions: ["browser"]` globally to avoid
-that: it also flips `$app/environment`'s `browser` to true, which sends
+that: it also flips `$app/env`'s `browser` to true, which sends
 `technicalsService` down its Worker path and fails two passing tests. `npm test`
 runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
 
@@ -109,7 +109,7 @@ Do not delete code of unclear purpose. Leave copyright headers and metadata unto
 
 ## Tools & MCP
 
-Two MCP servers are configured for this project. **Both are required, not optional.** Every agent must use them. If one cannot answer, that is an integration failure to report — not a route to a workaround.
+Gortex and jCodeMunch are the two required MCP servers for this project. **Both are required, not optional.** Every agent must use them. If one cannot answer, that is an integration failure to report — not a route to a workaround. (`opencode.json` also registers the `svelte` documentation server; it is useful, not mandatory.)
 
 ### Gortex
 Use for all code navigation, exploration, impact analysis, and graph queries.
@@ -200,7 +200,7 @@ When unsure: follow existing code patterns; ask if it affects money paths, publi
 - **Never push directly to `develop` or `main`.** Every change goes through a feature branch and a Pull Request; target branch is always `develop`.
 - **Push and open the PR without asking.** Push the feature branch (`git push -u origin <branch>`) and open a PR against `develop` without waiting for confirmation. Ask only when something is off (failing tests, unclear base, suspected secrets). Open as **Ready** by default — Draft only for known-unfinished work, with a one-line reason in the description. Never merge without explicit instruction.
 - **Pull Request Linking:** Every Pull Request MUST include `Fixes #<github_issue_number>` (e.g. `Fixes #1770`) at the start of its description so GitHub automatically links the PR with the issue and advances the Kanban card.
-- **Backlog flip rides in the fix PR (no bots):** If the linked issue is a backlog mirror (`backlog-id:` label), the same PR MUST flip the item to `status: done` and commit the regenerated index (`node scripts/backlog-index.mjs` — plain Node, no install). CI fails the PR if either half is missing.
+- **Backlog flip rides in the fix PR (no bots):** If the linked issue is a backlog mirror (`backlog-id:` label), the same PR MUST flip the item to `status: done` in its own file. The index is generated on demand and gitignored — never commit it. CI fails the PR if the `+status: done` line is missing.
 - **Writing *about* a closing reference.** GitHub parses closing keywords in **commit messages** as well as Pull Request descriptions, and backticks, quotation marks or surrounding prose do not exempt them. The full keyword set is `close`/`closes`/`closed`, `fix`/`fixes`/`fixed`, `resolve`/`resolves`/`resolved` — **past tense counts too**. Only the position directly before the reference matters, so either break the keyword (`Fixes #<!-- -->1770`) or keep it out of that position.
 
 ## Code Review Standard for All Agents
@@ -231,7 +231,7 @@ When agents review each other's PRs or reply to comments:
 
 - **Autonomous/Unattended Selection** ("I'll see what's open in the backlog and solve it") — **no** agent does this, whatever tool it runs in. Instead:
   1. Complete missing parts — clarify Acceptance Criteria, Out of Scope, open questions in the fix proposal (see `docs/backlog/README.md`) — and set `status` to `ready` once the item is complete.
-  2. Actual implementation runs through the designated, filtered pipeline: `.github/workflows/backlog-dispatch.yml` (`scripts/jules/dispatch-backlog.mjs`, weekly or manually via workflow dispatch) sends `ready` items to Jules. This pipeline — not Jules as a tool — enforces safety filters: `area: execution`, `area: security`, `area: exchange`, and `priority: P0` are intentionally **never automatically dispatched**, requiring manual handoff (`scripts/jules/create-session.sh --file ...`) only after a human inspects the item.
+  2. Actual implementation runs through the designated, filtered pipeline: `.github/workflows/backlog-dispatch.yml` (`scripts/jules/dispatch-backlog.mjs`, daily at 07:00 UTC or manually via workflow dispatch) sends `ready` items to Jules. This pipeline — not Jules as a tool — enforces safety filters: `area: execution`, `area: security`, `area: exchange`, and `priority: P0` are intentionally **never automatically dispatched**, requiring manual handoff (`scripts/jules/create-session.sh --file ...`) only after a human inspects the item.
 - **Explicit Human Instruction** ("solve BUG-0053 now") — any capable agent may do this regardless of tool. This is directed work, not backlog grabbing, and does not require a dispatch pipeline.
 
 An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-groom` workflow), and set it to `ready` at any time — but it opens a PR with the actual fix implementation ONLY when explicitly instructed by the user in that specific case, or when selected via the dispatch pipeline with its filters.

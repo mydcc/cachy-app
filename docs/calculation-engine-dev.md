@@ -2,9 +2,12 @@
 
 ## Numeric boundary
 
-Every engine here is **analysis-grade and operates in f64** — `Float64Array`
-scratch buffers, and `Decimal.toNumber()` at the input edge in
-`technicalsCalculator.ts`. That is deliberate and matches
+The TypeScript and WASM engines are **analysis-grade and operate in f64** —
+`Float64Array` scratch buffers, and `Decimal.toNumber()` at the input edge in
+`technicalsCalculator.ts`. The GPU engine is the exception: it converts inputs
+to `Float32Array` and its shaders declare `array<f32>`, so WGSL results are f32
+and may differ in the last digits from the JS and WASM paths. That split is
+deliberate and matches
 [ADR-0021](adr/0021-decimal-money-boundary-display-stays-f64.md). Indicator values
 produced here must never be fed back into calculator, risk, journal or order
 logic, which is `decimal.js` territory — `statefulTechnicalsCalculator.ts` is the
@@ -49,15 +52,15 @@ if (shouldCalculate('myIndicator')) {
 
 ```wgsl
 @group(0) @binding(0) var<storage, read> input: array<f32>;
-@group(0) @binding(1) var<uniform> params: Params;
-@group(0) @binding(2) var<storage, read_write> output: array<f32>;
+@group(0) @binding(1) var<storage, read_write> output: array<f32>;
+@group(0) @binding(2) var<uniform> params: Params;
 
 struct Params {
   window_size: u32,
   data_len: u32,
 }
 
-@compute @workgroup_size(256)
+@compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let i = gid.x;
   if (i >= params.data_len) { return; }
@@ -93,7 +96,7 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 
 ### Circuit Breaker (derived, not enforced)
 
-- **Status**: Health is derived from the timing rule via `exportTelemetry()`; selection reapplies the timing rule on the next call. Consequence: **3 consecutive** live runs of the pinned engine above 500ms degrade `selectEngine` to `ts` for the rest of a 5-minute degradation window. Only `context === 'live'` counts, so benchmark runs never degrade anything. When the window elapses the pinned engine is re-probed automatically, and a successful run resets `slowRuns`.
+- **Status**: Health is derived from the timing rule via `exportTelemetry()`; selection reapplies the timing rule on the next call. Consequence: **3 consecutive** live runs of the pinned engine above 500ms degrade `selectEngine` to `ts` for the rest of a 5-minute degradation window. Only `context === 'live'` counts, so benchmark runs never degrade anything. When the window elapses the pinned engine is re-probed automatically, and a successful run at or under 500ms resets `slowRuns` (a re-probe also zeroes it before the run).
 - Do not confuse this with the worker crash guard (`technicalsService.ts` disables the worker after >2 consecutive failures) — that protects the worker, not the engine selection.
 - **Planned behavior**: 3 consecutive failures → engine disabled for 5 minutes → half-open (retries once) → successful calculation resets failure count. Of these, only the 5-minute window exists today. The engine-level breaker is timing-derived and has no failure count and no half-open state; the only real failure counter is the worker crash guard, and its disable is permanent.
 

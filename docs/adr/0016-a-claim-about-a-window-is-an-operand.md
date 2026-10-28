@@ -41,7 +41,7 @@ does:
    Anything expressed as an operand inherits that guard for free; anything
    expressed as a condition needs its own copy of it.
 3. **A rule that cannot warm up is silent, not refused.**
-   `src/lib/rules/ruleEvaluationGate.ts:64` returns `undefined` while
+   `src/lib/rules/ruleEvaluationGate.ts:186` returns `undefined` while
    `closedCandles < ruleSchema.warmupCandles(document)`. There is no upper bound
    and no distinct signal, so an alert whose history requirement can never be
    met is indistinguishable from one that has not warmed up yet. `PERIOD` in the
@@ -193,7 +193,7 @@ rule and a bookmark.
 trader is different, which is true, and rejected because of *when* the number
 would be read. A rule's warmup requirement is fixed at authoring time; the
 setting would be read at evaluation time, every time. Lowering it after the
-fact does not refuse the rules it invalidates — `ruleEvaluationGate.ts:64`
+fact does not refuse the rules it invalidates — `ruleEvaluationGate.ts:186`
 returns `undefined` and the alert simply stops firing, with no event, no
 refusal and nothing in the UI that distinguishes it from a rule still warming
 up. That is the exact failure this ADR's fact 3 is about, converted from a

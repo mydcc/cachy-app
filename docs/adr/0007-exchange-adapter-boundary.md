@@ -22,7 +22,7 @@ the industry uses:
 | Layer | Where | Owns |
 |---|---|---|
 | Connection | `services/connectionManager.ts` | `registerProvider`, `switchProvider` (atomic across both venues), tab visibility, `killAll` |
-| Wire protocol | `services/bitunixWs.ts:962`, `services/bitgetWs.ts:534` | `subscribe(symbol, channel)` **and** its own reference counting |
+| Wire protocol | `services/bitunixWs.ts:1033`, `services/bitgetWs.ts:910` | `subscribe(symbol, channel)` **and** its own reference counting |
 | Demand | `services/marketWatcher/subscriptionRegistry.ts` | which symbols anything currently needs |
 
 FIX separates a session layer (logon, heartbeat, reconnect, sequence numbers)
@@ -32,10 +32,10 @@ CCXT Pro keeps the socket inside the exchange instance. All of them put the
 wire half in the venue adapter and the reference-counting half above it. Cachy
 has the reference counting *inside* the venue services — the inverted half.
 
-Server-side, each proxy route branches on `exchange` itself
-(`routes/api/orders/+server.ts:108`, `account/+server.ts:85`,
-`balance/+server.ts:42`, `klines/+server.ts:92`), while venue signing already
-lives in `utils/server/bitget.ts`.
+Server-side, each proxy route resolves the venue through `utils/server/venues`
+itself (`account/+server.ts:54`, `balance/+server.ts:54`, `klines/+server.ts:70`),
+while venue signing already lives in `utils/server/bitget.ts` and
+`utils/server/bitunix.ts`.
 
 Against deciding now: the venue conformance suite (`FEAT-0018`) does not exist
 yet, and the WebSocket services carry reconnect, leak and resync behaviour
@@ -66,8 +66,9 @@ which are Class A browser state under ADR-0001.
 
 **An adapter declares gaps rather than hiding them.** `streams.trades` is
 false for Bitget because `getBitgetChannel` has no `trade` entry;
-`supports.tpSl` is false because `routes/api/tpsl/+server.ts:58` refuses any
-exchange but Bitunix. These are declarations for the UI to read (`FEAT-0017`),
+`supports.tpSl` is false because the TP/SL route is Bitunix-only
+(`routes/api/tpsl/+server.ts:42`), not because the route checks the exchange.
+These are declarations for the UI to read (`FEAT-0017`),
 not local guards — an unsupported verb still travels and is still refused
 where it was refused before.
 

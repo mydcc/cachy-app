@@ -164,3 +164,33 @@ that are specific to Cachy.
 
 ## Amendment (2026-08-25)
 FlashCard Exception: The `FlashCard` view uses its own fixed overlay instead of registering as a WindowManager surface instance. This is permitted as an explicitly exempted UI element.
+
+## State today (2026-10-28)
+
+The decision landed, and the stacking authority has a named source:
+[`src/lib/windows/zLayers.ts`](../../src/lib/windows/zLayers.ts), mirrored by the
+`--z-*` custom properties in `src/themes.css:264-271` and held to them by
+`zLayers.test.ts`. No component picks a number; it names a layer.
+
+| Layer | Value |
+| --- | --- |
+| `window` | `11_000` |
+| `windowDock` | `1_010_000` |
+| `windowMax` | `1_020_000` |
+| `windowKeepAbove` | `1_025_000` |
+| `modal` | `1_030_000` |
+| `switcher` | `1_035_000` |
+| `toast` | `1_040_000` |
+| `fx` | `1_050_000` |
+
+`WindowManager`'s focus counter starts at `Z_LAYERS.window` and normalises before
+`MAX_SAFE_WINDOW_Z_INDEX` (`1_000_000`), which is why every layer above `window`
+sits far past that ceiling.
+
+Two rows of the Context table are historical: `SidePanel.svelte` and
+`floatingWindows.svelte.ts` were retired by
+[`FEAT-0046`](../backlog/features/FEAT-0046-sidepanel-onto-window-manager.md)
+rather than ported, and `ModalFrame.svelte` is now the adapter the Decision
+describes — it renders a `WindowFrame` and inherits the window layer instead of
+holding `10000`. `FlashCard` keeps its own overlay under the amendment above, but
+it names `--z-modal` rather than a literal `200`.

@@ -27,7 +27,9 @@ The infrastructure to fix it already exists. `src/lib/server/cache.ts` is a
 `MemoryCache` with TTL and in-flight coalescing, in production use by five
 sibling routes: `/api/tickers`, `/api/funding-rate`, `/api/trading-pairs`,
 `/api/position-tiers`, `/api/bitget/contracts`. `/api/klines` is the one hot
-route that does not use it.
+route that did not use it — it now caches through `klineCache`
+(`src/lib/server/klineCache.ts:37`, a `MemoryCache(500)` behind
+`getCachedKlines`).
 
 Two facts about the codebase constrain the fix.
 

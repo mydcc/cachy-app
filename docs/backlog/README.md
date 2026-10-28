@@ -54,7 +54,8 @@ backlog/
 ```
 
 Numbers are shared across all three types — there is no `FEAT-0001` and
-`BUG-0001` at once. The next free number is whatever `INDEX.md` says plus one.
+`BUG-0001` at once. The next free number is the one `INDEX.md` lists at the
+bottom.
 
 An `IDEA` that gets specified is **renamed** to `FEAT`, keeping its number:
 `IDEA-0031-…` becomes `FEAT-0031-…`. The number is the identity; the prefix is
@@ -76,8 +77,10 @@ front matter and id collisions and does not look at `assets/`.
 ## Front matter
 
 Every file starts with a YAML block. It is not decoration — `npm run
-backlog:index` validates it and fails on anything unknown, so a typo in a status
-is a failed check rather than an item that quietly vanishes from the index.
+backlog:index` validates it and fails on a value outside the allowed lists, on
+an unknown or duplicate id, on a broken `depends_on`/`parent` reference, so a
+typo in a status is a failed check rather than an item that quietly vanishes
+from the index. Unknown extra keys are collected and ignored, not rejected.
 
 ```yaml
 ---
@@ -103,18 +106,19 @@ depends_on: []
 | `status` | see below | Where it is |
 | `priority` | `P0`–`P3` | See below |
 | `milestone` | `M0`–`M9`, or `none` | From `MILESTONES.md` |
-| `editions` | `community`, `pro`, `private` | Which builds get it (ADR-0003) |
+| `editions` | `community`, `pro`, `private` | One or more of them — an empty list fails validation (ADR-0003) |
 | `area` | free slug | `execution`, `exchange`, `ui`, `alerts`, `ai`, … |
 | `data_class` | `A`, `B`, `C`, `none` | Per ADR-0001 / ADR-0004. `none` = touches no data boundary |
 | `adr` | `none`, `required`, or `ADR-NNNN` | `required` means it may not be built until one exists |
 | `depends_on` | list of IDs | Hard blockers only, not "related to" |
-| `parent` | ID | Optional parent item for native GitHub Sub-Issue Relationship (e.g. `FEAT-0067`) |
+| `parent` | ID | Optional parent item for native GitHub Sub-Issue Relationship (e.g. `FEAT-0067`); must name an existing item |
 | `estimate` | number | Optional story points / hours estimate (e.g. `1`, `2`, `5`) |
 | `size` | `XS`, `S`, `M`, `L`, `XL` | Optional size classification for GitHub Projects |
 | `start_date` | `YYYY-MM-DD` | Optional start date for GitHub Projects Roadmap |
 | `target_date` | `YYYY-MM-DD` | Optional target deadline date for GitHub Projects Roadmap |
 | `iteration` | `string` | Optional sprint / iteration tag (e.g. `2026-W34` or `Sprint 1`) |
-| `agent_eligible` | `true`, `false` | Optional override for AI agent eligibility (defaults to true unless sensitive area) |
+| `agent_eligible` | `true`, `false` | Optional override for the `agent:eligible` label on the mirrored issue; the dispatch pipeline does not read it |
+| `branch` | branch name | **Required while `status: in-progress`** — a claim with no branch fails `npm run backlog:check:stale`. Also used to flag a claim whose branch has already merged. A `Branch:` line in the body is accepted for older items |
 | `assignee` | free slug (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …) | Who is currently working the item. **Required while `status: in-progress`** — `npm run backlog:check` fails otherwise |
 
 ### Status
@@ -124,9 +128,13 @@ depends_on: []
 - **`idea`** — worth keeping, not thought through. No acceptance criteria yet.
 - **`specced`** — the what and why are clear; acceptance criteria written.
 - **`ready`** — an agent or a developer could start now: dependencies met, open
-  questions resolved, required ADR exists.
-- **`in-progress`** — someone is on it. Put the branch name in the item and set
-  `assignee`. An `in-progress` item without an `assignee` fails validation.
+  questions resolved, required ADR exists. A `ready` item in dispatchable scope
+  is handed to Jules by the daily dispatch workflow; `execution`, `security`,
+  `exchange` and `priority: P0` are never auto-dispatched and stay manual.
+- **`in-progress`** — someone is on it. Record the branch in `branch:` and set
+  `assignee`. An `in-progress` item without an `assignee` fails
+  `npm run backlog:check`; one without a `branch:` fails
+  `npm run backlog:check:stale`.
 - **`done`** — merged **and** its acceptance criteria are proven, not just
   implemented. Record the version it shipped in.
 - **`dropped`** — decided against. Keep the file and say why. A dropped item
@@ -197,11 +205,11 @@ reproducing test first.
    reset the item to its previous status with a state note instead of leaving a
    stale claim. See "Agent Lifecycle" in `AGENTS.md`.
 
-Your PR carries the flip and the fresh index: set `status: done` in your
-item file(s), run `node scripts/backlog-index.mjs`, and commit both.
-CI fails the PR if either half is missing (see "Index of everything"
-above). Your PR only ever touches your own item file(s) plus the
-regenerated artifacts.
+Your PR carries the flip: set `status: done` in your item file(s) and commit.
+The index is generated on demand and gitignored — never commit it. CI fails the
+PR when it closes a `backlog-id:` issue and the `+status: done` line is missing
+(see "Index of everything" above). Your PR only ever touches your own item
+file(s).
 
 **Do not silently change scope.** If the item is wrong, say so in the item and
 ask — an item that turned out to be a bad idea is a useful finding. If it is
@@ -220,9 +228,10 @@ The direction only ever goes file → issue, never back:
 - Title and body are fully overwritten on every sync run. Editing them
   directly on the Issue has no lasting effect — the next backlog push wipes
   it out again, silently, no warning.
-- Labels are the one exception: everything except the `status:*` and
-  `backlog-id:*` labels the script owns is preserved across syncs. A
-  manually added label survives.
+- Labels are the one exception: everything the script does not own is preserved
+  across syncs — only the `status:*`, `backlog-id:*`, `dataclass:*`, `adr:*` and
+  `edition:*` labels are stripped and regenerated. A manually added label
+  survives.
 - `backlog-id:<ID>` (as a label, and as an HTML comment in the body) is the
   reconciliation key back to the actual file.
 - The sync never reopens a closed issue and never creates one blind: a

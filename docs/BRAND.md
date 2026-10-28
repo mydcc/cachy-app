@@ -2,15 +2,15 @@
 
 The canonical brand document for Cachy. It replaces `BRAND GUIDELINES.md`,
 `CORPORATE_DESIGN.md` and `SYSTEM_BRAND_GUIDELINES.md`, which said three
-different things (roadmap item 11).
+different things (repo-audit item 11).
 
 **Source of truth:** the code, not this file.
 
 | What | Authoritative source |
 | --- | --- |
 | Colours | `src/themes.css` |
-| Fonts | `src/app.css` (`@font-face`) and the font picker in `src/lib/constants.ts` |
-| Original artwork | `brand_guidelines/` — 17 JPG pages, the designed original |
+| Fonts | `src/app.css` (`@font-face`) and the font picker in `src/components/settings/tabs/VisualsAppearance.svelte` |
+| Original artwork | `brand_guidelines/` — 17 JPG pages, deleted 2026-08-30 (commit `1d947f93a`); recover from `1d947f93a^` |
 
 Everything below marked **verified** was read out of those files. Everything
 marked **intent** is design guidance carried over from the old documents that
@@ -71,10 +71,13 @@ Bound to `--accent-hover-derived` per theme.
 
 | Base | Hover |
 | --- | --- |
-| Purple `#4e21e7` | `#714deb` |
 | Green Free `#0da49a` | `#3db6af` |
 | Blue PRO `#334eff` | `#5c71ff` |
-| Red Insights `#ee485f` | `#f46d7e` |
+| Red Insights `#ee485f` | `#ff60ee` |
+
+Purple (`--core-purple: #4e21e7`) is a palette token, not a theme accent: no
+theme in `src/themes.css` maps `--accent-color` to it, so it has no
+`--accent-hover-derived` step.
 
 ---
 
@@ -84,25 +87,26 @@ Bound to `--accent-hover-derived` per theme.
 
 | Theme | Accent | Text | Intended for |
 | --- | --- | --- | --- |
-| `.theme-meteorite` | Purple family | `--purple-light` | Default, generic surfaces |
+| `.theme-meteorite` | Blue PRO | `--purple-light` | Default, generic surfaces |
 | `.theme-steel` | Blue PRO | `--blue-pro-light` | Professional / Pro features |
 | `.theme-ever` | Green Free | `--green-free-light` | Community, free features |
 | `.theme-insight` | Red Insights | `--red-insights-light` | Offers, high-attention surfaces |
 
-Two places where the implementation deliberately departs from the old
+Two places where the implementation deliberately departs from the old brand
 documents. Both are recorded rather than "corrected", because the code is what
 users see and neither looks accidental:
 
 - **`.theme-meteorite` sets `--accent-color: var(--core-blue-pro)`**, not Purple.
-  The documents described Purple as the accent for this theme.
+  The old documents described Purple as the accent for this theme; the table
+  above follows the code.
 - **`.theme-ever` and `.theme-insight` use literal background gradients**
   (`#052618 → #010f08`, `#3d050e → #0f0505`) rather than their
   `--gradient-*` tokens. Those are much darker than the documented gradients —
   consistent with a trading UI that runs dark.
 
-### The other 23
+### The other 24
 
-`src/themes.css` ships **27** themes. Beyond the four brand themes there are
+`src/themes.css` ships **28** themes. Beyond the four brand themes there are
 editor-inspired ones — Dracula, Nord, Tokyo Night, Gruvbox, Solarized, Catppuccin,
 Monokai, Ayu, GitHub, One Dark Pro, Night Owl, Everforest, Cobalt2, Matrix, and
 plain light/dark/midnight/obsidian variants.
@@ -121,13 +125,13 @@ From `AGENTS.md`, and enforced by review:
 - **No hardcoded colours in components.** No `#ffffff`, no `rgb(...)`. Only CSS
   variables: `var(--bg-primary)`, `var(--text-secondary)`, `var(--accent-color)`.
 - For a background together with its text colour, use the **paired classes** from
-  `src/themes.css` (lines ~3140+): `.bg-accent-paired`, `.bg-success-paired`,
+  `src/themes.css` (lines ~3425+): `.bg-accent-paired`, `.bg-success-paired`,
   `.bg-danger-paired`, `.bg-warning-paired`, and the hover variants
   `.hover-bg-accent-paired`, `.hover-bg-success-paired`, `.hover-bg-danger-paired`.
-  They set foreground and background together, so contrast holds in all 27 themes.
+  They set foreground and background together, so contrast holds in all 28 themes.
 
 A hardcoded colour is not a style preference here — it is a bug that only shows up
-in the 26 themes nobody tested.
+in the 27 themes nobody tested.
 
 ---
 
@@ -188,7 +192,8 @@ are the defaults of Tailwind CSS v4, which is a dependency.
 
 ## 6. Logo
 
-The logo files and their rules live in `brand_guidelines/` (pages 1–10). The old
+The logo files and their rules lived in `brand_guidelines/` (pages 1–10), which
+was deleted on 2026-08-30 and is recoverable from `1d947f93a^`. The old
 `CORPORATE_DESIGN.md` had a logo section whose file names, minimum sizes and clear
 space values were **blank** — the placeholders were never filled in. They are not
 reproduced here rather than invented.
@@ -203,10 +208,10 @@ the defined variants, never add shadow, 3D or glow effects.
 
 | File | Status | Why |
 | --- | --- | --- |
-| `BRAND GUIDELINES.md` | **deleted** | A text extraction of the `brand_guidelines/` JPGs with **corrupted hex values** — see below. The JPGs remain as the original. |
+| `BRAND GUIDELINES.md` | **deleted** | A text extraction of the `brand_guidelines/` JPGs with **corrupted hex values** — see below. The JPGs are recoverable from git history (`1d947f93a^`). |
 | `CORPORATE_DESIGN.md` | **deleted** | Verified content merged here. Its logo and typography sections were half-empty placeholders. |
 | `SYSTEM_BRAND_GUIDELINES.md` | **deleted** | Its palette and 4-theme system were correct and are merged here. The rest described a different website. |
-| `brand_guidelines/` | **kept** | The designed original, and the only complete record of the logo rules. |
+| `brand_guidelines/` | **deleted** (2026-08-30, commit `1d947f93a`) | The designed original. Recoverable from `1d947f93a^`; nothing at that path can be consulted today. |
 
 ### The corrupted hex values
 
@@ -235,7 +240,8 @@ palette *is* the designed palette.
 One value does not reconcile: the file gives Green Free Light highlight as
 RGB 72 176 130 (`#48b082`), while `src/themes.css` has `#48b0b2` (72 176 178).
 Since the last channel is exactly where the OCR damage clusters, the code is the
-better witness — but `brand_guidelines/` page 15 would settle it.
+better witness — but `brand_guidelines/` page 15 would settle it, and that page
+is recoverable from `1d947f93a^`.
 
 ### The other-website problem
 

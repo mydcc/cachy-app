@@ -50,8 +50,11 @@ boundary) where money becomes pixels.
 ### What this costs
 
 - Two numeric regimes coexist; reviewers must check that display values
-  never flow back into money logic (the BUG-0426 guard test covers the
-  technicals graph; the account-state write guard covers the money side).
+  never flow back into money logic. The BUG-0426 guard test covers the
+  technicals graph, `scripts/audit-decimal.mjs` (the `decimal-check` CI job)
+  catches `Number()`/`parseFloat` in decimal-importing money files, and
+  `scripts/audit-account-state.mjs` guards the `positionMode` write. The
+  f64-display → money direction itself remains review-only.
 
 ### What is now forbidden
 

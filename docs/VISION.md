@@ -168,7 +168,7 @@ model, it is what makes the privacy claim credible.
 
 ## Non-negotiables for anyone building on this
 
-Restated from `CLAUDE.md` because they are consequences of the commitments
+Restated from `AGENTS.md` because they are consequences of the commitments
 above, not house style:
 
 - `decimal.js` for every price, amount and balance. Native `number` for a

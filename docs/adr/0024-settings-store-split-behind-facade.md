@@ -186,11 +186,14 @@ because delegation is verbose, not because state is shared.
   decision 1 exists and is covered by the reactivity contract.** A PR that moves
   fields without it must be rejected; the failure mode is silent data loss, not
   a failing test.
-- **No `$state` field may be added to `SettingsManager` outside a
+- **No declared setting (a key of `Settings`) may be added without a
   `PERSISTENCE_SCHEMA` row.** The list in decision 1 is generated from the
   schema, so an unlisted field is an untracked field. The exactness test in
-  `persistenceSchema.test.ts` is what enforces this and must not be weakened to
-  accommodate a new setting.
+  `persistenceSchema.test.ts` compares the schema keys with `SETTINGS_KEYS` and
+  is what enforces this; it must not be weakened to accommodate a new setting.
+  Manager-local `$state` that is not a setting is allowed and stays out of the
+  schema by design — today `isLocked`, `decryptionFailures`,
+  `encryptionFailures` and `deviceKeyLost` (BUG-0519 device-key canary).
 - **No sub-store may write another sub-store's field directly**, and no
   sub-store may read `settingsState`. Cross-store coordination goes through the
   same ports the other extracted lanes use.

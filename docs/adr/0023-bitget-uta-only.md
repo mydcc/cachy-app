@@ -23,7 +23,7 @@ order envelope (`14_uta_v3.md:86-87`). Guessed V3 paths (`/api/v3/mix/…`,
 are recorded there so nobody repeats them (`:77-84`).
 
 The code has already moved that way: `BITGET_ORDER_PATHS` in
-`src/utils/exchange/restSigningPlan.ts:298-304` points `place-order` and
+`src/utils/exchange/restSigningPlan.ts:309` points `place-order` and
 `close-position` at `/api/v3/trade/place-order`; `src/utils/exchange/venueBodies.ts:90-126`
 requires `posSide` on hedge closes; `src/utils/exchange/bitgetUtaWrites.test.ts:19-29`
 pins "UTA has no `tradeSide` request field"; signed reads are covered by
@@ -31,8 +31,8 @@ pins "UTA has no `tradeSide` request field"; signed reads are covered by
 data still rides unauthenticated `/api/v2/mix/market/*`
 (`src/utils/server/venues/bitget.ts:457-459`) and keeps working. The socket is
 public-only today: `WS_URL` is `wss://ws.bitget.com/v2/ws/public`
-(`src/services/bitgetWs.ts:60`); private channels are refused with a log line
-pointing at `wss://ws.bitget.com/v2/ws/private` plus login (`:703`, `:798-811`).
+(`src/services/bitgetWs.ts:64`); private channels are refused with a log line
+pointing at `wss://ws.bitget.com/v2/ws/private` plus login (`:1056`).
 The 40085 gate is REST-only — a UTA account logs into `v2/ws/private` fine
 (`14_uta_v3.md:36-38`), and `v3/ws/private` answers login with JSON number
 `code: 0` (`:210-232`).

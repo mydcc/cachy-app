@@ -112,7 +112,7 @@ For working *on* Cachy. To run it, use the Quick Start above.
 
 ### Prerequisites
 
-- Node.js **v22.19 or newer** (see `engines` in `package.json`)
+- Node.js **v22.22.2, v24.15.0 or v26+** (see `engines` in `package.json`)
 - npm
 - _Optional:_ a Rust toolchain with the `wasm32-unknown-unknown` target. `npm run dev` and `npm run build` invoke `scripts/build_wasm.sh` to rebuild the `technicals-wasm` indicator module. Without Rust the script keeps the pre-compiled binary committed in `static/wasm/`, so a plain `npm install && npm run dev` works out of the box.
 
@@ -217,7 +217,7 @@ See `DEPLOYMENT.md` for detailed instructions.
 
 - **Installation:** [`docs/INSTALL.md`](docs/INSTALL.md) — running Cachy yourself, from clone to a working balance, including what to do when every API call answers 401.
 - **User Guide:** `src/lib/assets/content/guide.en.md` (also available in-app).
-- **Contributing, versioning & changelog:** `AGENTS.md` (rules for all agents) for the non-negotiable coding rules and development process, including commit conventions and the semantic-release versioning policy. [`CHANGELOG.md`](CHANGELOG.md) is generated from those commits.
+- **Contributing, versioning & changelog:** `AGENTS.md` (rules for all agents) for the non-negotiable coding rules and development process, including commit conventions and the semantic-release versioning policy. [`CHANGELOG.md`](CHANGELOG.md) is curated by hand per stable release; semantic-release generates the GitHub release notes.
 
 ---
 
