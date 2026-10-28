@@ -118,7 +118,7 @@ depends_on: []
 | `target_date` | `YYYY-MM-DD` | Optional target deadline date for GitHub Projects Roadmap |
 | `iteration` | `string` | Optional sprint / iteration tag (e.g. `2026-W34` or `Sprint 1`) |
 | `agent_eligible` | `true`, `false` | Optional override for the `agent:eligible` label on the mirrored issue; the dispatch pipeline does not read it |
-| `branch` | branch name | Optional. Recorded while work is in progress; `npm run backlog:check:stale` reads it to flag a claim whose branch is already merged |
+| `branch` | branch name | **Required while `status: in-progress`** — a claim with no branch fails `npm run backlog:check:stale`. Also used to flag a claim whose branch has already merged. A `Branch:` line in the body is accepted for older items |
 | `assignee` | free slug (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …) | Who is currently working the item. **Required while `status: in-progress`** — `npm run backlog:check` fails otherwise |
 
 ### Status
@@ -132,7 +132,9 @@ depends_on: []
   is handed to Jules by the daily dispatch workflow; `execution`, `security`,
   `exchange` and `priority: P0` are never auto-dispatched and stay manual.
 - **`in-progress`** — someone is on it. Record the branch in `branch:` and set
-  `assignee`. An `in-progress` item without an `assignee` fails validation.
+  `assignee`. An `in-progress` item without an `assignee` fails
+  `npm run backlog:check`; one without a `branch:` fails
+  `npm run backlog:check:stale`.
 - **`done`** — merged **and** its acceptance criteria are proven, not just
   implemented. Record the version it shipped in.
 - **`dropped`** — decided against. Keep the file and say why. A dropped item

@@ -61,8 +61,8 @@ hand-maintained 0.9x line, the decision was to **restart at 1.0.0**. With no tag
 present, `1.0.0` is exactly what semantic-release publishes as its first release,
 so no baseline tag is needed and no manual step remains.
 
-`package.json` declares `1.0.0`. The 0.9x history stays in
-`docs/CHANGELOG-legacy.md`. Because the published number jumps series, the change
+`package.json` declares `1.0.0`. The pre-1.0 history was removed with the 1.x
+cleanup. Because the published number jumps series, the change
 carries a `BREAKING CHANGE:` footer — anything comparing against 0.9x strings,
 including the `/api/health` `version` field, has to be updated.
 
@@ -250,7 +250,7 @@ Left for a decision, deliberately not touched:
   `git ls-remote --heads origin main` shows it. `.deploy.conf` was right all
   along, and the stable/beta split it documents is real.
 
-  **Resolved:** `.releaserc.json` now configures `main` for stable releases and
+  **Resolved:** `release.config.js` configures `main` for stable releases and
   `develop` as a `beta` prerelease channel, matching `.deploy.conf`
   (`BRANCH_STABLE=main` → cachy.app, `BRANCH_BETA=develop` → dev.cachy.app).
   `release.yml` triggers on both.
@@ -380,7 +380,8 @@ behaviour still applies to any future `VITE_` variable.
 ### A live imgbb API key is committed as a default setting
 
 Found while removing the above. `defaultSettings.imgbbApiKey` in
-`src/stores/settings.svelte.ts` was not empty like every other credential — it
+`src/stores/settings/settingsTypes.ts` was not empty like every other
+credential — it
 held a 32-character hex imgbb key. `imgbbService.ts` uploads screenshots with
 whatever is in that field, so **every user of every build shared one account's
 key**, and it shipped in the client bundle by construction. **Resolved in
@@ -396,26 +397,35 @@ and shipped as BUG-0720.
 ### The full environment-variable audit
 
 Item 24b: every variable the code reads, checked against `.env.example`.
-Application code reads six, plus one that is not operator configuration:
+Application code reads six; the adapter-level settings are read by adapter-node,
+not by the app.
 
 | Variable | Read by | Was documented |
 | --- | --- | --- |
-| `APP_ACCESS_TOKEN` | retired — replaced by self-issued client tokens (BUG-0052); no code reads it | yes |
 | `LOG_STREAM_KEY` | `src/routes/api/stream-logs/+server.ts` | yes |
-| `CHAT_DB_PATH` | `src/lib/server/chatStore.ts` | yes |
 | `NODE_ENV` | `api/health`, `api/tpsl` | yes |
-| `OPENAI_API_KEY` | `src/routes/api/sentiment/+server.ts` | yes |
-| `GEMINI_API_KEY` | `src/routes/api/sentiment/+server.ts` | yes |
 | `PORT` | `server.js` | **no** |
-| `VITEST` | `src/lib/server/chatStore.ts` | n/a — set by the test runner |
+| `HOST` | `server.js` | yes |
+| `SHUTDOWN_TIMEOUT` | `server.js` | yes |
+| `OLLAMA_PROXY_BASE_URL` | `src/lib/server/ollamaBaseUrl.ts` | yes |
+| `ORIGIN` | `vite.config.ts`, at build time (not by the app at runtime) | yes |
+| `ADDRESS_HEADER`, `XFF_DEPTH` | adapter-node (trusted-proxy headers) | yes |
+
+Three rows that stood here have since been retired and are kept out of the
+table: `APP_ACCESS_TOKEN` (BUG-0052, self-issued client tokens),
+`CHAT_DB_PATH` and `VITEST` (both belonged to the file-based chat backend
+removed under roadmap item 12). `OPENAI_API_KEY` / `GEMINI_API_KEY` were listed
+too, but nothing reads them: the sentiment route takes the key from the request
+body.
 
 Only `PORT` was missing, and it is not cosmetic: `server.js` deliberately
 defaults to 3001 rather than adapter-node's 3000, because port 3000 is commonly
 taken on shared hosting. That decision lived in a code comment and in
 `.deploy.conf`, nowhere an operator reading `.env.example` would find it.
 
-Added along with `ORIGIN`, which the application never reads but adapter-node
-does — behind a reverse proxy, SvelteKit cannot otherwise resolve `event.url`.
+Added along with `ORIGIN`, which the application never reads but
+`vite.config.ts` consumes at **build** time — adapter-node no longer reads it at
+runtime. Behind a reverse proxy, SvelteKit cannot otherwise resolve `event.url`.
 The reverse check found no orphans: every variable in `.env.example` is read by
 something.
 
@@ -429,7 +439,7 @@ absent from `.env.example`. It caught `PORT` on its first run. This is the exact
 failure mode behind ADR-0002 — `APP_ACCESS_TOKEN` was undocumented, so nobody set
 it, so auth had to fail open to work at all — and it can no longer happen
 quietly. The test also asserts that its own scanner still finds
-`APP_ACCESS_TOKEN`, so a regex that stops matching cannot make it pass vacuously.
+`LOG_STREAM_KEY`, so a regex that stops matching cannot make it pass vacuously.
 
 While there: `DEPLOYMENT.md` section 7 was headed "Environment Variables
 (Optional)" and omitted `APP_ACCESS_TOKEN` entirely. Written before ADR-0002, it
@@ -654,9 +664,9 @@ Both left alone, because the code is what ships and neither looks accidental:
   (`#052618 → #010f08`, `#3d050e → #0f0505`) instead of their `--gradient-*`
   tokens — far darker than documented, consistent with a trading UI that runs dark.
 
-### On the 23 non-brand themes
+### On the 24 non-brand themes
 
-`src/themes.css` ships 27 themes; only four are brand themes. The rest are
+`src/themes.css` ships 28 themes; only four are brand themes. The rest are
 editor-inspired (Dracula, Nord, Tokyo Night, Gruvbox, Solarized, ...). That is not
 brand drift: a tool people keep open next to their editor for hours benefits from
 matching it. `docs/BRAND.md` states the boundary explicitly so the distinction is
@@ -664,7 +674,7 @@ not lost again.
 
 ---
 
-## 12. Global Chat: the item-12 premise was wrong, and there are two chats
+## 12. Global Chat: the item-12 premise was wrong, and there were two chats
 
 Roadmap item 12 read: *"Decide the fate of the orphaned file-based
 `src/lib/server/chatStore.ts` — it has no authentication and violates Class B
@@ -753,8 +763,9 @@ so re-adding any derived field fails there rather than in review.
 
 **Both typecheck; neither has run.** Publishing needs the SpacetimeDB CLI, which
 is not vendored here and is not obtainable from npm — `spacetimedb-cli` returns
-404. So `spacetime publish` and `spacetime generate` remain outstanding and need
-a machine with SpacetimeDB installed.
+404. So `spacetime publish` remains outstanding and needs
+a machine with SpacetimeDB installed; `spacetime generate` has since been run
+(item 15b).
 
 The interface for erasure is in place regardless (item 15b): Settings → Cloud has
 a "delete my messages" control behind a two-click confirmation. The awkward part

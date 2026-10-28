@@ -35,7 +35,8 @@ What settled it was not the arithmetic but **how well the input is known**:
    (`"0.0140"`). `tradeState.remoteMakerFee` / `remoteTakerFee` exist and are
    read by `GeneralInputs.svelte:133`, and `feeRateService.ts:77-78` assigns
    them from the account's own fills — so they are populated, but only after a
-   sync and only for that account.
+   fee sync. They are not stored per account: a switch to a second account on
+   the same exchange keeps the previous rates until the next sync.
 2. **Even a correct rate does not fix it.** Which leg pays which rate depends
    on how the order resolves, and that is not known when the plan is set: a
    take-profit resting as a limit order pays maker, the same position closed

@@ -240,7 +240,8 @@ palette *is* the designed palette.
 One value does not reconcile: the file gives Green Free Light highlight as
 RGB 72 176 130 (`#48b082`), while `src/themes.css` has `#48b0b2` (72 176 178).
 Since the last channel is exactly where the OCR damage clusters, the code is the
-better witness — but `brand_guidelines/` page 15 would settle it.
+better witness — but `brand_guidelines/` page 15 would settle it, and that page
+is recoverable from `1d947f93a^`.
 
 ### The other-website problem
 

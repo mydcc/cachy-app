@@ -7,7 +7,7 @@
 ## Context
 
 `checkClientToken` in `src/lib/server/clientToken.ts` guarded the API routes
-below at the time of this decision — 18 endpoints were listed, and 29 route
+below at the time of this decision — 17 endpoints were listed, and 29 route
 files call it today (the list is illustrative, not exhaustive):
 
 - Trading: `/api/orders`, `/api/tpsl`, `/api/positions`, `/api/account`,

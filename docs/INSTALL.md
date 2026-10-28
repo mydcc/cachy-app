@@ -156,10 +156,14 @@ browser.
 Everything you enter — journal, settings, exchange API keys, presets and notes —
 stays in your browser's local storage. Two things are an exception, and only as
 credentials of a request you started: the client access token travels as
-`x-app-access-token` on guarded requests, and your exchange API keys travel to
-your **own** server when you place or read an order (the server proxies the
-signed request to the exchange). Credentials are encrypted at rest. See
-[ADR-0001](adr/0001-local-first-boundary.md) for the exact boundary.
+`x-app-access-token` on guarded requests, and when you place or read an order the
+API **key id** and the signature your browser produced travel to your **own**
+server, which forwards them to the exchange. The API **secret** never leaves the
+browser — it signs locally. (Bitget additionally requires its passphrase as a
+header, which is the one credential the server relays.) Credentials are
+encrypted at rest. See
+[ADR-0001](adr/0001-local-first-boundary.md) and
+[ADR-0013](adr/0013-client-side-exchange-signing.md) for the exact boundary.
 
 Because nothing is stored server-side, **backups are your responsibility**:
 Settings → System → Create Backup, optionally password-protected. Since

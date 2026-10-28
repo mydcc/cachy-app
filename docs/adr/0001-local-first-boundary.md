@@ -27,8 +27,10 @@ None of that is accurate. What the code actually contains:
 `src/components/settings/tabs/CloudTab.svelte`. The server module lives in
 `server/spacetimedb/src/index.ts` and exposes three reducers: `send_message`,
 `delete_my_messages` and the scheduled `delete_expired_messages`. Generated
-client bindings sit in `src/lib/spacetimedb/` (12 files). The single table,
-`GlobalMessage`, has three fields: `sender`, `text`, `sentAt`.
+client bindings sit in `src/lib/spacetimedb/` (12 modules plus a generated
+`types/` folder). The `GlobalMessage` table has three fields: `sender`, `text`,
+`sentAt` — one of three tables (the others are `sender_activity`, the
+identity-keyed rate-limit window, and `message_cleanup_schedule`).
 
 **A second, older chat backend — since removed.**
 `src/lib/server/chatStore.ts` persisted messages to `db/chat_messages.json` (up
@@ -121,15 +123,15 @@ Class B is a breaking change and requires an ADR plus a changelog entry marked
   telemetry, crash reports and debug logs.
 - Adding a Class B feature without an ADR.
 - Making any core function depend on server reachability.
-- Restating Local-First as an absolute in `CLAUDE.md`, the README or the
+- Restating Local-First as an absolute in `AGENTS.md`, the README or the
   whitepaper. It must be described as this boundary.
 
 ## Alternatives considered
 
 **Remove Global Chat and the server component entirely.** This would make the
 original absolute claim true and eliminate the GDPR question. Rejected: the
-SpacetimeDB integration is substantially built (server module, 10 generated
-binding files, a wired settings tab), the maintainer wants the feature, and
+SpacetimeDB integration is substantially built (server module, 12 generated
+binding modules, a wired settings tab), the maintainer wants the feature, and
 discarding working infrastructure to simplify a sentence in a document is the
 wrong trade.
 

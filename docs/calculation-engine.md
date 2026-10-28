@@ -48,7 +48,8 @@ Planned features:
 
 Enable **Debug Mode** (Settings → System → Performance sub-tab) to see:
 - Which engines are available on the device
-- Per-engine median time (last ≤50 runs), sample count, health and usage share (p95 is computed by `runBenchmark()` but not shown in the panel)
+- Per-engine median time (last ≤50 runs), sample count, usage share, and health
+  for WASM only (p95 is computed by `runBenchmark()` but not shown in the panel)
 - Recent calculation history (last 10 of max 50 in-memory entries)
 
 ## Performance
