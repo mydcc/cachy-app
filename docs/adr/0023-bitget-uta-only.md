@@ -26,8 +26,9 @@ The code has already moved that way: `BITGET_ORDER_PATHS` in
 `src/utils/exchange/restSigningPlan.ts:309` points `place-order` and
 `close-position` at `/api/v3/trade/place-order`; `src/utils/exchange/venueBodies.ts:90-126`
 requires `posSide` on hedge closes; `src/utils/exchange/bitgetUtaWrites.test.ts:19-29`
-pins "UTA has no `tradeSide` request field"; signed reads are covered by
-`src/utils/server/venues/bitgetUtaReads.test.ts:157,202,233,300`. Public market
+pins "UTA has no `tradeSide` request field"; signed reads are covered by the
+four `requestedUrl().pathname` assertions in
+`src/utils/server/venues/bitgetUtaReads.test.ts`. Public market
 data still rides unauthenticated `/api/v2/mix/market/*`
 (`src/utils/server/venues/bitget.ts:457-459`) and keeps working. The socket is
 public-only today: `WS_URL` is `wss://ws.bitget.com/v2/ws/public`
@@ -35,7 +36,7 @@ public-only today: `WS_URL` is `wss://ws.bitget.com/v2/ws/public`
 pointing at `wss://ws.bitget.com/v2/ws/private` plus login (`:1056`).
 The 40085 gate is REST-only — a UTA account logs into `v2/ws/private` fine
 (`14_uta_v3.md:36-38`), and `v3/ws/private` answers login with JSON number
-`code: 0` (`:210-232`).
+`code: 0` (`14_uta_v3.md` §"WebSocket login success is the number 0").
 
 Against deciding now: several UTA behaviours are observation-gated, not
 verified — `posSide`-omission behaviour, `clientOid`-resubmission, the one-way

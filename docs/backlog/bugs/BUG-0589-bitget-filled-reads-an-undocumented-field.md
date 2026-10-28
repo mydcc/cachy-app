@@ -24,8 +24,9 @@ depends_on: [BUG-0590]
 ## Evidence found (2026-10-03) — the field name was never real
 
 `filledQty` appears in no Bitget generation. This is not a case of the docs
-documenting an older shape; the field does not exist. On `/api/v3/*`, observed
-live:
+documenting an older shape; the field does not exist. On `/api/v3/*` the order
+schema splits the quantity three ways — **documented** in the vendor's samples,
+not observed on the wire (the captures hold no order entry; BUG-0590):
 
 | Meaning | Field | Endpoint |
 |---|---|---|
@@ -38,19 +39,22 @@ live:
 neither named `filledQty`, and `baseVolume` (the name the Classic mirror
 documents) is a market-data field that does not appear on either order endpoint.
 
-Both read paths in `src/utils/server/venues/bitget.ts` (`:131`, `:171`) carry the
-same three lines, and both need the envelope change too: V3 answers
-`data: { list, cursor }`, not `data: [...]`.
+Both read paths in `src/utils/server/venues/bitget.ts` carried the same three
+lines before BUG-0596, and both needed the envelope change too: V3 answers
+`data: { list, cursor }`, not `data: [...]`. That migration landed; the readers
+now map `cumExecQty` (`bitget.ts:259`, `:303`).
 
-Evidence: `docs/bitget-api/14_uta_v3.md`. The blocker named in BUG-0590 is
-resolved for the UTA generation; the Classic half still needs a Classic-mode
-account.
+Evidence: `docs/bitget-api/14_uta_v3.md`. What is still unverified is whether a
+*populated* entry carries `cumExecQty`, and what it means under a partial fill —
+that is BUG-0590, which stays open because no such response has been captured.
 
 ## Symptom
 
-Every Bitget order reports **zero filled**, whatever actually executed. A
-partially filled Bitget order renders as if nothing had filled, and a
-completed one reports `0` in the history list.
+**As filed, before BUG-0596.** Every Bitget order reported **zero filled**,
+whatever actually executed: a partially filled Bitget order rendered as if
+nothing had filled, and a completed one reported `0` in the history list. Both
+readers now map `cumExecQty`, so the display half is expected to be fixed — but
+no populated Bitget order has been observed to confirm it (BUG-0590).
 
 ## Evidence
 
@@ -62,25 +66,27 @@ pending, history and plan endpoints (`:572`, `:630`, `:685`).
 
 The string `filledQty` appears **nowhere** in `docs/bitget-api/`.
 
-The normaliser reads the undocumented name, in both REST paths:
-
-- `src/utils/server/venues/bitget.ts:131` (`fetchBitgetPendingOrders`)
-- `src/utils/server/venues/bitget.ts:171` (`fetchBitgetHistoryOrders`)
+Before BUG-0596 the normaliser read the undocumented name in both REST paths
+(then `:131`, `:171`):
 
     filled: formatApiNum(o.filledQty) || "0",
 
-`BitgetRawOrder` declares the field as optional (`filledQty?: string | number`)
-and the interface comment concedes it is "whatever field either endpoint's raw
-order carries" rather than a verified shape — so a miss is silent by
-construction: `formatApiNum(undefined)` yields nothing and the `|| "0"`
-fallback supplies a plausible zero.
+`BitgetRawOrder` declared the field as optional (`filledQty?: string | number`)
+and the interface comment conceded it was "whatever field either endpoint's raw
+order carries" rather than a verified shape — both were removed in the BUG-0596
+migration (`d842dd837`). A miss was silent by construction:
+`formatApiNum(undefined)` yielded nothing and the `|| "0"` fallback supplied a
+plausible zero. The readers now map `o.cumExecQty`, which is the fix this item
+asked for; what it cannot prove is that a populated entry carries that field.
 
 Contrast Bitunix, which is sound: `tradeQty` is documented as "Filled quantity
 (base coin)" and both partial-fill examples carry it.
 
 ## Blast radius
 
-User-visible, on the Bitget side only:
+User-visible, on the Bitget side only — **measured before BUG-0596**; with
+`cumExecQty` mapped, these gates should now receive a real value, which no
+populated capture has confirmed yet:
 
 - `OpenOrdersList.svelte:346` — the filled row is gated on
   `Number(order.filled) > 0`, so it never renders for Bitget
@@ -105,6 +111,10 @@ class as BUG-0580, and the reason that item exists. It survived because a
 missing field and a genuinely unfilled order produce the same value.
 
 ## Fix
+
+**Status (2026-10-28):** the mapping half landed with BUG-0596 — both readers
+use `cumExecQty` — so step 2 below is moot for the zero it describes. The capture
+in step 1 still has not happened; BUG-0590 records why and what is missing.
 
 Establish the field from a real response, then map it. In order of preference:
 
