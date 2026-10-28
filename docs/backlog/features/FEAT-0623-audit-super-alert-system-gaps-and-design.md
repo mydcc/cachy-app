@@ -2,7 +2,9 @@
 id: FEAT-0623
 title: Audit the Super Alert system for gaps and UI/UX design
 type: feature
-status: ready
+status: done
+assignee: opencode
+branch: docs/feat-0623-super-alert-audit
 priority: P2
 milestone: none
 created: "2026-10-05"
@@ -52,21 +54,40 @@ drift.
 
 ## Acceptance criteria
 
-- [ ] A gap table covers the full flow per alert type (price, indicator,
+- [x] A gap table covers the full flow per alert type (price, indicator,
       drawing): trigger configuration, delivery channels, and announcement
       (banner, sound) — existing versus missing
-- [ ] A UI/UX findings table covers every alert surface: the side panel, the
+- [x] A UI/UX findings table covers every alert surface: the side panel, the
       indicator alert controls, the notification settings, and the external
       channels
-- [ ] Every gap is filed as a follow-up item and linked here, or deferred with
+- [x] Every gap is filed as a follow-up item and linked here, or deferred with
       a recorded reason
-- [ ] Every UI/UX finding is filed as a follow-up item and linked here, or
+- [x] Every UI/UX finding is filed as a follow-up item and linked here, or
       deferred with a recorded reason
-- [ ] Channel configuration (email, webhook, messenger equivalents) is checked
+- [x] Channel configuration (email, webhook, messenger equivalents) is checked
       for dead ends: a channel that can be configured but never fires, or
       fires but cannot be configured, is a `BUG`, not a finding
-- [ ] The audit states which alert types support per-type sound or banner
+- [x] The audit states which alert types support per-type sound or banner
       configuration and which do not
+
+## Result
+
+The audit is
+[`assets/FEAT-0623/alert-system-audit.md`](../assets/FEAT-0623/alert-system-audit.md):
+two tables (§2 gaps per alert type, §4 findings per surface), a channel
+dead-end check (§3), and the deferrals with reasons (§5).
+
+It produced one new item —
+[`FEAT-0752`](FEAT-0752-route-drawing-alerts-through-the-lifecycle-footer.md),
+the only alert type that bypasses the builder — and sharpened two existing ones:
+FEAT-0748 gains the "effective set when nothing is ticked" criterion, FEAT-0749
+gains the unread count on the rail entry. No channel dead end was found: every
+channel is configurable and has a send path, and every undeliverable state is
+reported where it is configured.
+
+Per-type sound and banner do not exist, and are deferred with a reason rather
+than filed: all alerts share the `alert-fired` category, and per-rule channel
+selection covers the practical need.
 
 ## Out of scope
 
@@ -87,6 +108,9 @@ drift.
 
 ## Links
 
+- Result: [`assets/FEAT-0623/alert-system-audit.md`](../assets/FEAT-0623/alert-system-audit.md)
+- Follow-up filed by the audit:
+  [`FEAT-0752`](FEAT-0752-route-drawing-alerts-through-the-lifecycle-footer.md)
 - Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §5
 - [FEAT-0389](FEAT-0389-super-alert-panel.md) — the side panel this audits
 - [FEAT-0395](FEAT-0395-alert-entry-points.md) — chart and indicator entry points

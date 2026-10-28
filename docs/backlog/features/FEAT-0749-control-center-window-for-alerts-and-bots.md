@@ -81,6 +81,9 @@ keep-above and a window switcher (FEAT-0737–0742).
 - [ ] The Alerts tab mounts the FEAT-0747 components rather than a second list
       implementation; a test or a static check pins that there is one list
       component.
+- [ ] The rail entry carries an unread count for firings since the trader last
+      opened the window, so a firing that happened while it was closed is still
+      visible after the notification toast is gone.
 - [ ] German and English strings exist for every new label.
 - [ ] No server import or call is added. The architecture data-flow diagram is
       unchanged because no data crosses a boundary; the PR says so explicitly.

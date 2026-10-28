@@ -78,6 +78,9 @@ Two gaps remain:
       `enabled` unchanged — pinned by a test.
 - [ ] Unconfigured channels are absent from the selector, not present and
       inert.
+- [ ] When no channel is ticked, the builder's footer states the effective set
+      — the category policy's local channels — instead of showing an empty
+      selection that reads as "nothing will be announced".
 - [ ] The effective channel set is readable on the list row in both locales.
 - [ ] Every new control is keyboard reachable and labelled.
 
