@@ -35,6 +35,7 @@ import ManageTab from "./ManageTab.svelte";
 import { alertState } from "../../../stores/alerts.svelte";
 import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import { uiState } from "../../../stores/ui.svelte";
+import type { Condition } from "../../../lib/rules/types";
 
 // The cutover notice reads localStorage behind a promise and is FEAT-0388's
 // concern, not this tab's list behaviour. Answering "no" keeps its banner out
@@ -110,6 +111,15 @@ function rule(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+/** A price-crossing rule the price builder can own. */
+const PRICE_CROSS: Condition = {
+  kind: "cross",
+  left: { kind: "price", field: "close" },
+  direction: "above",
+  right: { kind: "constant", value: "70000" },
+  timeframe: "1m",
+};
 
 function seedRules(rules: unknown[], firedCounts: Record<string, number> = {}) {
   localStorage.setItem(RULES_KEY, JSON.stringify(rules));
@@ -365,5 +375,258 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
       en.dashboard.alerts.editNotEditable,
       "error",
     );
+  });
+
+  /** Opens the first row's native disclosure and proves it really expanded. */
+  function expandFirstRow(el: HTMLElement): HTMLDetailsElement {
+    const details = el.querySelector<HTMLDetailsElement>(".row-details");
+    expect(details).not.toBeNull();
+    expect(details!.tagName).toBe("DETAILS");
+    expect(details!.open).toBe(false);
+    (details!.querySelector("summary") as HTMLElement).click();
+    flushSync();
+    expect(details!.open).toBe(true);
+    return details!;
+  }
+
+  /** Every `dt` with its `dd`, so a test asserts values rather than substrings. */
+  function detailPairs(details: HTMLElement): Record<string, string> {
+    const pairs: Record<string, string> = {};
+    for (const dt of details.querySelectorAll("dt")) {
+      pairs[dt.textContent?.trim() ?? ""] = (
+        dt.nextElementSibling?.textContent ?? ""
+      ).trim();
+    }
+    return pairs;
+  }
+
+  it("FEAT-0543: expands an indicator row to its full configuration", () => {
+    seedRules([
+      rule({
+        conditions: {
+          kind: "compare",
+          left: {
+            kind: "indicator",
+            indicator: { id: "rsi", params: { period: 14 } },
+          },
+          op: "gt",
+          right: { kind: "constant", value: "70" },
+          timeframe: "1m",
+        },
+        frequency: "every_time",
+        valid_until_ms: Date.parse("2030-01-01T12:00:00Z"),
+        trigger_methods: ["sound"],
+        note: "watch the level",
+      }),
+    ]);
+
+    const details = expandFirstRow(render());
+    const pairs = detailPairs(details);
+
+    // The flat header could only print a compare's constant, with price
+    // words; it never named the indicator. The detail reads the stored rule.
+    expect(details.textContent).toContain("RSI(14)");
+    expect(pairs.Timeframe).toBe("1m");
+    expect(pairs.Evaluation).toBe(
+      en.dashboard.alerts.panel.evaluationModeOption.close,
+    );
+    expect(pairs.Frequency).toBe(
+      en.dashboard.alerts.panel.lifecycle.frequencyOption.every_time,
+    );
+    expect(pairs.Channels).toBe(
+      en.dashboard.alerts.panel.lifecycle.methodOption.sound,
+    );
+    expect(pairs.Note).toBe("watch the level");
+    expect(pairs[en.dashboard.alerts.panel.lifecycle.validUntil]).toContain(
+      "2030",
+    );
+    expect(Object.keys(pairs)).toEqual([
+      en.dashboard.alerts.panel.timeframe,
+      en.dashboard.alerts.panel.evaluationMode,
+      en.dashboard.alerts.panel.lifecycle.frequency,
+      en.dashboard.alerts.panel.lifecycle.validUntil,
+      en.common.channels,
+      en.dashboard.alerts.panel.lifecycle.note,
+    ]);
+  });
+
+  it("FEAT-0543: shows the intrabar evaluation mode", () => {
+    seedRules([
+      rule({ conditions: PRICE_CROSS, evaluation_mode: "intrabar" }),
+    ]);
+
+    const pairs = detailPairs(expandFirstRow(render()));
+
+    expect(pairs[en.dashboard.alerts.panel.evaluationMode]).toBe(
+      en.dashboard.alerts.panel.evaluationModeOption.intrabar,
+    );
+  });
+
+  it("FEAT-0543: shows every leg of a combo with the sentence's joining word", () => {
+    const rsi: Condition = {
+      kind: "compare",
+      left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+      op: "gt",
+      right: { kind: "constant", value: "70" },
+      timeframe: "1m",
+    };
+    const ema: Condition = {
+      kind: "cross",
+      left: { kind: "indicator", indicator: { id: "ema", params: { period: 9 } } },
+      direction: "above",
+      right: { kind: "indicator", indicator: { id: "ema", params: { period: 21 } } },
+      timeframe: "1m",
+    };
+    seedRules([rule({ conditions: { kind: "group", op: "all", of: [rsi, ema] } })]);
+
+    const text = expandFirstRow(render()).textContent ?? "";
+
+    expect(text).toContain("RSI(14)");
+    expect(text).toContain("EMA(9)");
+    expect(text).toContain("EMA(21)");
+    // Not just "and" somewhere in the prose: the two legs must be joined by
+    // the same word the footer sentence uses.
+    expect(text).toMatch(/RSI\(14\).*and.*EMA\(9\)/s);
+  });
+
+  it("FEAT-0543: shows a candlestick pattern by its name", () => {
+    seedRules([
+      rule({ conditions: { kind: "pattern", pattern: "hammer", timeframe: "1m" } }),
+    ]);
+
+    const text = expandFirstRow(render()).textContent ?? "";
+
+    expect(text).toContain("Hammer");
+  });
+
+  it("FEAT-0543: omits optional fields instead of printing placeholders", () => {
+    seedRules([rule({ conditions: PRICE_CROSS })]);
+
+    const pairs = detailPairs(expandFirstRow(render()));
+
+    expect(pairs[en.dashboard.alerts.panel.timeframe]).toBe("1m");
+    expect(pairs[en.dashboard.alerts.panel.lifecycle.frequency]).toBe(
+      en.dashboard.alerts.panel.lifecycle.frequencyOption.once,
+    );
+    expect(pairs[en.dashboard.alerts.panel.lifecycle.validUntil]).toBeUndefined();
+    expect(pairs[en.common.channels]).toBeUndefined();
+    expect(pairs[en.dashboard.alerts.panel.lifecycle.note]).toBeUndefined();
+  });
+
+  it("FEAT-0543: expands the row it belongs to, not a shared detail", () => {
+    seedRules([
+      rule({ id: "btc", symbol: "BTCUSDT", conditions: PRICE_CROSS }),
+      rule({
+        id: "eth",
+        symbol: "ETHUSDT",
+        conditions: {
+          ...PRICE_CROSS,
+          right: { kind: "constant", value: "4200" },
+        },
+      }),
+    ]);
+
+    const el = render();
+    const all = [...el.querySelectorAll<HTMLDetailsElement>(".row-details")];
+    expect(all).toHaveLength(2);
+    const ethRow = [...el.querySelectorAll(".alert-item")].find((r) =>
+      r.textContent?.includes("ETHUSDT"),
+    );
+    const ethDetails = ethRow?.querySelector<HTMLDetailsElement>(".row-details");
+    (ethDetails?.querySelector("summary") as HTMLElement).click();
+    flushSync();
+
+    expect(ethDetails?.open).toBe(true);
+    expect(ethDetails?.textContent).toContain("4200");
+    expect(all[0].open).toBe(false);
+  });
+
+  it("FEAT-0543: names the disclosure with the row's symbol", () => {
+    seedRules([rule({ conditions: PRICE_CROSS })]);
+
+    const details = expandFirstRow(render());
+
+    expect(
+      details.querySelector("summary")?.getAttribute("aria-label"),
+    ).toBe(`BTCUSDT: ${en.dashboard.alerts.configuration}`);
+  });
+
+  it("FEAT-0543: keeps a partial condition listable but renders no configuration", () => {
+    seedRules([
+      {
+        id: "partial",
+        symbol: "BTCUSDT",
+        conditions: { kind: "group" },
+        action: { consequence_level: "notify" },
+        provenance: { source: "human", created_at_ms: 1 },
+        trigger_timeframe: "1m",
+      },
+    ]);
+
+    const el = render();
+
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(1);
+    expect(el.querySelector(".row-details")).toBeNull();
+    expect(el.querySelector(".delete-btn")).not.toBeNull();
+    expect(el.querySelector(".edit-btn")).not.toBeNull();
+  });
+
+  it("FEAT-0543: keeps an unknown condition kind listable without phrasing it", () => {
+    seedRules([
+      {
+        id: "unknown",
+        symbol: "BTCUSDT",
+        conditions: { kind: "mystery" },
+        action: { consequence_level: "notify" },
+        provenance: { source: "human", created_at_ms: 1 },
+        trigger_timeframe: "1m",
+      },
+    ]);
+
+    const el = render();
+
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(1);
+    expect(el.querySelector(".row-details")).toBeNull();
+    expect(el.querySelector(".delete-btn")).not.toBeNull();
+  });
+
+  it("FEAT-0543: survives a non-array trigger_methods field", () => {
+    seedRules([rule({ conditions: PRICE_CROSS, trigger_methods: "sound" })]);
+
+    const details = expandFirstRow(render());
+
+    expect(details).not.toBeNull();
+    expect(details.textContent).not.toContain(en.common.channels);
+  });
+
+  it("FEAT-0543: falls back to raw lifecycle values it does not recognise", () => {
+    seedRules([
+      rule({
+        conditions: PRICE_CROSS,
+        frequency: "sometimes",
+        evaluation_mode: "tickwise",
+        trigger_methods: ["carrier_pigeon"],
+      }),
+    ]);
+
+    const pairs = detailPairs(expandFirstRow(render()));
+
+    expect(pairs[en.dashboard.alerts.panel.lifecycle.frequency]).toBe("sometimes");
+    expect(pairs[en.dashboard.alerts.panel.evaluationMode]).toBe("tickwise");
+    expect(pairs[en.common.channels]).toBe("carrier_pigeon");
+  });
+
+  it("FEAT-0543: still phrases a pre-action legacy rule", () => {
+    // `renderRuleSentence` reads `action` for its lead, so `sentenceFor`
+    // supplies the same `notify` fill `loadForEdit` does. A rule stored
+    // before that field existed must still get its detail.
+    const legacy = rule({ conditions: PRICE_CROSS }) as Record<string, unknown>;
+    delete legacy.action;
+    seedRules([legacy]);
+
+    const text = expandFirstRow(render()).textContent ?? "";
+
+    expect(text).toContain("70000");
+    expect(text).toContain("1m");
   });
 });

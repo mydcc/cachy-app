@@ -13,7 +13,12 @@
 -->
 <script lang="ts">
     import { _, locale } from "../../locales/i18n";
+    import { intlTagFor } from "../../lib/i18n/intlTag";
     import { alertPanelState } from "../../stores/alertPanel.svelte";
+    import {
+        FREQUENCY_KEYS,
+        METHOD_KEYS,
+    } from "../../lib/alerts/lifecycleLabels";
     import {
         NOTE_MAX_CHARS,
         type TriggerFrequency,
@@ -32,7 +37,7 @@
      * machine rendered an English date inside a German sentence. The hybrid
      * `de-tech` locale is not a tag `Intl` accepts, so it maps to plain `de`.
      */
-    const intlTag = $derived(($locale ?? "en").startsWith("de") ? "de-DE" : "en-US");
+    const intlTag = $derived(intlTagFor($locale));
 
     /**
      * The expiry as a `datetime-local` value, or "" when the rule never expires.
@@ -100,7 +105,7 @@
      */
     const summary = $derived.by(() => {
         const parts = [
-            $_(`dashboard.alerts.panel.lifecycle.frequencyOption.${draft.frequency ?? "once"}`),
+            $_(FREQUENCY_KEYS[draft.frequency ?? "once"]),
         ];
         if (draft.valid_until_ms !== undefined) {
             parts.push(
@@ -118,7 +123,7 @@
         if (methods.length > 0) {
             parts.push(
                 methods
-                    .map((m) => $_(`dashboard.alerts.panel.lifecycle.methodOption.${m}`))
+                    .map((m) => $_(METHOD_KEYS[m]))
                     .join(", "),
             );
         }
@@ -145,7 +150,7 @@
             >
                 {#each FREQUENCIES as frequency (frequency)}
                     <option value={frequency}>
-                        {$_(`dashboard.alerts.panel.lifecycle.frequencyOption.${frequency}`)}
+                        {$_(FREQUENCY_KEYS[frequency])}
                     </option>
                 {/each}
             </select>
@@ -176,7 +181,7 @@
                     checked={(draft.trigger_methods ?? []).includes(method)}
                     onchange={(e) => toggleMethod(method, e.currentTarget.checked)}
                 />
-                <span>{$_(`dashboard.alerts.panel.lifecycle.methodOption.${method}`)}</span>
+                <span>{$_(METHOD_KEYS[method])}</span>
             </label>
         {/each}
         <p class="field-hint">

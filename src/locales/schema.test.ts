@@ -137,3 +137,32 @@ describe("dashboard.alerts edit DE/EN parity (FEAT-0542)", () => {
         expect(deKeys).toEqual(enKeys);
     });
 });
+
+describe("dashboard.alerts row detail DE/EN parity (FEAT-0543)", () => {
+    function pick(dict: unknown, key: string): unknown {
+        return key.split(".").reduce<unknown>((current, part) => {
+            if (!current || typeof current !== "object") return undefined;
+            return (current as Record<string, unknown>)[part];
+        }, dict);
+    }
+
+    it("carries non-empty configuration and footer labels in both languages", () => {
+        const keys = [
+            "dashboard.alerts.configuration",
+            "dashboard.alerts.panel.newAlert",
+            "dashboard.alerts.panel.editingAlert",
+        ];
+
+        for (const key of keys) {
+            expect(typeof pick(en, key), `missing EN ${key}`).toBe("string");
+            expect(typeof pick(de, key), `missing DE ${key}`).toBe("string");
+            expect(pick(en, key), `empty EN ${key}`).not.toBe("");
+            expect(pick(de, key), `empty DE ${key}`).not.toBe("");
+        }
+
+        // "Editing alert" must not be the pencil's verb phrase in German.
+        expect(pick(de, "dashboard.alerts.panel.editingAlert")).not.toBe(
+            pick(de, "dashboard.alerts.editAlert"),
+        );
+    });
+});

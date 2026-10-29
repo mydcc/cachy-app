@@ -180,6 +180,15 @@ class AlertPanelStore {
    */
   rearmedFromDisarmed = $state(false);
 
+  /**
+   * True while the draft came from a stored rule (FEAT-0542/0543).
+   *
+   * The footer is shared by every builder, so its heading has to distinguish
+   * the two cases honestly: a fresh draft is a new alert, a loaded one is an
+   * alert being edited. `reset()` clears it, and `loadForEdit()` sets it.
+   */
+  isEditing = $state(false);
+
   /** The rule under construction. Every tab writes into this one document. */
   draft = $state<RuleDocument>(blankDraft("BTCUSDT"));
 
@@ -291,6 +300,7 @@ class AlertPanelStore {
     this.draft = blankDraft(symbol);
     this.drawingDraft = null;
     this.rearmedFromDisarmed = false;
+    this.isEditing = false;
     this.priceField = "close";
     this.priceSeries = "last";
     this.refusals = [];
@@ -496,6 +506,7 @@ class AlertPanelStore {
     // Only a stored `false` means the firing path disarmed it. An absent
     // `enabled` is the legacy default and not evidence of a spent rule.
     this.rearmedFromDisarmed = rule.enabled === false;
+    this.isEditing = true;
     this.priceField = "close";
     this.priceSeries = "last";
     this.refusals = [];
