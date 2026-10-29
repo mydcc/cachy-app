@@ -44,6 +44,12 @@
         type StoredRule,
     } from "../../../services/alertEngine/ruleLifecycleView";
     import { removeRule } from "../../../services/alertEngine/armRule";
+    import {
+        duplicateRule,
+        setRuleEnabled,
+        type DuplicateRefusal,
+        type SetRuleEnabledReason,
+    } from "../../../services/alertEngine/ruleActions";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import {
@@ -107,6 +113,23 @@
 
     const translator: SentenceTranslator = (key, values) =>
         $_(key as TranslationKey, values ? { values } : undefined);
+
+    const DUPLICATE_REFUSAL_KEYS: Record<DuplicateRefusal, TranslationKey> = {
+        unknown: "dashboard.alerts.editMissing",
+        bot: "dashboard.alerts.duplicateBot",
+        unreadable: "dashboard.alerts.duplicateUnreadable",
+        "anchor-failed": "dashboard.alerts.duplicateAnchorFailed",
+        invalid: "dashboard.alerts.duplicateInvalid",
+        "core-unavailable": "dashboard.alerts.duplicateUnavailable",
+    };
+
+    const SET_ENABLED_KEYS: Record<SetRuleEnabledReason, TranslationKey> = {
+        unknown: "dashboard.alerts.editMissing",
+        bot: "dashboard.alerts.editNotEditable",
+        unreadable: "dashboard.alerts.editUnreadable",
+        conflict: "dashboard.alerts.ruleChanged",
+        "write-failed": "dashboard.alerts.editUnreadable",
+    };
 
     const intlTag = $derived(intlTagFor($locale));
     const dateFormatter = $derived(
@@ -328,6 +351,38 @@
         }
     }
 
+    /**
+     * FEAT-0746 — pause/resume writes only `enabled`; the store keeps the
+     * anchors, so resuming cannot replay a candle the rule already saw.
+     */
+    function toggleRow(row: DetailRow) {
+        const result = setRuleEnabled(row.id, !row.enabled);
+        if (!result.ok) {
+            uiState.showToast($_(SET_ENABLED_KEYS[result.reason]), "error");
+            return;
+        }
+        alertState.rulesVersion += 1;
+    }
+
+    /**
+     * FEAT-0746 — the copy starts paused, with a fresh id and a provenance
+     * link to the source hash. The UI composes the localised name, including
+     * the "(copy)" suffix; the store carries the string but no locale logic.
+     */
+    function duplicateRow(row: DetailRow) {
+        const baseName = row.rule.name?.trim() || row.symbol;
+        const name = $_("dashboard.alerts.copyName", {
+            values: { name: baseName },
+        });
+        const result = duplicateRule(row.id, name);
+        if (!result.ok) {
+            uiState.showToast($_(DUPLICATE_REFUSAL_KEYS[result.reason]), "error");
+            return;
+        }
+        alertState.rulesVersion += 1;
+        uiState.showToast($_("dashboard.alerts.duplicated"), "success");
+    }
+
 </script>
 
 <!--
@@ -481,6 +536,28 @@
                     {/if}
                 </div>
                 <div class="row-actions">
+                    {#if row.enabled || row.status !== "fired"}
+                        <button
+                            type="button"
+                            class="pause-btn"
+                            aria-label={$_("dashboard.alerts.pauseAlert")}
+                            aria-pressed={!row.enabled}
+                            title={row.enabled
+                                ? $_("dashboard.alerts.pauseAlert")
+                                : $_("dashboard.alerts.resumeAlert")}
+                            onclick={() => toggleRow(row)}
+                        >
+                            {row.enabled ? "⏸" : "▶"}
+                        </button>
+                    {/if}
+                    <button
+                        type="button"
+                        class="duplicate-btn"
+                        aria-label={$_("dashboard.alerts.duplicateAlert")}
+                        onclick={() => duplicateRow(row)}
+                    >
+                        ⧉
+                    </button>
                     <button
                         type="button"
                         class="edit-btn"
@@ -698,6 +775,18 @@
         cursor: pointer;
     }
     .edit-btn:hover {
+        color: var(--accent-color);
+    }
+    .pause-btn,
+    .duplicate-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: var(--text-xl);
+        cursor: pointer;
+    }
+    .pause-btn:hover,
+    .duplicate-btn:hover {
         color: var(--accent-color);
     }
     .delete-btn {

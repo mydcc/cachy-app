@@ -139,7 +139,14 @@ export function recordDrawingAnchor(
     ruleId: string,
     anchor: DrawingAnchor,
 ): { ok: boolean; ledger: DrawingAnchorLedger } {
-    const next = { ...readDrawingAnchorLedger().ledger, [ruleId]: anchor };
+    // Re-read at write time, but do not flatten an unreadable ledger to `{}`:
+    // that would overwrite every other rule's binding with the one entry we
+    // are adding. An unreadable read is a refusal, not an empty starting point.
+    const snapshot = readDrawingAnchorLedger();
+    if (!snapshot.present) {
+        return { ok: false, ledger: snapshot.ledger };
+    }
+    const next = { ...snapshot.ledger, [ruleId]: anchor };
     const ok = persist(next);
     return { ok, ledger: next };
 }

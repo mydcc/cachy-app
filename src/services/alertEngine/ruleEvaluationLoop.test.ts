@@ -25,6 +25,7 @@ import { logger } from "../logger";
 import type { RuleDocument, Verdict } from "../../lib/rules/types";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readStoredRules } from "./ruleLoopWiring";
+import { setRuleEnabled } from "./ruleActions";
 
 vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
@@ -308,6 +309,33 @@ describe("RuleEvaluationLoop", () => {
       expect(fired.map(thresholdOf)).toEqual(["100", "200"]);
     });
 
+    it("pause and resume through the store stop and restart evaluation — FEAT-0746", () => {
+      const fired: RuleDocument[] = [];
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: readStoredRules,
+        onFiring: (firing) => {
+          fired.push(firing.rule);
+        },
+      });
+      const closeAt = (start: number) => {
+        loop.observeCandles("BTCUSDT", "1m", [{ time: start }]);
+        loop.observeCandles("BTCUSDT", "1m", [{ time: start + 60_000 }]);
+      };
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([storedConstant("100")]));
+
+      closeAt(1_000);
+      expect(fired).toHaveLength(1);
+
+      setRuleEnabled("stored", false);
+      closeAt(121_000);
+      expect(fired).toHaveLength(1);
+
+      setRuleEnabled("stored", true);
+      closeAt(241_000);
+      expect(fired.length).toBeGreaterThan(1);
+    });
+
     /**
      * Intrabar rules keep being evaluated on every tick: the cached read
      * must not swallow the per-tick path it feeds.
@@ -355,6 +383,23 @@ describe("RuleEvaluationLoop", () => {
       const { loop } = loopWith([rule({ enabled: false })]);
 
       expect(closeOne(loop)).toEqual([]);
+    });
+
+    it("stops evaluating a paused rule and resumes it — FEAT-0746", () => {
+      const rules = [rule()];
+      const { loop } = loopWith(rules);
+      const closeAt = (start: number) => {
+        loop.observeCandles("BTCUSDT", "1m", [{ time: start }]);
+        return loop.observeCandles("BTCUSDT", "1m", [{ time: start + 60_000 }]);
+      };
+
+      expect(closeAt(1_000)).toHaveLength(1);
+
+      rules[0] = { ...rules[0], enabled: false };
+      expect(closeAt(121_000)).toEqual([]);
+
+      rules[0] = { ...rules[0], enabled: true };
+      expect(closeAt(241_000)).toHaveLength(1);
     });
 
     it("reports nothing when the gate withholds a verdict", () => {

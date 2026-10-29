@@ -35,7 +35,8 @@ import ManageTab from "./ManageTab.svelte";
 import { alertState } from "../../../stores/alerts.svelte";
 import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import { uiState } from "../../../stores/ui.svelte";
-import type { Condition } from "../../../lib/rules/types";
+import * as ruleActions from "../../../services/alertEngine/ruleActions";
+import type { Condition, RuleDocument } from "../../../lib/rules/types";
 
 // The cutover notice reads localStorage behind a promise and is FEAT-0388's
 // concern, not this tab's list behaviour. Answering "no" keeps its banner out
@@ -686,5 +687,163 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     expect(el.querySelector(".fired-badge")).not.toBeNull();
     expect(el.querySelector(".suspended-badge")).toBeNull();
+  });
+
+  it("FEAT-0746: pauses and resumes from the row", () => {
+    seedRules([rule({ id: "rule-1" })]);
+
+    const el = render();
+    const pause = el.querySelector<HTMLButtonElement>(".pause-btn");
+
+    expect(pause?.getAttribute("aria-label")).toBe(
+      en.dashboard.alerts.pauseAlert,
+    );
+    expect(pause?.getAttribute("aria-pressed")).toBe("false");
+
+    pause!.click();
+    flushSync();
+
+    const resume = el.querySelector<HTMLButtonElement>(".pause-btn");
+    // The accessible name stays a toggle name; the state is aria-pressed.
+    expect(resume?.getAttribute("aria-label")).toBe(
+      en.dashboard.alerts.pauseAlert,
+    );
+    expect(resume?.getAttribute("title")).toBe(
+      en.dashboard.alerts.resumeAlert,
+    );
+    expect(resume?.getAttribute("aria-pressed")).toBe("true");
+    expect(resume?.closest(".alert-item")?.querySelector(".suspended-badge")).not.toBeNull();
+
+    resume!.click();
+    flushSync();
+
+    expect(
+      el.querySelector<HTMLButtonElement>(".pause-btn")?.getAttribute("aria-pressed"),
+    ).toBe("false");
+  });
+
+  it("FEAT-0746: hides pause on a spent once row but still offers duplicate", () => {
+    seedRules([rule({ id: "spent", enabled: false })], { spent: 1 });
+
+    const el = render();
+    const history = listTabs(el).find(
+      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
+    );
+    history!.click();
+    flushSync();
+
+    expect(el.querySelector(".pause-btn")).toBeNull();
+    expect(el.querySelector(".duplicate-btn")).not.toBeNull();
+  });
+
+  it("FEAT-0746: keeps pause on a repeating rule that has fired", () => {
+    seedRules(
+      [rule({ id: "repeat", frequency: "every_time", enabled: true })],
+      { repeat: 1 },
+    );
+
+    const el = render();
+    const history = listTabs(el).find(
+      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
+    );
+    history!.click();
+    flushSync();
+
+    expect(el.querySelector(".fired-badge")).not.toBeNull();
+    expect(el.querySelector(".pause-btn")).not.toBeNull();
+  });
+
+  it("FEAT-0746: duplicates with a localised copy name and says it starts paused", () => {
+    seedRules([rule({ id: "rule-1", name: "BTC breakout" })]);
+    const duplicate = vi
+      .spyOn(ruleActions, "duplicateRule")
+      .mockReturnValue({
+        ok: true,
+        rule: rule({ id: "copy", enabled: false }) as RuleDocument,
+      });
+    const toast = vi.spyOn(uiState, "showToast");
+    const before = alertState.rulesVersion;
+
+    const el = render();
+    const button = el.querySelector<HTMLButtonElement>(".duplicate-btn");
+    expect(button?.tagName).toBe("BUTTON");
+    expect(button?.getAttribute("aria-label")).toBe(
+      en.dashboard.alerts.duplicateAlert,
+    );
+    button!.focus();
+    expect(document.activeElement).toBe(button);
+
+    button!.click();
+    flushSync();
+
+    expect(duplicate).toHaveBeenCalledWith("rule-1", "BTC breakout (copy)");
+    expect(alertState.rulesVersion).toBe(before + 1);
+    expect(toast).toHaveBeenCalledWith(
+      en.dashboard.alerts.duplicated,
+      "success",
+    );
+  });
+
+  it("FEAT-0746: duplicates the clicked row, not the first one", () => {
+    seedRules([
+      rule({ id: "keep", name: "Keep", symbol: "BTCUSDT" }),
+      rule({ id: "copy-me", name: "Second", symbol: "ETHUSDT" }),
+    ]);
+    const duplicate = vi
+      .spyOn(ruleActions, "duplicateRule")
+      .mockReturnValue({
+        ok: true,
+        rule: rule({ id: "copy", enabled: false }) as RuleDocument,
+      });
+
+    const el = render();
+    const second = [...el.querySelectorAll(".alert-item")].find((row) =>
+      row.textContent?.includes("ETHUSDT"),
+    );
+    second?.querySelector<HTMLButtonElement>(".duplicate-btn")?.click();
+    flushSync();
+
+    expect(duplicate).toHaveBeenCalledWith("copy-me", "Second (copy)");
+  });
+
+  it("FEAT-0746: reports a failed pause instead of silently doing nothing", () => {
+    seedRules([rule({ id: "rule-1" })]);
+    vi.spyOn(ruleActions, "setRuleEnabled").mockReturnValue({
+      ok: false,
+      reason: "conflict",
+    });
+    const toast = vi.spyOn(uiState, "showToast");
+    const before = alertState.rulesVersion;
+
+    const el = render();
+    (el.querySelector(".pause-btn") as HTMLButtonElement).click();
+    flushSync();
+
+    expect(toast).toHaveBeenCalledWith(en.dashboard.alerts.ruleChanged, "error");
+    expect(alertState.rulesVersion).toBe(before);
+  });
+
+  it.each([
+    ["anchor-failed", "duplicateAnchorFailed"],
+    ["bot", "duplicateBot"],
+    ["unknown", "editMissing"],
+    ["unreadable", "duplicateUnreadable"],
+    ["invalid", "duplicateInvalid"],
+    ["core-unavailable", "duplicateUnavailable"],
+  ] as const)("FEAT-0746: maps refusal %s", (reason, key) => {
+    seedRules([rule({ id: "rule-1" })]);
+    vi.spyOn(ruleActions, "duplicateRule").mockReturnValue({
+      ok: false,
+      reason,
+    });
+    const toast = vi.spyOn(uiState, "showToast");
+    const before = alertState.rulesVersion;
+
+    const el = render();
+    (el.querySelector(".duplicate-btn") as HTMLButtonElement).click();
+    flushSync();
+
+    expect(toast).toHaveBeenCalledWith(en.dashboard.alerts[key], "error");
+    expect(alertState.rulesVersion).toBe(before);
   });
 });

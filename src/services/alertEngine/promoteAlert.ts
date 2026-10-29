@@ -34,8 +34,8 @@
 
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type { OrderIntent, RuleDocument } from "../../lib/rules/types";
-import { generateId } from "../../utils/utils";
 import { armRule, readRuleStore } from "./armRule";
+import { freeRuleId } from "./ruleIdentity";
 
 /**
  * Raised when the alert a promotion names is not in the store.
@@ -56,20 +56,6 @@ export class AlertNotFoundError extends Error {
 export interface Promotion {
   bot: RuleDocument;
   rules: RuleDocument[];
-}
-
-/**
- * An identity no stored rule holds.
- *
- * The retry is not superstition about UUIDs. `armRule` replaces by `id`, so a
- * collision would not produce a duplicate — it would silently overwrite an
- * existing rule with the bot, and the trader would find a strategy missing with
- * nothing to explain it. `newAccountId` and `newProviderId` guard the same way.
- */
-function freeRuleId(taken: ReadonlySet<string>): string {
-  let id = generateId();
-  while (taken.has(id)) id = generateId();
-  return id;
 }
 
 /**
