@@ -2,7 +2,7 @@
 id: BUG-0729
 title: The news open behaviour has two homes and no owner
 type: bug
-status: specced
+status: ready
 priority: P3
 milestone: none
 created: "2026-10-22"
