@@ -2,7 +2,7 @@
 id: BUG-0671
 title: No test drives a real modal through the window manager, so a dialog's visibility is unproven
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -47,14 +47,16 @@ hypothesis about behaviour.
   `ModalFrame` with `tests/helpers/PassthroughModalFrame.svelte` — the helper's
   own header explains that the real frame registers a window somewhere else in
   the tree, which is exactly the half it removes.
-- There is no `WindowFrame` or `WindowContainer` test file at all
-  (`src/components/shared/windows/` has none).
+- The window tests that exist stub their content:
+  `WindowContainer.component.test.ts` and `WindowFrame.component.test.ts` both
+  return `EmptyStub` from `get component()`, so neither renders a real modal.
 - `src/lib/windows/WindowManager.test.ts` is real but synthetic: `TestWindow`
   subclasses with no `component`, so nothing is ever rendered. It can assert
   the sweep and the z-band — which is how the two BUG-0667 halves were pinned —
   but not that a dialog becomes visible to a person.
-- No e2e spec opens Settings and clicks "Make active" (the only `settings` hits
-  under `tests/e2e` are the WASM specs).
+- No e2e spec opens Settings and clicks "Make active". The settings specs that
+  do exist are layout checks (`settings-buttons-width.spec.ts`,
+  `density.spec.ts`); the WASM specs are the only others that touch settings.
 
 The two ends are each tested against a fake of the other, so the seam between
 them — "a component mounted a `ModalFrame`, and a frame rendered in
