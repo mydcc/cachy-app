@@ -451,6 +451,14 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     expect(first.getAttribute("aria-selected")).toBe("false");
   });
 
+  it("FEAT-0543: labels the footer as the new alert, not the selected row", () => {
+    const el = render();
+
+    expect(el.querySelector(".footer-heading")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.panel.newAlert,
+    );
+  });
+
   it("FEAT-0542: loads a stored rule into the builders and the footer", async () => {
     localStorage.setItem(
       RULES_STORAGE_KEY,
@@ -507,6 +515,9 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     expect(el.querySelector<HTMLSelectElement>(".price-tab select")?.value).toBe("mark");
 
     const footer = el.querySelector(".panel-footer") as HTMLElement;
+    expect(el.querySelector(".footer-heading")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.panel.editingAlert,
+    );
     expect(footer.querySelector<HTMLSelectElement>("select")?.value).toBe("every_time");
     const validUntil = footer.querySelector<HTMLInputElement>(
       'input[type="datetime-local"]',
@@ -514,6 +525,14 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     expect(validUntil).not.toBeNull();
     expect(validUntil!.value).not.toBe("");
     expect(footer.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe("watch it");
+
+    // The label must go back when the trader starts a fresh draft, not only
+    // flip to Editing once.
+    alertPanelState.reset("BTCUSDT");
+    flushSync();
+    expect(el.querySelector(".footer-heading")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.panel.newAlert,
+    );
   });
 
   it("FEAT-0542: re-arming a fired one-shot rule clears its fire state", () => {
@@ -609,7 +628,7 @@ describe("FEAT-0389: AlertPanelView keyboard containment", () => {
   function focusables(el: HTMLElement): HTMLElement[] {
     return Array.from(
       el.querySelectorAll<HTMLElement>(
-        "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])",
+        "button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])",
       ),
     );
   }

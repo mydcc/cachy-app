@@ -91,6 +91,16 @@ export type AlertLifecycleStatus = "armed" | "expired" | "fired";
  * test is `!isBot`, never a positive test for `"notify"`: a migrated legacy
  * alert has no `action` at all, so asking what a rule *is* would hide it.
  */
+/**
+ * A stored rule as it was parsed from `localStorage`.
+ *
+ * `readRules()` casts without validating, so every field beyond `id` may be
+ * absent or hold a value from an older/hand-edited schema. A consumer must
+ * guard what it reads; the type says `Partial` on purpose rather than
+ * pretending the row carries a validated `RuleDocument`.
+ */
+export type StoredRule = Partial<RuleDocument> & Pick<RuleDocument, "id">;
+
 export interface AlarmRow {
   /** Rule id — what the delete button acts on. */
   id: string;
@@ -101,6 +111,14 @@ export interface AlarmRow {
   /** False for a rule that fired and disarmed, or one the trader turned off. */
   enabled: boolean;
   note?: string;
+  /**
+   * The stored document itself — FEAT-0543.
+   *
+   * The flat `op`/`threshold` above stay for the compact row header; the
+   * expandable detail needs the whole rule to render its sentence and
+   * lifecycle, and reading it here avoids a second pass over the store.
+   */
+  rule: StoredRule;
 }
 
 export function alarmRows(nowMs: number = Date.now()): AlarmRow[] {
@@ -126,6 +144,7 @@ export function alarmRows(nowMs: number = Date.now()): AlarmRow[] {
         status: lifecycleOf(rule, states[rule.id]?.fired_count ?? 0, nowMs),
         enabled: rule.enabled !== false,
         note: rule.note?.trim() || undefined,
+        rule,
       };
     });
 }

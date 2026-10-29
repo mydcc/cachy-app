@@ -120,6 +120,10 @@ describe("FEAT-0542: loading a stored rule for editing", () => {
         expect(alertPanelState.draft.note).toBe("watch the line");
         expect(alertPanelState.activeTab).toBe("price");
         expect(alertPanelState.drawingDraft).toBeNull();
+        expect(alertPanelState.isEditing).toBe(true);
+
+        alertPanelState.reset("BTCUSDT");
+        expect(alertPanelState.isEditing).toBe(false);
     });
 
     it("keeps fields the panel does not render, and writes them back on arm", () => {

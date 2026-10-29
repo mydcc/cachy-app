@@ -350,6 +350,7 @@
       "editMissing": "The alert no longer exists.",
       "editNotEditable": "This alert is not a notification alert and cannot be edited here.",
       "editUnreadable": "This alert could not be opened because its stored data could not be read.",
+      "configuration": "Configuration",
       "noHistory": "No history",
       "crossesUp": "Crosses Up",
       "crossesDown": "Crosses Down",
@@ -400,6 +401,8 @@
           "intrabar": "While the candle forms"
         },
         "evaluationModeHint": "The candle has not closed yet. The value may revert before it does, so this alert can turn out to have been wrong.",
+        "newAlert": "New alert",
+        "editingAlert": "Editing alert",
         "sentenceLabel": "This rule means",
         "arm": "Arm alert",
         "loading": "Loading tab …",

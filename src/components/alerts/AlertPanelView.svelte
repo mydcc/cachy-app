@@ -264,7 +264,7 @@ let rootElement: HTMLElement | null = null;
     function handleKeydown(event: KeyboardEvent) {
         if (event.key === "Tab" && rootElement) {
             const focusables = rootElement.querySelectorAll(
-                "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+                "button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
             ) as NodeListOf<HTMLElement>;
             if (focusables.length > 0) {
                 const first = focusables[0];
@@ -588,6 +588,13 @@ let rootElement: HTMLElement | null = null;
     </div>
 
     <footer class="panel-footer">
+        <h3 class="footer-heading">
+            {$_(
+                alertPanelState.isEditing
+                    ? "dashboard.alerts.panel.editingAlert"
+                    : "dashboard.alerts.panel.newAlert",
+            )}
+        </h3>
         <!--
           The lifecycle fields sit above the sentence, in the one footer every
           builder tab shares: frequency, expiry, channels and note are per-rule
@@ -750,6 +757,14 @@ let rootElement: HTMLElement | null = null;
         gap: var(--space-2);
         border-top: 1px solid var(--border-color);
         padding-top: var(--space-3);
+    }
+    .footer-heading {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-weight: var(--font-bold);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
     }
     .sentence {
         background: var(--bg-secondary);

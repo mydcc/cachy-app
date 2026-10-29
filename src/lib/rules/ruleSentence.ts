@@ -390,10 +390,11 @@ export function renderConditionSentence(
 /**
  * The whole rule as one sentence, in the caller's active locale.
  *
- * Never throws: the panel renders this on every keystroke of a half-built
- * document, and a builder that blanks its own explanation the moment a field
- * is empty is worse than one that reads a little awkwardly. Structural gaps
- * come out as the `rules.sentence.empty` fragment instead.
+ * Never throws for a *half-built* document: the panel renders this on every
+ * keystroke, and a builder that blanks its own explanation the moment a field
+ * is empty is worse than one that reads a little awkwardly. A structurally
+ * invalid document (no `conditions` at all, as a hand-edited store can hold)
+ * is not something this can phrase — callers guard that boundary.
  */
 export function renderRuleSentence(
   document: RuleDocument,

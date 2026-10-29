@@ -86,6 +86,8 @@ describe("alarmRows", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe("rule-a");
     expect(rows[0].status).toBe("expired");
+    // FEAT-0543: the detail is rendered from the stored document itself.
+    expect(rows[0].rule.id).toBe("rule-a");
   });
 
   it("lists a rule the panel armed, which the legacy list never showed", () => {

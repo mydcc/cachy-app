@@ -32,15 +32,32 @@
 
 <script lang="ts">
     import { alertState } from "../../../stores/alerts.svelte";
-    import { _ } from "../../../locales/i18n";
+    import { _, locale } from "../../../locales/i18n";
+    import { intlTagFor } from "../../../lib/i18n/intlTag";
     import {
         acknowledgeCutoverNotice,
         shouldShowCutoverNotice,
     } from "../../../services/alertEngine/cutoverNotice";
-    import { alarmRows } from "../../../services/alertEngine/ruleLifecycleView";
+    import {
+        alarmRows,
+        type AlarmRow,
+        type StoredRule,
+    } from "../../../services/alertEngine/ruleLifecycleView";
     import { removeRule } from "../../../services/alertEngine/armRule";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
+    import {
+        renderRuleSentence,
+        type SentenceTranslator,
+    } from "../../../lib/rules/ruleSentence";
+    import {
+        EVALUATION_KEYS,
+        FREQUENCY_KEYS,
+        METHOD_KEYS,
+    } from "../../../lib/alerts/lifecycleLabels";
+    import type { RuleDocument } from "../../../lib/rules/types";
+    import type { TranslationKey } from "../../../locales/schema";
+    import { logger } from "../../../services/logger";
 
     // Declared to satisfy the shell's tab contract, unused since the quick-add
     // form left: this tab lists armed rules, which it reads from the store
@@ -69,13 +86,159 @@
       while the panel armed rules, so an alarm armed here never appeared in
       it at all.
 
-      `alertState.rulesVersion` is the dependency: the rule set lives in
-      localStorage, which no rune observes, so every path that writes it bumps
-      that counter and this re-derives.
+      `alertState.rulesVersion` is the dependency that matters: the rule set
+      lives in localStorage, which no rune observes, so every path that writes
+      it bumps that counter and this re-derives. FEAT-0543 added one ordinary
+      dependency beside it — the locale, because the detail's labels and dates
+      are built here.
+
+      FEAT-0543 -- the expandable detail needs the stored document, so the
+      sentence and the locale-dependent metadata are prepared in this same
+      derivation rather than mapped over inside the template.
     */
-    let rows = $derived.by(() => {
+    interface DetailRow extends AlarmRow {
+        sentence: string | null;
+        timeframe: string;
+        evaluation: string;
+        frequency: string;
+        validUntil: string;
+        channels: string;
+    }
+
+    const translator: SentenceTranslator = (key, values) =>
+        $_(key as TranslationKey, values ? { values } : undefined);
+
+    const intlTag = $derived(intlTagFor($locale));
+    const dateFormatter = $derived(
+        new Intl.DateTimeFormat(intlTag, {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }),
+    );
+
+    /**
+     * A translated option label, falling back to the stored value.
+     *
+     * A rule arrives from `JSON.parse` without validation. An unknown enum
+     * value must not become an empty `<dd>` (or a missing-message warning on
+     * every render) — the raw value tells the trader what is stored.
+     */
+    function optionLabel<T extends string>(
+        map: Record<T, TranslationKey>,
+        value: T | undefined,
+        fallback: T,
+    ): string {
+        const stored = value ?? fallback;
+        const key = (map as Record<string, TranslationKey | undefined>)[stored];
+        return key ? $_(key) : stored;
+    }
+
+    /** Empty means the notification policy decides; unknown methods stay raw. */
+    function channelsFor(rule: StoredRule): string {
+        const methods = Array.isArray(rule.trigger_methods)
+            ? rule.trigger_methods
+            : [];
+        return methods
+            .map((method) => {
+                const key = (METHOD_KEYS as Record<string, TranslationKey | undefined>)[
+                    method
+                ];
+                return key ? $_(key) : String(method);
+            })
+            .join(", ");
+    }
+
+    function formatValidUntil(
+        ms: number | undefined,
+        formatter: Intl.DateTimeFormat,
+    ): string {
+        if (typeof ms !== "number" || !Number.isFinite(ms)) return "";
+        return formatter.format(new Date(ms));
+    }
+
+    /**
+     * A malformed entry is listable so it can be deleted (`alarmRows`
+     * tolerates it), but it cannot always be phrased. `renderRuleSentence`
+     * dereferences the condition graph (`group.of`, `compare.left`, indicator
+     * params) and reads `action` for its lead, so the guard only proves the
+     * outermost shape; the caller catches the rest per row rather than letting
+     * one hand-edited rule take the whole list down.
+     *
+     * A pre-`action` legacy rule meant `notify`, so the display copy gets the
+     * same fill `loadForEdit` applies rather than losing its detail.
+     */
+    const PHRASABLE_KINDS = new Set([
+        "compare",
+        "cross",
+        "pattern",
+        "position",
+        "account",
+        "group",
+    ]);
+
+    function sentenceFor(rule: StoredRule): string | null {
+        const conditions = rule.conditions as { kind?: unknown } | null | undefined;
+        if (
+            !conditions ||
+            typeof conditions !== "object" ||
+            typeof conditions.kind !== "string" ||
+            !PHRASABLE_KINDS.has(conditions.kind)
+        ) {
+            return null;
+        }
+        const display = (
+            rule.action
+                ? rule
+                : { ...rule, action: { consequence_level: "notify" } }
+        ) as RuleDocument;
+        return renderRuleSentence(display, translator);
+    }
+
+    type RowDetail = Pick<
+        DetailRow,
+        "sentence" | "timeframe" | "evaluation" | "frequency" | "validUntil" | "channels"
+    >;
+
+    /**
+     * Total per row: a detail that cannot be prepared hides itself, but the
+     * row and its edit/delete actions survive. Without this, a partial
+     * condition (`{ kind: "group" }`) throws inside the `$derived` and both
+     * list tabs render nothing.
+     */
+    function detailFor(row: AlarmRow): RowDetail {
+        try {
+            const rule = row.rule;
+            return {
+                sentence: sentenceFor(rule),
+                timeframe:
+                    typeof rule.trigger_timeframe === "string"
+                        ? rule.trigger_timeframe
+                        : "",
+                evaluation: optionLabel(
+                    EVALUATION_KEYS,
+                    rule.evaluation_mode,
+                    "close",
+                ),
+                frequency: optionLabel(FREQUENCY_KEYS, rule.frequency, "once"),
+                validUntil: formatValidUntil(rule.valid_until_ms, dateFormatter),
+                channels: channelsFor(rule),
+            };
+        } catch (e) {
+            logger.error("alerts", "rule detail could not be prepared", e);
+            return {
+                sentence: null,
+                timeframe: "",
+                evaluation: "",
+                frequency: "",
+                validUntil: "",
+                channels: "",
+            };
+        }
+    }
+
+    let rows = $derived.by<DetailRow[]>(() => {
         void alertState.rulesVersion;
-        return alarmRows();
+        return alarmRows().map((row) => ({ ...row, ...detailFor(row) }));
     });
 
     /*
@@ -269,45 +432,89 @@
     {#each listTab === "active" ? activeAlerts : historyAlerts as row (row.id)}
         {@const broken = brokenById.get(row.id)}
         <div class="alert-item" class:history-item={listTab === "history"}>
-            <div class="alert-info">
-                <strong>{row.symbol}</strong>
-                <span>{formatCondition(row)}</span>
+            <div class="row-main">
+                <div class="alert-info">
+                    <strong>{row.symbol}</strong>
+                    <span>{formatCondition(row)}</span>
+                    <!--
+                      BUG-0485 -- a rule that cannot fire belongs next to the
+                      rule, not in a separate report. The badge text is
+                      localised; the title carries the developer-facing reason
+                      (indicator, drawing, timeframe) as the detail.
+                    -->
+                    {#if broken}
+                        <span class="broken-badge" title={broken.reason}>
+                            {$_("dashboard.alerts.brokenRule.badge")}
+                        </span>
+                    {:else if row.status === "expired"}
+                        <span class="expired-badge" title={$_("dashboard.alerts.expiredHint")}>
+                            {$_("dashboard.alerts.expired")}
+                        </span>
+                    {:else if listTab === "history"}
+                        <span class="fired-badge">{$_("dashboard.alerts.fired")}</span>
+                    {/if}
+                </div>
+                <div class="row-actions">
+                    <button
+                        type="button"
+                        class="edit-btn"
+                        aria-label={$_("dashboard.alerts.editAlert")}
+                        onclick={() => editRow(row.id)}
+                    >
+                        ✎
+                    </button>
+                    <button
+                        type="button"
+                        class="delete-btn"
+                        aria-label={$_("dashboard.alerts.deleteAlert")}
+                        onclick={() => deleteRow(row.id)}
+                    >
+                        ×
+                    </button>
+                </div>
+            </div>
+
+            {#if row.sentence !== null}
                 <!--
-                  BUG-0485 -- a rule that cannot fire belongs next to the
-                  rule, not in a separate report. The badge text is
-                  localised; the title carries the developer-facing reason
-                  (indicator, drawing, timeframe) as the detail.
+                  FEAT-0543 -- native details for the keyboard contract and the
+                  disclosure semantics; the content is prepared, not mapped in
+                  the template.
                 -->
-                {#if broken}
-                    <span class="broken-badge" title={broken.reason}>
-                        {$_("dashboard.alerts.brokenRule.badge")}
-                    </span>
-                {:else if row.status === "expired"}
-                    <span class="expired-badge" title={$_("dashboard.alerts.expiredHint")}>
-                        {$_("dashboard.alerts.expired")}
-                    </span>
-                {:else if listTab === "history"}
-                    <span class="fired-badge">{$_("dashboard.alerts.fired")}</span>
-                {/if}
-            </div>
-            <div class="row-actions">
-                <button
-                    type="button"
-                    class="edit-btn"
-                    aria-label={$_("dashboard.alerts.editAlert")}
-                    onclick={() => editRow(row.id)}
-                >
-                    ✎
-                </button>
-                <button
-                    type="button"
-                    class="delete-btn"
-                    aria-label={$_("dashboard.alerts.deleteAlert")}
-                    onclick={() => deleteRow(row.id)}
-                >
-                    ×
-                </button>
-            </div>
+                <details class="row-details">
+                    <summary
+                        aria-label={`${row.symbol}: ${$_("dashboard.alerts.configuration")}`}
+                    >
+                        {$_("dashboard.alerts.configuration")}
+                    </summary>
+                    <p class="detail-sentence">{row.sentence}</p>
+                    <dl class="detail-grid">
+                        {#if row.timeframe}
+                            <dt>{$_("dashboard.alerts.panel.timeframe")}</dt>
+                            <dd>{row.timeframe}</dd>
+                        {/if}
+                        {#if row.evaluation}
+                            <dt>{$_("dashboard.alerts.panel.evaluationMode")}</dt>
+                            <dd>{row.evaluation}</dd>
+                        {/if}
+                        {#if row.frequency}
+                            <dt>{$_("dashboard.alerts.panel.lifecycle.frequency")}</dt>
+                            <dd>{row.frequency}</dd>
+                        {/if}
+                        {#if row.validUntil}
+                            <dt>{$_("dashboard.alerts.panel.lifecycle.validUntil")}</dt>
+                            <dd>{row.validUntil}</dd>
+                        {/if}
+                        {#if row.channels}
+                            <dt>{$_("common.channels")}</dt>
+                            <dd>{row.channels}</dd>
+                        {/if}
+                        {#if row.note}
+                            <dt>{$_("dashboard.alerts.panel.lifecycle.note")}</dt>
+                            <dd>{row.note}</dd>
+                        {/if}
+                    </dl>
+                </details>
+            {/if}
         </div>
     {:else}
         <div class="empty-state">
@@ -382,12 +589,19 @@
     }
     .alert-item {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-2);
         padding: var(--space-3);
         background: var(--bg-secondary);
         border-radius: var(--radius-sm);
         border-left: 3px solid var(--accent-color);
+    }
+    .row-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-2);
     }
     .history-item {
         border-left-color: var(--text-secondary);
@@ -450,6 +664,35 @@
         color: var(--danger-color);
         font-size: var(--text-2xl);
         cursor: pointer;
+    }
+    .row-details {
+        border-top: 1px solid var(--border-color);
+        padding-top: var(--space-2);
+    }
+    .row-details summary {
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+    .detail-sentence {
+        margin: var(--space-2) 0;
+        color: var(--text-primary);
+        line-height: 1.5;
+    }
+    .detail-grid {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.25rem var(--space-3);
+        margin: 0;
+        font-size: 0.8rem;
+    }
+    .detail-grid dt {
+        color: var(--text-secondary);
+    }
+    .detail-grid dd {
+        margin: 0;
+        color: var(--text-primary);
+        overflow-wrap: anywhere;
     }
     .empty-state {
         text-align: center;

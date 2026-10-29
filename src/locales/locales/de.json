@@ -350,6 +350,7 @@
       "editMissing": "Der Alarm existiert nicht mehr.",
       "editNotEditable": "Dieser Alarm ist kein Benachrichtigungs-Alarm und kann hier nicht bearbeitet werden.",
       "editUnreadable": "Dieser Alarm konnte nicht geöffnet werden, weil seine gespeicherten Daten nicht lesbar sind.",
+      "configuration": "Konfiguration",
       "noHistory": "Kein Verlauf",
       "crossesUp": "Kreuzt nach oben",
       "crossesDown": "Kreuzt nach unten",
@@ -400,6 +401,8 @@
           "intrabar": "Während die Kerze läuft"
         },
         "evaluationModeHint": "Die Kerze ist noch nicht geschlossen. Der Wert kann sich bis zum Close wieder ändern — der Alarm kann sich also im Nachhinein als falsch erweisen.",
+        "newAlert": "Neuer Alarm",
+        "editingAlert": "Alarm wird bearbeitet",
         "sentenceLabel": "Diese Regel bedeutet",
         "arm": "Alarm scharf schalten",
         "loading": "Tab wird geladen …",

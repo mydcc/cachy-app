@@ -154,21 +154,25 @@ adjustment.
 | Indicators | Indicator, trigger object, rule (Threshold or Crossing), the comparison operand (a value, the price, another indicator, or its own window high/low), parameters |
 | Candlesticks | Single, multiple and structural patterns |
 | Drawing | The drawing's own level, read-only; appears when a drawing draft is seeded — by the chart's bell or by editing a drawing-bound rule from Manage (FEAT-0752, FEAT-0542); the lifecycle stays in the footer |
-| Manage | Armed rules and history; the pencil loads a rule back into its builder (FEAT-0542) |
+| Manage | Armed rules and history; the pencil loads a rule back into its builder (FEAT-0542), and each valid row expands to its full stored configuration (FEAT-0543) |
 
-Every builder ends in the same footer — trigger method, frequency, validity period,
-note — and above the arm button, **the rule written out in plain language, in German
-and English**. A rule a trader cannot read back is a rule they cannot trust. The one
-exception is a drawing draft: the arm press rebuilds the rule from the live line, so
-the Drawing tab shows the line's own level instead of a sentence built from the
-draft's condition (FEAT-0752, FEAT-0542).
+Every builder ends in the same footer — labelled **New alert** for a fresh draft
+and **Editing alert** after a Manage row was loaded — with trigger method,
+frequency, validity period and note, and above the arm button, **the rule written
+out in plain language, in German and English**. A rule a trader cannot read back
+is a rule they cannot trust. The one exception is a drawing draft: the arm press
+rebuilds the rule from the live line, so the Drawing tab shows the line's own
+level instead of a sentence built from the draft's condition (FEAT-0752,
+FEAT-0542).
 
 An armed rule is not a dead end: the pencil on a Manage row loads it back into the
 builder that owns its condition — or into Combo, read-only when no single builder can
 render it, where only the lifecycle fields remain editable. The rule keeps its id, so
 arming updates it in place rather than adding a duplicate (FEAT-0542). A drawing-bound
 rule opens the Drawing tab from its anchor-ledger entry instead, because its level
-belongs to the line.
+belongs to the line. A hand-edited or truncated rule that cannot be phrased keeps
+its row and delete action but shows no detail: it stays removable instead of
+breaking the list.
 
 ## When a rule fires
 
