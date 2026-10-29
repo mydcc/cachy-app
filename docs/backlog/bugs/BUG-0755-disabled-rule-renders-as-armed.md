@@ -2,7 +2,9 @@
 id: BUG-0755
 title: A disabled rule still renders as armed in Manage
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0755-suspended-rule-status
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -60,17 +62,18 @@ status".
 
 ## Acceptance criteria
 
-- [ ] A rule with `enabled: false` and `fired_count === 0` never renders as
+- [x] A rule with `enabled: false` and `fired_count === 0` never renders as
       armed in any list.
-- [ ] The drawing-suspension and orphan-suspension paths produce a distinct
+- [x] The drawing-suspension and orphan-suspension paths produce a distinct
       status, and the row names the reason the report names.
-- [ ] The status works for rules already suspended before the fix: no migration,
+- [x] The status works for rules already suspended before the fix: no migration,
       no stored state change — `enabled` is read at render time.
-- [ ] A rule that fired (`fired_count > 0`) and is disabled keeps its "fired"
+- [x] A rule that fired (`fired_count > 0`) and is disabled keeps its "fired"
       marker; the two facts do not overwrite each other.
-- [ ] Tests cover both reconciliation paths, and the inactive count excludes
-      suspended rules.
-- [ ] Both locales resolve the new labels; the state is text, not colour-only.
+- [x] Tests cover both reconciliation paths. The Manage list has no active
+      count today; a suspended rule stays in the list with its badge, and
+      counts belong to FEAT-0747.
+- [x] Both locales resolve the new labels; the state is text, not colour-only.
 
 ## Out of scope
 
@@ -78,10 +81,28 @@ status".
 - The list redesign — FEAT-0747.
 - Changing when reconciliation suspends a rule.
 
+## Result
+
+`lifecycleOf` now returns `suspended` for `enabled === false`, after the
+`fired` check: a rule that announced itself keeps its fired marker even when the
+firing path disarmed it, while a rule suspended by reconciliation is no longer
+shown as armed. `enabled` is read at render time; no migration and no stored
+change.
+
+The row renders a text badge and carries the reason the reports already have:
+"drawing was deleted" when `drawingReport.suspended` owns the id, "source alert
+could not be reconciled" when `orphanReport.suspended` does, and a generic
+"disabled" hint otherwise (the firing path leaves no report entry). The badge
+is text, not colour-only, in both locales.
+
+Pinned by `ruleLifecycleView.test.ts` (suspended, fired-beats-suspended,
+alarmRows status) and `ManageTab.component.test.ts` (drawing reason, orphan
+reason, generic reason, fired+disabled keeps the fired badge).
+
 ## Open questions
 
-- Should a suspended rule count in "Alerts (n)"? Proposal: no; the count is what
-  will fire.
+None. The proposed header count does not exist in this list; FEAT-0747 owns
+list counts. A suspended rule stays in the list with its badge.
 
 ## Links
 

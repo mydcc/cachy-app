@@ -172,7 +172,10 @@ arming updates it in place rather than adding a duplicate (FEAT-0542). A drawing
 rule opens the Drawing tab from its anchor-ledger entry instead, because its level
 belongs to the line. A hand-edited or truncated rule that cannot be phrased keeps
 its row and delete action but shows no detail: it stays removable instead of
-breaking the list.
+breaking the list. A rule suspended by reconciliation or by the one-shot firing
+path is no longer shown as armed — the row carries a **Suspended** badge naming
+the reason the report gives (drawing deleted, source alert not reconciled, or a
+generic disabled hint).
 
 ## When a rule fires
 

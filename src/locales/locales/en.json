@@ -652,6 +652,10 @@
       "firedIntrabar": "{message} (provisional: the candle is still forming, and the value may revert before it closes.)",
       "expired": "Expired",
       "expiredHint": "Past its validity period — it lapsed without firing.",
+      "suspended": "Suspended",
+      "suspendedHint": "Disabled — it will not fire until it is re-armed.",
+      "suspendedDrawing": "Its drawing was deleted.",
+      "suspendedOrphan": "Its source alert could not be reconciled.",
       "combo": {
         "logicLabel": "How the conditions are joined",
         "op": {

@@ -652,6 +652,10 @@
       "firedIntrabar": "{message} (Zwischenstand: Die Kerze läuft noch, der Wert kann sich bis zum Close wieder ändern.)",
       "expired": "Abgelaufen",
       "expiredHint": "Gültigkeitszeitraum vorbei — abgelaufen, ohne ausgelöst zu haben.",
+      "suspended": "Ausgesetzt",
+      "suspendedHint": "Deaktiviert — wird erst nach erneutem Scharfschalten auslösen.",
+      "suspendedDrawing": "Die zugehörige Zeichnung wurde gelöscht.",
+      "suspendedOrphan": "Der Ursprungs-Alarm konnte nicht abgeglichen werden.",
       "combo": {
         "logicLabel": "Wie die Bedingungen verknüpft sind",
         "op": {

@@ -61,6 +61,14 @@ describe("lifecycleOf", () => {
     expect(lifecycleOf(ruleDoc({ valid_until_ms: NOW - 1 }), 1, NOW)).toBe("fired");
   });
 
+  it("calls a disabled rule suspended", () => {
+    expect(lifecycleOf(ruleDoc({ enabled: false }), 0, NOW)).toBe("suspended");
+  });
+
+  it("keeps a fired rule fired even when it was disabled afterwards", () => {
+    expect(lifecycleOf(ruleDoc({ enabled: false }), 1, NOW)).toBe("fired");
+  });
+
   it("ignores a nonsense validity timestamp", () => {
     expect(lifecycleOf(ruleDoc({ valid_until_ms: Number.NaN }), 0, NOW)).toBe("armed");
   });
@@ -139,9 +147,12 @@ describe("alarmRows", () => {
     expect(rows[0].threshold).toBeUndefined();
   });
 
-  it("reports a disabled rule as not enabled", () => {
+  it("reports a disabled rule as suspended, not armed", () => {
     seed([ruleDoc({ id: "rule-a", enabled: false })]);
-    expect(alarmRows(NOW)[0].enabled).toBe(false);
+    const row = alarmRows(NOW)[0];
+
+    expect(row.enabled).toBe(false);
+    expect(row.status).toBe("suspended");
   });
 
   it("skips a malformed entry instead of dropping the whole list", () => {
