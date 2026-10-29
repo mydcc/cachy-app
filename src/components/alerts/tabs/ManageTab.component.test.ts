@@ -629,4 +629,62 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(text).toContain("70000");
     expect(text).toContain("1m");
   });
+
+  it("BUG-0755: marks a rule suspended for a deleted drawing", () => {
+    alertState.drawingReport = { rules: [], suspended: ["rule-1"], withheld: [] };
+    seedRules([rule({ id: "rule-1", enabled: false })]);
+
+    const el = render();
+    const badge = el.querySelector(".suspended-badge");
+
+    expect(badge?.textContent?.trim()).toBe(en.dashboard.alerts.suspended);
+    expect(badge?.getAttribute("title")).toBe(
+      en.dashboard.alerts.suspendedDrawing,
+    );
+    expect(el.querySelector(".suspended-reason")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.suspendedDrawing,
+    );
+  });
+
+  it("BUG-0755: marks a rule suspended for an orphaned source alert", () => {
+    alertState.orphanReport = { rules: [], suspended: ["rule-1"], withheld: [] };
+    seedRules([rule({ id: "rule-1", enabled: false })]);
+
+    const el = render();
+    const badge = el.querySelector(".suspended-badge");
+
+    expect(badge?.textContent?.trim()).toBe(en.dashboard.alerts.suspended);
+    expect(badge?.getAttribute("title")).toBe(
+      en.dashboard.alerts.suspendedOrphan,
+    );
+    expect(el.querySelector(".suspended-reason")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.suspendedOrphan,
+    );
+  });
+
+  it("BUG-0755: names no reason generically when neither report owns it", () => {
+    seedRules([rule({ id: "rule-1", enabled: false })]);
+
+    const el = render();
+    const badge = el.querySelector(".suspended-badge");
+
+    expect(badge?.getAttribute("title")).toBe(
+      en.dashboard.alerts.suspendedHint,
+    );
+    expect(el.querySelector(".suspended-reason")).toBeNull();
+  });
+
+  it("BUG-0755: keeps the fired badge on a fired rule that is also disabled", () => {
+    seedRules([rule({ id: "spent", enabled: false })], { spent: 1 });
+
+    const el = render();
+    const history = listTabs(el).find(
+      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
+    );
+    history?.click();
+    flushSync();
+
+    expect(el.querySelector(".fired-badge")).not.toBeNull();
+    expect(el.querySelector(".suspended-badge")).toBeNull();
+  });
 });

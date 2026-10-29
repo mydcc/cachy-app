@@ -69,8 +69,13 @@ function readRules(): RuleDocument[] {
  *
  * `armed` is the ordinary case and carries no badge — a list where every row
  * is labelled is a list where no label is read.
+ *
+ * `suspended` is `enabled === false`: the drawing reconciliation, the orphan
+ * reconciliation, or the one-shot firing path turned the rule off. A rule that
+ * fired stays `fired` even when it was disarmed afterwards; the two facts do
+ * not overwrite each other.
  */
-export type AlertLifecycleStatus = "armed" | "expired" | "fired";
+export type AlertLifecycleStatus = "armed" | "expired" | "fired" | "suspended";
 
 /**
  * One row per stored rule, in the vocabulary Manage renders.
@@ -159,6 +164,12 @@ export function alarmRows(nowMs: number = Date.now()): AlarmRow[] {
  */
 export function lifecycleOf(rule: RuleDocument, firedCount: number, nowMs: number): AlertLifecycleStatus {
   if (firedCount > 0) return "fired";
+
+  // FEAT-0029 / BUG-0755: a reconciliation or the one-shot firing path turned
+  // the rule off. It is not armed; naming the state is what stops the row
+  // promising an alarm that cannot fire. Fired wins above because a rule that
+  // announced itself did its job even if it was disarmed afterwards.
+  if (rule.enabled === false) return "suspended";
 
   const validUntil = rule.valid_until_ms;
   if (typeof validUntil === "number" && Number.isFinite(validUntil) && nowMs > validUntil) {

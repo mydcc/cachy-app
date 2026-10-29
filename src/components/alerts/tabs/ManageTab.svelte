@@ -275,6 +275,21 @@
         return `${$_(OP_KEYS[row.op])} ${row.threshold}`;
     }
 
+    /**
+     * BUG-0755 — why a suspended rule was disabled, as far as the reports
+     * that did it can say. A rule disabled by the firing path has no entry in
+     * either report; the generic hint is the honest answer there.
+     */
+    function suspendedReason(id: string): string | null {
+        if (alertState.drawingReport?.suspended.includes(id)) {
+            return $_("dashboard.alerts.suspendedDrawing");
+        }
+        if (alertState.orphanReport?.suspended.includes(id)) {
+            return $_("dashboard.alerts.suspendedOrphan");
+        }
+        return null;
+    }
+
     function deleteRow(id: string) {
         removeRule(id);
         alertState.rulesVersion += 1;
@@ -442,7 +457,18 @@
                       localised; the title carries the developer-facing reason
                       (indicator, drawing, timeframe) as the detail.
                     -->
-                    {#if broken}
+                    {#if row.status === "suspended"}
+                        {@const reason = suspendedReason(row.id)}
+                        <span
+                            class="suspended-badge"
+                            title={reason ?? $_("dashboard.alerts.suspendedHint")}
+                        >
+                            {$_("dashboard.alerts.suspended")}
+                        </span>
+                        {#if reason}
+                            <span class="suspended-reason">{reason}</span>
+                        {/if}
+                    {:else if broken}
                         <span class="broken-badge" title={broken.reason}>
                             {$_("dashboard.alerts.brokenRule.badge")}
                         </span>
@@ -641,6 +667,22 @@
         font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+    }
+    /* BUG-0755: text, not colour alone — "Suspended" is the state. */
+    .suspended-badge {
+        margin-left: var(--space-2);
+        padding: 0 var(--space-2);
+        border-radius: var(--radius-sm);
+        background: var(--bg-tertiary, var(--bg-secondary));
+        color: var(--warning-color, var(--text-secondary));
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .suspended-reason {
+        margin-left: var(--space-2);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
     }
     .row-actions {
         display: flex;
