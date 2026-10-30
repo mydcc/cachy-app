@@ -2,7 +2,7 @@
 id: BUG-0719
 title: Journal sync disables on uiState.isLoading with no visible reason
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 created: "2026-10-21"
@@ -61,8 +61,8 @@ press then. Do not keep a disable with no cue.
 
 ## Acceptance criteria
 
-- [ ] Every condition in the `disabled` expression has a visible counterpart
-- [ ] A component test sets `isLoading` and asserts the visible state
+- [x] Every condition in the `disabled` expression has a visible counterpart
+- [x] A component test sets `isLoading` and asserts the visible state
 
 ## Links
 
