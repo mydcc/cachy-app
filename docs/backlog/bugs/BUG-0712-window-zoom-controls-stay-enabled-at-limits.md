@@ -2,9 +2,7 @@
 id: BUG-0712
 title: Window zoom and font-size controls stay enabled at their limits
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/ui-window-chrome
+status: done
 priority: P2
 milestone: none
 created: "2026-10-21"
