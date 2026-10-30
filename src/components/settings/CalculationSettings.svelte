@@ -77,6 +77,25 @@
     // timeframe this setting can hold is never one a lesson refuses.
     const availableTimeframes = ANALYSIS_TIMEFRAMES;
 
+    /**
+     * BUG-0718 — the one-left rule is about what the grid shows. A stored
+     * timeframe outside `availableTimeframes` (a legacy or hand-edited value
+     * the store accepts unvalidated) leaves no selected control, and a hint
+     * then explains nothing. Reading the rendered selection keeps the hint
+     * attached to a button, and keeps the one visible selection removable when
+     * a hidden value makes the array longer than what is on screen.
+     */
+    const visibleSelectedTimeframes = $derived(
+        availableTimeframes.filter((tf) =>
+            settingsState.analysisTimeframes.includes(tf),
+        ),
+    );
+    const showsMinimumHint = $derived(
+        settingsState.analysisTimeframes.length === 1 &&
+            visibleSelectedTimeframes.length === 1,
+    );
+    const minimumHintId = $props.id();
+
     function applyPreset(preset: PresetType) {
         selectedPreset = preset;
         const config = presets[preset];
@@ -264,15 +283,13 @@
                 {#each availableTimeframes as tf (tf)}
                     {@const isSelected =
                         settingsState.analysisTimeframes.includes(tf)}
-                    {@const isLastSelected =
-                        isSelected &&
-                        settingsState.analysisTimeframes.length === 1}
+                    {@const isLastSelected = isSelected && showsMinimumHint}
                     <!-- FEAT-0611 escape: segmented timeframe toggle with a selected state and a last-one guard; FEAT-0607 owns the segmented pattern -->
                     <button
                         class="timeframe-btn {isSelected ? 'selected' : ''}"
                         aria-disabled={isLastSelected ? "true" : undefined}
                         aria-describedby={isLastSelected
-                            ? "timeframe-minimum-hint"
+                            ? minimumHintId
                             : undefined}
                         onclick={() => {
                             if (isSelected) {
@@ -297,12 +314,12 @@
                     </button>
                 {/each}
             </div>
-            {#if settingsState.analysisTimeframes.length === 1}
+            {#if showsMinimumHint}
                 <!-- BUG-0718 — with one timeframe left, clicking it refuses in
                      the handler. The reason belongs on the surface, and the
                      button keeps its tab stop so it can be read together with
                      this paragraph. -->
-                <p class="help-text" id="timeframe-minimum-hint">
+                <p class="help-text" id={minimumHintId}>
                     {$_("settings.calculation.lastTimeframeHint")}
                 </p>
             {/if}

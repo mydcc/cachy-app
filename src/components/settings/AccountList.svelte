@@ -109,6 +109,10 @@
     }
 
     async function handleRemove(account: ExchangeAccount) {
+        // The control carries the reason (BUG-0714) and refuses the press
+        // itself; this guard keeps the handler honest if the two ever drift.
+        if (!canRemove) return;
+
         // Unconditional, and the message is specific about what is and is not
         // destroyed: the keys go, the positions at the exchange do not.
         const confirmed = await modalState.show(
@@ -166,7 +170,7 @@
                         variant="danger"
                         size="sm"
                         extraClasses="whitespace-nowrap"
-                        disabled={!canRemove}
+                        ariaDisabled={!canRemove}
                         ariaLabel={!canRemove
                             ? `${$_("settings.connections.accounts.remove")} — ${$_(
                                   "settings.connections.accounts.removeLastHint",
@@ -179,9 +183,11 @@
                 </div>
                 {#if !canRemove}
                     <!-- BUG-0714 — the last-account reason used to live in a
-                         `title` on a disabled (unfocusable) button. It belongs
-                         on the surface, and in the accessible name because the
-                         control itself cannot be reached. -->
+                         `title` on a natively disabled button: no keyboard
+                         path, no touch path, and never in the accessible name.
+                         `aria-disabled` keeps the control focusable and the
+                         name carries the reason (the primitive refuses the
+                         press), and the paragraph below states it on screen. -->
                     <p class="text-xs text-[var(--text-secondary)]">
                         {$_("settings.connections.accounts.removeLastHint")}
                     </p>

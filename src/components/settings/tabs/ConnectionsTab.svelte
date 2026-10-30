@@ -529,8 +529,8 @@
                             onClick={addCustomFeed}
                             ariaDisabled={atCustomFeedLimit}
                             ariaLabel={atCustomFeedLimit
-                                ? customFeedLimitHint
-                                : $_("settings.connections.addFeed")}
+                                ? `${$_("settings.connections.addFeed")} — ${customFeedLimitHint}`
+                                : undefined}
                             title={atCustomFeedLimit
                                 ? customFeedLimitHint
                                 : undefined}

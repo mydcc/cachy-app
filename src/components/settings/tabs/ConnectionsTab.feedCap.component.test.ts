@@ -21,7 +21,8 @@
  *
  * The add button used to stop responding at five feeds with no counter, no
  * hint and no tooltip, so it read as broken. The cap is now one constant read
- * by the handler, the counter and the hint.
+ * by the handler, the counter and the hint, and the control stays focusable so
+ * the reason is not hover-only.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,21 +30,34 @@ import { flushSync, mount, unmount } from "svelte";
 
 import en from "../../../locales/locales/en.json";
 
-function lookup(key: string, values?: Record<string, unknown>): string {
-    const template = key
+function message(key: string): string {
+    const value = key
         .split(".")
         .reduce<unknown>(
             (acc, part) => (acc as Record<string, unknown>)?.[part],
             en,
         );
-    if (typeof template !== "string") {
+    if (typeof value !== "string") {
         throw new Error(`missing i18n key: ${key}`);
     }
+    return value;
+}
+
+/**
+ * The real `$(key, { values })` substitutes `{name}` and refuses a message
+ * whose placeholders it cannot fill. A mock that left `{max}` in place would
+ * make an assertion about the copy vacuous — and would hide a message that
+ * names a different variable than the component passes.
+ */
+function t(key: string, values?: Record<string, unknown>): string {
+    const template = message(key);
     if (!values) return template;
-    return Object.entries(values).reduce(
-        (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
-        template,
-    );
+    return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
+        if (!(name in values)) {
+            throw new Error(`${key}: no value for {${name}}`);
+        }
+        return String(values[name]);
+    });
 }
 
 vi.mock("../../../locales/i18n", async () => {
@@ -51,7 +65,7 @@ vi.mock("../../../locales/i18n", async () => {
     return {
         _: readable(
             (key: string, options?: { values?: Record<string, unknown> }) =>
-                lookup(key, options?.values),
+                t(key, options?.values),
         ),
         locale: readable("en"),
         setLocale: vi.fn(),
@@ -61,6 +75,12 @@ vi.mock("../../../locales/i18n", async () => {
 import ConnectionsTab from "./ConnectionsTab.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
 import { uiState } from "../../../stores/ui.svelte";
+
+/* Captured before any test mutates the real singletons, restored afterwards. */
+const ORIGINAL_FEEDS = settingsState.customRssFeeds;
+const ORIGINAL_SUBTAB = uiState.settingsConnectionsSubTab;
+
+const FIVE_FEEDS = ["a", "b", "c", "d", "e"];
 
 let host: HTMLDivElement;
 let component: Record<string, unknown> | null = null;
@@ -72,10 +92,14 @@ function render(): void {
     flushSync();
 }
 
+/** The add control, anchored on its full label rather than a substring. */
 function addButton(): HTMLButtonElement {
-    const button = Array.from(host.querySelectorAll("button")).find(
+    const label = `+ ${t("settings.connections.addFeed")}`;
+    const button = Array.from(
+        host.querySelectorAll<HTMLButtonElement>("button"),
+    ).find(
         (candidate) =>
-            candidate.textContent?.includes(lookup("settings.connections.addFeed")),
+            candidate.textContent?.replace(/\s+/g, " ").trim() === label,
     );
     if (!button) throw new Error("no add-feed button rendered");
     return button;
@@ -95,6 +119,11 @@ afterEach(() => {
     if (component) unmount(component as never);
     component = null;
     host?.remove();
+
+    // `localStorage.clear()` does not reset the live stores; leaving them
+    // mutated would make a later file depend on this one's leftovers.
+    settingsState.customRssFeeds = ORIGINAL_FEEDS;
+    uiState.settingsConnectionsSubTab = ORIGINAL_SUBTAB;
 });
 
 describe("BUG-0713 — the feed cap is on the surface, not only in the handler", () => {
@@ -102,39 +131,46 @@ describe("BUG-0713 — the feed cap is on the surface, not only in the handler",
         settingsState.customRssFeeds = ["https://a.example/rss"];
         render();
 
-        const button = addButton();
-        expect(button).toBeTruthy();
-        expect(button.getAttribute("aria-disabled")).toBeNull();
         expect(bodyText()).toContain("1 / 5");
+        expect(addButton().getAttribute("aria-disabled")).toBeNull();
         expect(bodyText()).not.toContain(
-            lookup("settings.connections.feedLimitReached", { max: 5 }),
+            t("settings.connections.feedLimitReached", { max: 5 }),
         );
     });
 
-    it("names the limit and keeps the control reachable at the cap", () => {
-        settingsState.customRssFeeds = ["a", "b", "c", "d", "e"];
+    it("names the limit on a control that stays focusable", () => {
+        settingsState.customRssFeeds = FIVE_FEEDS;
         render();
 
         const button = addButton();
-        const hint = lookup("settings.connections.feedLimitReached", { max: 5 });
+        const hint = t("settings.connections.feedLimitReached", { max: 5 });
 
-        // Visible without hover, and the accessible name carries it because the
-        // control must stay in the tab order to be reached at all.
+        // Visible without hover, and the accessible name carries both the
+        // action and the reason: replacing the name with the reason alone
+        // would drop the label a voice-control user targets.
         expect(bodyText()).toContain(hint);
-        expect(button.getAttribute("aria-disabled")).toBe("true");
-        expect(button.getAttribute("aria-label")).toBe(hint);
         expect(bodyText()).toContain("5 / 5");
+        expect(button.getAttribute("aria-disabled")).toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(
+            `${t("settings.connections.addFeed")} — ${hint}`,
+        );
+
+        // `aria-disabled`, not native `disabled`: the reason has to be
+        // reachable by keyboard, which a disabled control is not.
+        expect(button.disabled).toBe(false);
+        button.focus();
+        expect(document.activeElement).toBe(button);
     });
 
-    it("does not add a sixth feed, and recovers when one is removed", () => {
-        settingsState.customRssFeeds = ["a", "b", "c", "d", "e"];
+    it("refuses a sixth feed and recovers when one is removed", () => {
+        settingsState.customRssFeeds = FIVE_FEEDS;
         render();
 
         addButton().click();
         flushSync();
         expect(settingsState.customRssFeeds).toHaveLength(5);
 
-        settingsState.customRssFeeds = ["a", "b", "c", "d"];
+        settingsState.customRssFeeds = FIVE_FEEDS.slice(0, 4);
         flushSync();
 
         expect(addButton().getAttribute("aria-disabled")).toBeNull();

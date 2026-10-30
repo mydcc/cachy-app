@@ -24,12 +24,12 @@
  * rather than to remove it and auto-select a replacement.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
 import en from "../../locales/locales/en.json";
 
-function lookup(key: string): string {
+function message(key: string): string {
     const value = key
         .split(".")
         .reduce<unknown>(
@@ -42,10 +42,29 @@ function lookup(key: string): string {
     return value;
 }
 
+/**
+ * The real `$(key, { values })` substitutes `{name}` and refuses a message
+ * whose placeholders it cannot fill; `timeframesSelected` carries `{count}`,
+ * so a mock that ignored `values` would render the raw placeholder.
+ */
+function t(key: string, values?: Record<string, unknown>): string {
+    const template = message(key);
+    if (!values) return template;
+    return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
+        if (!(name in values)) {
+            throw new Error(`${key}: no value for {${name}}`);
+        }
+        return String(values[name]);
+    });
+}
+
 vi.mock("../../locales/i18n", async () => {
     const { readable } = await import("svelte/store");
     return {
-        _: readable((key: string) => lookup(key)),
+        _: readable(
+            (key: string, options?: { values?: Record<string, unknown> }) =>
+                t(key, options?.values),
+        ),
         locale: readable("en"),
         setLocale: vi.fn(),
     };
@@ -53,6 +72,11 @@ vi.mock("../../locales/i18n", async () => {
 
 import CalculationSettings from "./CalculationSettings.svelte";
 import { settingsState } from "../../stores/settings.svelte";
+
+/* Captured before any test mutates the real singleton, restored afterwards. */
+const ORIGINAL_TIMEFRAMES = settingsState.analysisTimeframes;
+
+const HINT = message("settings.calculation.lastTimeframeHint");
 
 let host: HTMLDivElement;
 let component: Record<string, unknown> | null = null;
@@ -83,50 +107,82 @@ afterEach(() => {
     host?.remove();
 });
 
+afterAll(() => {
+    settingsState.analysisTimeframes = ORIGINAL_TIMEFRAMES;
+});
+
 describe("BUG-0718 — the last timeframe says why it stays", () => {
-    it("marks the last selected timeframe unavailable and names the reason", () => {
+    it("marks only the last selected timeframe and points at its reason", () => {
         render();
 
         const button = timeframeButton("1h");
-        const hint = lookup("settings.calculation.lastTimeframeHint");
+        const hintId = button.getAttribute("aria-describedby");
 
         expect(button.getAttribute("aria-disabled")).toBe("true");
-        expect(button.getAttribute("aria-describedby")).toBe(
-            "timeframe-minimum-hint",
-        );
-        expect(host.textContent).toContain(hint);
-        // Reachable, so the reason can be reached with it.
+        // The reference has to resolve, or the reason is never announced.
+        expect(hintId).toBeTruthy();
+        const hint = host.querySelector<HTMLElement>(`#${hintId}`);
+        expect(hint).not.toBeNull();
+        expect(hint?.textContent?.trim()).toBe(HINT);
+        expect(host.textContent).toContain(HINT);
+
+        // Reachable, so the reason can be read with the control.
         expect(button.disabled).toBe(false);
+        button.focus();
+        expect(document.activeElement).toBe(button);
+
+        // Only the selected one: marking every button unavailable would also
+        // "communicate" the limit, and it would be wrong.
+        expect(timeframeButton("5m").getAttribute("aria-disabled")).toBeNull();
+        expect(timeframeButton("5m").hasAttribute("aria-describedby")).toBe(
+            false,
+        );
     });
 
-    it("keeps the last timeframe when the control is pressed", () => {
+    it("keeps the last timeframe and keeps saying why after a press", () => {
         render();
 
         timeframeButton("1h").click();
         flushSync();
 
         expect(settingsState.analysisTimeframes).toEqual(["1h"]);
+        // The handler guard alone already keeps the array; this is what the
+        // fix adds, so the case would go red if the affordance were removed.
+        expect(timeframeButton("1h").getAttribute("aria-disabled")).toBe(
+            "true",
+        );
+        expect(host.textContent).toContain(HINT);
     });
 
-    it("leaves other timeframes selectable and removable", () => {
+    it("leaves the other timeframes available until one is left", () => {
         settingsState.analysisTimeframes = ["1h", "4h"];
         render();
 
-        // Neither selected button is the last one yet.
         expect(timeframeButton("1h").getAttribute("aria-disabled")).toBeNull();
         expect(timeframeButton("4h").getAttribute("aria-disabled")).toBeNull();
-        expect(host.textContent).not.toContain(
-            lookup("settings.calculation.lastTimeframeHint"),
-        );
+        expect(host.textContent).not.toContain(HINT);
 
         timeframeButton("4h").click();
         flushSync();
 
         expect(settingsState.analysisTimeframes).toEqual(["1h"]);
-        // Now it is the last one, and the surface says so.
-        expect(timeframeButton("1h").getAttribute("aria-disabled")).toBe("true");
-        expect(host.textContent).toContain(
-            lookup("settings.calculation.lastTimeframeHint"),
+        expect(timeframeButton("1h").getAttribute("aria-disabled")).toBe(
+            "true",
         );
+        expect(timeframeButton("5m").getAttribute("aria-disabled")).toBeNull();
+        expect(host.textContent).toContain(HINT);
+    });
+
+    it("does not explain a minimum when the only stored value is not on screen", () => {
+        // A legacy or hand-edited value the store accepts unvalidated: no
+        // rendered button is selected, so a hint would explain nothing.
+        settingsState.analysisTimeframes = ["2h"];
+        render();
+
+        expect(host.textContent).not.toContain(HINT);
+        const marked = Array.from(
+            host.querySelectorAll(".timeframe-btn"),
+        ).filter((button) => button.getAttribute("aria-disabled") === "true");
+        expect(marked).toHaveLength(0);
     });
 });
