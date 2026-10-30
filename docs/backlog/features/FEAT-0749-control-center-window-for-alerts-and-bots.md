@@ -2,9 +2,9 @@
 id: FEAT-0749
 title: Control center window for alerts and bots
 type: feature
-status: in-progress
+status: done
 assignee: opencode
-branch: feature/feat-0749-control-center
+branch: feature/feat-0749-bots-tab
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -71,38 +71,46 @@ keep-above and a window switcher (FEAT-0737–0742).
 
 ## Acceptance criteria
 
-- [ ] `entry-points.ts` contains the control center entry (unique id, icon,
+- [x] `entry-points.ts` contains the control center entry (unique id, icon,
       label/title/description, opener, rail placement, keyboard route, optional
       count provider), and the registry guard (FEAT-0736) is green with it.
-- [ ] The bell opens the control center on the Alerts tab; "New alert" opens the
+- [x] The bell opens the control center on the Alerts tab; "New alert" opens the
       Super-Alert panel blank; chart right-click and the indicator card still
       seed that panel directly.
-- [ ] The Bots tab lists every `simulate` rule with side, size basis, size, stop
+- [x] The Bots tab lists every `simulate` rule with side, size basis, size, stop
       and provenance, in both locales; enabling and disabling behaves exactly as
       it does in the Automation tab today.
-- [ ] No order can be submitted from the control center. The order gate and the
+- [x] No order can be submitted from the control center. The order gate and the
       paper-trading check remain the only submission path.
-- [ ] `AutomationTab` no longer renders a bot list; its tests assert the
+- [x] `AutomationTab` no longer renders a bot list; its tests assert the
       migration and the link to the control center instead of being deleted.
-- [ ] The window is non-modal: the chart stays visible and clickable beside it;
+- [x] The window is non-modal: the chart stays visible and clickable beside it;
       below the narrow breakpoint it renders full-screen; Escape closes it.
-- [ ] The Alerts tab mounts the FEAT-0747 components rather than a second list
+- [x] The Alerts tab mounts the FEAT-0747 components rather than a second list
       implementation; a test or a static check pins that there is one list
       component.
-- [ ] The rail entry carries an unread count of firings since the window was
+- [x] The rail entry carries an unread count of firings since the window was
       last opened or focused; opening clears it, and a firing while the window
       is open and focused does not increment it.
-- [ ] German and English strings exist for every new label.
-- [ ] No server import or call is added. The architecture data-flow diagram is
+- [x] German and English strings exist for every new label.
+- [x] No server import or call is added. The architecture data-flow diagram is
       unchanged because no data crosses a boundary; the PR says so explicitly.
 
 ## Implementation state
 
-First PR (this branch) lands the window, the registry entry, the Alerts/Log tabs
-and the unread count. The Bots tab and the `AutomationTab` migration follow in a
-second PR on top of this one. `ManageTab` keeps its in-panel two-tab switch; the
-list body moved to `ManagePanel.svelte`, which the control center mounts — one
-list implementation, two shells.
+Two PRs. A (#4422, `feature/feat-0749-control-center`) landed the window, the
+registry entry, the Alerts/Log tabs and the unread count. B
+(`feature/feat-0749-bots-tab`) lands the Bots tab and the `AutomationTab`
+migration.
+
+`ManageTab` keeps its in-panel two-tab switch; the list body lives in
+`ManagePanel.svelte`, which both shells mount — one list implementation, two
+shells. The bots list moved to `alerts/bots/BotsTab.svelte` with its intent
+editor as `alerts/bots/BotIntentEditor.svelte`; `AutomationTab` keeps the
+simulated account and the risk limits plus a link to the desk. The bot list is
+derived from `alertState.rulesVersion` rather than cached on mount, so a bot
+promoted in the Super-Alert panel appears in an open desk without a reload; a
+corrupt rule store renders a notice instead of taking the window down.
 
 ## Decisions
 
@@ -114,6 +122,15 @@ list implementation, two shells.
   the builder stays reachable through "New alert" in the alert panel.
 - **The count provider lives on the entry** (`countProvider` + `countLabel`), so
   the rail stays registry-driven and the surface does not special-case an id.
+- **The bots live where the alerts are.** A bot is a promoted alert, so the list
+  sits beside the rules that produce it. `AutomationTab` keeps what a bot
+  *inherits* — the simulated account and the risk limits — because those are
+  settings of the account, not of one rule, and links to the desk rather than
+  keeping a second copy of the list.
+- **"New alert" seeds the builder.** It opens the Super-Alert panel through
+  `openAlertPanelWith` on the current market, not blank: the desk already knows
+  the symbol, and reusing the one entry point keeps the seed-before-open order
+  that the panel's mount depends on.
 
 ## Out of scope
 

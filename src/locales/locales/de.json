@@ -166,7 +166,9 @@
     "controlCenter": {
       "title": "Alerts & Bots",
       "description": "Scharf gestellte Alerts, ihr Auslöse-Log und die Bots, die daraus handeln.",
-      "unreadAria": "{label}, {count} ungelesen"
+      "unreadAria": "{label}, {count} ungelesen",
+      "tabBots": "Bots",
+      "newAlert": "Neuer Alarm"
     },
     "presetLoad": "Preset laden...",
     "savePresetTitle": "Aktuelle Eingaben als Preset speichern",
@@ -2816,6 +2818,8 @@
     "brokenAlertReportLogDesc": "Keine Meldung. Das Alarm-Panel zeigt weiterhin, welche Alarme betroffen sind.",
     "automation": {
       "title": "Automation",
+      "botsMoved": "Deine Bots sind umgezogen: Sie leben jetzt in „Alerts & Bots“, direkt neben den Alarmen, aus denen sie entstanden sind. Hier bleiben das simulierte Konto und die Risiko-Limits, unter denen sie handeln.",
+      "openBots": "Bots öffnen",
       "intro": "Ein Bot ist einer deiner Alarme, hochgestuft vom Melden zum Handeln. Er beobachtet dieselben Bedingungen, auf denselben Daten, ausgewertet von derselben Engine.",
       "simulateOnly": "Bots schlagen Orders ausschließlich im simulierten Konto vor. Nichts davon erreicht eine Börse — echtes Senden ist eine eigene Funktion mit eigenem Order-Gate und eigener Bestätigung.",
       "yourBots": "Deine Bots",
