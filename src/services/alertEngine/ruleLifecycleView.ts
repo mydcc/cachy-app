@@ -71,9 +71,14 @@ function readRules(): RuleDocument[] {
  * is labelled is a list where no label is read.
  *
  * `suspended` is `enabled === false`: the drawing reconciliation, the orphan
- * reconciliation, or the one-shot firing path turned the rule off. A rule that
- * fired stays `fired` even when it was disarmed afterwards; the two facts do
- * not overwrite each other.
+ * reconciliation, a pause, or the one-shot firing path turned the rule off.
+ *
+ * `fired` is the one state that means *spent*: a `once` rule that announced
+ * itself and is now retired. A repeating rule (`every_time`,
+ * `once_per_candle_close`) that fired is still evaluating, so it keeps its
+ * `armed` / `suspended` / `expired` status and carries the firing as
+ * `firedCount` instead (BUG-0754). Calling it `fired` moved it out of the
+ * active list while it was still running, which read as "this rule is done".
  */
 export type AlertLifecycleStatus = "armed" | "expired" | "fired" | "suspended";
 
@@ -117,6 +122,16 @@ export interface AlarmRow {
   enabled: boolean;
   note?: string;
   /**
+   * How often this rule has announced itself — a fact about the past, kept
+   * apart from the status (BUG-0754).
+   *
+   * A repeating rule that fired is still armed; the list says so with this
+   * count next to the status rather than by relabelling the rule as spent.
+   */
+  firedCount: number;
+  /** Close time of the fire that counted last, when the state store has one. */
+  lastFiredAnchorMs: number | null;
+  /**
    * The stored document itself — FEAT-0543.
    *
    * The flat `op`/`threshold` above stay for the compact row header; the
@@ -140,30 +155,38 @@ export function alarmRows(nowMs: number = Date.now()): AlarmRow[] {
           ? (rule.conditions as { op?: CompareOp; right?: { value?: unknown } })
           : undefined;
       const value = compare?.right?.value;
+      const firedCount = states[rule.id]?.fired_count ?? 0;
 
       return {
         id: rule.id,
         symbol: rule.symbol,
         op: compare?.op,
         threshold: typeof value === "string" ? value : undefined,
-        status: lifecycleOf(rule, states[rule.id]?.fired_count ?? 0, nowMs),
+        status: lifecycleOf(rule, firedCount, nowMs),
         enabled: rule.enabled !== false,
         note: rule.note?.trim() || undefined,
+        firedCount,
+        lastFiredAnchorMs: states[rule.id]?.last_fired_anchor_ms ?? null,
         rule,
       };
     });
 }
 
 /**
- * Fired beats expired.
+ * Fired beats expired — but only for a rule that is actually spent.
  *
- * A rule that announced itself and *then* ran past its validity period did its
- * job; calling that "expired" would tell the trader an alarm they heard never
- * happened. Only a rule that lapsed with nothing to show is expired — which is
- * exactly what `Verdict::Expired` means in the core.
+ * A `once` rule that announced itself and *then* ran past its validity period
+ * did its job; calling that "expired" would tell the trader an alarm they
+ * heard never happened. A repeating rule that fired while still inside its
+ * validity period is still evaluating, so it stays `armed`; the firing is
+ * `firedCount` on the row, not its lifecycle (BUG-0754).
  */
 export function lifecycleOf(rule: RuleDocument, firedCount: number, nowMs: number): AlertLifecycleStatus {
-  if (firedCount > 0) return "fired";
+  // BUG-0754: `fired_count > 0` alone said "has ever fired", which moved every
+  // repeating rule into history on its first announcement and kept it there.
+  // Only a one-shot rule is retired by firing; the frequency is part of what
+  // the trader chose, and the default rule is a one-shot.
+  if (firedCount > 0 && (rule.frequency ?? "once") === "once") return "fired";
 
   // FEAT-0029 / BUG-0755: a reconciliation or the one-shot firing path turned
   // the rule off. It is not armed; naming the state is what stops the row

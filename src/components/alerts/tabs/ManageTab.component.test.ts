@@ -165,16 +165,12 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     return target;
   }
 
-  /** The tab's own Active/History switch, addressed the way a trader sees it. */
+  /** The tab strip's two buttons, in render order: Alerts, then Log. */
   function listTabs(el: HTMLElement) {
-    return Array.from(el.querySelectorAll("[role='tab'], .list-tab, button")).filter(
-      (b) =>
-        b.textContent?.trim() === getNestedTranslation("dashboard.alerts.active") ||
-        b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
-    ) as HTMLButtonElement[];
+    return Array.from(el.querySelectorAll<HTMLButtonElement>("[role='tab']"));
   }
 
-  it("lists an armed alert under Active with its symbol and condition", () => {
+  it("lists an armed alert under Alerts with its symbol and sentence", () => {
     seedRules([
       rule({
         symbol: "ETHUSDT",
@@ -194,28 +190,87 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain("ETHUSDT");
     expect(rows[0].textContent).toContain("4200");
+    expect(rows[0].querySelector(".status-armed")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.status.armed,
+    );
   });
 
-  it("keeps a fired alert out of Active and shows it under History with its badge", async () => {
+  it("counts the visible alerts in the tab label", () => {
+    seedRules([rule({ id: "one" }), rule({ id: "two", symbol: "ETHUSDT" })]);
+
+    const el = render();
+    const [alertsTab] = listTabs(el);
+
+    expect(alertsTab.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.tabAlerts.replace("{count}", "2"),
+    );
+  });
+
+  it("keeps a once rule that fired visible with its Fired status", () => {
+    seedRules([rule({ id: "spent", symbol: "SOLUSDT", enabled: false })], { spent: 1 });
+
+    const el = render();
+
+    const row = el.querySelector(".alert-item");
+    expect(row?.textContent).toContain("SOLUSDT");
+    expect(row?.querySelector(".status-fired")).not.toBeNull();
+  });
+
+  it("searches symbol, name and note and says when nothing matches", () => {
+    seedRules([
+      rule({ id: "btc", symbol: "BTCUSDT", name: "Breakout" }),
+      rule({ id: "eth", symbol: "ETHUSDT", name: "Retest", note: "watch the level" }),
+    ]);
+
+    const el = render();
+    const search = el.querySelector<HTMLInputElement>("input[type='search']");
+
+    search!.value = "retest";
+    search!.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(1);
+    expect(el.textContent).toContain("ETHUSDT");
+    expect(listTabs(el)[0].textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.tabAlerts.replace("{count}", "1"),
+    );
+
+    search!.value = "solana";
+    search!.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(0);
+    expect(el.querySelector(".empty-state")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.noMatches,
+    );
+  });
+
+  it("filters by a status chip and exposes its pressed state", () => {
     seedRules(
-      [rule({ id: "armed", symbol: "BTCUSDT" }), rule({ id: "fired", symbol: "SOLUSDT" })],
-      { fired: 1 },
+      [rule({ id: "armed" }), rule({ id: "paused", symbol: "ETHUSDT", enabled: false })],
+      {},
     );
 
     const el = render();
-    expect(el.textContent).toContain("BTCUSDT");
-    expect(el.querySelectorAll(".alert-item")).toHaveLength(1);
-
-    const history = listTabs(el).find(
-      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
+    const suspended = Array.from(el.querySelectorAll<HTMLButtonElement>(".chip")).find(
+      (chip) => chip.textContent?.trim() === en.dashboard.alerts.suspended,
     );
-    history?.click();
+
+    expect(suspended?.getAttribute("aria-pressed")).toBe("false");
+    suspended!.click();
     flushSync();
 
-    const rows = el.querySelectorAll(".alert-item");
-    expect(rows).toHaveLength(1);
-    expect(rows[0].textContent).toContain("SOLUSDT");
-    expect(rows[0].querySelector(".fired-badge")).not.toBeNull();
+    expect(suspended?.getAttribute("aria-pressed")).toBe("true");
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(1);
+    expect(el.textContent).toContain("ETHUSDT");
+  });
+
+  it("says the list is empty rather than rendering an empty box", () => {
+    const el = render();
+
+    expect(el.querySelector(".empty-state")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.emptyAlerts,
+    );
   });
 
   it("deletes the alarm its row names, not the first one in the list", () => {
@@ -231,14 +286,6 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(JSON.parse(localStorage.getItem(RULES_KEY)!).map((r: { id: string }) => r.id)).toEqual([
       "keep",
     ]);
-  });
-
-  it("says the list is empty rather than rendering an empty box", () => {
-    const el = render();
-
-    expect(el.querySelector(".empty-state")?.textContent?.trim()).toBe(
-      getNestedTranslation("dashboard.alerts.noActive"),
-    );
   });
 
   it("FEAT-0029: reports drawing alerts disabled for a deleted drawing", () => {
@@ -679,13 +726,8 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     seedRules([rule({ id: "spent", enabled: false })], { spent: 1 });
 
     const el = render();
-    const history = listTabs(el).find(
-      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
-    );
-    history?.click();
-    flushSync();
 
-    expect(el.querySelector(".fired-badge")).not.toBeNull();
+    expect(el.querySelector(".status-fired")).not.toBeNull();
     expect(el.querySelector(".suspended-badge")).toBeNull();
   });
 
@@ -726,31 +768,26 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     seedRules([rule({ id: "spent", enabled: false })], { spent: 1 });
 
     const el = render();
-    const history = listTabs(el).find(
-      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
-    );
-    history!.click();
-    flushSync();
 
     expect(el.querySelector(".pause-btn")).toBeNull();
     expect(el.querySelector(".duplicate-btn")).not.toBeNull();
   });
 
-  it("FEAT-0746: keeps pause on a repeating rule that has fired", () => {
+  it("BUG-0754: keeps a repeating rule that fired in the list as armed, with its count", () => {
     seedRules(
       [rule({ id: "repeat", frequency: "every_time", enabled: true })],
-      { repeat: 1 },
+      { repeat: 3 },
     );
 
     const el = render();
-    const history = listTabs(el).find(
-      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.history"),
-    );
-    history!.click();
-    flushSync();
+    const row = el.querySelector(".alert-item");
 
-    expect(el.querySelector(".fired-badge")).not.toBeNull();
-    expect(el.querySelector(".pause-btn")).not.toBeNull();
+    expect(row).not.toBeNull();
+    expect(row?.querySelector(".status-armed")).not.toBeNull();
+    expect(row?.querySelector(".fired-count")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.firedTimes.replace("{count}", "3"),
+    );
+    expect(row?.querySelector(".pause-btn")).not.toBeNull();
   });
 
   it("FEAT-0746: duplicates with a localised copy name and says it starts paused", () => {
@@ -845,5 +882,106 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     expect(toast).toHaveBeenCalledWith(en.dashboard.alerts[key], "error");
     expect(alertState.rulesVersion).toBe(before);
+  });
+
+  /*
+   * FEAT-0747 — the firing log reads the ledger, not the rule list: an
+   * announcement is an event, and deleting the rule it belongs to is not a
+   * request to erase the evidence that it fired.
+   */
+  const LEDGER_KEY = "cachy_shadow_firings_v1";
+
+  function seedLedger(records: unknown[]) {
+    localStorage.setItem(
+      LEDGER_KEY,
+      JSON.stringify({ schema_version: 1, records }),
+    );
+    alertState.firingsVersion += 1;
+  }
+
+  function firingRecord(overrides: Record<string, unknown> = {}) {
+    return {
+      source: "rule",
+      recordedAtMs: Date.parse("2026-10-30T10:00:00Z"),
+      symbol: "BTCUSDT",
+      id: "rule-1",
+      timeframe: "1m",
+      anchorMs: Date.parse("2026-10-30T09:59:00Z"),
+      verdict: "Triggered",
+      ...overrides,
+    };
+  }
+
+  it("FEAT-0747: lists a rule's announcement in the Log tab with its candle", () => {
+    seedRules([rule({ id: "rule-1", name: "Breakout" })]);
+    seedLedger([firingRecord()]);
+
+    const el = render();
+    const [, logTab] = listTabs(el);
+
+    expect(logTab.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.tabLog.replace("{count}", "1"),
+    );
+
+    logTab.click();
+    flushSync();
+
+    const entry = el.querySelector(".log-item");
+    expect(entry?.textContent).toContain("BTCUSDT");
+    expect(entry?.textContent).toContain("Breakout");
+    expect(entry?.textContent).toContain("Triggered");
+    expect(el.querySelector(".log-cap")?.textContent).toContain("500");
+  });
+
+  it("FEAT-0747: keeps the log entry after the rule is deleted", () => {
+    seedRules([rule({ id: "rule-1", name: "Breakout" })]);
+    seedLedger([firingRecord()]);
+
+    const el = render();
+    (el.querySelector(".delete-btn") as HTMLButtonElement).click();
+    flushSync();
+
+    const [, logTab] = listTabs(el);
+    logTab.click();
+    flushSync();
+
+    const entry = el.querySelector(".log-item");
+    expect(entry?.textContent).toContain("BTCUSDT");
+    expect(entry?.textContent).toContain(en.dashboard.alerts.manageList.logDeletedRule);
+  });
+
+  it("FEAT-0747: adds a state-only entry for a fired rule the ledger never saw", () => {
+    seedRules([rule({ id: "rule-1", frequency: "every_time" })], {
+      "rule-1": 1,
+    });
+    // `seedRules` writes only `fired_count`; the anchor is what the fallback
+    // needs, so write it the way the state store does.
+    localStorage.setItem(
+      RULE_STATE_KEY,
+      JSON.stringify({
+        "rule-1": { fired_count: 1, last_fired_anchor_ms: Date.parse("2026-10-30T09:00:00Z") },
+      }),
+    );
+    alertState.rulesVersion += 1;
+
+    const el = render();
+    listTabs(el)[1].click();
+    flushSync();
+
+    const entry = el.querySelector(".log-item");
+    expect(entry?.textContent).toContain("BTCUSDT");
+    expect(entry?.querySelector("[title]")).not.toBeNull();
+  });
+
+  it("FEAT-0747: says the log is empty rather than rendering nothing", () => {
+    seedRules([rule()]);
+
+    const el = render();
+    listTabs(el)[1].click();
+    flushSync();
+
+    expect(el.querySelector(".empty-state")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.logEmpty,
+    );
   });
 });

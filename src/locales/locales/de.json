@@ -714,6 +714,45 @@
           "hl2": "Median (HL2)",
           "hlc3": "Typisch (HLC3)"
         }
+      },
+      "manageList": {
+        "tabAlerts": "Alarme ({count})",
+        "tabLog": "Log ({count})",
+        "searchLabel": "Suche",
+        "searchPlaceholder": "Symbol, Name oder Notiz suchen",
+        "filterStatus": "Status",
+        "filterKind": "Typ",
+        "filterTimeframe": "Timeframe",
+        "filterEvaluation": "Auswertung",
+        "sort": "Sortierung",
+        "sortSymbol": "Symbol",
+        "sortLastFired": "Letzter Alarm",
+        "sortExpiry": "Ablauf",
+        "clearFilters": "Filter zurücksetzen",
+        "status": {
+          "armed": "Scharf"
+        },
+        "kind": {
+          "price": "Preis",
+          "indicator": "Indikator",
+          "pattern": "Kerzenmuster",
+          "combo": "Kombination",
+          "position": "Position",
+          "account": "Konto",
+          "drawing": "Zeichnung",
+          "unknown": "Regel"
+        },
+        "firedTimes": "{count}× ausgelöst",
+        "validUntil": "gültig bis {date}",
+        "lastFired": "zuletzt {date}",
+        "noMatches": "Keine Alarme passen zu diesen Filtern",
+        "emptyAlerts": "Kein Alarm scharf — lege einen über den Chart oder die Glocke an",
+        "logEmpty": "Noch nichts ausgelöst",
+        "logCap": "Das Log behält die letzten {count} Auslösungen.",
+        "logAnchorOnly": "Keine Uhrzeit gespeichert — angezeigt wird der Kerzenbeginn.",
+        "logDeletedRule": "Regel gelöscht",
+        "openRule": "Regel {name} öffnen",
+        "logCandle": "Kerze {time}"
       }
     },
     "generalInputs": {
