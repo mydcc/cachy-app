@@ -50,9 +50,12 @@
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
     import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
     import { readBotLogRows } from "../../../services/alertEngine/botStore";
+    import { sendTestAnnouncement } from "../../../stores/alertDelivery";
+    import { channelsLabel } from "../../../lib/alerts/lifecycleLabels";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
+    import type { RuleDocument } from "../../../lib/rules/types";
     import type { TranslationKey } from "../../../locales/schema";
     import AlertFilters from "../manage/AlertFilters.svelte";
     import AlertRow from "../manage/AlertRow.svelte";
@@ -200,6 +203,32 @@
             return $_("dashboard.alerts.suspendedOrphan");
         }
         return null;
+    }
+
+    /**
+     * FEAT-0748 — one labelled test to the channels this rule would use. The
+     * service owns the body and the delivery; nothing here touches rule state,
+     * so pressing it cannot spend a `once` rule.
+     */
+    function testRow(row: ManageRow) {
+        // `StoredRule` is the store's partial shape; the sink has always cast it.
+        const outcome = sendTestAnnouncement(row.rule as RuleDocument);
+        // A toast is the only acknowledgement an external-only set produces:
+        // the in-app channel is by definition not part of it.
+        const label = channelsLabel(
+            { local: outcome.delivered, external: outcome.external },
+            $_,
+        );
+        uiState.showToast(
+            outcome.duplicate
+                ? $_("dashboard.alerts.panel.lifecycle.testSuppressed")
+                : label === ""
+                  ? $_("dashboard.alerts.panel.lifecycle.testNothing")
+                  : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
+                        values: { channels: label },
+                    }),
+            "info",
+        );
     }
 
     function deleteRow(id: string) {
@@ -423,6 +452,7 @@
                     onEdit={editRow}
                     onDuplicate={duplicateRow}
                     onDelete={deleteRow}
+                    onTest={testRow}
                 />
             {/each}
         {/if}

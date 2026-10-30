@@ -1462,6 +1462,22 @@ mod tests {
         assert!(parse_document(&json).is_err());
     }
 
+    /// ADR-0018 decision 7: an older core refuses the document, it does not
+    /// silently drop the channel it does not know.
+    #[test]
+    fn an_unknown_trigger_method_refuses_the_whole_document() {
+        let json = serialise_document(&rsi_dip()).unwrap();
+        let mut value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        value["trigger_methods"] = serde_json::json!(["carrier_pigeon"]);
+        let err = parse_document(&value.to_string()).unwrap_err();
+
+        assert!(err.refusals.iter().any(|refusal| refusal.code == RefusalCode::UnknownField));
+        assert!(
+            err.refusals.iter().any(|refusal| refusal.detail.contains("carrier_pigeon")),
+            "the refusal has to name the unknown method: {err}"
+        );
+    }
+
     #[test]
     fn an_unknown_condition_kind_is_rejected() {
         let json = serialise_document(&rsi_dip())

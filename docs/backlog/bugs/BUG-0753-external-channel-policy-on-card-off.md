@@ -2,7 +2,9 @@
 id: BUG-0753
 title: External channel switched on in the policy but off on its card
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: feature/feat-0748-per-alert-channels
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -68,17 +70,26 @@ valid.
 
 ## Acceptance criteria
 
-- [ ] With valid credentials and the card's switch off, the matrix cell for that
+- [x] With valid credentials and the card's switch off, the matrix cell for that
       channel cannot be switched on, or is visibly marked as paused with a hint
-      that says which switch to flip.
-- [ ] The matrix distinguishes "not configured" from "paused" in both locales.
-- [ ] A delivery attempt on a wanted channel that is paused produces an entry in
+      that says which switch to flip. *Done:* the cell is disabled with the
+      `channelPaused` hint; pinned in
+      `NotificationSettings.component.test.ts`.
+- [x] The matrix distinguishes "not configured" from "paused" in both locales.
+      *Done:* `externalChannelState()` returns `ok`, `needsSetup` or `paused`
+      and the copy differs in en/de.
+- [x] A delivery attempt on a wanted channel that is paused produces an entry in
       `externalDeliveryLog` rather than nothing — pinned by a test at the
-      `notify()` boundary.
-- [ ] A channel that is both configured and enabled is unchanged: it delivers,
-      and its matrix cell stays operable.
-- [ ] The predicate used by the matrix and by delivery is one function, so the
-      two cannot diverge again.
+      `notify()` boundary. *Done:* `externalTargets` records `paused` or
+      `notConfigured`; two tests in `notificationService.test.ts` pin both.
+- [x] A channel that is both configured and enabled is unchanged: it delivers,
+      and its matrix cell stays operable. *Done:* pinned in the component test
+      and the existing dispatch tests.
+- [x] The predicate used by the matrix and by delivery is one function, so the
+      two cannot diverge again. *Done:* both call
+      `externalChannelsStore.state`, which delegates to
+      `externalChannelState`; delivery uses `isActive`, which is the same
+      classification collapsed to a boolean.
 
 ## Out of scope
 

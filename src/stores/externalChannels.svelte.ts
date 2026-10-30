@@ -35,6 +35,7 @@ import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";
 import {
     DEFAULT_EXTERNAL_CHANNELS,
+    externalChannelState,
     isChannelActive,
     normalizeExternalChannels,
     validateChannel,
@@ -89,6 +90,15 @@ class ExternalChannelsStore {
     /** What is wrong with this channel's fields, or `null` when nothing is. */
     public problem(channel: ExternalChannelId): ConfigProblem | null {
         return validateChannel(this._config, channel);
+    }
+
+    /**
+     * The three states the matrix and the delivery log must agree on — BUG-0753.
+     * Both call this, so "needs setup" cannot mean one thing in Settings and
+     * another in the log.
+     */
+    public state(channel: ExternalChannelId): "ok" | "needsSetup" | "paused" {
+        return externalChannelState(this._config, channel);
     }
 
     /** Any channel that could carry an announcement right now. */

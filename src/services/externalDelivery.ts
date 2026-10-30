@@ -238,9 +238,10 @@ export function dispatchExternal(
     channels: readonly ExternalChannelId[],
     body: string,
     subject: string,
+    test = false,
 ): void {
     for (const channel of channels) {
-        void deliverExternal(channel, body, subject);
+        void deliverExternal(channel, body, subject, test);
     }
 }
 

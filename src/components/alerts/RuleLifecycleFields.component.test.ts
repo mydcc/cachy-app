@@ -31,6 +31,9 @@ import en from "../../locales/locales/en.json";
 import RuleLifecycleFields from "./RuleLifecycleFields.svelte";
 import { alertPanelState } from "../../stores/alertPanel.svelte";
 import { locale } from "../../locales/i18n";
+import { notificationPolicyStore } from "../../stores/notifications.svelte";
+import { externalChannelsStore } from "../../stores/externalChannels.svelte";
+import { notificationService } from "../../services/notificationService.svelte";
 
 const dictionary = en as Record<string, unknown>;
 
@@ -69,6 +72,9 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
     target = document.createElement("div");
     document.body.appendChild(target);
     alertPanelState.reset("BTCUSDT");
+    notificationPolicyStore.reset();
+    externalChannelsStore.reload();
+    notificationService.reset();
   });
 
   afterEach(() => {
@@ -125,6 +131,139 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
     render();
     const labels = [...target.querySelectorAll(".method span")].map((s) => s.textContent);
     expect(labels).toEqual(["In-app", "Browser", "Sound"]);
+  });
+
+  it("offers an external channel only once it is configured and switched on", () => {
+    render();
+    expect(target.querySelectorAll('input[type="checkbox"]')).toHaveLength(3);
+
+    externalChannelsStore.setDiscord({
+      enabled: true,
+      webhookUrl: "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_",
+      format: "minimal",
+    });
+    flushSync();
+
+    const labels = [...target.querySelectorAll(".method span")].map((s) => s.textContent);
+    expect(labels).toEqual(["In-app", "Browser", "Sound", "Discord"]);
+
+    // A channel that is configured but paused is not offered: a tick that
+    // delivers nothing is the silent alarm FEAT-0748 exists to prevent.
+    externalChannelsStore.setDiscord({ enabled: false });
+    flushSync();
+
+    expect(target.querySelectorAll('input[type="checkbox"]')).toHaveLength(3);
+  });
+
+  it("names the channels the rule will actually use", () => {
+    alertPanelState.draft.trigger_methods = ["in_app", "sound"];
+    render();
+
+    expect(target.querySelector(".effective-label")?.textContent).toContain(
+      "Goes to In-app, Sound",
+    );
+  });
+
+  it("acknowledges a test so an external-only set is not a dead button", () => {
+    render();
+    const button = target.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+    button.click();
+    flushSync();
+
+    expect(target.querySelector(".test-status")?.textContent).toContain(
+      "Test dispatched to In-app",
+    );
+  });
+
+  it("does not claim a second press sent anything", () => {
+    render();
+    const button = target.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+
+    button.click();
+    flushSync();
+    expect(target.querySelector(".test-status")?.textContent).toContain(
+      "Test dispatched to In-app",
+    );
+
+    button.click();
+    flushSync();
+    expect(target.querySelector(".test-status")?.textContent).toContain(
+      "Already tested a moment ago",
+    );
+  });
+
+  it("does not carry a test result over to another draft", () => {
+    render();
+    const button = target.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+    button.click();
+    flushSync();
+
+    alertPanelState.reset("ETHUSDT");
+    flushSync();
+
+    expect(target.querySelector(".test-status")?.textContent?.trim()).toBe("");
+  });
+
+  it("names the effective set in the collapsed summary", () => {
+    render();
+
+    expect(target.querySelector(".summary-value")?.textContent).toContain("In-app");
+  });
+
+  it("says so when nothing would be announced", () => {
+    notificationPolicyStore.setChannel("alert-fired", "in-app", false);
+    render();
+
+    expect(target.querySelector(".effective-label")?.textContent).toContain(
+      "No channel is active",
+    );
+    expect(target.querySelector(".summary-value")?.textContent).toContain(
+      "no active channel",
+    );
+    expect(target.querySelector<HTMLButtonElement>(".test-btn")?.disabled).toBe(true);
+  });
+
+  it("cannot claim a ticked channel inside a silenced category", () => {
+    notificationPolicyStore.setChannel("alert-fired", "in-app", false);
+    alertPanelState.draft.trigger_methods = ["browser"];
+    render();
+
+    expect(target.querySelector(".effective-label")?.textContent).toContain(
+      "No channel is active",
+    );
+    expect(target.querySelector<HTMLButtonElement>(".test-btn")?.disabled).toBe(true);
+  });
+
+  it("keeps a paused channel visible so its tick can be removed", () => {
+    externalChannelsStore.setDiscord({
+      enabled: true,
+      webhookUrl: "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_",
+      format: "minimal",
+    });
+    alertPanelState.draft.trigger_methods = ["discord"];
+    render();
+
+    expect(target.querySelectorAll('input[type="checkbox"]')).toHaveLength(4);
+
+    externalChannelsStore.setDiscord({ enabled: false });
+    flushSync();
+
+    const labels = [...target.querySelectorAll(".method span")].map((s) => s.textContent);
+    expect(labels).toContain("Discord");
+    // Still operable so the choice can be removed; the hint says it will not
+    // deliver right now.
+    const boxes = target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+    expect(boxes[3].disabled).toBe(false);
+    expect(target.textContent).toContain(
+      "Paused — switch it on under Settings → Notifications",
+    );
+
+    boxes[3].click();
+    flushSync();
+    expect(alertPanelState.draft.trigger_methods).toEqual([]);
   });
 
   it("adds and removes a channel without disturbing the others", () => {

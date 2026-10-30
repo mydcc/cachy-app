@@ -36,6 +36,7 @@ import { soundChannel } from "./soundChannel.svelte";
 import { TONE_FOR_CATEGORY } from "../lib/notificationTones";
 import { dispatchExternal } from "./externalDelivery";
 import { externalChannelsStore } from "../stores/externalChannels.svelte";
+import { externalDeliveryLog } from "../stores/externalDeliveryLog.svelte";
 import { EXTERNAL_NOTIFICATION_CHANNELS } from "../lib/notificationPolicy";
 import type { ExternalChannelId } from "../lib/notifications/externalChannels";
 import { logger } from "./logger";
@@ -70,11 +71,36 @@ export interface NotificationRequest {
      * Absent or empty: the category policy decides, which is what every rule
      * authored before this field existed means.
      *
-     * The external channels are deliberately not selectable here; see
-     * `LocalNotificationChannel`. A category the trader silenced entirely stays
-     * silent — `isSilent` is checked before this field is read.
+     * The external half is `externalChannels` below and is bounded by the
+     * policy. A local tick outranks the category default (BUG-0750) but not a
+     * category the trader silenced entirely —
+     * `isSilent` is checked before either field is read.
      */
     localChannels?: readonly LocalNotificationChannel[];
+    /**
+     * The external channels this particular announcement asks for — FEAT-0748.
+     *
+     * Non-empty: narrows the policy's external set to these, and only where the
+     * policy already wants them *and* the channel is active. Absent or empty:
+     * the policy decides, as it did before this field existed.
+     *
+     * A rule can therefore never open a channel the trader silenced: the policy
+     * is the ceiling, not a default the rule may overrule.
+     */
+    externalChannels?: readonly ExternalChannelId[];
+    /**
+     * Treat both lists as exhaustive rather than as a narrowing — FEAT-0748.
+     *
+     * Only the test send passes this. A rule's test must reach *exactly* the
+     * set the rule would use; without this flag an empty list would fall back to
+     * the policy and the test would prove a channel the rule never uses.
+     */
+    exactChannels?: boolean;
+    /**
+     * Marks the announcement as a test in the delivery log. The body's "Test —"
+     * prefix comes from the caller (`dashboard.alerts.testAnnouncement`).
+     */
+    test?: boolean;
 }
 
 /**
@@ -89,6 +115,12 @@ export type BrowserPermission = "unsupported" | "default" | "granted" | "denied"
 class NotificationService {
     /** `notificationKey` → when it was last announced. */
     private recent = new Map<string, number>();
+
+    /**
+     * Last reported skip per channel and per real/test delivery, so the log
+     * records a state change rather than every announcement.
+     */
+    private lastSkip = new Map<string, "paused" | "notConfigured">();
 
     /**
      * Bounds `recent` so a long session cannot grow it without limit — the same
@@ -128,16 +160,43 @@ class NotificationService {
      *
      * `request.localChannels`, when present and non-empty, takes over the three
      * local channels: the trader picked them on this rule, and a specific choice
-     * on the alert outranks the category default (BUG-0750). The external
-     * channels stay policy-only either way.
+     * on the alert outranks the category default (BUG-0750). The external ones
+     * narrow the policy's set the same way (FEAT-0748), never widen it.
      *
      * Returns the channels actually delivered on, so a test can assert the
      * absence of delivery rather than the presence of a message.
      */
     public notify(request: NotificationRequest): string[] {
-        const { category, eventId, message, tone = "info", localChannels } = request;
+        return this.notifyDetailed(request).delivered;
+    }
 
-        if (notificationPolicyStore.isSilent(category)) return [];
+    /**
+     * The same delivery, with the one fact `notify` cannot return on its own:
+     * whether the duplicate window swallowed it.
+     *
+     * Only the test send needs it — the trader pressed a button and deserves to
+     * know that nothing was dispatched, rather than a success message for a
+     * suppressed call.
+     */
+    public notifyDetailed(request: NotificationRequest): {
+        delivered: LocalNotificationChannel[];
+        external: ExternalChannelId[];
+        duplicate: boolean;
+    } {
+        const {
+            category,
+            eventId,
+            message,
+            tone = "info",
+            localChannels,
+            externalChannels,
+            exactChannels = false,
+            test = false,
+        } = request;
+
+        if (notificationPolicyStore.isSilent(category)) {
+            return { delivered: [], external: [], duplicate: false };
+        }
 
         /*
          * Sanitised here rather than trusted from the caller: this is a service
@@ -148,20 +207,36 @@ class NotificationService {
         const selected = localChannels?.filter(isLocalNotificationChannel) ?? [];
 
         /*
-         * One place for the precedence, so the toast, the OS notification and
-         * the tone cannot disagree about who decides. `undefined` and `[]` both
-         * mean "the policy decides".
+         * The external half — FEAT-0748. Sanitised the same way: a name this
+         * build does not know must not turn into a selection that matches
+         * nothing, because that would mute an alarm the trader asked for.
+         */
+        const selectedExternal = (externalChannels ?? []).filter(
+            (channel): channel is ExternalChannelId =>
+                (EXTERNAL_NOTIFICATION_CHANNELS as readonly string[]).includes(channel),
+        );
+
+        /*
+         * One place for the local precedence, so the toast, the OS notification
+         * and the tone cannot disagree about who decides. `undefined` and `[]`
+         * both mean "the policy decides".
+         *
+         * The external half is resolved separately in `externalTargets`; the
+         * display path shares its *resolver* (`effectiveChannels`) but resolves
+         * before delivery, because it also needs to say why a channel is out.
          */
         const wantsLocal = (channel: LocalNotificationChannel): boolean =>
-            selected.length > 0
+            selected.length > 0 || exactChannels
                 ? selected.includes(channel)
                 : notificationPolicyStore.wants(category, channel);
 
         const key = notificationKey(category, eventId);
-        if (this.isDuplicate(key)) return [];
+        if (this.isDuplicate(key)) {
+            return { delivered: [], external: [], duplicate: true };
+        }
         this.remember(key);
 
-        const delivered: string[] = [];
+        const delivered: LocalNotificationChannel[] = [];
 
         if (wantsLocal("in-app")) {
             this.showToast(message, tone);
@@ -213,10 +288,12 @@ class NotificationService {
          * outcome goes to `externalDeliveryLog` and the settings UI reads it
          * there.
          */
-        const external = this.externalTargets(category);
-        if (external.length > 0) dispatchExternal(external, message, this.subjectFor(category));
+        const external = this.externalTargets(category, selectedExternal, test, exactChannels);
+        if (external.length > 0) {
+            dispatchExternal(external, message, this.subjectFor(category), test);
+        }
 
-        return delivered;
+        return { delivered, external, duplicate: false };
     }
 
     /** The in-app channel. One shape, whether it was chosen or stood in. */
@@ -227,21 +304,68 @@ class NotificationService {
     }
 
     /**
-     * The external channels this category should reach: wanted by the policy,
-     * and actually configured.
+     * The external channels this announcement should reach.
      *
-     * Both halves matter. A channel switched on with a cleared webhook would
-     * otherwise produce one failure entry per alert, which buries the entries
-     * that describe a real problem.
+     * Two authorities: the policy decides whether a channel may carry this
+     * category at all, and the rule may narrow the result further. A rule
+     * naming a channel the policy does not want is not a request the service
+     * can honour — the policy is the ceiling (ADR-0018).
+     *
+     * A wanted channel that is not active is skipped *with an entry in the
+     * delivery log* (BUG-0753): silence was the defect, not the skip itself.
      */
-    private externalTargets(category: NotificationCategory): ExternalChannelId[] {
+    private externalTargets(
+        category: NotificationCategory,
+        requested: readonly ExternalChannelId[],
+        test: boolean,
+        exact: boolean,
+    ): ExternalChannelId[] {
         const targets: ExternalChannelId[] = [];
         for (const channel of EXTERNAL_NOTIFICATION_CHANNELS) {
             if (!notificationPolicyStore.wants(category, channel)) continue;
             const id = channel as ExternalChannelId;
-            if (externalChannelsStore.isActive(id)) targets.push(id);
+            // In exact mode an empty list means "nothing external", not "the
+            // policy decides": the test send resolves the set beforehand.
+            if (exact && !requested.includes(id)) continue;
+            if (!exact && requested.length > 0 && !requested.includes(id)) continue;
+
+            if (externalChannelsStore.isActive(id)) {
+                targets.push(id);
+                // A successful dispatch ends the skip state: a later pause is a
+                // new fact, not a repeat of one that was already reported.
+                this.lastSkip.delete(`${id}:${test}`);
+                continue;
+            }
+
+            this.recordSkip(id, test);
         }
         return targets;
+    }
+
+    /**
+     * One log entry per state change, not per announcement — BUG-0753.
+     *
+     * A paused channel that stays paused is one fact. Repeating it on every
+     * firing of an `every_time` rule would fill the 50-entry ring and push out
+     * the real failures the log exists to preserve; a time window only slows
+     * that down, so the state itself is remembered until it changes or a
+     * delivery succeeds. Test and real sends are tracked separately: a test
+     * press must not consume the record of a real skip.
+     */
+    private recordSkip(channel: ExternalChannelId, test: boolean): void {
+        const reason =
+            externalChannelsStore.state(channel) === "paused" ? "paused" : "notConfigured";
+        const key = `${channel}:${test}`;
+        // The ring evicts; a remembered skip whose entry is gone must be
+        // written again, or a permanently broken channel becomes invisible.
+        const stillLogged = externalDeliveryLog.entries.some(
+            (entry) =>
+                entry.channel === channel && entry.test === test && entry.reason === reason,
+        );
+        if (this.lastSkip.get(key) === reason && stillLogged) return;
+
+        this.lastSkip.set(key, reason);
+        externalDeliveryLog.record({ channel, ok: false, atMs: Date.now(), test, reason });
     }
 
     /** The e-mail subject. The body is the same line every other channel gets. */
@@ -287,6 +411,7 @@ class NotificationService {
     /** Test seam: forgets what has been announced. */
     public reset(): void {
         this.recent.clear();
+        this.lastSkip.clear();
     }
 }
 

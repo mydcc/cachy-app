@@ -328,11 +328,18 @@ export type TriggerFrequency = "once" | "every_time" | "once_per_candle_close";
 /**
  * A channel a trigger is announced on. Mirrors `lifecycle::TriggerMethod`.
  *
- * External channels are deliberately absent: FEAT-0397 has unresolved
- * constraints, and a type invented for a shape that may not ship is a migration
- * owed for nothing.
+ * The external three are selectable per rule (FEAT-0748) but remain bounded by
+ * the policy: a rule can only narrow delivery to a channel the trader has
+ * configured and switched on. Whether a channel is usable is a property of the
+ * device, not of the document, so this union stays about *intent*.
  */
-export type TriggerMethod = "in_app" | "browser" | "sound";
+export type TriggerMethod =
+  | "in_app"
+  | "browser"
+  | "sound"
+  | "email"
+  | "discord"
+  | "telegram";
 
 /** The longest a note may be, in characters. Mirrors `lifecycle::NOTE_MAX_CHARS`. */
 export const NOTE_MAX_CHARS = 280;

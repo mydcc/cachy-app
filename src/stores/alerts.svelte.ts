@@ -40,11 +40,10 @@ import { recordFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
 import { alertNotificationKey } from "../lib/notificationPolicy";
-import type { LocalNotificationChannel } from "../lib/notificationPolicy";
+import { channelSelection } from "../lib/alerts/effectiveChannels";
 import type { FiringSink, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
 import type { RuleDocument } from "../lib/rules/types";
-import type { TriggerMethod } from "../lib/rules/types";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
 import { paperState } from "./paperTrading.svelte";
@@ -410,13 +409,7 @@ export function reportBotOrderRefusal(
  * Anything the core would not have written is dropped rather than forwarded,
  * and a rule left with no readable method means "no opinion".
  */
-const LOCAL_CHANNEL_BY_METHOD = new Map<TriggerMethod, LocalNotificationChannel>([
-    ["in_app", "in-app"],
-    ["browser", "browser"],
-    ["sound", "sound"],
-]);
-
-function ruleLocalChannels(rule: RuleDocument): LocalNotificationChannel[] | undefined {
+function ruleChannels(rule: RuleDocument): ReturnType<typeof channelSelection> {
     // `readRuleStore` casts parsed JSON without validating its fields, so this
     // can hold anything a hand edit or an older schema left behind. A non-array
     // must mean "no opinion" rather than throw: a throw here lands in the sink's
@@ -426,17 +419,7 @@ function ruleLocalChannels(rule: RuleDocument): LocalNotificationChannel[] | und
         ? rule.trigger_methods
         : [];
 
-    const channels = methods
-        .map((method) =>
-            typeof method === "string"
-                ? LOCAL_CHANNEL_BY_METHOD.get(method as TriggerMethod)
-                : undefined,
-        )
-        .filter((channel): channel is LocalNotificationChannel => channel !== undefined);
-
-    // Empty means "no opinion": the notification policy decides, which is what
-    // every rule authored before the footer existed means.
-    return channels.length > 0 ? channels : undefined;
+    return channelSelection(methods);
 }
 
 export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
@@ -445,12 +428,14 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
         // exactly one 1m candle, and swallowing an `every_time` rule's second
         // announcement would mute an alarm the trader explicitly asked to hear
         // on every touch. See `alertNotificationKey`.
+        const channels = ruleChannels(rule);
         notificationService.notify({
             category: "alert-fired",
             eventId: alertNotificationKey(rule.id, anchorMs),
             message: firingMessage(rule),
             tone: "success",
-            localChannels: ruleLocalChannels(rule),
+            localChannels: channels.local,
+            externalChannels: channels.external,
         });
 
         recordRuleFiring(rule.id, anchorMs);

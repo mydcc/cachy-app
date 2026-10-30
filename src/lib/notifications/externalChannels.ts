@@ -149,6 +149,7 @@ export type ConfigProblem =
  */
 export type FailureReason =
     | "notConfigured"
+    | "paused"
     | "network"
     | "timeout"
     | "unauthorized"
@@ -215,8 +216,28 @@ export function isChannelActive(
     config: ExternalChannelsConfig,
     channel: ExternalChannelId,
 ): boolean {
-    if (!config[channel].enabled) return false;
-    return validateChannel(config, channel) === null;
+    // One classification, collapsed to a boolean — the matrix asks for the
+    // three-way state and delivery asks only this, so the two cannot diverge.
+    return externalChannelState(config, channel) === "ok";
+}
+
+/** Why an external channel cannot carry anything right now. */
+export type ExternalChannelState = "ok" | "needsSetup" | "paused";
+
+/**
+ * The one classification of a channel's readiness — BUG-0753.
+ *
+ * `isChannelActive` answers only yes/no for delivery; the UI needs the two
+ * reasons separately, because they are fixed in different places. Deriving
+ * both here keeps the matrix and the delivery log from naming the same state
+ * differently.
+ */
+export function externalChannelState(
+    config: ExternalChannelsConfig,
+    channel: ExternalChannelId,
+): ExternalChannelState {
+    if (validateChannel(config, channel) !== null) return "needsSetup";
+    return config[channel].enabled ? "ok" : "paused";
 }
 
 export function validateChannel(

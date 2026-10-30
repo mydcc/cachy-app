@@ -57,16 +57,14 @@
   } as const satisfies Record<NotificationChannel, string>;
 
   /**
-   * An external channel with no credentials has nothing to offer here.
+   * Why an external channel cannot carry anything right now.
    *
-   * It is disabled rather than hidden, with a hint pointing at the section
-   * below: a trader looking for "Discord" in this list needs to find out *why*
-   * it is not available, and a row that silently is not rendered tells them the
-   * feature does not exist.
+   * The state comes from the store, which shares its classification with the
+   * delivery log (BUG-0753), so "paused" cannot mean two things on two screens.
    */
-  function externalProblem(channel: NotificationChannel): boolean {
-    if (!isExternalChannel(channel)) return false;
-    return externalChannelsStore.problem(channel as ExternalChannelId) !== null;
+  function externalState(channel: NotificationChannel): "ok" | "needsSetup" | "paused" {
+    if (!isExternalChannel(channel)) return "ok";
+    return externalChannelsStore.state(channel as ExternalChannelId);
   }
 
   let permission = $state(notificationService.permission());
@@ -115,8 +113,9 @@
            * permanent. Only a browser that cannot play at all blocks it.
            */
           (channel === "sound" && soundAvailability === "unsupported") ||
-          externalProblem(channel),
-        needsSetup: externalProblem(channel),
+          externalState(channel) !== "ok",
+        needsSetup: externalState(channel) === "needsSetup",
+        paused: externalState(channel) === "paused",
       })),
     })),
   );
@@ -175,19 +174,30 @@
           {#each row.channels as ch (ch.channel)}
             <div
               class="flex items-center gap-2"
-              title={ch.needsSetup ? $_("settings.notifications.channelNeedsSetup") : undefined}
             >
               <label
-                class="text-[11px] cursor-pointer {ch.needsSetup
+                class="text-[11px] cursor-pointer {ch.needsSetup || ch.paused
                   ? 'text-[var(--text-tertiary)] italic'
                   : 'text-[var(--text-secondary)]'}"
                 for="notify-{row.category}-{ch.channel}"
               >
                 {ch.label}
               </label>
+              {#if ch.needsSetup || ch.paused}
+                <!--
+                  Visible, not only a `title`: a disabled checkbox cannot be
+                  focused, so a tooltip is the one place a screen-reader user
+                  will never look.
+                -->
+                <span class="text-[10px] italic text-[var(--text-tertiary)]">
+                  {ch.paused
+                    ? $_("settings.notifications.channelPaused")
+                    : $_("settings.notifications.channelNeedsSetup")}
+                </span>
+              {/if}
               <Toggle
                 id="notify-{row.category}-{ch.channel}"
-                checked={ch.enabled}
+                checked={ch.enabled && !ch.paused && !ch.needsSetup}
                 disabled={ch.blocked}
                 onchange={(e) =>
                   toggle(row.category, ch.channel, (e.currentTarget as HTMLInputElement).checked)}

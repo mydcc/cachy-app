@@ -2,7 +2,9 @@
 id: FEAT-0748
 title: Per-alert delivery channels and test announcement
 type: feature
-status: specced
+status: done
+assignee: opencode
+branch: feature/feat-0748-per-alert-channels
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -69,25 +71,51 @@ Two gaps remain:
 
 ## Acceptance criteria
 
-- [ ] `TriggerMethod` accepts `email | discord | telegram` on both sides, and a
+- [x] `TriggerMethod` accepts `email | discord | telegram` on both sides, and a
       rule selecting one delivers only when the policy also wants it and the
       channel is configured and active; ADR-0018 is amended in the same PR.
-- [ ] The BUG-0750 boundary tests still pass unchanged for the local three
-      channels.
-- [ ] The external-channel question is resolved by the FEAT-0623 audit and the
+      *Done:* the Rust enum and `src/lib/rules/types.ts` carry all six, WASM
+      rebuilt; `channelSelection` + `effectiveChannels` narrow, and
+      `notificationService` intersects with `wants` and `isActive`; ADR-0018
+      gained amendment and decision 6.
+- [x] The BUG-0750 boundary tests still pass unchanged for the local three
+      channels. *Done:* `alerts_firingSink.test.ts` unchanged and green; only
+      the `dispatchExternal` spy expectation gained the new `test` argument.
+- [x] The external-channel question is resolved by the FEAT-0623 audit and the
       resolution is visible in both the rule and the UI: either the three
       channels are selectable per rule, or the UI states that they are global.
-- [ ] "Send test" reaches exactly the channels the rule would use, is labelled
+      *Done:* selectable per rule; the footer offers an external channel only
+      while it is configured and switched on.
+- [x] "Send test" reaches exactly the channels the rule would use, is labelled
       as a test, and leaves `fired_count`, `last_fired_anchor_ms` and
       `enabled` unchanged — pinned by a test.
-- [ ] Unconfigured channels are absent from the selector, not present and
-      inert.
-- [ ] When no local channel is ticked, the builder's footer names the effective
+      *Done:* `src/stores/alertDelivery.ts` sends with `exactChannels: true` and
+      `test: true`; `alertDelivery.test.ts` pins both the label and the
+      untouched state; the row's button is wired through `ManageTab`.
+- [x] Unconfigured channels are absent from the selector, not present and
+      inert. *Done:* `externalMethods` filters on `externalChannelsStore.isActive`;
+      a paused channel disappears with it.
+- [x] When no local channel is ticked, the builder's footer names the effective
       channels — the policy's local ones plus any external channel the policy
       enables — and keeps the existing hint. If the policy enables none, it says
-      so.
-- [ ] The effective channel set is readable on the list row in both locales.
-- [ ] Every new control is keyboard reachable and labelled.
+      so. *Done:* the `.effective` line reads "Goes to …" or "No channel is
+      active"; the hint is untouched.
+- [x] The effective channel set is readable on the list row in both locales.
+      *Done:* `.row-channels` in `AlertRow.svelte`, English and German keys.
+- [x] Every new control is keyboard reachable and labelled. *Done:* the footer
+      and row test buttons are native `<button>`s with `aria-label`/`title`; the
+      selector stays a fieldset of checkboxes.
+
+## Decisions
+
+- **The test send is exact.** `notify()` gained `exactChannels` for it, so an
+  empty resolved set means "nothing", not "fall back to the policy". Without
+  that flag a test would prove a channel the rule never uses.
+- **A stable event id per rule** (`test:<ruleId>`) reuses the service's
+  duplicate window as the rate limit the open question proposed.
+- **Unknown methods are dropped, not shown.** After FEAT-0748 the row names the
+  *effective* set, so a hand-edited `carrier_pigeon` would otherwise read as a
+  channel; it is skipped and the policy's set is shown.
 
 ## Out of scope
 

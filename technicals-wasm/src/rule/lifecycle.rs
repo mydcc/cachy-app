@@ -63,12 +63,13 @@ pub enum TriggerFrequency {
 
 /// A channel a trigger is announced on.
 ///
-/// Only the channels that exist. `Sound` is named because
-/// [`FEAT-0392`](../../../docs/backlog/features/FEAT-0392-notification-sound-channel.md)
-/// is the next item and the shape is known; external channels are deliberately
-/// absent, because FEAT-0397 has three unresolved constraints and a schema
-/// invented for a feature that may not ship in that shape is a migration owed
-/// for nothing.
+/// Every channel the delivery layer knows. The external three are selectable
+/// per rule since FEAT-0748, but the rule only *narrows*: the notification
+/// policy remains the ceiling and a channel the trader has not configured
+/// cannot carry anything. Core validation therefore accepts the name without
+/// knowing whether the device can reach it — whether a channel is configured
+/// and switched on belongs to the device, not to a document that may be
+/// imported on another one.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum TriggerMethod {
@@ -78,6 +79,12 @@ pub enum TriggerMethod {
     Browser,
     /// An audible cue. Owned by FEAT-0392.
     Sound,
+    /// An e-mail through the trader's own Mailgun account — ADR-0018.
+    Email,
+    /// A Discord webhook the trader owns — ADR-0018.
+    Discord,
+    /// A Telegram bot the trader owns — ADR-0018.
+    Telegram,
 }
 
 /// Whether a rule may still announce itself, and why not when it may not.
@@ -372,5 +379,38 @@ mod tests {
     #[test]
     fn the_default_frequency_is_the_behaviour_rules_had_before_this_field() {
         assert_eq!(TriggerFrequency::default(), TriggerFrequency::Once);
+    }
+
+    /// The wire names are a contract with `src/lib/rules/types.ts`.
+    ///
+    /// A rename here would make the UI send a method the core rejects, and the
+    /// trader would see "cannot arm this rule" with nothing pointing at why.
+    #[test]
+    fn every_trigger_method_has_the_wire_name_the_ui_sends() {
+        for (method, wire) in [
+            (TriggerMethod::InApp, "in_app"),
+            (TriggerMethod::Browser, "browser"),
+            (TriggerMethod::Sound, "sound"),
+            (TriggerMethod::Email, "email"),
+            (TriggerMethod::Discord, "discord"),
+            (TriggerMethod::Telegram, "telegram"),
+        ] {
+            assert_eq!(
+                serde_json::to_string(&method).expect("a unit variant serialises"),
+                format!("\"{wire}\"")
+            );
+            let parsed: TriggerMethod = serde_json::from_str(&format!("\"{wire}\""))
+                .expect("the same spelling must deserialize");
+            assert_eq!(parsed, method);
+        }
+    }
+
+    /// An older core refuses the document rather than dropping the channel.
+    ///
+    /// ADR-0018 decision 7 states this cost; the test keeps the statement true.
+    #[test]
+    fn an_unknown_trigger_method_is_refused_not_ignored() {
+        let parsed: Result<TriggerMethod, _> = serde_json::from_str("\"carrier_pigeon\"");
+        assert!(parsed.is_err());
     }
 }

@@ -37,6 +37,9 @@ import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import { uiState } from "../../../stores/ui.svelte";
 import * as ruleActions from "../../../services/alertEngine/ruleActions";
 import { SHADOW_LEDGER_MAX_RECORDS } from "../../../services/alertEngine/shadowLedger";
+import { notificationService } from "../../../services/notificationService.svelte";
+import { readRuleState } from "../../../services/alertEngine/ruleStateStore";
+import { notificationPolicyStore } from "../../../stores/notifications.svelte";
 import type { Condition, RuleDocument } from "../../../lib/rules/types";
 
 // The cutover notice reads localStorage behind a promise and is FEAT-0388's
@@ -611,7 +614,10 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
       en.dashboard.alerts.panel.lifecycle.frequencyOption.once,
     );
     expect(pairs[en.dashboard.alerts.panel.lifecycle.validUntil]).toBeUndefined();
-    expect(pairs[en.common.channels]).toBeUndefined();
+    // FEAT-0748: channels are no longer optional. A rule that ticked nothing
+    // uses the policy's local set, and the row names it instead of leaving the
+    // trader to guess.
+    expect(pairs[en.common.channels]).toBe(en.dashboard.alerts.panel.lifecycle.methodOption.in_app);
     expect(pairs[en.dashboard.alerts.panel.lifecycle.note]).toBeUndefined();
   });
 
@@ -698,7 +704,11 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     const details = expandFirstRow(render());
 
     expect(details).not.toBeNull();
-    expect(details.textContent).not.toContain(en.common.channels);
+    // Unreadable input means "no opinion", so the policy decides — the row
+    // still answers, and the whole tab does not crash on a hand-edited store.
+    expect(detailPairs(details)[en.common.channels]).toBe(
+      en.dashboard.alerts.panel.lifecycle.methodOption.in_app,
+    );
   });
 
   it("FEAT-0543: falls back to raw lifecycle values it does not recognise", () => {
@@ -715,7 +725,11 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     expect(pairs[en.dashboard.alerts.panel.lifecycle.frequency]).toBe("sometimes");
     expect(pairs[en.dashboard.alerts.panel.evaluationMode]).toBe("tickwise");
-    expect(pairs[en.common.channels]).toBe("carrier_pigeon");
+    // A method this build does not know cannot be delivered, so it is dropped
+    // rather than shown as a channel that would never carry anything.
+    expect(pairs[en.common.channels]).toBe(
+      en.dashboard.alerts.panel.lifecycle.methodOption.in_app,
+    );
   });
 
   it("FEAT-0543: still phrases a pre-action legacy rule", () => {
@@ -1041,6 +1055,7 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     );
   });
 
+
   it("FEAT-0747: the firing sink is what makes the log re-read", () => {
     seedRules([rule({ id: "rule-1", frequency: "every_time" })]);
 
@@ -1189,6 +1204,59 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     expect(logTab.getAttribute("aria-selected")).toBe("true");
     expect(document.activeElement?.id).toBe(logTab.id);
+  });
+
+  it("names the channels the row will actually use", () => {
+    notificationPolicyStore.reset();
+    seedRules([rule({ trigger_methods: ["in_app", "sound"] })]);
+
+    const el = render();
+    const line = el.querySelector(".row-channels")?.textContent ?? "";
+
+    expect(line).toContain("Goes to In-app, Sound");
+  });
+
+  it("sends a labelled test from the row without spending the rule", () => {
+    notificationService.reset();
+    notificationPolicyStore.reset();
+    seedRules([rule()]);
+    const notify = vi.spyOn(notificationService, "notifyDetailed");
+
+    const el = render();
+    const button = el.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+    button.click();
+    flushSync();
+
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({ category: "alert-fired", test: true, exactChannels: true }),
+    );
+    expect(readRuleState("rule-1").fired_count).toBe(0);
+  });
+
+  it("tells the row's trader what the test actually did", () => {
+    notificationService.reset();
+    notificationPolicyStore.reset();
+    seedRules([rule()]);
+    const toast = vi.spyOn(uiState, "showToast");
+
+    const el = render();
+    const button = el.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+
+    button.click();
+    flushSync();
+    expect(toast).toHaveBeenCalledWith(
+      expect.stringContaining("Test dispatched to In-app"),
+      "info",
+    );
+
+    button.click();
+    flushSync();
+    expect(toast).toHaveBeenCalledWith(
+      expect.stringContaining("Already tested a moment ago"),
+      "info",
+    );
   });
 
 });

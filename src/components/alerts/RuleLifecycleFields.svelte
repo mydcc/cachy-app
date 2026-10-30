@@ -16,9 +16,18 @@
     import { intlTagFor } from "../../lib/i18n/intlTag";
     import { alertPanelState } from "../../stores/alertPanel.svelte";
     import {
+        EXTERNAL_METHODS,
         FREQUENCY_KEYS,
+        LOCAL_METHODS,
         METHOD_KEYS,
+        channelsLabel,
     } from "../../lib/alerts/lifecycleLabels";
+    import {
+        channelSelection,
+        isSilentSet,
+    } from "../../lib/alerts/effectiveChannels";
+    import { externalChannelsStore } from "../../stores/externalChannels.svelte";
+    import { ruleEffectiveChannels, sendTestAnnouncement } from "../../stores/alertDelivery";
     import {
         NOTE_MAX_CHARS,
         type TriggerFrequency,
@@ -26,9 +35,60 @@
     } from "../../lib/rules/types";
 
     const FREQUENCIES: TriggerFrequency[] = ["once", "every_time", "once_per_candle_close"];
-    const METHODS: TriggerMethod[] = ["in_app", "browser", "sound"];
 
     const draft = $derived(alertPanelState.draft);
+
+    const selection = $derived(channelSelection(draft.trigger_methods));
+
+    /**
+     * External channels the trader could actually use. An unconfigured one is
+     * absent rather than present-and-inert — FEAT-0748: a tick that delivers
+     * nothing is the silent alarm this feature exists to prevent.
+     *
+     * A channel already ticked stays visible after it is paused or its
+     * credentials lapse, and stays **operable for unchecking**: disabling it
+     * would leave a method in the draft with no way out of this panel, and
+     * re-enabling the channel later would silently re-arm a choice nobody
+     * confirmed. Only the hint says it will not deliver right now.
+     */
+    const externalMethods = $derived(
+        EXTERNAL_METHODS.filter((method) => {
+            const id = method as "email" | "discord" | "telegram";
+            return externalChannelsStore.isActive(id) || (selection.external?.includes(id) ?? false);
+        }),
+    );
+
+    /** `ok`, `needsSetup` or `paused`; local methods are always usable here. */
+    function methodState(method: TriggerMethod): "ok" | "needsSetup" | "paused" {
+        if (!EXTERNAL_METHODS.includes(method)) return "ok";
+        return externalChannelsStore.state(method as "email" | "discord" | "telegram");
+    }
+
+    const effective = $derived(ruleEffectiveChannels(draft));
+
+    const effectiveLabel = $derived(channelsLabel(effective, $_));
+
+    /** Native to the draft it describes, so opening another rule cannot inherit it. */
+    let testStatus = $state<{ draftId: string; text: string } | null>(null);
+
+    function sendTest(): void {
+        const outcome = sendTestAnnouncement(draft);
+        // Composed from what the service actually did, not from the plan: a
+        // refused local channel degrades to the in-app floor, and the message
+        // must name what was dispatched rather than what was configured.
+        const sent = channelsLabel(
+            { local: outcome.delivered, external: outcome.external },
+            $_,
+        );
+        const text = outcome.duplicate
+            ? $_("dashboard.alerts.panel.lifecycle.testSuppressed")
+            : sent === ""
+              ? $_("dashboard.alerts.panel.lifecycle.testNothing")
+              : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
+                    values: { channels: sent },
+                });
+        testStatus = { draftId: draft.id, text };
+    }
 
     /**
      * An `Intl` locale tag for the app's language, not the browser's.
@@ -119,14 +179,13 @@
                 }),
             );
         }
-        const methods = draft.trigger_methods ?? [];
-        if (methods.length > 0) {
-            parts.push(
-                methods
-                    .map((m) => $_(METHOD_KEYS[m]))
-                    .join(", "),
-            );
-        }
+        // The effective set, not the raw ticks: the closed summary sits above
+        // a line that may say "no channel is active", and they must agree.
+        parts.push(
+            isSilentSet(effective)
+                ? $_("dashboard.alerts.panel.lifecycle.effectiveNoneShort")
+                : effectiveLabel,
+        );
         if (draft.note !== undefined) {
             parts.push($_("dashboard.alerts.panel.lifecycle.summaryNoted"));
         }
@@ -174,20 +233,55 @@
         <legend class="field-label">
             {$_("dashboard.alerts.panel.lifecycle.triggerMethod")}
         </legend>
-        {#each METHODS as method (method)}
-            <label class="method">
+        {#each [...LOCAL_METHODS, ...externalMethods] as method (method)}
+            {@const state = methodState(method)}
+            <label class="method" class:unavailable={state !== "ok"}>
                 <input
                     type="checkbox"
                     checked={(draft.trigger_methods ?? []).includes(method)}
                     onchange={(e) => toggleMethod(method, e.currentTarget.checked)}
                 />
                 <span>{$_(METHOD_KEYS[method])}</span>
+                {#if state !== "ok"}
+                    <span class="method-hint">
+                        {state === "paused"
+                            ? $_("dashboard.alerts.panel.lifecycle.methodPaused")
+                            : $_("dashboard.alerts.panel.lifecycle.methodNeedsSetup")}
+                    </span>
+                {/if}
             </label>
         {/each}
         <p class="field-hint">
             {$_("dashboard.alerts.panel.lifecycle.triggerMethodHint")}
         </p>
     </fieldset>
+
+    <div class="effective">
+        <span class="field-hint effective-label">
+            {#if isSilentSet(effective)}
+                {$_("dashboard.alerts.panel.lifecycle.effectiveNone")}
+            {:else}
+                {$_("dashboard.alerts.panel.lifecycle.effective", {
+                    values: { channels: effectiveLabel },
+                })}
+            {/if}
+        </span>
+        <button
+            type="button"
+            class="test-btn"
+            onclick={sendTest}
+            disabled={isSilentSet(effective)}
+        >
+            {$_("dashboard.alerts.panel.lifecycle.sendTest")}
+        </button>
+        <!-- Always rendered: a live region inserted together with its text is
+             not announced by every screen reader. -->
+        <span class="test-status" aria-live="polite">
+            {isSilentSet(effective) || testStatus?.draftId !== draft.id
+                ? ""
+                : testStatus.text}
+        </span>
+    </div>
 
     <label class="field">
         <span class="field-label">{$_("dashboard.alerts.panel.lifecycle.note")}</span>
@@ -294,5 +388,48 @@
     .methods .field-hint {
         flex-basis: 100%;
         align-self: flex-start;
+    }
+
+    .effective {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-sm, 0.5rem);
+    }
+
+    .effective-label {
+        flex: 1 1 12rem;
+        align-self: flex-start;
+    }
+
+    .test-btn {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm, 0.25rem);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: var(--font-size-xs, 0.75rem);
+        cursor: pointer;
+    }
+
+    .test-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .method.unavailable {
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+
+    .method-hint {
+        font-size: var(--font-size-xs, 0.75rem);
+    }
+
+    .test-status {
+        flex-basis: 100%;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs, 0.75rem);
     }
 </style>

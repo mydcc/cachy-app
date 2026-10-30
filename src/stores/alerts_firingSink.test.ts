@@ -414,6 +414,24 @@ describe("the rule's channel choice reaches delivery", () => {
     expect(mockNotify.mock.calls[0][0].localChannels).toBeUndefined();
   });
 
+  it("forwards an external pick separately from the local channels", () => {
+    // FEAT-0748: the sink must not fold Discord into `localChannels`, where the
+    // service would drop it, nor omit it, where the rule's choice dies.
+    fire(ruleDoc({ trigger_methods: ["in_app", "discord"] }));
+
+    const request = mockNotify.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(request.localChannels).toEqual(["in-app"]);
+    expect(request.externalChannels).toEqual(["discord"]);
+  });
+
+  it("forwards an external-only pick without inventing a local channel", () => {
+    fire(ruleDoc({ trigger_methods: ["discord"] }));
+
+    const request = mockNotify.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(request.localChannels).toBeUndefined();
+    expect(request.externalChannels).toEqual(["discord"]);
+  });
+
   it("forwards a browser tick as the browser channel", () => {
     // Pins the mapping itself: `browser: "in-app"` would type-check and pass
     // every other test in this file.
