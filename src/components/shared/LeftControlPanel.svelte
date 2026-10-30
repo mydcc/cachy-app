@@ -113,15 +113,26 @@
   style="top: 38vh;"
 >
   {#snippet railControl(item: SurfaceEntry)}
+    {@const count = item.entry.countProvider?.() ?? 0}
     <button
       class="control-btn"
       class:active={item.active}
       onclick={() => openEntry(item.entry)}
       title={label(item.entry)}
-      aria-label={label(item.entry)}
+      aria-label={count > 0 && item.entry.countLabel
+        ? $_(item.entry.countLabel, {
+            values: { label: label(item.entry), count },
+          })
+        : label(item.entry)}
       use:trackClick={track(item.entry)}
     >
       {@html resolveEntryIcon(item.entry.icon)}
+      {#if count > 0}
+        <!-- Text, not colour alone: the number is the state. -->
+        <span class="rail-badge bg-danger-paired" aria-hidden="true">
+          {count > 99 ? "99+" : count}
+        </span>
+      {/if}
     </button>
   {/snippet}
 
@@ -168,6 +179,7 @@
 
 <style>
   .control-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -187,6 +199,19 @@
   .control-btn.active {
     background-color: var(--bg-tertiary);
     color: var(--accent-color);
+  }
+
+  .rail-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    padding: 0 3px;
+    border-radius: 999px;
+    font-size: 9px;
+    line-height: 16px;
+    text-align: center;
+    font-weight: 600;
   }
 
   .control-btn :global(svg) {

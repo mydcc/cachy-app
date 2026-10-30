@@ -2,7 +2,9 @@
 id: FEAT-0749
 title: Control center window for alerts and bots
 type: feature
-status: specced
+status: in-progress
+assignee: opencode
+branch: feature/feat-0749-control-center
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -93,6 +95,25 @@ keep-above and a window switcher (FEAT-0737–0742).
 - [ ] German and English strings exist for every new label.
 - [ ] No server import or call is added. The architecture data-flow diagram is
       unchanged because no data crosses a boundary; the PR says so explicitly.
+
+## Implementation state
+
+First PR (this branch) lands the window, the registry entry, the Alerts/Log tabs
+and the unread count. The Bots tab and the `AutomationTab` migration follow in a
+second PR on top of this one. `ManageTab` keeps its in-panel two-tab switch; the
+list body moved to `ManagePanel.svelte`, which the control center mounts — one
+list implementation, two shells.
+
+## Decisions
+
+- **Unread is session-only.** `controlCenterUnread` holds the "last seen" instant
+  in memory, starting at page load. A persisted timestamp would keep a durable
+  record of when a trader looked at alarms, and every reload would mark the whole
+  ledger unread. While the window is open and focused the count is zero.
+- **The alert entry replaces the bell toggle.** Same rail id, new window opener;
+  the builder stays reachable through "New alert" in the alert panel.
+- **The count provider lives on the entry** (`countProvider` + `countLabel`), so
+  the rail stays registry-driven and the surface does not special-case an id.
 
 ## Out of scope
 

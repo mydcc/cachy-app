@@ -54,7 +54,13 @@ function getNestedTranslation(path: string): string {
 }
 
 vi.mock("../../locales/i18n", () => {
-  const translate = (key: string) => getNestedTranslation(key);
+  const translate = (key: string, options?: { values?: Record<string, unknown> }) => {
+    let out = getNestedTranslation(key);
+    for (const [name, value] of Object.entries(options?.values ?? {})) {
+      out = out.replace(`{${name}}`, String(value));
+    }
+    return out;
+  };
   return {
     _: {
       subscribe: (fn: (val: typeof translate) => void) => {
@@ -71,7 +77,7 @@ vi.mock("../../locales/i18n", () => {
   };
 });
 
-describe("FEAT-0389: the bell opens the Super-Alert panel", () => {
+describe("FEAT-0749: the bell opens the alerts control center", () => {
   let target: HTMLElement;
   let component: ReturnType<typeof mount> | null = null;
 
@@ -79,6 +85,7 @@ describe("FEAT-0389: the bell opens the Super-Alert panel", () => {
     target = document.createElement("div");
     document.body.appendChild(target);
     uiState.showAlertsModal = false;
+    localStorage.removeItem("cachy_shadow_firings_v1");
   });
 
   afterEach(() => {
@@ -86,6 +93,8 @@ describe("FEAT-0389: the bell opens the Super-Alert panel", () => {
     component = null;
     target.remove();
     uiState.showAlertsModal = false;
+    const open = controlCenter();
+    if (open) windowManager.close(open.id);
   });
 
   function render() {
@@ -97,35 +106,76 @@ describe("FEAT-0389: the bell opens the Super-Alert panel", () => {
   /** Found the way a screen reader finds it, not by a class that may be restyled. */
   function bell(el: HTMLElement) {
     return el.querySelector<HTMLButtonElement>(
-      `[aria-label="${getNestedTranslation("dashboard.alerts.panel.open")}"]`,
+      `[aria-label="${getNestedTranslation("dashboard.controlCenter.title")}"]`,
     );
+  }
+
+  function controlCenter() {
+    return windowManager.windows.find((win) => win.windowType === "controlcenter");
   }
 
   it("labels the bell so it is reachable without sight of the icon", () => {
     expect(bell(render())).not.toBeNull();
   });
 
-  it("raises the flag +layout.svelte mounts the panel on", () => {
+  it("opens the control center window", () => {
     const el = render();
-    expect(uiState.showAlertsModal).toBe(false);
+    expect(controlCenter()).toBeUndefined();
 
     bell(el)!.click();
     flushSync();
 
-    expect(uiState.showAlertsModal).toBe(true);
+    expect(controlCenter()).toBeDefined();
+    expect(uiState.showAlertsModal).toBe(false);
   });
 
-  it("opens rather than toggles, so a second press does not close the panel", () => {
+  it("keeps one window, so a second press focuses instead of duplicating", () => {
     const el = render();
 
     bell(el)!.click();
+    flushSync();
+    const first = controlCenter();
+
     bell(el)!.click();
     flushSync();
 
-    // toggleAlertsModal(true) is passed an explicit `true`. A bare toggle()
-    // here would make the bell a switch, and a trader who pressed it twice
-    // looking for the panel would have closed it.
-    expect(uiState.showAlertsModal).toBe(true);
+    expect(controlCenter()).toBe(first);
+    expect(windowManager.windows.filter((win) => win.windowType === "controlcenter")).toHaveLength(1);
+  });
+
+  it("carries the unread count of firings since the last look", () => {
+    const at = Date.now() + 5_000;
+    localStorage.setItem(
+      "cachy_shadow_firings_v1",
+      JSON.stringify({
+        schema_version: 1,
+        records: [
+          {
+            source: "rule",
+            recordedAtMs: at,
+            symbol: "BTCUSDT",
+            id: "r-1",
+            timeframe: "1m",
+            anchorMs: at - 60_000,
+            verdict: "Triggered",
+          },
+        ],
+      }),
+    );
+
+    const el = render();
+    const alerts = Array.from(
+      el.querySelectorAll<HTMLButtonElement>("button.control-btn"),
+    ).find((button) =>
+      button.getAttribute("aria-label")?.startsWith(
+        getNestedTranslation("dashboard.controlCenter.title"),
+      ),
+    );
+
+    expect(alerts?.getAttribute("aria-label")).toContain("1 unread");
+    expect(alerts?.querySelector(".rail-badge")?.textContent?.trim()).toBe("1");
+
+    localStorage.removeItem("cachy_shadow_firings_v1");
   });
 
   it("gives every icon-only control an accessible name", () => {
@@ -257,7 +307,7 @@ describe("FEAT-0732: the rail renders the entry-point registry", () => {
     expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
       getNestedTranslation("app.marketDashboard.buttonTitle"),
       getNestedTranslation("settings.title"),
-      getNestedTranslation("dashboard.alerts.panel.open"),
+      getNestedTranslation("dashboard.controlCenter.title"),
       getNestedTranslation("academy.title"),
       getNestedTranslation("sidePanel.aiAssistant"),
       getNestedTranslation("settings.showTechnicals"),

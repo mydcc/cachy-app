@@ -163,6 +163,11 @@
     "accept": "Verstanden und akzeptiert"
   },
   "dashboard": {
+    "controlCenter": {
+      "title": "Alerts & Bots",
+      "description": "Scharf gestellte Alerts, ihr Auslöse-Log und die Bots, die daraus handeln.",
+      "unreadAria": "{label}, {count} ungelesen"
+    },
     "presetLoad": "Preset laden...",
     "savePresetTitle": "Aktuelle Eingaben als Preset speichern",
     "savePresetAriaLabel": "Preset speichern",

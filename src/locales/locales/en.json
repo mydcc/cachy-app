@@ -163,6 +163,11 @@
     "accept": "I understand and accept"
   },
   "dashboard": {
+    "controlCenter": {
+      "title": "Alerts & Bots",
+      "description": "Armed alerts, their firing log, and the bots that act on them.",
+      "unreadAria": "{label}, {count} unread"
+    },
     "presetLoad": "Load Preset...",
     "savePresetTitle": "Save current inputs as preset",
     "savePresetAriaLabel": "Save Preset",
