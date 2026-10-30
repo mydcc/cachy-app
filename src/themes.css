@@ -2654,17 +2654,15 @@ input[type="number"] {
   border-radius: var(--radius-lg);
 }
 
-.btn-base:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /*
- * BUG-0712 — the focusable counterpart of `:disabled`. Same visual weight, but
- * the button stays in the tab order so its reason is reachable. The hover
- * selectors below exclude it with `:not([aria-disabled="true"])`, otherwise a
- * refused button would still light up.
+ * BUG-0712 — `[aria-disabled="true"]` is the focusable counterpart of
+ * `:disabled`: same visual weight, but the button stays in the tab order so its
+ * reason is reachable. One rule for both states, so they cannot drift; the
+ * hover selectors below exclude the aria state with
+ * `:not([aria-disabled="true"])`, otherwise a refused button would still light
+ * up.
  */
+.btn-base:disabled,
 .btn-base[aria-disabled="true"] {
   opacity: 0.6;
   cursor: not-allowed;

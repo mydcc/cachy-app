@@ -55,10 +55,10 @@ the `clickable` class on the same condition.
 
 ## Acceptance criteria
 
-- [ ] A window without a title action renders no `role="button"` and no
+- [x] A window without a title action renders no `role="button"` and no
       `tabindex` on its title
-- [ ] A window with the action keeps both, and Enter still fires it
-- [ ] A component test covers both cases
+- [x] A window with the action keeps both, and Enter still fires it
+- [x] A component test covers both cases
 
 ## Links
 

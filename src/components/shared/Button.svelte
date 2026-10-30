@@ -128,7 +128,7 @@
   aria-expanded={ariaExpanded}
   aria-controls={ariaControls}
   aria-pressed={ariaPressed}
-  use:trackClick={track}
+  use:trackClick={ariaDisabled ? undefined : track}
 >
   {#if children}
     {@render children()}

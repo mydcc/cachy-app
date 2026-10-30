@@ -47,7 +47,8 @@ export const WINDOW_HEADER_HEIGHT = 44;
  */
 export const WINDOW_ZOOM_MIN = 0.5;
 export const WINDOW_ZOOM_MAX = 2.0;
-export const WINDOW_ZOOM_STEP = 0.1;
+export const WINDOW_ZOOM_DEFAULT = 1.0;
+const WINDOW_ZOOM_STEP = 0.1;
 export const WINDOW_FONT_MIN = 8;
 export const WINDOW_FONT_MAX = 32;
 
@@ -264,7 +265,7 @@ export abstract class WindowBase {
 
     // --- UTILITY/FEATURE STATE ---
     fontSize = $state(DEFAULT_WINDOW_FONT_SIZE);
-    zoomLevel = $state(1.0);
+    zoomLevel = $state(WINDOW_ZOOM_DEFAULT);
     burnIntensity = $state(1.0);
     /** Fixed aspect ratio (width/height) to maintain during resizing. */
     aspectRatio: number | null = $state(null);
@@ -986,7 +987,7 @@ export abstract class WindowBase {
     zoomIn() { if (this.allowZoom) this.zoomLevel = Math.min(this.zoomLevel + WINDOW_ZOOM_STEP, WINDOW_ZOOM_MAX); }
     /** Decreases content zoom by one step. Min 50%. */
     zoomOut() { if (this.allowZoom) this.zoomLevel = Math.max(this.zoomLevel - WINDOW_ZOOM_STEP, WINDOW_ZOOM_MIN); }
-    resetZoom() { if (this.allowZoom) this.zoomLevel = 1.0; }
+    resetZoom() { if (this.allowZoom) this.zoomLevel = WINDOW_ZOOM_DEFAULT; }
 
     /** Sets font size in pixels (Range: 8 - 32). */
     setFontSize(size: number) { if (this.allowFontSize) this.fontSize = Math.min(Math.max(size, WINDOW_FONT_MIN), WINDOW_FONT_MAX); }

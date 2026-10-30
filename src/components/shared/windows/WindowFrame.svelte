@@ -84,36 +84,48 @@
      * `aria-disabled`, not `disabled`: the native attribute would drop the
      * button out of the tab order, which is exactly where the reason is needed.
      */
-    let zoomAtMin = $derived(win.zoomLevel <= WINDOW_ZOOM_MIN);
-    let zoomAtMax = $derived(win.zoomLevel >= WINDOW_ZOOM_MAX);
+    /*
+     * The percentage is the value the trader sees, so it is also the value the
+     * bound is judged on: stepping by 0.1 in binary floating point leaves
+     * `0.5000000000000001` at the floor, which is `<= 0.5` false while the
+     * header already reads 50 %. Comparing the rounded percent is what keeps
+     * the control from showing "50 %" and still offering "–".
+     */
+    let shownZoomPercent = $derived(Math.round(win.zoomLevel * 100));
+    let zoomAtMin = $derived(
+        shownZoomPercent <= Math.round(WINDOW_ZOOM_MIN * 100),
+    );
+    let zoomAtMax = $derived(
+        shownZoomPercent >= Math.round(WINDOW_ZOOM_MAX * 100),
+    );
     let fontAtMin = $derived(win.fontSize <= WINDOW_FONT_MIN);
     let fontAtMax = $derived(win.fontSize >= WINDOW_FONT_MAX);
 
     let zoomOutLabel = $derived(
         zoomAtMin
             ? $_("windows.aria.zoomOutLimit", {
-                  values: { limit: `${Math.round(WINDOW_ZOOM_MIN * 100)} %` },
+                  values: { limit: `${Math.round(WINDOW_ZOOM_MIN * 100)}%` },
               })
             : $_("windows.aria.zoomOut"),
     );
     let zoomInLabel = $derived(
         zoomAtMax
             ? $_("windows.aria.zoomInLimit", {
-                  values: { limit: `${Math.round(WINDOW_ZOOM_MAX * 100)} %` },
+                  values: { limit: `${Math.round(WINDOW_ZOOM_MAX * 100)}%` },
               })
             : $_("windows.aria.zoomIn"),
     );
     let decreaseFontLabel = $derived(
         fontAtMin
             ? $_("windows.aria.decreaseFontLimit", {
-                  values: { limit: `${WINDOW_FONT_MIN} px` },
+                  values: { limit: `${WINDOW_FONT_MIN}px` },
               })
             : $_("windows.aria.decreaseFont"),
     );
     let increaseFontLabel = $derived(
         fontAtMax
             ? $_("windows.aria.increaseFontLimit", {
-                  values: { limit: `${WINDOW_FONT_MAX} px` },
+                  values: { limit: `${WINDOW_FONT_MAX}px` },
               })
             : $_("windows.aria.increaseFont"),
     );
@@ -1023,30 +1035,40 @@
                 </div>
             {/if}
 
-            <!-- BUG-0717 — one predicate drives the pointer affordance, the role,
-                 the tab stop and the key handler. The tab stop is spread rather
-                 than written as `tabindex={…}`: the a11y linter reads a static
-                 tabindex as a tab stop on a plain div and cannot see that the
-                 role is only ever absent when this spread is empty too. -->
-            <div
-                class="title-wrapper"
-                class:clickable={win.titleIsActionable}
-                onpointerdown={handleTitlePointerDown}
-                onpointerup={handleTitlePointerUp}
-                role={win.titleIsActionable ? "button" : undefined}
-                {...(win.titleIsActionable ? { tabindex: 0 } : {})}
-                onkeydown={(e) =>
-                    win.titleIsActionable &&
-                    e.key === "Enter" &&
-                    win.onHeaderTitleClick()}
-            >
+            <!-- BUG-0717 — the title is a button only when the window answers a
+                 title click. Two wrappers over one snippet rather than dynamic
+                 ARIA: a plain div needs no role, and the actionable one can be
+                 a real, statically analyzable `role="button"` with a tab stop. -->
+            {#snippet titleContent()}
                 {#if win.showPriceInTitle && win.currentPrice}
                     <span class="title-price">{win.currentPrice}</span>
                     <span class="title-separator"> • </span>
                 {/if}
 
                 <span class="window-title">{win.title}</span>
-            </div>
+            {/snippet}
+
+            {#if win.titleIsActionable}
+                <div
+                    class="title-wrapper clickable"
+                    onpointerdown={handleTitlePointerDown}
+                    onpointerup={handleTitlePointerUp}
+                    role="button"
+                    tabindex="0"
+                    onkeydown={(e) =>
+                        e.key === "Enter" && win.onHeaderTitleClick()}
+                >
+                    {@render titleContent()}
+                </div>
+            {:else}
+                <div
+                    class="title-wrapper"
+                    onpointerdown={handleTitlePointerDown}
+                    onpointerup={handleTitlePointerUp}
+                >
+                    {@render titleContent()}
+                </div>
+            {/if}
 
             {#if win.headerControls.length > 0 && !win.isMinimized}
                 <div 
@@ -1112,7 +1134,7 @@
                         ariaLabel={zoomOutLabel}
                         ariaDisabled={zoomAtMin}>－</Button>
                     <span class="zoom-text"
-                        >{Math.round(win.zoomLevel * 100)}%</span
+                        >{shownZoomPercent}%</span
                     >
                     <Button
                         variant="ghost-muted" size="xs"
