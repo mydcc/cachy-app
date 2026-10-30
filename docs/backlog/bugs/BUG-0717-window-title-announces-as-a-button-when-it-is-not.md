@@ -2,7 +2,9 @@
 id: BUG-0717
 title: Window titles have button semantics on windows where the title does nothing
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-window-chrome
 priority: P3
 milestone: none
 created: "2026-10-21"
