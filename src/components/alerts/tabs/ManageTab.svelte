@@ -49,6 +49,7 @@
     } from "../../../services/alertEngine/ruleActions";
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
     import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
+    import { readBots } from "../../../services/alertEngine/botStore";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
@@ -76,6 +77,9 @@
 
     let listTab = $state<"alerts" | "log">("alerts");
 
+    /** Unique per mount: two panels must not share tab/panel ids. */
+    const instanceId = $props.id();
+
     /**
      * Arrow keys move between the two tabs, as the tab pattern promises.
      * Home/End are omitted because there are only two, and both are reachable
@@ -87,7 +91,7 @@
         const next = listTab === "alerts" ? "log" : "alerts";
         listTab = next;
         // Focus follows selection; the id is the one rendered below.
-        document.getElementById(`manage-tab-${next}`)?.focus();
+        document.getElementById(`manage-tab-${instanceId}-${next}`)?.focus();
     }
     let query = $state("");
     let filters = $state<ManageFilters>(NO_FILTERS);
@@ -162,7 +166,14 @@
         sortManageRows(filterManageRows(baseRows, filters, query), sort),
     );
 
-    let logEntries = $derived(buildFiringLog(records, baseRows));
+    // Bots fire through the same sink but never appear in `alarmRows`, so
+    // existence has to be asked of the whole store — otherwise an active bot
+    // reads as a deleted rule in the log.
+    let botRuleIds = $derived.by(() => {
+        void alertState.rulesVersion;
+        return new Set(readBots().map((bot) => bot.id));
+    });
+    let logEntries = $derived(buildFiringLog(records, baseRows, botRuleIds));
     let timeframeChoices = $derived(timeframeOptions(baseRows));
 
     /*
@@ -352,8 +363,7 @@
     <button
         type="button"
         role="tab"
-        id="manage-tab-alerts"
-        aria-controls="manage-panel-alerts"
+        id="manage-tab-{instanceId}-alerts"
         aria-selected={listTab === "alerts"}
         tabindex={listTab === "alerts" ? 0 : -1}
         class:active={listTab === "alerts"}
@@ -365,8 +375,7 @@
     <button
         type="button"
         role="tab"
-        id="manage-tab-log"
-        aria-controls="manage-panel-log"
+        id="manage-tab-{instanceId}-log"
         aria-selected={listTab === "log"}
         tabindex={listTab === "log" ? 0 : -1}
         class:active={listTab === "log"}
@@ -380,8 +389,8 @@
 {#if listTab === "alerts"}
     <div
         role="tabpanel"
-        id="manage-panel-alerts"
-        aria-labelledby="manage-tab-alerts"
+        id="manage-panel-{instanceId}-alerts"
+        aria-labelledby="manage-tab-{instanceId}-alerts"
         tabindex="0"
     >
     <AlertFilters
@@ -419,8 +428,8 @@
 {:else}
     <div
         role="tabpanel"
-        id="manage-panel-log"
-        aria-labelledby="manage-tab-log"
+        id="manage-panel-{instanceId}-log"
+        aria-labelledby="manage-tab-{instanceId}-log"
         tabindex="0"
     >
         <FiringLog entries={logEntries} {dateFormatter} onOpenRule={editRow} />

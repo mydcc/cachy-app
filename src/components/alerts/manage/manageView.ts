@@ -165,6 +165,14 @@ export interface FiringEntry {
    * log shows its id and keeps the open link while it is still in the store.
    */
   ruleExists: boolean;
+  /** A bot rule exists but is not edited from this list. */
+  ruleIsBot: boolean;
+}
+
+/** A stored name, or null when the field is missing or not a string. */
+function ruleNameOf(rule: StoredRule | undefined): string | null {
+  const name = rule?.name;
+  return typeof name === "string" ? name.trim() || null : null;
 }
 
 function isOperand(value: unknown): value is { kind?: unknown; of?: unknown } {
@@ -354,6 +362,7 @@ export function lastFiringByRule(
 export function buildFiringLog(
   records: readonly ShadowFiringRecord[],
   rows: readonly ManageRow[],
+  botRuleIds: ReadonlySet<string> = new Set(),
 ): FiringEntry[] {
   const rowById = new Map(rows.map((row) => [row.id, row]));
   const announced = new Set<string>();
@@ -371,8 +380,9 @@ export function buildFiringLog(
       recordedAtMs: record.recordedAtMs,
       anchorMs: finiteOrNull(record.anchorMs),
       verdict: record.verdict ?? null,
-      ruleName: row?.rule.name?.trim() || null,
-      ruleExists: row !== undefined,
+      ruleName: ruleNameOf(row?.rule),
+      ruleExists: row !== undefined || botRuleIds.has(record.id),
+      ruleIsBot: row === undefined && botRuleIds.has(record.id),
     });
   }
 
@@ -386,8 +396,9 @@ export function buildFiringLog(
       recordedAtMs: null,
       anchorMs: row.lastFiredAnchorMs,
       verdict: null,
-      ruleName: row.rule.name?.trim() || null,
+      ruleName: ruleNameOf(row.rule),
       ruleExists: true,
+      ruleIsBot: false,
     });
   }
 

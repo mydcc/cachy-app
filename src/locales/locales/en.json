@@ -748,9 +748,10 @@
         "noMatches": "No alerts match these filters",
         "emptyAlerts": "No alerts armed — create one from the chart or the bell",
         "logEmpty": "Nothing has fired yet",
-        "logCap": "The log keeps the last {count} firings.",
+        "logCap": "The ledger keeps the last {count} firings; recovered fires appear in addition.",
         "logAnchorOnly": "No wall clock recorded — the time shown is the candle's open.",
         "logDeletedRule": "Rule deleted",
+        "logBotRule": "Automation rule",
         "openRule": "Open rule {name}",
         "logCandle": "Candle {time}"
       }

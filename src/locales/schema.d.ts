@@ -654,6 +654,7 @@ export type TranslationKey =
   | "dashboard.alerts.manageList.logCap"
   | "dashboard.alerts.manageList.logAnchorOnly"
   | "dashboard.alerts.manageList.logDeletedRule"
+  | "dashboard.alerts.manageList.logBotRule"
   | "dashboard.alerts.manageList.openRule"
   | "dashboard.alerts.manageList.logCandle"
   | "dashboard.generalInputs.header"

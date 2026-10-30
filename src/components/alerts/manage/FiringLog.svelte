@@ -55,7 +55,11 @@
             <div class="log-item">
                 <div class="log-main">
                     <strong>{entry.symbol}</strong>
-                    {#if entry.ruleExists}
+                    {#if entry.ruleIsBot}
+                        <span class="bot-rule">
+                            {$_("dashboard.alerts.manageList.logBotRule")}
+                        </span>
+                    {:else if entry.ruleExists}
                         <button
                             type="button"
                             class="rule-link"

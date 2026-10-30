@@ -279,10 +279,13 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     chip(en.dashboard.alerts.manageList.status.armed).click();
     flushSync();
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(1);
+
     chip(en.dashboard.alerts.suspended).click();
     flushSync();
-
     expect(el.querySelectorAll(".alert-item")).toHaveLength(2);
+    expect(el.textContent).toContain("BTCUSDT");
+    expect(el.textContent).toContain("ETHUSDT");
 
     (el.querySelector(".clear") as HTMLButtonElement).click();
     flushSync();
@@ -305,6 +308,9 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     expect(el.querySelector(".alert-item strong")?.textContent).toBe("BTCUSDT");
 
+    // Production uses an explicit onchange, not `bind:value`: happy-dom's
+    // selected-option lookup makes a bound select look unchanged here, which
+    // would pin the environment rather than the behaviour.
     select.value = "expiry";
     select.dispatchEvent(new Event("change", { bubbles: true }));
     flushSync();
@@ -1084,7 +1090,77 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     const entry = el.querySelector(".log-item");
     expect(entry?.textContent).not.toContain(en.dashboard.alerts.manageList.logDeletedRule);
-    expect(entry?.querySelector(".rule-link")?.textContent?.trim()).toBe("rule-1");
+    const link = entry?.querySelector<HTMLButtonElement>(".rule-link");
+    expect(link?.textContent?.trim()).toBe("rule-1");
+    link?.click();
+    flushSync();
+    expect(alertPanelState.draft.id).toBe("rule-1");
+  });
+
+  it("FEAT-0747: labels a bot as an automation rule instead of deleted", () => {
+    seedRules([
+      rule({
+        id: "bot-1",
+        name: "Bot",
+        action: { consequence_level: "simulate" },
+      }),
+    ]);
+    seedLedger([firingRecord({ id: "bot-1" })]);
+
+    const el = render();
+    listTabs(el)[1].click();
+    flushSync();
+
+    const entry = el.querySelector(".log-item");
+    expect(entry?.textContent).toContain(en.dashboard.alerts.manageList.logBotRule);
+    expect(entry?.textContent).not.toContain(en.dashboard.alerts.manageList.logDeletedRule);
+    expect(entry?.querySelector(".rule-link")).toBeNull();
+  });
+
+  it("FEAT-0747: shows recovered fires beside a full ledger and says so", () => {
+    seedRules([rule({ id: "recovered", frequency: "every_time" })], { recovered: 1 });
+    localStorage.setItem(
+      RULE_STATE_KEY,
+      JSON.stringify({
+        recovered: { fired_count: 1, last_fired_anchor_ms: Date.parse("2026-10-30T09:00:00Z") },
+      }),
+    );
+    alertState.rulesVersion += 1;
+    seedLedger(
+      Array.from({ length: 500 }, (_, index) =>
+        firingRecord({ id: `rule-${index}`, recordedAtMs: index + 1 }),
+      ),
+    );
+
+    const el = render();
+    listTabs(el)[1].click();
+    flushSync();
+
+    expect(el.querySelectorAll(".log-item")).toHaveLength(501);
+    expect(el.querySelector(".log-cap")?.textContent).toContain("recovered fires");
+  });
+
+  it("FEAT-0747: does not collide on two identical ledger records", () => {
+    seedRules([rule({ id: "rule-1" })]);
+    seedLedger([firingRecord(), firingRecord()]);
+
+    const el = render();
+    listTabs(el)[1].click();
+    flushSync();
+
+    expect(el.querySelectorAll(".log-item")).toHaveLength(2);
+  });
+
+  it("FEAT-0747: moves between tabs with the arrow keys", () => {
+    seedRules([rule()]);
+    const el = render();
+    const [alertsTab, logTab] = listTabs(el);
+
+    alertsTab.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    flushSync();
+
+    expect(logTab.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement?.id).toBe(logTab.id);
   });
 
 });

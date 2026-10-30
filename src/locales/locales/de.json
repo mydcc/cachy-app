@@ -748,9 +748,10 @@
         "noMatches": "Keine Alarme passen zu diesen Filtern",
         "emptyAlerts": "Kein Alarm scharf — lege einen über den Chart oder die Glocke an",
         "logEmpty": "Noch nichts ausgelöst",
-        "logCap": "Das Log behält die letzten {count} Auslösungen.",
+        "logCap": "Das Ledger behält die letzten {count} Auslösungen; wiederhergestellte Auslösungen kommen zusätzlich.",
         "logAnchorOnly": "Keine Uhrzeit gespeichert — angezeigt wird der Kerzenbeginn.",
         "logDeletedRule": "Regel gelöscht",
+        "logBotRule": "Automation-Regel",
         "openRule": "Regel {name} öffnen",
         "logCandle": "Kerze {time}"
       }

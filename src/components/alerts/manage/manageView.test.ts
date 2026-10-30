@@ -282,6 +282,14 @@ describe("filterManageRows", () => {
     ).toEqual([]);
   });
 
+  it("has a positive case for the intrabar chip", () => {
+    const intrabar = manageRow({ id: "i", evaluation: "intrabar" });
+
+    expect(
+      filterManageRows([intrabar], { ...NO_FILTERS, evaluation: ["intrabar"] }, "").map((r) => r.id),
+    ).toEqual(["i"]);
+  });
+
   it("filters by timeframe", () => {
     const hourly = manageRow({ id: "h", timeframe: "1h" });
     const daily = manageRow({ id: "d", timeframe: "1d" });
@@ -307,6 +315,15 @@ describe("sortManageRows", () => {
   });
   const late = manageRow({ id: "late", symbol: "ETHUSDT", lastFiredAtMs: 300, validUntilMs: 100 });
   const never = manageRow({ id: "never", symbol: "ADAUSDT", lastFiredAtMs: null, validUntilMs: null });
+
+  it("does not throw on a non-string symbol or id", () => {
+    const broken = manageRow({
+      id: 7 as unknown as string,
+      symbol: 42 as unknown as string,
+    });
+
+    expect(() => sortManageRows([broken], "symbol")).not.toThrow();
+  });
 
   it("sorts by symbol", () => {
     expect(sortManageRows([late, never, early], "symbol").map((r) => r.id)).toEqual([
@@ -443,6 +460,26 @@ describe("buildFiringLog", () => {
 
     expect(entries).toHaveLength(501);
     expect(entries.at(-1)).toMatchObject({ ruleId: "recovered", recordedAtMs: null });
+  });
+
+  it("does not pretend a live bot was deleted", () => {
+    // Bots fire through the same sink but are absent from `alarmRows`.
+    const entries = buildFiringLog(
+      [firingRecord({ id: "bot-a" })],
+      [],
+      new Set(["bot-a"]),
+    );
+
+    expect(entries[0]).toMatchObject({ ruleExists: true, ruleIsBot: true });
+  });
+
+  it("survives a non-string name instead of taking the log down", () => {
+    expect(() =>
+      buildFiringLog(
+        [firingRecord()],
+        [manageRow({ id: "rule-a", rule: ruleDoc({ name: 7 as unknown as string }) })],
+      ),
+    ).not.toThrow();
   });
 
   it("keeps an unnamed but existing rule distinguishable from a deleted one", () => {
