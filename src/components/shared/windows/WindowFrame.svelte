@@ -54,7 +54,13 @@
     import { effectsState } from "../../../stores/effects.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
-    import { WINDOW_HEADER_HEIGHT } from "../../../lib/windows/WindowBase.svelte";
+    import {
+        WINDOW_FONT_MAX,
+        WINDOW_FONT_MIN,
+        WINDOW_HEADER_HEIGHT,
+        WINDOW_ZOOM_MAX,
+        WINDOW_ZOOM_MIN,
+    } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import CachyIcon from "../CachyIcon.svelte";
     import Button from "../Button.svelte";
@@ -68,6 +74,61 @@
     }
 
     let { window: win, extraClasses = "" }: Props = $props();
+
+    /*
+     * BUG-0712 — a control at its bound says so instead of accepting a click
+     * that the clamp then throws away. The bound comes from the same constant
+     * the setter clamps to, and the reason names it, so the label cannot claim
+     * a limit the code does not enforce.
+     *
+     * `aria-disabled`, not `disabled`: the native attribute would drop the
+     * button out of the tab order, which is exactly where the reason is needed.
+     */
+    /*
+     * The percentage is the value the trader sees, so it is also the value the
+     * bound is judged on: stepping by 0.1 in binary floating point leaves
+     * `0.5000000000000001` at the floor, which is `<= 0.5` false while the
+     * header already reads 50 %. Comparing the rounded percent is what keeps
+     * the control from showing "50 %" and still offering "–".
+     */
+    let shownZoomPercent = $derived(Math.round(win.zoomLevel * 100));
+    let zoomAtMin = $derived(
+        shownZoomPercent <= Math.round(WINDOW_ZOOM_MIN * 100),
+    );
+    let zoomAtMax = $derived(
+        shownZoomPercent >= Math.round(WINDOW_ZOOM_MAX * 100),
+    );
+    let fontAtMin = $derived(win.fontSize <= WINDOW_FONT_MIN);
+    let fontAtMax = $derived(win.fontSize >= WINDOW_FONT_MAX);
+
+    let zoomOutLabel = $derived(
+        zoomAtMin
+            ? $_("windows.aria.zoomOutLimit", {
+                  values: { limit: `${Math.round(WINDOW_ZOOM_MIN * 100)}%` },
+              })
+            : $_("windows.aria.zoomOut"),
+    );
+    let zoomInLabel = $derived(
+        zoomAtMax
+            ? $_("windows.aria.zoomInLimit", {
+                  values: { limit: `${Math.round(WINDOW_ZOOM_MAX * 100)}%` },
+              })
+            : $_("windows.aria.zoomIn"),
+    );
+    let decreaseFontLabel = $derived(
+        fontAtMin
+            ? $_("windows.aria.decreaseFontLimit", {
+                  values: { limit: `${WINDOW_FONT_MIN}px` },
+              })
+            : $_("windows.aria.decreaseFont"),
+    );
+    let increaseFontLabel = $derived(
+        fontAtMax
+            ? $_("windows.aria.increaseFontLimit", {
+                  values: { limit: `${WINDOW_FONT_MAX}px` },
+              })
+            : $_("windows.aria.increaseFont"),
+    );
 
     /**
      * The factor this window's own type tokens read.
@@ -786,7 +847,9 @@
 
         // If moved less than 5px and released within 300ms, consider it a deliberate click.
         if (dx < 5 && dy < 5 && dt < 300) {
-            if (win.headerAction === "toggle-mode") {
+            // Same predicate as the semantics on the title: a window without a
+            // title action must not answer the click either (BUG-0717).
+            if (win.titleIsActionable) {
                 win.onHeaderTitleClick();
             }
         }
@@ -972,22 +1035,40 @@
                 </div>
             {/if}
 
-            <div
-                class="title-wrapper"
-                class:clickable={win.headerAction === "toggle-mode"}
-                onpointerdown={handleTitlePointerDown}
-                onpointerup={handleTitlePointerUp}
-                role="button"
-                tabindex="0"
-                onkeydown={(e) => e.key === "Enter" && win.onHeaderTitleClick()}
-            >
+            <!-- BUG-0717 — the title is a button only when the window answers a
+                 title click. Two wrappers over one snippet rather than dynamic
+                 ARIA: a plain div needs no role, and the actionable one can be
+                 a real, statically analyzable `role="button"` with a tab stop. -->
+            {#snippet titleContent()}
                 {#if win.showPriceInTitle && win.currentPrice}
                     <span class="title-price">{win.currentPrice}</span>
                     <span class="title-separator"> • </span>
                 {/if}
 
                 <span class="window-title">{win.title}</span>
-            </div>
+            {/snippet}
+
+            {#if win.titleIsActionable}
+                <div
+                    class="title-wrapper clickable"
+                    onpointerdown={handleTitlePointerDown}
+                    onpointerup={handleTitlePointerUp}
+                    role="button"
+                    tabindex="0"
+                    onkeydown={(e) =>
+                        e.key === "Enter" && win.onHeaderTitleClick()}
+                >
+                    {@render titleContent()}
+                </div>
+            {:else}
+                <div
+                    class="title-wrapper"
+                    onpointerdown={handleTitlePointerDown}
+                    onpointerup={handleTitlePointerUp}
+                >
+                    {@render titleContent()}
+                </div>
+            {/if}
 
             {#if win.headerControls.length > 0 && !win.isMinimized}
                 <div 
@@ -1049,17 +1130,19 @@
                         variant="ghost-muted" size="xs"
                         onClick={() => win.zoomOut()}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("windows.aria.zoomOut")}
-                        ariaLabel={$_("windows.aria.zoomOut")}>－</Button>
+                        title={zoomOutLabel}
+                        ariaLabel={zoomOutLabel}
+                        ariaDisabled={zoomAtMin}>－</Button>
                     <span class="zoom-text"
-                        >{Math.round(win.zoomLevel * 100)}%</span
+                        >{shownZoomPercent}%</span
                     >
                     <Button
                         variant="ghost-muted" size="xs"
                         onClick={() => win.zoomIn()}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("windows.aria.zoomIn")}
-                        ariaLabel={$_("windows.aria.zoomIn")}>＋</Button>
+                        title={zoomInLabel}
+                        ariaLabel={zoomInLabel}
+                        ariaDisabled={zoomAtMax}>＋</Button>
                 </div>
             {/if}
 
@@ -1141,14 +1224,16 @@
                         variant="ghost-muted" size="xs"
                         onClick={() => win.setFontSize(win.fontSize - 1)}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("windows.aria.decreaseFont")}
-                        ariaLabel={$_("windows.aria.decreaseFont")}>A-</Button>
+                        title={decreaseFontLabel}
+                        ariaLabel={decreaseFontLabel}
+                        ariaDisabled={fontAtMin}>A-</Button>
                     <Button
                         variant="ghost-muted" size="xs"
                         onClick={() => win.setFontSize(win.fontSize + 1)}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("windows.aria.increaseFont")}
-                        ariaLabel={$_("windows.aria.increaseFont")}>A+</Button>
+                        title={increaseFontLabel}
+                        ariaLabel={increaseFontLabel}
+                        ariaDisabled={fontAtMax}>A+</Button>
                 </div>
             {/if}
 

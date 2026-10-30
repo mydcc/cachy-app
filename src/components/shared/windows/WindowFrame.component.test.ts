@@ -45,17 +45,40 @@ function lookup(key: string): string {
         .reduce<unknown>((acc, part) => (acc as Record<string, unknown>)?.[part], en) as string;
 }
 
+/**
+ * The real `$_` substitutes `{name}` placeholders from the second argument; the
+ * mock has to do the same, or a test cannot tell a reason that names its bound
+ * from one that leaves the placeholder in.
+ *
+ * Supported subset: simple `{name}` interpolation only. No ICU plurals or
+ * `select` — a message that needs those would render its raw template here.
+ */
+function translate(key: string, vars?: { values?: Record<string, unknown> }): string {
+    const template = lookup(key) ?? key;
+    if (!vars?.values) return template;
+    return Object.entries(vars.values).reduce(
+        (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+        template,
+    );
+}
+
 vi.mock("../../../locales/i18n", async () => {
     const { readable } = await import("svelte/store");
     return {
-        _: readable((key: string) => lookup(key) ?? key),
+        _: readable(translate),
         locale: readable("en"),
         setLocale: vi.fn(),
     };
 });
 
 import WindowFrame from "./WindowFrame.svelte";
-import { WindowBase } from "../../../lib/windows/WindowBase.svelte";
+import {
+    WINDOW_FONT_MAX,
+    WINDOW_FONT_MIN,
+    WINDOW_ZOOM_MAX,
+    WINDOW_ZOOM_MIN,
+    WindowBase,
+} from "../../../lib/windows/WindowBase.svelte";
 import { windowManager } from "../../../lib/windows/WindowManager.svelte";
 import { Z_LAYERS } from "../../../lib/windows/zLayers";
 import { settingsState } from "../../../stores/settings.svelte";
@@ -2951,5 +2974,253 @@ describe("FEAT-0742 — keep a window above the others", () => {
         mountFrame(win);
 
         expect(hasKeepAboveButton()).toBe(false);
+    });
+});
+
+/**
+ * BUG-0717 — a title with no action must not be announced as one.
+ *
+ * The base handler is empty, so `headerAction` alone can promise an action the
+ * window never implements; the class overrides the handler, which is what the
+ * frame has to ask about.
+ */
+class TitleActionWindow extends WindowBase {
+    clicks = 0;
+
+    constructor() {
+        super({ title: "Title with action", windowType: "window" });
+        this.headerAction = "toggle-mode";
+    }
+
+    get component() {
+        return EmptyStub;
+    }
+
+    onHeaderTitleClick() {
+        this.clicks += 1;
+    }
+}
+
+/** `toggle-mode` without the override: the flag alone, exactly as it can drift. */
+class TitleFlagOnlyWindow extends WindowBase {
+    constructor() {
+        super({ title: "Flag without handler", windowType: "window" });
+        this.headerAction = "toggle-mode";
+    }
+
+    get component() {
+        return EmptyStub;
+    }
+}
+
+function titleWrapper(): HTMLElement {
+    const element = host?.querySelector<HTMLElement>(".title-wrapper");
+    if (!element) throw new Error("the frame rendered no title wrapper");
+    return element;
+}
+
+describe("BUG-0717 — title semantics follow whether the title acts", () => {
+    it("renders no button role and no tab stop on a title that does nothing", () => {
+        const { win } = mountFrame(new PlainWindow());
+
+        const title = titleWrapper();
+        expect(title.getAttribute("role")).toBeNull();
+        expect(title.getAttribute("tabindex")).toBeNull();
+        expect(title.classList.contains("clickable")).toBe(false);
+
+        // The pointer path reads the same predicate, so a click must not reach
+        // the (empty) handler either.
+        const handler = vi.spyOn(win, "onHeaderTitleClick");
+        tapTitle(title);
+        flushSync();
+        expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("keeps role, tab stop and Enter on a title that acts", () => {
+        const { win } = mountFrame(new TitleActionWindow());
+
+        const title = titleWrapper();
+        expect(title.getAttribute("role")).toBe("button");
+        expect(title.getAttribute("tabindex")).toBe("0");
+        expect(title.classList.contains("clickable")).toBe(true);
+
+        title.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        flushSync();
+        expect((win as TitleActionWindow).clicks).toBe(1);
+
+        tapTitle(title);
+        flushSync();
+        expect((win as TitleActionWindow).clicks).toBe(2);
+    });
+
+    it("treats a toggle-mode flag without an override as no action", () => {
+        // The registry entry and the class body are two files; the flag alone
+        // must not be enough to announce a button.
+        mountFrame(new TitleFlagOnlyWindow());
+
+        expect(titleWrapper().getAttribute("role")).toBeNull();
+        expect(titleWrapper().getAttribute("tabindex")).toBeNull();
+    });
+});
+
+/**
+ * BUG-0712 — a control at its bound has to say so instead of swallowing the
+ * press. `aria-disabled` rather than `disabled`, so the reason stays in the tab
+ * order; the click guard is what makes the state honest.
+ */
+class BoundedChromeWindow extends WindowBase {
+    constructor() {
+        super({ title: "Bounded chrome", windowType: "window" });
+        this.allowZoom = true;
+        this.allowFontSize = true;
+    }
+
+    get component() {
+        return EmptyStub;
+    }
+}
+
+/**
+ * The zoom pair, anchored on the readout only that group carries. Positional
+ * indices would rebind silently if another control group were inserted.
+ */
+function zoomButtons(): HTMLButtonElement[] {
+    const readout = host?.querySelector<HTMLElement>(".zoom-text");
+    const group = readout?.parentElement;
+    if (!group) throw new Error("the frame rendered no zoom control group");
+    const buttons = Array.from(group.querySelectorAll("button"));
+    expect(buttons).toHaveLength(2);
+    return buttons;
+}
+
+/** The font pair, anchored on the labels only that group carries. */
+function fontButtons(): HTMLButtonElement[] {
+    const group = Array.from(
+        host?.querySelectorAll<HTMLElement>(
+            ".window-controls .control-group",
+        ) ?? [],
+    ).find((candidate) => candidate.textContent?.includes("A+"));
+    if (!group) {
+        throw new Error("the frame rendered no font-size control group");
+    }
+    const buttons = Array.from(group.querySelectorAll("button"));
+    expect(buttons).toHaveLength(2);
+    return buttons;
+}
+
+/** A deliberate title click: pointer down and up inside the 5px/300ms gate. */
+function tapTitle(title: HTMLElement) {
+    title.dispatchEvent(
+        new PointerEvent("pointerdown", {
+            bubbles: true,
+            clientX: 12,
+            clientY: 12,
+        }),
+    );
+    title.dispatchEvent(
+        new PointerEvent("pointerup", { bubbles: true, clientX: 12, clientY: 12 }),
+    );
+}
+
+describe("BUG-0712 — a chrome control at its bound is unavailable, not silent", () => {
+    it("marks zoom-out at the floor and leaves zoom-in available", () => {
+        const { win } = mountFrame(new BoundedChromeWindow());
+        win.zoomLevel = WINDOW_ZOOM_MIN;
+        flushSync();
+
+        const [zoomOut, zoomIn] = zoomButtons();
+        expect(zoomOut.getAttribute("aria-disabled")).toBe("true");
+        // Keyboard reachability is the point of aria-disabled over disabled.
+        expect(zoomOut.disabled).toBe(false);
+
+        // The reason names the bound the clamp actually enforces; the direction
+        // that still works keeps its plain label.
+        expect(zoomOut.getAttribute("aria-label")).toBe(
+            translate("windows.aria.zoomOutLimit", {
+                values: { limit: "50%" },
+            }),
+        );
+        expect(zoomIn.hasAttribute("aria-disabled")).toBe(false);
+        expect(zoomIn.getAttribute("aria-label")).toBe(
+            lookup("windows.aria.zoomIn"),
+        );
+    });
+
+    it("reaches the floor through the real click path, not only by assignment", () => {
+        // Stepping by 0.1 in binary floating point lands on 0.5000000000000001,
+        // which is `<= 0.5` false while the header already reads 50 %. The
+        // predicate has to judge the displayed value or the bug survives one
+        // click past the bound.
+        const { win } = mountFrame(new BoundedChromeWindow());
+        const readout = host!.querySelector<HTMLElement>(".zoom-text");
+
+        for (let step = 0; step < 5; step += 1) {
+            zoomButtons()[0].click();
+            flushSync();
+        }
+
+        expect(win.zoomLevel).toBeGreaterThan(WINDOW_ZOOM_MIN);
+        expect(readout?.textContent?.trim()).toBe("50%");
+        expect(zoomButtons()[0].getAttribute("aria-disabled")).toBe("true");
+    });
+
+    it("marks zoom-in at the ceiling and leaves zoom-out available", () => {
+        const { win } = mountFrame(new BoundedChromeWindow());
+        win.zoomLevel = WINDOW_ZOOM_MAX;
+        flushSync();
+
+        const [zoomOut, zoomIn] = zoomButtons();
+        expect(zoomIn.getAttribute("aria-disabled")).toBe("true");
+        expect(zoomIn.getAttribute("aria-label")).toBe(
+            translate("windows.aria.zoomInLimit", {
+                values: { limit: "200%" },
+            }),
+        );
+        expect(zoomOut.hasAttribute("aria-disabled")).toBe(false);
+    });
+
+    it("refuses a press on the control at the floor", () => {
+        const { win } = mountFrame(new BoundedChromeWindow());
+        win.zoomLevel = WINDOW_ZOOM_MIN;
+        flushSync();
+
+        // The clamp keeps zoomLevel at the floor even when the press gets
+        // through, so the value cannot prove the refusal. The call can.
+        const zoomOut = vi.spyOn(win, "zoomOut");
+        zoomButtons()[0].click();
+        flushSync();
+
+        expect(zoomOut).not.toHaveBeenCalled();
+    });
+
+    it("marks the font controls at both ends", () => {
+        const { win } = mountFrame(new BoundedChromeWindow());
+
+        win.setFontSize(WINDOW_FONT_MIN);
+        flushSync();
+        const [decreaseAtMin, increaseAtMin] = fontButtons();
+        expect(decreaseAtMin.getAttribute("aria-disabled")).toBe("true");
+        expect(decreaseAtMin.getAttribute("aria-label")).toBe(
+            translate("windows.aria.decreaseFontLimit", {
+                values: { limit: "8px" },
+            }),
+        );
+        expect(increaseAtMin.hasAttribute("aria-disabled")).toBe(false);
+        expect(increaseAtMin.getAttribute("aria-label")).toBe(
+            lookup("windows.aria.increaseFont"),
+        );
+
+        win.setFontSize(WINDOW_FONT_MAX);
+        flushSync();
+        const [decreaseAtMax, increaseAtMax] = fontButtons();
+        expect(increaseAtMax.getAttribute("aria-disabled")).toBe("true");
+        expect(increaseAtMax.getAttribute("aria-label")).toBe(
+            translate("windows.aria.increaseFontLimit", {
+                values: { limit: "32px" },
+            }),
+        );
+        expect(decreaseAtMax.hasAttribute("aria-disabled")).toBe(false);
     });
 });

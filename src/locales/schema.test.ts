@@ -108,6 +108,23 @@ describe("windows.aria DE/EN parity (FEAT-0742)", () => {
         expect(enKeys.length).toBeGreaterThan(0);
         expect(deKeys).toEqual(enKeys);
     });
+
+    it("keeps the {limit} placeholder in the four chrome limit reasons", () => {
+        // BUG-0712 — the reason names the bound through the placeholder. A
+        // translation that renames or drops it renders the sentence without the
+        // number, and key-set parity alone cannot see that.
+        const keys = [
+            "zoomOutLimit",
+            "zoomInLimit",
+            "decreaseFontLimit",
+            "increaseFontLimit",
+        ];
+        for (const key of keys) {
+            const path = `windows.aria.${key}`;
+            expect(pick(en, path), `en ${path}`).toContain("{limit}");
+            expect(pick(de, path), `de ${path}`).toContain("{limit}");
+        }
+    });
 });
 
 describe("academy.structure DE/EN parity (FEAT-0679 AC5)", () => {

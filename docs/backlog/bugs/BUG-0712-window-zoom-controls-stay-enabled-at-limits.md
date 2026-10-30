@@ -2,7 +2,7 @@
 id: BUG-0712
 title: Window zoom and font-size controls stay enabled at their limits
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 created: "2026-10-21"
@@ -54,10 +54,10 @@ the safety boundary.
 
 ## Acceptance criteria
 
-- [ ] A test drives a window to each bound and asserts the matching control is
+- [x] A test drives a window to each bound and asserts the matching control is
       marked unavailable (and the opposite one is not)
-- [ ] The control stays keyboard-reachable and its reason is announced
-- [ ] Reverting the guard turns the test red
+- [x] The control stays keyboard-reachable and its reason is announced
+- [x] Reverting the guard turns the test red
 
 ## Links
 
