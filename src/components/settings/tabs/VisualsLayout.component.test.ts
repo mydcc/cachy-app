@@ -106,9 +106,17 @@ describe("FEAT-0346 — VisualsLayout writes through to the stores", () => {
         if (!group) throw new Error("heading has no group container");
 
         expect(group.className).toContain("border-t");
-        expect(
-            group.contains(buttonContaining(lookup("settings.newsOpenBehaviorSmart"))),
-        ).toBe(true);
+        for (const key of [
+            "settings.newsOpenBehaviorSmart",
+            "settings.newsOpenBehaviorReader",
+            "settings.newsOpenBehaviorNewTab",
+            "settings.newsOpenBehaviorWindow",
+        ]) {
+            expect(
+                group.contains(buttonContaining(lookup(key))),
+                `${key} is outside the news group`,
+            ).toBe(true);
+        }
     });
 
     it("binds the sidebars toggle to the settings store", () => {

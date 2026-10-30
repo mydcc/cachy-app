@@ -676,6 +676,9 @@ work does not rediscover them:
 - The news open behaviour is configured in two places (AI → Behaviour and
   Visuals → Layout) with identical options. One of them should go when the
   settings vocabulary is harmonised (FEAT-0607).
+  **Resolved 2026-10-30 ([BUG-0729](../../bugs/BUG-0729-news-open-behaviour-has-two-homes.md)).**
+  The AI → Behaviour copy was removed; the setting now renders only in
+  Visuals → Layout, under its own heading.
 - The theme switcher's backward gesture is a right-click with no affordance.
 - Quick-date buttons leave no active marker; the resulting date inputs are the
   only feedback.
@@ -1132,11 +1135,13 @@ without a section heading). That is one setting with two homes and no owner; §8
 already flagged it. Filed as
 [BUG-0729](../../bugs/BUG-0729-news-open-behaviour-has-two-homes.md).
 
-**Superseded 2026-10-30.** The duplicate was removed by
-[BUG-0729](../../bugs/BUG-0729-news-open-behaviour-has-two-homes.md): the
-control now renders only in Visuals → Layout, under its own heading. The
-paragraph above is the measurement as recorded; it is not rewritten.
-
 **Result.** Every section with a heading matches the rule. The only mismatches are
 the header-less duplicate above and the three documented reuses, none of which is a
 pure move. No control was moved in this item.
+
+**Superseded 2026-10-30
+([BUG-0729](../../bugs/BUG-0729-news-open-behaviour-has-two-homes.md)).** The
+duplicate described in this section was removed: the control now renders only
+in Visuals → Layout, under its own heading. Everything above is the measurement
+as recorded on 2026-10-22 and is not rewritten, including the Result line about
+the header-less duplicate.

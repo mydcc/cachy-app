@@ -63,7 +63,7 @@
             <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
                 {$_("settings.newsArticlesTitle")}
             </h4>
-            <div class="toggle-card flex-col items-start gap-2">
+            <div class="toggle-card news-card flex-col items-start gap-2">
                 <div class="flex justify-between items-center w-full">
                     <div class="flex flex-col min-w-0 flex-1">
                         <span class="text-sm font-medium">{$_("settings.newsOpenBehavior")}</span>
@@ -216,6 +216,11 @@
         border: 1px solid var(--border-color);
         border-radius: var(--radius-xl);
         cursor: pointer;
+    }
+    /* The news card is a container, not a control: only its option buttons
+       act, so the pointer the toggle-card rule sets would lie. */
+    .toggle-card.news-card {
+        cursor: default;
     }
     .field-group {
         display: flex;
