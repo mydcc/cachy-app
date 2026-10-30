@@ -2,7 +2,7 @@
 id: FEAT-0745
 title: "Epic: Alert and Bot Control Center"
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -21,6 +21,16 @@ depends_on: []
 > [`FEAT-0749`](FEAT-0749-control-center-window-for-alerts-and-bots.md) and
 > [`BUG-0750`](../bugs/BUG-0750-per-alert-trigger-methods-never-reach-delivery.md).
 > This item holds the shared requirements and closes when all five are `done`.
+
+## Delivered
+
+| Item | PR | Result |
+| :--- | :--- | :--- |
+| FEAT-0746 | #4418 | Pause, resume and duplicate on the manage list |
+| FEAT-0747 | #4419 | Full sentences, counts, filters, firing log |
+| BUG-0750 | #4394 | A rule's own channel list now reaches delivery |
+| FEAT-0748 | #4420 | Per-rule channels and a test announcement |
+| FEAT-0749 | #4422, #4423 | The "Alerts & Bots" desk: Alerts, Log, Bots tabs; `AutomationTab` narrowed to the account and the limits |
 
 ## Problem
 
@@ -80,19 +90,19 @@ authoring surface, so there is one builder and one rule list in the codebase.
 
 ## Acceptance criteria
 
-- [ ] All acceptance criteria in FEAT-0746, FEAT-0747, FEAT-0748, FEAT-0749
+- [x] All acceptance criteria in FEAT-0746, FEAT-0747, FEAT-0748, FEAT-0749
       and BUG-0750 are met.
-- [ ] There is exactly one rule-authoring surface (the Super-Alert panel) and
+- [x] There is exactly one rule-authoring surface (the Super-Alert panel) and
       one rule-listing implementation (the FEAT-0747 components). The control
       center mounts them; it does not copy them.
-- [ ] The control center is reachable through the entry-point registry, and the
+- [x] The control center is reachable through the entry-point registry, and the
       registry guard (FEAT-0736) is green with the new entry.
-- [ ] No new server call and no new Class B feature: rules, their state and
+- [x] No new server call and no new Class B feature: rules, their state and
       their firing log stay on the device (ADR-0001). External delivery remains
       opt-in (ADR-0018).
-- [ ] Every new string exists in both `src/locales/locales/de.json` and
+- [x] Every new string exists in both `src/locales/locales/de.json` and
       `src/locales/locales/en.json`.
-- [ ] The window and every list action are keyboard reachable and labelled for
+- [x] The window and every list action are keyboard reachable and labelled for
       assistive technology.
 
 ## Out of scope
