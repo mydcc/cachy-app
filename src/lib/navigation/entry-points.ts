@@ -27,6 +27,7 @@
 import type { TranslationKey } from "../../locales/schema";
 import type { Settings } from "../../stores/settings/settingsTypes";
 import type { WindowType } from "../windows/types";
+import { controlCenterUnreadCount } from "../../stores/controlCenterUnread.svelte";
 
 export type EntryId = string;
 export type SurfaceId = "rail" | "header" | "journal-tabs" | "settings-rail";
@@ -118,6 +119,15 @@ export interface Entry {
     shortcut?: string;
     parent?: EntryId;
     telemetryName?: string;
+    /**
+     * Optional live count rendered on the rail entry — FEAT-0749.
+     *
+     * A function rather than a number so the surface re-reads it when the
+     * underlying store changes; entries without one render as before.
+     */
+    countProvider?: () => number;
+    /** How the counted state is announced; `{label}` and `{count}` are filled. */
+    countLabel?: TranslationKey;
     placements: Placement[];
 }
 
@@ -390,9 +400,17 @@ const GLOBAL_DESTINATIONS: Entry[] = [
     {
         id: "alerts",
         telemetryName: "OpenAlerts",
-        labels: { label: "dashboard.alerts.panel.open" },
+        labels: {
+            label: "dashboard.controlCenter.title",
+            title: "dashboard.controlCenter.title",
+            description: "dashboard.controlCenter.description",
+        },
         icon: "rail-alerts",
-        opener: { kind: "toggle", target: "alerts" },
+        // FEAT-0749 — the bell opens the operating desk, not the builder. The
+        // builder is one click away through "New alert" inside it.
+        opener: { kind: "window", windowType: "controlcenter" },
+        countProvider: controlCenterUnreadCount,
+        countLabel: "dashboard.controlCenter.unreadAria",
         placements: [rail(30, "destinations")],
     },
     {

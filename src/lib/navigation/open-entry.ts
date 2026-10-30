@@ -32,9 +32,13 @@
  * rather than by surface.
  */
 
+import { get } from "svelte/store";
+import { _ } from "../../locales/i18n";
 import { settingsState } from "../../stores/settings.svelte";
 import { uiState } from "../../stores/ui.svelte";
+import { controlCenterUnread } from "../../stores/controlCenterUnread.svelte";
 import { windowManager } from "../windows/WindowManager.svelte";
+import { ControlCenterWindow } from "../windows/implementations/ControlCenterWindow.svelte";
 import type { Entry, Opener } from "./entry-points";
 
 type WindowOpener = Extract<Opener, { kind: "window" }>;
@@ -78,6 +82,16 @@ function openWindow(opener: WindowOpener): void {
             // `openAcademy()` dedupes by window id inside `open()`; doing the
             // lookup here as well would add a second, diverging rule.
             void windowManager.openAcademy();
+            return;
+        case "controlcenter":
+            // Opening is looking: the rail badge clears now rather than after
+            // the first focus event inside the fresh window.
+            controlCenterUnread.markSeen();
+            windowManager.open(
+                new ControlCenterWindow({
+                    title: get(_)("dashboard.controlCenter.title"),
+                }),
+            );
             return;
         default:
             // The rail has no other window destinations. A future surface

@@ -230,4 +230,5 @@ export type WindowType =
     | 'channel'
     | 'academy'
     | 'alertpanel'
+    | 'controlcenter'
     | 'dialog';

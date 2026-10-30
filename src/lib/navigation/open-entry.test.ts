@@ -173,12 +173,24 @@ describe("FEAT-0733: openEntry", () => {
     expect(settingsState.showMarketSentiment).toBe(!showMarketSentiment);
   });
 
-  it("opens the modal surfaces", () => {
+  it("opens the dashboard as a modal surface", () => {
     openEntry(entry("dashboard"));
-    openEntry(entry("alerts"));
 
     expect(uiState.showMarketDashboardModal).toBe(true);
-    expect(uiState.showAlertsModal).toBe(true);
+  });
+
+  it("opens the alert control center as a window, once", () => {
+    openEntry(entry("alerts"));
+    const first = windowManager.windows.find((win) => win.windowType === "controlcenter");
+    expect(first).toBeDefined();
+
+    openEntry(entry("alerts"));
+
+    expect(
+      windowManager.windows.filter((win) => win.windowType === "controlcenter"),
+    ).toHaveLength(1);
+    expect(uiState.showAlertsModal).toBe(false);
+    if (first) windowManager.close(first.id);
   });
 
   it("toggles the assistant through the store", () => {

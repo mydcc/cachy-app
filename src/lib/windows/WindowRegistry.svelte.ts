@@ -205,6 +205,39 @@ class WindowRegistry {
                 }
             },
 
+            /**
+             * FEAT-0749 — the operating desk for armed rules and bots.
+             *
+             * Non-modal like the alert panel: it is read *while* the chart is
+             * in use, so a backdrop or close-on-blur would defeat the surface.
+             * One instance, because it owns no document of its own; a second
+             * copy would only disagree about which tab is open.
+             */
+            controlcenter: {
+                type: 'controlcenter',
+                flags: {
+                    ...baseFlags,
+                    isResizable: true,
+                    isDraggable: true,
+                    allowMaximize: true,
+                    allowMinimize: true,
+                    canMinimizeToPanel: true,
+                    centerByDefault: true,
+                    maxInstances: 1,
+                    showBackdrop: false,
+                    closeOnBlur: false,
+                    isResponsive: true,
+                    edgeToEdgeBreakpoint: 768
+                },
+                layout: {
+                    ...baseLayout,
+                    width: 900,
+                    height: 640,
+                    minWidth: 620,
+                    minHeight: 420
+                }
+            },
+
             /** Small center-fixed dialog for Alerts and Confirmations. */
             dialog: {
                 type: 'dialog',
