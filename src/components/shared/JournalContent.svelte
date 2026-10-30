@@ -24,6 +24,7 @@
     import { imgbbService } from "../../services/imgbbService";
     import { calculator } from "../../lib/calculator";
     import { sortJournalRows } from "../../lib/journalSort";
+    import { journalDateRange } from "../../lib/journalDateRange";
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import { icons } from "../../lib/constants";
@@ -34,6 +35,7 @@
     import type { JournalEntry, JournalTableRow, JournalGroupSummary } from "../../stores/types";
 
     import JournalTabStrip from "./journal/JournalTabStrip.svelte";
+    import JournalSyncButton from "./journal/JournalSyncButton.svelte";
     import { Decimal } from "decimal.js";
     import { onMount, untrack } from "svelte";
 
@@ -418,28 +420,21 @@
         const filterByPaper = tradeMode === "paper";
         const matchesAllStatus = journalFilterStatus === "all";
         const noTagSelected = selectedTag === "";
-        const hasStartDate = filterDateStart !== "";
-        const startDateMs = hasStartDate ? Date.parse(filterDateStart) : 0;
-        const hasEndDate = filterDateEnd !== "";
-        let endDateMs = 0;
-        if (hasEndDate) {
-            const endDate = new Date(filterDateEnd);
-            endDate.setHours(23, 59, 59, 999);
-            endDateMs = endDate.getTime();
-        }
+        // BUG-0757 — both bounds come from one UTC helper. Building the end
+        // with `setHours` here mixed local end-of-day with the UTC start
+        // `Date.parse` produces, which dropped the last two UTC hours of the
+        // selected day in Europe/Berlin.
+        const dateRange = journalDateRange(filterDateStart, filterDateEnd);
         return journalState.entries.filter((trade) => {
             if (filterByLive && trade.isPaper) return false;
             if (filterByPaper && !trade.isPaper) return false;
             if (!matchesAllStatus && trade.status !== journalFilterStatus) return false;
             if (selectedSymbol && trade.symbol?.trim() !== selectedSymbol) return false;
             if (!noTagSelected && (!trade.tags || !trade.tags.includes(selectedTag))) return false;
-            if (hasStartDate || hasEndDate) {
-                // The end bound stays on new Date() + setHours: that local-time
-                // mutation is what extends the range to end-of-day, so it cannot
-                // be folded into the Date.parse() start bound above.
+            if (dateRange.startMs !== null || dateRange.endMs !== null) {
                 const tradeDateMs = Date.parse(trade.date);
-                if (hasStartDate && tradeDateMs < startDateMs) return false;
-                if (hasEndDate && tradeDateMs > endDateMs) return false;
+                if (dateRange.startMs !== null && tradeDateMs < dateRange.startMs) return false;
+                if (dateRange.endMs !== null && tradeDateMs > dateRange.endMs) return false;
             }
             if (query) {
                 if ((trade.symbol?.toLowerCase() ?? "").includes(query)) return true;
@@ -616,31 +611,13 @@
     {:else}
         <!-- Always visible; the history sync is a Pro feature, so the button
              stays present but disabled until Pro is active instead of
-             silently disappearing. -->
-        <Button
-            variant="outline"
-            size="sm"
-            extraClasses="gap-1.5"
-            ariaLabel={uiState.isPriceFetching
-                ? $_("journal.messages.syncing")
-                : $_("journal.syncBitunix")}
-            onClick={app.syncBitunixHistory}
-            disabled={!settingsState.entitlement.isPro || uiState.isPriceFetching || uiState.isLoading}
-            title={!settingsState.entitlement.isPro
-                ? $_("journal.syncRequiresPro")
-                : $_("journal.syncBitunix")}
-        >
-            {#if uiState.isPriceFetching}
-                <div class="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full"></div>
-            {:else if !settingsState.entitlement.isPro}
-                <span class="opacity-70">🔒</span>
-            {:else}
-                <span class="opacity-70">{@html icons.refresh}</span>
-            {/if}
-            <span>
-                {uiState.isPriceFetching ? $_("journal.messages.syncing") : $_("journal.syncBitunix")}
-            </span>
-        </Button>
+             silently disappearing. Every disable reason is visible (BUG-0719). -->
+        <JournalSyncButton
+            isPro={settingsState.entitlement.isPro}
+            isSyncing={uiState.isPriceFetching}
+            isLoading={uiState.isLoading}
+            onSync={app.syncBitunixHistory}
+        />
     {/if}
 {/snippet}
 

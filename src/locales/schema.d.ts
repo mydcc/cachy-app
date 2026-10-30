@@ -950,6 +950,7 @@ export type TranslationKey =
   | "journal.messages.vipSpaceUnlocked"
   | "journal.messages.uploading"
   | "journal.messages.syncing"
+  | "journal.messages.loading"
   | "journal.messages.uploadFailed"
   | "journal.messages.min5Trades"
   | "journal.messages.min20Trades"

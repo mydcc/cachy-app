@@ -2,9 +2,7 @@
 id: BUG-0757
 title: Journal date filter uses local end bound against UTC start bound
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/ui-journal-dates
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -44,8 +42,8 @@ Calculate the end bound in pure UTC time. For instance, using `setUTCHours(23, 5
 
 ## Acceptance criteria
 
-- [ ] A test for journal filtering that spans timezones fails before the fix.
-- [ ] The filter covers the full UTC 24h of the selected end date regardless of the local timezone.
-- [ ] The test passes with the fix.
+- [x] A test for journal filtering that spans timezones fails before the fix.
+- [x] The filter covers the full UTC 24h of the selected end date regardless of the local timezone.
+- [x] The test passes with the fix.
 
 ## Links
