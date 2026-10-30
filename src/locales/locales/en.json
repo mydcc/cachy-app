@@ -9,8 +9,12 @@
     "aria": {
       "zoomOut": "Zoom Out",
       "zoomIn": "Zoom In",
+      "zoomOutLimit": "Zoom out (already at {limit})",
+      "zoomInLimit": "Zoom in (already at {limit})",
       "decreaseFont": "Decrease Font Size",
       "increaseFont": "Increase Font Size",
+      "decreaseFontLimit": "Decrease font size (already at {limit})",
+      "increaseFontLimit": "Increase font size (already at {limit})",
       "unpin": "Unpin window",
       "pin": "Pin window",
       "keepAbove": "Keep window above others",

@@ -38,6 +38,19 @@ import { generateId } from "../../utils/utils";
  */
 export const WINDOW_HEADER_HEIGHT = 44;
 
+/**
+ * BUG-0712 — the zoom and type-size bounds the header controls have to show.
+ * `zoomIn`/`zoomOut`/`setFontSize` clamp to these, and `WindowFrame` reads the
+ * same values to mark the control at its bound unavailable. Keeping the number
+ * in the reason and the number in the clamp on one constant is what stops them
+ * drifting apart.
+ */
+export const WINDOW_ZOOM_MIN = 0.5;
+export const WINDOW_ZOOM_MAX = 2.0;
+export const WINDOW_ZOOM_STEP = 0.1;
+export const WINDOW_FONT_MIN = 8;
+export const WINDOW_FONT_MAX = 32;
+
 /** A custom control rendered in the window header (e.g. a timeframe picker). */
 export interface HeaderControl {
     label: string;
@@ -917,6 +930,22 @@ export abstract class WindowBase {
         return null;
     }
 
+    /**
+     * BUG-0717 — whether the window title actually has an action.
+     *
+     * `headerAction === "toggle-mode"` alone is a promise the base class cannot
+     * keep: the default handler is empty, so a registry entry can mark a title
+     * actionable on a window that never overrode it. Comparing against the base
+     * prototype makes the override, not the flag, the deciding fact — the frame
+     * then never announces a button that answers nothing.
+     */
+    get titleIsActionable(): boolean {
+        return (
+            this.headerAction === "toggle-mode" &&
+            this.onHeaderTitleClick !== WindowBase.prototype.onHeaderTitleClick
+        );
+    }
+
     // --- INTERACTION HOOKS (TO BE OVERRIDDEN BY SUBCLASSES) ---
     /** Triggered when the title text is clicked (if headerAction is 'toggle-mode'). */
     onHeaderTitleClick() { }
@@ -953,12 +982,12 @@ export abstract class WindowBase {
     autoScale() { }
 
     // --- CORE FEATURE METHODS ---
-    /** Increases content zoom by 10%. Max 200%. */
-    zoomIn() { if (this.allowZoom) this.zoomLevel = Math.min(this.zoomLevel + 0.1, 2.0); }
-    /** Decreases content zoom by 10%. Min 50%. */
-    zoomOut() { if (this.allowZoom) this.zoomLevel = Math.max(this.zoomLevel - 0.1, 0.5); }
+    /** Increases content zoom by one step. Max 200%. */
+    zoomIn() { if (this.allowZoom) this.zoomLevel = Math.min(this.zoomLevel + WINDOW_ZOOM_STEP, WINDOW_ZOOM_MAX); }
+    /** Decreases content zoom by one step. Min 50%. */
+    zoomOut() { if (this.allowZoom) this.zoomLevel = Math.max(this.zoomLevel - WINDOW_ZOOM_STEP, WINDOW_ZOOM_MIN); }
     resetZoom() { if (this.allowZoom) this.zoomLevel = 1.0; }
 
     /** Sets font size in pixels (Range: 8 - 32). */
-    setFontSize(size: number) { if (this.allowFontSize) this.fontSize = Math.min(Math.max(size, 8), 32); }
+    setFontSize(size: number) { if (this.allowFontSize) this.fontSize = Math.min(Math.max(size, WINDOW_FONT_MIN), WINDOW_FONT_MAX); }
 }

@@ -106,6 +106,26 @@ describe("FEAT-0346 — Button forwards its label and honours disabled", () => {
         expect(onClick).not.toHaveBeenCalled();
     });
 
+    it("announces aria-disabled, keeps the tab stop and refuses the press", () => {
+        // BUG-0712 — the reason for an unavailable control has to be reachable
+        // by keyboard, so this state must not use the native attribute.
+        const onClick = vi.fn();
+        render({ onClick, ariaDisabled: true, title: "Already at the limit" });
+
+        expect(button().getAttribute("aria-disabled")).toBe("true");
+        expect(button().disabled).toBe(false);
+        expect(button().getAttribute("title")).toBe("Already at the limit");
+
+        button().click();
+        expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("carries no aria-disabled attribute while available", () => {
+        render({});
+
+        expect(button().hasAttribute("aria-disabled")).toBe(false);
+    });
+
     it("applies caller classes", () => {
         render({ extraClasses: "my-custom-class" });
 
@@ -233,9 +253,10 @@ describe("FEAT-0610 — variants, sizes and events", () => {
         // be invisible (FEAT-0612). happy-dom cannot evaluate `:hover`, so this
         // asserts the rule exists and names the accent colour; precedence over
         // a site class (`.copy-btn:hover`) is a browser-level question and is
-        // not covered here.
+        // not covered here. BUG-0712 extended the guard: an `aria-disabled`
+        // button must not light up either.
         expect(readFileSync("src/themes.css", "utf8")).toMatch(
-            /\.btn-base\.btn-ghost-muted:hover:not\(:disabled\)\s*\{\s*color:\s*var\(--accent-color\)/,
+            /\.btn-base\.btn-ghost-muted:hover:not\(:disabled\):not\(\[aria-disabled="true"\]\)\s*\{\s*color:\s*var\(--accent-color\)/,
         );
     });
 

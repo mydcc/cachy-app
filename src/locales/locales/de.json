@@ -9,8 +9,12 @@
     "aria": {
       "zoomOut": "Verkleinern",
       "zoomIn": "Vergrößern",
+      "zoomOutLimit": "Verkleinern (bereits bei {limit})",
+      "zoomInLimit": "Vergrößern (bereits bei {limit})",
       "decreaseFont": "Schriftgröße verkleinern",
       "increaseFont": "Schriftgröße vergrößern",
+      "decreaseFontLimit": "Schriftgröße verkleinern (bereits bei {limit})",
+      "increaseFontLimit": "Schriftgröße vergrößern (bereits bei {limit})",
       "unpin": "Fenster lösen",
       "pin": "Fenster anheften",
       "keepAbove": "Fenster im Vordergrund halten",

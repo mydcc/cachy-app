@@ -69,6 +69,15 @@
      */
     extraClasses?: string;
     disabled?: boolean;
+    /**
+     * BUG-0712 — unavailable without leaving the tab order.
+     *
+     * A native `disabled` button is skipped by Tab, so the reason it would give
+     * is unreachable by keyboard. `aria-disabled` keeps it focusable and
+     * announces the state, and the click guard here makes the state true rather
+     * than decorative. The caller owns the visible/announced reason.
+     */
+    ariaDisabled?: boolean;
     type?: "button" | "submit" | "reset";
     /** Optional analytics action; the click still fires `onClick` without it. */
     track?: TrackClickParams;
@@ -89,17 +98,29 @@
     children,
     extraClasses = "",
     disabled = false,
+    ariaDisabled = false,
     type = "button",
     track,
   }: Props = $props();
+
+  function handleClick(event: MouseEvent) {
+    // aria-disabled has to refuse the press itself; announcing it without the
+    // guard would be a label on a button that still acts.
+    if (ariaDisabled) {
+      event.preventDefault();
+      return;
+    }
+    onClick?.(event);
+  }
 </script>
 
 <button
   class="btn-base btn-{variant} btn-{size} {extraClasses}"
   {id}
   {disabled}
+  aria-disabled={ariaDisabled ? "true" : undefined}
   {type}
-  onclick={onClick}
+  onclick={handleClick}
   oncontextmenu={oncontextmenu}
   ondblclick={ondblclick}
   {title}
