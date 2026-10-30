@@ -2,7 +2,9 @@
 id: BUG-0714
 title: The remove-account button explains its disabled state only in a title
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-settings-reasons
 priority: P3
 milestone: none
 created: "2026-10-21"

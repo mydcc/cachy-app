@@ -2,7 +2,9 @@
 id: BUG-0713
 title: Adding a custom RSS feed disables at five with no visible reason
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-settings-reasons
 priority: P3
 milestone: none
 created: "2026-10-21"

@@ -2,7 +2,9 @@
 id: BUG-0718
 title: The last calculation-timeframe toggle stays enabled and silently refuses
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-settings-reasons
 priority: P3
 milestone: none
 created: "2026-10-21"
