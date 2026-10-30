@@ -30,6 +30,9 @@ import en from "../../../locales/locales/en.json";
 import ControlCenterView from "./ControlCenterView.svelte";
 import { ControlCenterWindow } from "../../../lib/windows/implementations/ControlCenterWindow.svelte";
 import { windowManager } from "../../../lib/windows/WindowManager.svelte";
+import { alertPanelState } from "../../../stores/alertPanel.svelte";
+import { tradeState } from "../../../stores/trade.svelte";
+import { uiState } from "../../../stores/ui.svelte";
 
 const dictionary = en as Record<string, unknown>;
 
@@ -84,13 +87,14 @@ describe("FEAT-0749: ControlCenterView", () => {
         return target.querySelector<HTMLButtonElement>(`#${id}`);
     }
 
-    it("renders the alerts and log tabs with their counts", () => {
+    it("renders the alerts, log and bots tabs", () => {
         render();
 
         const tabs = target.querySelectorAll<HTMLButtonElement>("[role='tab']");
-        expect(tabs).toHaveLength(2);
+        expect(tabs).toHaveLength(3);
         expect(tabs[0].textContent).toContain("Alerts");
         expect(tabs[1].textContent).toContain("Log");
+        expect(tabs[2].textContent).toContain("Bots");
     });
 
     it("focuses the alerts tab when it opens", () => {
@@ -127,5 +131,47 @@ describe("FEAT-0749: ControlCenterView", () => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 
         expect(close).not.toHaveBeenCalled();
+    });
+
+    it("shows the bots panel only while the bots tab is selected", () => {
+        render();
+        const bots = target.querySelector<HTMLDivElement>(".cc-bots")!;
+        expect(bots.hasAttribute("hidden")).toBe(true);
+
+        tab(target.querySelectorAll<HTMLButtonElement>("[role='tab']")[2].id)!.click();
+        flushSync();
+
+        expect(bots.hasAttribute("hidden")).toBe(false);
+        // The alert/log body keeps its place in the DOM: its counts are
+        // derived inside it, and unmounting it would reset the labels.
+        expect(target.querySelector(".cc-body > div")?.hasAttribute("hidden")).toBe(true);
+    });
+
+    it("moves on from the bots tab to the alerts tab", () => {
+        render();
+        const tabs = target.querySelectorAll<HTMLButtonElement>("[role='tab']");
+        tabs[2].click();
+        flushSync();
+
+        tabs[2].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+        flushSync();
+
+        expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    });
+
+    it("opens the Super-Alert builder for a new alert on the current market", () => {
+        const toggle = vi.spyOn(uiState, "toggleAlertsModal").mockImplementation(() => {});
+        tradeState.symbol = "ETHUSDT";
+        render();
+
+        const newAlert = [...target.querySelectorAll("button")].find(
+            (element) => element.textContent?.trim() === "New alert",
+        );
+        expect(newAlert).toBeDefined();
+        newAlert!.click();
+
+        expect(toggle).toHaveBeenCalledWith(true);
+        expect(alertPanelState.activeTab).toBe("price");
+        expect(alertPanelState.draft.symbol).toBe("ETHUSDT");
     });
 });

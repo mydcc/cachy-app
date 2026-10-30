@@ -166,7 +166,9 @@
     "controlCenter": {
       "title": "Alerts & Bots",
       "description": "Armed alerts, their firing log, and the bots that act on them.",
-      "unreadAria": "{label}, {count} unread"
+      "unreadAria": "{label}, {count} unread",
+      "tabBots": "Bots",
+      "newAlert": "New alert"
     },
     "presetLoad": "Load Preset...",
     "savePresetTitle": "Save current inputs as preset",
@@ -2816,6 +2818,8 @@
     "brokenAlertReportLogDesc": "No message. The alert panel still shows which alerts are affected.",
     "automation": {
       "title": "Automation",
+      "botsMoved": "Your bots moved: they now live in Alerts & Bots, next to the alerts they were promoted from. This tab keeps the simulated account and the risk limits they trade under.",
+      "openBots": "Open bots",
       "intro": "A bot is one of your alerts promoted to act rather than announce. It watches the same conditions, on the same data, evaluated by the same engine.",
       "simulateOnly": "Bots propose orders into the simulated account only. Nothing here reaches an exchange — live execution is a separate feature with its own order gate and confirmation.",
       "yourBots": "Your bots",
