@@ -49,7 +49,7 @@ export function ruleEffectiveChannels(rule: RuleDocument): EffectiveChannels {
 export interface TestAnnouncementOutcome {
     /** Local channels the service delivered on, synchronously. */
     delivered: string[];
-    /** External channels that were dispatched; their result arrives later. */
+    /** External channels the service actually dispatched to. */
     external: ExternalChannelId[];
     /** The service's duplicate window swallowed the press. */
     duplicate: boolean;
@@ -86,7 +86,7 @@ export function sendTestAnnouncement(rule: RuleDocument): TestAnnouncementOutcom
 
     return {
         delivered: outcome.delivered,
-        external: channels.external,
+        external: outcome.external,
         duplicate: outcome.duplicate,
     };
 }

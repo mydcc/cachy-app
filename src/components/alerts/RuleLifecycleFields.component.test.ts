@@ -33,6 +33,7 @@ import { alertPanelState } from "../../stores/alertPanel.svelte";
 import { locale } from "../../locales/i18n";
 import { notificationPolicyStore } from "../../stores/notifications.svelte";
 import { externalChannelsStore } from "../../stores/externalChannels.svelte";
+import { notificationService } from "../../services/notificationService.svelte";
 
 const dictionary = en as Record<string, unknown>;
 
@@ -73,6 +74,7 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
     alertPanelState.reset("BTCUSDT");
     notificationPolicyStore.reset();
     externalChannelsStore.reload();
+    notificationService.reset();
   });
 
   afterEach(() => {
@@ -181,12 +183,34 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
 
     button.click();
     flushSync();
+    expect(target.querySelector(".test-status")?.textContent).toContain(
+      "Test dispatched to In-app",
+    );
+
     button.click();
     flushSync();
-
     expect(target.querySelector(".test-status")?.textContent).toContain(
       "Already tested a moment ago",
     );
+  });
+
+  it("does not carry a test result over to another draft", () => {
+    render();
+    const button = target.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+    button.click();
+    flushSync();
+
+    alertPanelState.reset("ETHUSDT");
+    flushSync();
+
+    expect(target.querySelector(".test-status")?.textContent?.trim()).toBe("");
+  });
+
+  it("names the effective set in the collapsed summary", () => {
+    render();
+
+    expect(target.querySelector(".summary-value")?.textContent).toContain("In-app");
   });
 
   it("says so when nothing would be announced", () => {
@@ -195,6 +219,9 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
 
     expect(target.querySelector(".effective-label")?.textContent).toContain(
       "No channel is active",
+    );
+    expect(target.querySelector(".summary-value")?.textContent).toContain(
+      "no active channel",
     );
     expect(target.querySelector<HTMLButtonElement>(".test-btn")?.disabled).toBe(true);
   });
@@ -230,7 +257,9 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
     // deliver right now.
     const boxes = target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
     expect(boxes[3].disabled).toBe(false);
-    expect(target.textContent).toContain("Channel paused");
+    expect(target.textContent).toContain(
+      "Paused — switch it on under Settings → Notifications",
+    );
 
     boxes[3].click();
     flushSync();

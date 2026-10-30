@@ -50,10 +50,7 @@
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
     import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
     import { readBotLogRows } from "../../../services/alertEngine/botStore";
-    import {
-        ruleEffectiveChannels,
-        sendTestAnnouncement,
-    } from "../../../stores/alertDelivery";
+    import { sendTestAnnouncement } from "../../../stores/alertDelivery";
     import { channelsLabel } from "../../../lib/alerts/lifecycleLabels";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
@@ -213,17 +210,21 @@
      * so pressing it cannot spend a `once` rule.
      */
     function testRow(row: ManageRow) {
-        const channels = ruleEffectiveChannels(row.rule);
         const outcome = sendTestAnnouncement(row.rule);
         // A toast is the only acknowledgement an external-only set produces:
         // the in-app channel is by definition not part of it.
-        const label = channelsLabel(channels, $_);
+        const label = channelsLabel(
+            { local: outcome.delivered, external: outcome.external },
+            $_,
+        );
         uiState.showToast(
             outcome.duplicate
                 ? $_("dashboard.alerts.panel.lifecycle.testSuppressed")
-                : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
-                      values: { channels: label },
-                  }),
+                : label === ""
+                  ? $_("dashboard.alerts.panel.lifecycle.testNothing")
+                  : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
+                        values: { channels: label },
+                    }),
             "info",
         );
     }

@@ -1234,4 +1234,29 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(readRuleState("rule-1").fired_count).toBe(0);
   });
 
+  it("tells the row's trader what the test actually did", () => {
+    notificationService.reset();
+    notificationPolicyStore.reset();
+    seedRules([rule()]);
+    const toast = vi.spyOn(uiState, "showToast");
+
+    const el = render();
+    const button = el.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+
+    button.click();
+    flushSync();
+    expect(toast).toHaveBeenCalledWith(
+      expect.stringContaining("Test dispatched to In-app"),
+      "info",
+    );
+
+    button.click();
+    flushSync();
+    expect(toast).toHaveBeenCalledWith(
+      expect.stringContaining("Already tested a moment ago"),
+      "info",
+    );
+  });
+
 });

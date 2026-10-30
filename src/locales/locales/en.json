@@ -453,6 +453,9 @@
           "sendTest": "Send test",
           "testDispatched": "Test dispatched to {channels}",
           "testSuppressed": "Already tested a moment ago — nothing was sent.",
+          "testNothing": "Nothing was dispatched — check the channel setup.",
+          "methodPaused": "Paused — switch it on under Settings → Notifications",
+          "methodNeedsSetup": "Not set up yet — configure it under Settings → Notifications",
           "effectiveNoneShort": "no active channel"
         }
       },

@@ -47,7 +47,7 @@ vi.mock("../locales/i18n", () => ({
 }));
 
 const { mockNotify } = vi.hoisted(() => ({
-    mockNotify: vi.fn(() => ({ delivered: ["in-app"], duplicate: false })),
+    mockNotify: vi.fn(() => ({ delivered: ["in-app"], external: [], duplicate: false })),
 }));
 
 vi.mock("../services/notificationService.svelte", () => ({
@@ -85,7 +85,7 @@ function ruleDoc(overrides: Partial<RuleDocument> = {}): RuleDocument {
 beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    mockNotify.mockReturnValue({ delivered: ["in-app"], duplicate: false });
+    mockNotify.mockReturnValue({ delivered: ["in-app"], external: [], duplicate: false });
     notificationPolicyStore.reset();
     externalChannelsStore.reload();
 });
@@ -112,7 +112,14 @@ describe("sendTestAnnouncement", () => {
         expect(request.test).toBe(true);
         expect(request.exactChannels).toBe(true);
         expect(String(request.message)).toContain("dashboard.alerts.testAnnouncement");
-        expect((mockNotify.mock.results[0].value as { duplicate: boolean }).duplicate).toBe(false);
+    });
+
+    it("reports the suppression the service returned", () => {
+        // Not the mock's default: a hardcoded `duplicate: false` would pass an
+        // assertion that reads the object the mock itself produced.
+        mockNotify.mockReturnValueOnce({ delivered: [], external: [], duplicate: true });
+
+        expect(sendTestAnnouncement(ruleDoc()).duplicate).toBe(true);
     });
 
     it("names the channels the rule would use", () => {

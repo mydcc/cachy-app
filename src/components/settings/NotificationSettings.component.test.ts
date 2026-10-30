@@ -117,6 +117,24 @@ describe("BUG-0753: the notification matrix gate", () => {
         expect(target.textContent).toContain("Set this up below first");
     });
 
+    it("shows a policy-on channel as off until it can actually deliver", () => {
+        notificationPolicyStore.setChannel("alert-fired", "telegram", true);
+        flushSync();
+
+        expect(cell("telegram").checked).toBe(false);
+        expect(cell("telegram").disabled).toBe(true);
+
+        externalChannelsStore.setTelegram({
+            enabled: true,
+            botToken: "123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw",
+            chatId: "42",
+        });
+        flushSync();
+
+        expect(cell("telegram").checked).toBe(true);
+        expect(cell("telegram").disabled).toBe(false);
+    });
+
     it("leaves a configured, enabled channel operable", () => {
         externalChannelsStore.setDiscord({
             enabled: true,

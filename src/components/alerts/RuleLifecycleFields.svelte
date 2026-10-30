@@ -68,17 +68,26 @@
 
     const effectiveLabel = $derived(channelsLabel(effective, $_));
 
-    let testStatus = $state("");
+    /** Native to the draft it describes, so opening another rule cannot inherit it. */
+    let testStatus = $state<{ draftId: string; text: string } | null>(null);
 
     function sendTest(): void {
         const outcome = sendTestAnnouncement(draft);
-        // "Dispatched", not "delivered": external channels answer later, and
-        // the duplicate window means the second press dispatched nothing.
-        testStatus = outcome.duplicate
+        // Composed from what the service actually did, not from the plan: a
+        // refused local channel degrades to the in-app floor, and the message
+        // must name what was dispatched rather than what was configured.
+        const sent = channelsLabel(
+            { local: outcome.delivered, external: outcome.external },
+            $_,
+        );
+        const text = outcome.duplicate
             ? $_("dashboard.alerts.panel.lifecycle.testSuppressed")
-            : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
-                  values: { channels: effectiveLabel },
-              });
+            : sent === ""
+              ? $_("dashboard.alerts.panel.lifecycle.testNothing")
+              : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
+                    values: { channels: sent },
+                });
+        testStatus = { draftId: draft.id, text };
     }
 
     /**
@@ -236,8 +245,8 @@
                 {#if state !== "ok"}
                     <span class="method-hint">
                         {state === "paused"
-                            ? $_("settings.notifications.channelPaused")
-                            : $_("settings.notifications.channelNeedsSetup")}
+                            ? $_("dashboard.alerts.panel.lifecycle.methodPaused")
+                            : $_("dashboard.alerts.panel.lifecycle.methodNeedsSetup")}
                     </span>
                 {/if}
             </label>
@@ -268,7 +277,9 @@
         <!-- Always rendered: a live region inserted together with its text is
              not announced by every screen reader. -->
         <span class="test-status" aria-live="polite">
-            {isSilentSet(effective) ? "" : testStatus}
+            {isSilentSet(effective) || testStatus?.draftId !== draft.id
+                ? ""
+                : testStatus.text}
         </span>
     </div>
 

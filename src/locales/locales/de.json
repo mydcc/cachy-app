@@ -453,6 +453,9 @@
           "sendTest": "Test senden",
           "testDispatched": "Test an {channels} ausgelöst",
           "testSuppressed": "Vor einem Moment bereits getestet — nichts gesendet.",
+          "testNothing": "Nichts ausgelöst — prüfe die Kanaleinrichtung.",
+          "methodPaused": "Pausiert — unter Einstellungen → Benachrichtigungen einschalten",
+          "methodNeedsSetup": "Noch nicht eingerichtet — unter Einstellungen → Benachrichtigungen konfigurieren",
           "effectiveNoneShort": "kein aktiver Kanal"
         }
       },

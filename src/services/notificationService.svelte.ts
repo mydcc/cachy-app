@@ -179,7 +179,8 @@ class NotificationService {
      * suppressed call.
      */
     public notifyDetailed(request: NotificationRequest): {
-        delivered: string[];
+        delivered: LocalNotificationChannel[];
+        external: ExternalChannelId[];
         duplicate: boolean;
     } {
         const {
@@ -194,7 +195,7 @@ class NotificationService {
         } = request;
 
         if (notificationPolicyStore.isSilent(category)) {
-            return { delivered: [], duplicate: false };
+            return { delivered: [], external: [], duplicate: false };
         }
 
         /*
@@ -230,10 +231,12 @@ class NotificationService {
                 : notificationPolicyStore.wants(category, channel);
 
         const key = notificationKey(category, eventId);
-        if (this.isDuplicate(key)) return { delivered: [], duplicate: true };
+        if (this.isDuplicate(key)) {
+            return { delivered: [], external: [], duplicate: true };
+        }
         this.remember(key);
 
-        const delivered: string[] = [];
+        const delivered: LocalNotificationChannel[] = [];
 
         if (wantsLocal("in-app")) {
             this.showToast(message, tone);
@@ -290,7 +293,7 @@ class NotificationService {
             dispatchExternal(external, message, this.subjectFor(category), test);
         }
 
-        return { delivered, duplicate: false };
+        return { delivered, external, duplicate: false };
     }
 
     /** The in-app channel. One shape, whether it was chosen or stood in. */
@@ -353,7 +356,13 @@ class NotificationService {
         const reason =
             externalChannelsStore.state(channel) === "paused" ? "paused" : "notConfigured";
         const key = `${channel}:${test}`;
-        if (this.lastSkip.get(key) === reason) return;
+        // The ring evicts; a remembered skip whose entry is gone must be
+        // written again, or a permanently broken channel becomes invisible.
+        const stillLogged = externalDeliveryLog.entries.some(
+            (entry) =>
+                entry.channel === channel && entry.test === test && entry.reason === reason,
+        );
+        if (this.lastSkip.get(key) === reason && stillLogged) return;
 
         this.lastSkip.set(key, reason);
         externalDeliveryLog.record({ channel, ok: false, atMs: Date.now(), test, reason });
