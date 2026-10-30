@@ -2,7 +2,9 @@
 id: BUG-0729
 title: The news open behaviour has two homes and no owner
 type: bug
-status: ready
+status: done
+assignee: opencode
+branch: fix/bug-0729-news-open-owner
 priority: P3
 milestone: none
 created: "2026-10-22"
@@ -91,14 +93,14 @@ assistant's answer", which no code path does.
 
 ## Acceptance criteria
 
-- [ ] Exactly one tab renders `newsOpenBehavior`: `VisualsLayout.svelte`, under
+- [x] Exactly one tab renders `newsOpenBehavior`: `VisualsLayout.svelte`, under
       its own section heading. `AiTab.svelte` no longer reads or writes it.
-- [ ] The heading is a real group header — a `border-t` block with an `<h4>`,
+- [x] The heading is a real group header — a `border-t` block with an `<h4>`,
       matching the density, docking and window-behaviour groups in the same
       tab — not a bare card.
-- [ ] The heading's label names the group's purpose and is added to both
+- [x] The heading's label names the group's purpose and is added to both
       `src/locales/locales/de.json` and `en.json`, with no hardcoded string.
-- [ ] No other setting is written from two tabs. Record the check in the PR: a
+- [x] No other setting is written from two tabs. Record the check in the PR: a
       search for `bind:` and assignment sites per tab, not every
       `settingsState.` read — status displays such as `decryptionFailures`,
       `deviceKeyLost` and `encryptionFailures` appear in two tabs by design
@@ -114,3 +116,20 @@ assistant's answer", which no code path does.
   setting — only the prose note at `ui-zustandsaufnahme.md:1129-1133`, which
   goes stale once the fix lands. A dated supersession line against that note is
   the right correction; editing the table would rewrite the measurement.
+
+## State
+
+Implemented on `fix/bug-0729-news-open-owner` (2026-10-30). The control now
+renders only in Visuals → Layout, inside a new group after the sidebar and
+assistant toggles and before the density group; `AiTab.svelte` no longer reads
+or writes `settingsState.newsOpenBehavior`. The heading uses the new key
+`settings.newsArticlesTitle` ("News-Artikel anzeigen" / "News article
+display") in both locale files, and `npm run i18n:types` regenerated
+`src/locales/schema.d.ts`. The duplicate-setting scan over all 17 settings tabs
+finds no other field written from two tabs.
+`VisualsLayout.component.test.ts` pins the control inside the `border-t`
+group (6/6 green).
+
+## What shipped
+
+Shipped in the release after 1.6.0-beta.474.

@@ -94,6 +94,23 @@ describe("FEAT-0346 — VisualsLayout writes through to the stores", () => {
         expect(settingsMock.newsOpenBehavior).toBe("new_tab");
     });
 
+    it("renders the news open behaviour under its own group heading", () => {
+        render();
+
+        const heading = [...host.querySelectorAll("h4")].find(
+            (h) => h.textContent?.trim() === lookup("settings.newsArticlesTitle"),
+        );
+        if (!heading) throw new Error("news article display heading not rendered");
+
+        const group = heading.closest("div");
+        if (!group) throw new Error("heading has no group container");
+
+        expect(group.className).toContain("border-t");
+        expect(
+            group.contains(buttonContaining(lookup("settings.newsOpenBehaviorSmart"))),
+        ).toBe(true);
+    });
+
     it("binds the sidebars toggle to the settings store", () => {
         render();
 

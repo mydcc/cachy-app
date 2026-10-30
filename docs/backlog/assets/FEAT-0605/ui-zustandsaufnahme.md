@@ -1132,6 +1132,11 @@ without a section heading). That is one setting with two homes and no owner; §8
 already flagged it. Filed as
 [BUG-0729](../../bugs/BUG-0729-news-open-behaviour-has-two-homes.md).
 
+**Superseded 2026-10-30.** The duplicate was removed by
+[BUG-0729](../../bugs/BUG-0729-news-open-behaviour-has-two-homes.md): the
+control now renders only in Visuals → Layout, under its own heading. The
+paragraph above is the measurement as recorded; it is not rewritten.
+
 **Result.** Every section with a heading matches the rule. The only mismatches are
 the header-less duplicate above and the three documented reuses, none of which is a
 pure move. No control was moved in this item.
