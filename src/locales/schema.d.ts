@@ -1837,6 +1837,7 @@ export type TranslationKey =
   | "settings.newsOpenBehaviorReader"
   | "settings.newsOpenBehaviorNewTab"
   | "settings.newsOpenBehaviorWindow"
+  | "settings.newsArticlesTitle"
   | "settings.glassmorphismDesc"
   | "settings.maxPrivateNotes"
   | "settings.pnlViewMode"
