@@ -30,6 +30,7 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 import { channelSelection, effectiveChannels, type EffectiveChannels } from "../lib/alerts/effectiveChannels";
 import type { ExternalChannelId } from "../lib/notifications/externalChannels";
+import type { LocalNotificationChannel } from "../lib/notificationPolicy";
 import type { RuleDocument } from "../lib/rules/types";
 import { firingMessage } from "./alerts.svelte";
 import { externalChannelsStore } from "./externalChannels.svelte";
@@ -37,7 +38,9 @@ import { notificationPolicyStore } from "./notifications.svelte";
 import { notificationService } from "../services/notificationService.svelte";
 
 /** The channels this rule would use, after the policy and the device. */
-export function ruleEffectiveChannels(rule: RuleDocument): EffectiveChannels {
+export function ruleEffectiveChannels(
+    rule: { trigger_methods?: readonly unknown[] },
+): EffectiveChannels {
     return effectiveChannels(channelSelection(rule.trigger_methods), {
         wants: (channel) => notificationPolicyStore.wants("alert-fired", channel),
         isActive: (channel) => externalChannelsStore.isActive(channel),
@@ -48,7 +51,7 @@ export function ruleEffectiveChannels(rule: RuleDocument): EffectiveChannels {
 /** What one test press actually did. */
 export interface TestAnnouncementOutcome {
     /** Local channels the service delivered on, synchronously. */
-    delivered: string[];
+    delivered: LocalNotificationChannel[];
     /** External channels the service actually dispatched to. */
     external: ExternalChannelId[];
     /** The service's duplicate window swallowed the press. */

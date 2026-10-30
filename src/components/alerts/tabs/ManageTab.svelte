@@ -55,6 +55,7 @@
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
+    import type { RuleDocument } from "../../../lib/rules/types";
     import type { TranslationKey } from "../../../locales/schema";
     import AlertFilters from "../manage/AlertFilters.svelte";
     import AlertRow from "../manage/AlertRow.svelte";
@@ -210,7 +211,8 @@
      * so pressing it cannot spend a `once` rule.
      */
     function testRow(row: ManageRow) {
-        const outcome = sendTestAnnouncement(row.rule);
+        // `StoredRule` is the store's partial shape; the sink has always cast it.
+        const outcome = sendTestAnnouncement(row.rule as RuleDocument);
         // A toast is the only acknowledgement an external-only set produces:
         // the in-app channel is by definition not part of it.
         const label = channelsLabel(

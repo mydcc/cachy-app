@@ -137,7 +137,9 @@ export function effectiveChannels(
         )
     ).filter(isLocalNotificationChannel);
 
-    const external = EXTERNAL_NOTIFICATION_CHANNELS.filter((channel) => {
+    // The list is typed as the whole channel union even though every member is
+    // external; the cast is the same one `notificationService` makes.
+    const external = (EXTERNAL_NOTIFICATION_CHANNELS as readonly ExternalChannelId[]).filter((channel) => {
         if (!lookups.wants(channel)) return false;
         if (selection.external && !selection.external.includes(channel)) return false;
         return lookups.isActive(channel);
