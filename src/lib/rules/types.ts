@@ -248,12 +248,15 @@ export interface Provenance {
   /** Which model proposed it. Class A, like the rest of the document. */
   model?: string;
   /**
-   * Content hash of the document this one was promoted from — FEAT-0396.
+   * Content hash of the document this one was derived from — a promotion
+   * (FEAT-0396) or a duplicate (FEAT-0746).
    *
-   * Exactly 64 lowercase hex characters, or the core refuses the document.
-   * Excluded from the content hash like the rest of `provenance`, so nothing may
-   * gate a decision on it: two documents with the same hash must authorise
-   * identically. It records lineage and confers no permission.
+   * For a duplicate the value equals the document's own content hash: a copy is
+   * the same strategy under a new identity, so the id, not the hash, tells the
+   * two apart. Exactly 64 lowercase hex characters, or the core refuses the
+   * document. Excluded from the content hash like the rest of `provenance`, so
+   * nothing may gate a decision on it: two documents with the same hash must
+   * authorise identically. It records lineage and confers no permission.
    */
   derived_from_hash?: string;
 }

@@ -193,4 +193,19 @@ describe("writing the anchor ledger", () => {
         expect(readDrawingAnchorLedger()).toEqual({ present: true, ledger: {} });
         setItem.mockRestore();
     });
+
+    it("refuses instead of overwriting an unreadable ledger", () => {
+        localStorage.setItem(RULE_DRAWING_STORAGE_KEY, "not json");
+
+        const written = recordDrawingAnchor("rule-1", {
+            drawingId: "draw-1",
+            symbol: "BTCUSDT",
+            createdAtMs: T0,
+        });
+
+        expect(written.ok).toBe(false);
+        // The corrupt text stays: writing `{rule-1: …}` over it would delete
+        // every other binding the trader had.
+        expect(localStorage.getItem(RULE_DRAWING_STORAGE_KEY)).toBe("not json");
+    });
 });

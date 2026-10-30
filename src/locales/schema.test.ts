@@ -42,6 +42,14 @@ import en from "./locales/en.json";
 
 const SCHEMA_PATH = resolve(process.cwd(), "src/locales/schema.d.ts");
 
+/** Resolve a dotted translation key against a dictionary. */
+function pick(dict: unknown, key: string): unknown {
+    return key.split(".").reduce<unknown>((current, part) => {
+        if (!current || typeof current !== "object") return undefined;
+        return (current as Record<string, unknown>)[part];
+    }, dict);
+}
+
 /** Runnable command that repairs a failure here. */
 const GENERATE_COMMAND = "npm run i18n:types";
 
@@ -139,13 +147,6 @@ describe("dashboard.alerts edit DE/EN parity (FEAT-0542)", () => {
 });
 
 describe("dashboard.alerts row detail DE/EN parity (FEAT-0543)", () => {
-    function pick(dict: unknown, key: string): unknown {
-        return key.split(".").reduce<unknown>((current, part) => {
-            if (!current || typeof current !== "object") return undefined;
-            return (current as Record<string, unknown>)[part];
-        }, dict);
-    }
-
     it("carries non-empty configuration and footer labels in both languages", () => {
         const keys = [
             "dashboard.alerts.configuration",
@@ -168,13 +169,6 @@ describe("dashboard.alerts row detail DE/EN parity (FEAT-0543)", () => {
 });
 
 describe("dashboard.alerts suspended labels (BUG-0755)", () => {
-    function pick(dict: unknown, key: string): unknown {
-        return key.split(".").reduce<unknown>((current, part) => {
-            if (!current || typeof current !== "object") return undefined;
-            return (current as Record<string, unknown>)[part];
-        }, dict);
-    }
-
     it("carries non-empty text for every suspended reason in both languages", () => {
         const keys = [
             "dashboard.alerts.suspended",
@@ -189,5 +183,33 @@ describe("dashboard.alerts suspended labels (BUG-0755)", () => {
             expect(pick(en, key), `empty EN ${key}`).not.toBe("");
             expect(pick(de, key), `empty DE ${key}`).not.toBe("");
         }
+    });
+});
+
+describe("dashboard.alerts rule actions (FEAT-0746)", () => {
+    it("carries every rule-action label in both languages", () => {
+        const keys = [
+            "dashboard.alerts.pauseAlert",
+            "dashboard.alerts.resumeAlert",
+            "dashboard.alerts.duplicateAlert",
+            "dashboard.alerts.copyName",
+            "dashboard.alerts.duplicated",
+            "dashboard.alerts.duplicateAnchorFailed",
+            "dashboard.alerts.duplicateInvalid",
+            "dashboard.alerts.duplicateBot",
+            "dashboard.alerts.duplicateUnreadable",
+            "dashboard.alerts.duplicateUnavailable",
+            "dashboard.alerts.ruleChanged",
+        ];
+
+        for (const key of keys) {
+            expect(typeof pick(en, key), `missing EN ${key}`).toBe("string");
+            expect(typeof pick(de, key), `missing DE ${key}`).toBe("string");
+            expect(pick(en, key), `empty EN ${key}`).not.toBe("");
+            expect(pick(de, key), `empty DE ${key}`).not.toBe("");
+        }
+
+        expect(pick(en, "dashboard.alerts.copyName")).toContain("{name}");
+        expect(pick(de, "dashboard.alerts.copyName")).toContain("{name}");
     });
 });

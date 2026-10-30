@@ -61,7 +61,7 @@ device, model-proposed rules included. See
 | `veto` | Optional suppression. The only place a third-party feed is legal |
 | `action` | `consequence_level` and, above `notify`, an `OrderIntent`: side, size, size basis, an optional `reduce_only`, and the `stop` distance the size is measured against |
 | `id`, `name`, `enabled` | Local identity, display name, arm state. None hashed, none affecting what the rule means |
-| `provenance` | `human` or `model`, a caller-supplied timestamp, and `derived_from_hash` when the document was promoted from another. Excluded from the content hash |
+| `provenance` | `human` or `model`, a caller-supplied timestamp, and `derived_from_hash` when the document was derived from another (promotion, or duplication — where it equals the copy's own hash). Excluded from the content hash |
 
 Two rules that mean the same thing have the same **content hash**. Renaming a rule,
 arming it, or disarming it does not change the hash; changing its symbol, timeframe,
@@ -154,7 +154,7 @@ adjustment.
 | Indicators | Indicator, trigger object, rule (Threshold or Crossing), the comparison operand (a value, the price, another indicator, or its own window high/low), parameters |
 | Candlesticks | Single, multiple and structural patterns |
 | Drawing | The drawing's own level, read-only; appears when a drawing draft is seeded — by the chart's bell or by editing a drawing-bound rule from Manage (FEAT-0752, FEAT-0542); the lifecycle stays in the footer |
-| Manage | Armed rules and history; the pencil loads a rule back into its builder (FEAT-0542), and each valid row expands to its full stored configuration (FEAT-0543) |
+| Manage | Armed rules and history; the pencil loads a rule back into its builder (FEAT-0542), pause/resume flips only `enabled`, duplicate creates a paused copy (FEAT-0746), and each valid row expands to its full stored configuration (FEAT-0543) |
 
 Every builder ends in the same footer — labelled **New alert** for a fresh draft
 and **Editing alert** after a Manage row was loaded — with trigger method,
@@ -172,10 +172,17 @@ arming updates it in place rather than adding a duplicate (FEAT-0542). A drawing
 rule opens the Drawing tab from its anchor-ledger entry instead, because its level
 belongs to the line. A hand-edited or truncated rule that cannot be phrased keeps
 its row and delete action but shows no detail: it stays removable instead of
-breaking the list. A rule suspended by reconciliation or by the one-shot firing
-path is no longer shown as armed — the row carries a **Suspended** badge naming
-the reason the report gives (drawing deleted, source alert not reconciled, or a
-generic disabled hint).
+breaking the list. A rule suspended by reconciliation, by the one-shot firing
+path, or by a pause from Manage is no longer shown as armed — the row carries a
+**Suspended** badge naming the reason the report gives (drawing deleted, source
+alert not reconciled, or a generic disabled hint).
+
+Pause/resume flips only `enabled`; the evaluation anchors and fired count stay,
+so resuming cannot replay a candle the rule already saw. Duplicate creates a
+paused copy with a new id and a provenance link to the source hash; a
+drawing-bound copy keeps its binding. A spent `once` row has no pause toggle;
+a repeating rule that fired keeps it. Re-arming a spent rule goes through the
+edit path, which clears its fire state.
 
 ## When a rule fires
 
