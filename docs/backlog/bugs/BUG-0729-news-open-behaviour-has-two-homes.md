@@ -82,8 +82,11 @@ assistant's answer", which no code path does.
 
 - [ ] Exactly one tab renders `newsOpenBehavior`: `VisualsLayout.svelte`, under
       its own section heading. `AiTab.svelte` no longer imports or binds it.
-- [ ] The heading follows the existing `border-t` + `<h4>` group pattern and
-      its label exists in both `src/locales/locales/de.json` and `en.json`.
+- [ ] The heading is a real group header — a `border-t` block with an `<h4>`,
+      matching the density, docking and window-behaviour groups in the same
+      tab — not a bare card.
+- [ ] The heading's label is added to both `src/locales/locales/de.json` and
+      `en.json`, with no hardcoded string.
 - [ ] No other setting is bound in two tabs. Record the check in the PR: a
       search for `bind:` and assignment sites per tab, not every
       `settingsState.` read — status displays such as `decryptionFailures`,
