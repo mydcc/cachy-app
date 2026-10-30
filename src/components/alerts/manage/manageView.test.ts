@@ -284,9 +284,12 @@ describe("filterManageRows", () => {
 
   it("has a positive case for the intrabar chip", () => {
     const intrabar = manageRow({ id: "i", evaluation: "intrabar" });
+    const close = manageRow({ id: "c", evaluation: "close" });
 
     expect(
-      filterManageRows([intrabar], { ...NO_FILTERS, evaluation: ["intrabar"] }, "").map((r) => r.id),
+      filterManageRows([intrabar, close], { ...NO_FILTERS, evaluation: ["intrabar"] }, "").map(
+        (r) => r.id,
+      ),
     ).toEqual(["i"]);
   });
 
@@ -321,8 +324,15 @@ describe("sortManageRows", () => {
       id: 7 as unknown as string,
       symbol: 42 as unknown as string,
     });
+    const ok = manageRow({ id: "ok", symbol: "BTCUSDT" });
 
-    expect(() => sortManageRows([broken], "symbol")).not.toThrow();
+    // Two rows: `sort` never calls the comparator for a single element, which
+    // would make this test pass with the guard removed.
+    expect(() => sortManageRows([broken, ok], "symbol")).not.toThrow();
+    expect(sortManageRows([broken, ok], "symbol").map((row) => row.id)).toEqual([
+      7,
+      "ok",
+    ]);
   });
 
   it("sorts by symbol", () => {
@@ -464,22 +474,50 @@ describe("buildFiringLog", () => {
 
   it("does not pretend a live bot was deleted", () => {
     // Bots fire through the same sink but are absent from `alarmRows`.
-    const entries = buildFiringLog(
-      [firingRecord({ id: "bot-a" })],
-      [],
-      new Set(["bot-a"]),
-    );
+    const entries = buildFiringLog([firingRecord({ id: "bot-a" })], [], new Map([
+      [
+        "bot-a",
+        { id: "bot-a", symbol: "BTCUSDT", timeframe: "1h", name: "Bot", firedCount: 0, lastFiredAnchorMs: null },
+      ],
+    ]));
 
-    expect(entries[0]).toMatchObject({ ruleExists: true, ruleIsBot: true });
+    expect(entries[0]).toMatchObject({ ruleExists: true, ruleIsBot: true, ruleName: "Bot" });
   });
 
-  it("survives a non-string name instead of taking the log down", () => {
-    expect(() =>
-      buildFiringLog(
-        [firingRecord()],
-        [manageRow({ id: "rule-a", rule: ruleDoc({ name: 7 as unknown as string }) })],
-      ),
-    ).not.toThrow();
+  it("recovers a bot fire the ledger never saw", () => {
+    const entries = buildFiringLog([], [], new Map([
+      [
+        "bot-a",
+        { id: "bot-a", symbol: "BTCUSDT", timeframe: "1h", name: "Bot", firedCount: 1, lastFiredAnchorMs: 777 },
+      ],
+    ]));
+
+    expect(entries[0]).toMatchObject({ ruleId: "bot-a", recordedAtMs: null, ruleIsBot: true });
+  });
+
+  it("survives a non-string name and reports it as unnamed", () => {
+    const entries = buildFiringLog(
+      [firingRecord()],
+      [manageRow({ id: "rule-a", rule: ruleDoc({ name: 7 as unknown as string }) })],
+    );
+
+    expect(entries[0]).toMatchObject({ ruleName: null, ruleExists: true });
+  });
+
+  it("survives a non-string name on the fallback path too", () => {
+    const entries = buildFiringLog(
+      [],
+      [
+        manageRow({
+          id: "rule-a",
+          firedCount: 1,
+          lastFiredAnchorMs: 5,
+          rule: ruleDoc({ name: 7 as unknown as string }),
+        }),
+      ],
+    );
+
+    expect(entries[0]).toMatchObject({ ruleName: null, ruleExists: true });
   });
 
   it("keeps an unnamed but existing rule distinguishable from a deleted one", () => {

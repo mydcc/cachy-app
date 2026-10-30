@@ -36,6 +36,7 @@ import { alertState, notifyingRuleSink } from "../../../stores/alerts.svelte";
 import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import { uiState } from "../../../stores/ui.svelte";
 import * as ruleActions from "../../../services/alertEngine/ruleActions";
+import { SHADOW_LEDGER_MAX_RECORDS } from "../../../services/alertEngine/shadowLedger";
 import type { Condition, RuleDocument } from "../../../lib/rules/types";
 
 // The cutover notice reads localStorage behind a promise and is FEAT-0388's
@@ -1137,7 +1138,12 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     flushSync();
 
     expect(el.querySelectorAll(".log-item")).toHaveLength(501);
-    expect(el.querySelector(".log-cap")?.textContent).toContain("recovered fires");
+    expect(el.querySelector(".log-cap")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.logCap.replace(
+        "{count}",
+        String(SHADOW_LEDGER_MAX_RECORDS),
+      ),
+    );
   });
 
   it("FEAT-0747: does not collide on two identical ledger records", () => {
@@ -1149,6 +1155,28 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     flushSync();
 
     expect(el.querySelectorAll(".log-item")).toHaveLength(2);
+  });
+
+  it("FEAT-0747: gives each mounted panel its own tab ids", () => {
+    seedRules([rule()]);
+    const el = render();
+    const second = document.createElement("div");
+    document.body.appendChild(second);
+    const other = mount(ManageTab, { target: second, props: { symbol: "BTCUSDT" } });
+    flushSync();
+    try {
+      const firstTab = el.querySelector("[role='tab']") as HTMLElement;
+      const secondTab = second.querySelector("[role='tab']") as HTMLElement;
+      expect(firstTab.id).not.toBe(secondTab.id);
+
+      const firstPanelId = firstTab.getAttribute("aria-controls");
+      expect(firstPanelId).not.toBeNull();
+      expect(el.querySelector(`#${firstPanelId}`)).not.toBeNull();
+      expect(second.querySelector(`#${firstPanelId}`)).toBeNull();
+    } finally {
+      unmount(other);
+      second.remove();
+    }
   });
 
   it("FEAT-0747: moves between tabs with the arrow keys", () => {

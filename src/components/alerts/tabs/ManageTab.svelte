@@ -49,7 +49,7 @@
     } from "../../../services/alertEngine/ruleActions";
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
     import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
-    import { readBots } from "../../../services/alertEngine/botStore";
+    import { readBotLogRows } from "../../../services/alertEngine/botStore";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
@@ -63,6 +63,7 @@
         filterManageRows,
         lastFiringByRule,
         NO_FILTERS,
+        ruleNameOf,
         sortManageRows,
         timeframeOptions,
         type ManageFilters,
@@ -166,14 +167,14 @@
         sortManageRows(filterManageRows(baseRows, filters, query), sort),
     );
 
-    // Bots fire through the same sink but never appear in `alarmRows`, so
-    // existence has to be asked of the whole store — otherwise an active bot
-    // reads as a deleted rule in the log.
-    let botRuleIds = $derived.by(() => {
+    // Bots fire through the same sink but never appear in `alarmRows`, so the
+    // log needs them separately: otherwise an active bot reads as deleted, and
+    // a bot whose ledger write failed disappears.
+    let botRows = $derived.by(() => {
         void alertState.rulesVersion;
-        return new Set(readBots().map((bot) => bot.id));
+        return readBotLogRows();
     });
-    let logEntries = $derived(buildFiringLog(records, baseRows, botRuleIds));
+    let logEntries = $derived(buildFiringLog(records, baseRows, botRows));
     let timeframeChoices = $derived(timeframeOptions(baseRows));
 
     /*
@@ -255,7 +256,7 @@
      * the "(copy)" suffix; the store carries the string but no locale logic.
      */
     function duplicateRow(row: ManageRow) {
-        const baseName = row.rule.name?.trim() || row.symbol;
+        const baseName = ruleNameOf(row.rule) ?? row.symbol;
         const name = $_("dashboard.alerts.copyName", { values: { name: baseName } });
         const result = duplicateRule(row.id, name);
         if (!result.ok) {
@@ -364,6 +365,7 @@
         type="button"
         role="tab"
         id="manage-tab-{instanceId}-alerts"
+        aria-controls={listTab === "alerts" ? `manage-panel-${instanceId}-alerts` : undefined}
         aria-selected={listTab === "alerts"}
         tabindex={listTab === "alerts" ? 0 : -1}
         class:active={listTab === "alerts"}
@@ -376,6 +378,7 @@
         type="button"
         role="tab"
         id="manage-tab-{instanceId}-log"
+        aria-controls={listTab === "log" ? `manage-panel-${instanceId}-log` : undefined}
         aria-selected={listTab === "log"}
         tabindex={listTab === "log" ? 0 : -1}
         class:active={listTab === "log"}

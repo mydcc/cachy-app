@@ -33,6 +33,7 @@ import type {
   AlertLifecycleStatus,
   StoredRule,
 } from "../../../services/alertEngine/ruleLifecycleView";
+import type { BotLogRow } from "../../../services/alertEngine/botStore";
 import type { ShadowFiringRecord } from "../../../services/alertEngine/shadowLedger";
 import { SHADOW_LEDGER_MAX_RECORDS } from "../../../services/alertEngine/shadowLedger";
 import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
@@ -170,7 +171,7 @@ export interface FiringEntry {
 }
 
 /** A stored name, or null when the field is missing or not a string. */
-function ruleNameOf(rule: StoredRule | undefined): string | null {
+export function ruleNameOf(rule: StoredRule | undefined): string | null {
   const name = rule?.name;
   return typeof name === "string" ? name.trim() || null : null;
 }
@@ -359,10 +360,11 @@ export function lastFiringByRule(
  * erase the evidence that it fired. Its name is gone, so the entry shows the
  * id; the symbol survives because the ledger recorded it.
  */
+
 export function buildFiringLog(
   records: readonly ShadowFiringRecord[],
   rows: readonly ManageRow[],
-  botRuleIds: ReadonlySet<string> = new Set(),
+  bots: ReadonlyMap<string, BotLogRow> = new Map(),
 ): FiringEntry[] {
   const rowById = new Map(rows.map((row) => [row.id, row]));
   const announced = new Set<string>();
@@ -380,9 +382,9 @@ export function buildFiringLog(
       recordedAtMs: record.recordedAtMs,
       anchorMs: finiteOrNull(record.anchorMs),
       verdict: record.verdict ?? null,
-      ruleName: ruleNameOf(row?.rule),
-      ruleExists: row !== undefined || botRuleIds.has(record.id),
-      ruleIsBot: row === undefined && botRuleIds.has(record.id),
+      ruleName: row === undefined ? bots.get(record.id)?.name ?? null : ruleNameOf(row.rule),
+      ruleExists: row !== undefined || bots.has(record.id),
+      ruleIsBot: row === undefined && bots.has(record.id),
     });
   }
 
@@ -399,6 +401,22 @@ export function buildFiringLog(
       ruleName: ruleNameOf(row.rule),
       ruleExists: true,
       ruleIsBot: false,
+    });
+  }
+  // A bot's ledger write can fail exactly like an alert's, and it is absent
+  // from `rows`; without this pass it would vanish from the log entirely.
+  for (const bot of bots.values()) {
+    if (bot.firedCount <= 0 || announced.has(bot.id) || rowById.has(bot.id)) continue;
+    fallbackEntries.push({
+      ruleId: bot.id,
+      symbol: bot.symbol,
+      timeframe: bot.timeframe,
+      recordedAtMs: null,
+      anchorMs: bot.lastFiredAnchorMs,
+      verdict: null,
+      ruleName: bot.name,
+      ruleExists: true,
+      ruleIsBot: true,
     });
   }
 
