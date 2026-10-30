@@ -54,8 +54,7 @@
         ruleEffectiveChannels,
         sendTestAnnouncement,
     } from "../../../stores/alertDelivery";
-    import { METHOD_KEYS } from "../../../lib/alerts/lifecycleLabels";
-    import { methodForChannel } from "../../../lib/alerts/effectiveChannels";
+    import { channelsLabel } from "../../../lib/alerts/lifecycleLabels";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
@@ -215,14 +214,16 @@
      */
     function testRow(row: ManageRow) {
         const channels = ruleEffectiveChannels(row.rule);
-        sendTestAnnouncement(row.rule);
+        const outcome = sendTestAnnouncement(row.rule);
         // A toast is the only acknowledgement an external-only set produces:
         // the in-app channel is by definition not part of it.
-        const label = [...channels.local, ...channels.external]
-            .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
-            .join(", ");
+        const label = channelsLabel(channels, $_);
         uiState.showToast(
-            $_("dashboard.alerts.panel.lifecycle.testSent", { values: { channels: label } }),
+            outcome.duplicate
+                ? $_("dashboard.alerts.panel.lifecycle.testSuppressed")
+                : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
+                      values: { channels: label },
+                  }),
             "info",
         );
     }

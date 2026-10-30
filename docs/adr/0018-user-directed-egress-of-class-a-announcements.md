@@ -90,18 +90,21 @@ buys nothing except the word.
    A wanted channel that is not active is recorded in `externalDeliveryLog`
    (`paused` or `notConfigured`) instead of being skipped silently — BUG-0753.
 
-7. **`trigger_methods` grows in place; the schema version stays 2, and the
-   downgrade limit is stated rather than papered over.** An older build parses
-   a document before it reaches `check_readable`, so a method it does not know
-   (`telegram`) fails as a parse refusal — not the specific
-   `UnsupportedSchemaVersion`. Bumping the version would not make that message
-   better: the parse still happens first, and it would make every newly written
-   document unreadable by a v2 build even when it names only local methods. The
-   accepted rule is therefore: the current build tolerates unknown *strings*
-   on the read path (`channelSelection` drops them), the core accepts every
-   method it ships, and a build older than the method reports a schema mismatch
-   rather than silently dropping a channel. `cargo test` pins the six wire
-   names; adding a seventh is a deliberate act with this cost attached.
+7. **`trigger_methods` grows in place and the schema version stays 2.**
+   `migrate_to_current` does check the version before the typed deserialise, so
+   bumping to 3 would give older builds the specific
+   `UnsupportedSchemaVersion`. It is still the wrong trade: every newly written
+   document would then be unreadable by a v2 build, including the overwhelming
+   majority that name only local methods. The accepted cost is narrower and
+   explicit: a build older than a method it meets refuses the *whole document*
+   as a schema mismatch, because the core has no tolerant enum variant and
+   `parse_document` deserialises the field before `validate()` can drop one.
+   Tolerance exists only on the TypeScript side — the display and delivery
+   paths drop unknown strings (`channelSelection`) so a newer document cannot
+   blank Manage, but it cannot be armed or evaluated by an older core.
+   `cargo test` pins the six wire names in both directions and the refusal of
+   an unknown one; adding a seventh is a deliberate act with this cost
+   attached.
 
 ## Consequences
 

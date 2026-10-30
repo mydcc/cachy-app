@@ -47,11 +47,11 @@ vi.mock("../locales/i18n", () => ({
 }));
 
 const { mockNotify } = vi.hoisted(() => ({
-    mockNotify: vi.fn(() => ["in-app"]),
+    mockNotify: vi.fn(() => ({ delivered: ["in-app"], duplicate: false })),
 }));
 
 vi.mock("../services/notificationService.svelte", () => ({
-    notificationService: { notify: mockNotify },
+    notificationService: { notify: vi.fn(), notifyDetailed: mockNotify },
 }));
 
 import type { RuleDocument } from "../lib/rules/types";
@@ -85,7 +85,7 @@ function ruleDoc(overrides: Partial<RuleDocument> = {}): RuleDocument {
 beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    mockNotify.mockReturnValue(["in-app"]);
+    mockNotify.mockReturnValue({ delivered: ["in-app"], duplicate: false });
     notificationPolicyStore.reset();
     externalChannelsStore.reload();
 });
@@ -112,6 +112,7 @@ describe("sendTestAnnouncement", () => {
         expect(request.test).toBe(true);
         expect(request.exactChannels).toBe(true);
         expect(String(request.message)).toContain("dashboard.alerts.testAnnouncement");
+        expect((mockNotify.mock.results[0].value as { duplicate: boolean }).duplicate).toBe(false);
     });
 
     it("names the channels the rule would use", () => {

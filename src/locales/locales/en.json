@@ -451,7 +451,9 @@
           "effective": "Goes to {channels}",
           "effectiveNone": "No channel is active — nothing would be announced",
           "sendTest": "Send test",
-          "testSent": "Test sent to {channels}"
+          "testDispatched": "Test dispatched to {channels}",
+          "testSuppressed": "Already tested a moment ago — nothing was sent.",
+          "effectiveNoneShort": "no active channel"
         }
       },
       "testAnnouncement": "Test — {message}",

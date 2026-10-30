@@ -116,8 +116,11 @@ class NotificationService {
     /** `notificationKey` → when it was last announced. */
     private recent = new Map<string, number>();
 
-    /** Last reported skip per channel, so the log records transitions only. */
-    private lastSkip = new Map<ExternalChannelId, { reason: "paused" | "notConfigured"; atMs: number }>();
+    /**
+     * Last reported skip per channel and per real/test delivery, so the log
+     * records a state change rather than every announcement.
+     */
+    private lastSkip = new Map<string, "paused" | "notConfigured">();
 
     /**
      * Bounds `recent` so a long session cannot grow it without limit — the same
@@ -164,6 +167,21 @@ class NotificationService {
      * absence of delivery rather than the presence of a message.
      */
     public notify(request: NotificationRequest): string[] {
+        return this.notifyDetailed(request).delivered;
+    }
+
+    /**
+     * The same delivery, with the one fact `notify` cannot return on its own:
+     * whether the duplicate window swallowed it.
+     *
+     * Only the test send needs it — the trader pressed a button and deserves to
+     * know that nothing was dispatched, rather than a success message for a
+     * suppressed call.
+     */
+    public notifyDetailed(request: NotificationRequest): {
+        delivered: string[];
+        duplicate: boolean;
+    } {
         const {
             category,
             eventId,
@@ -175,7 +193,9 @@ class NotificationService {
             test = false,
         } = request;
 
-        if (notificationPolicyStore.isSilent(category)) return [];
+        if (notificationPolicyStore.isSilent(category)) {
+            return { delivered: [], duplicate: false };
+        }
 
         /*
          * Sanitised here rather than trusted from the caller: this is a service
@@ -210,7 +230,7 @@ class NotificationService {
                 : notificationPolicyStore.wants(category, channel);
 
         const key = notificationKey(category, eventId);
-        if (this.isDuplicate(key)) return [];
+        if (this.isDuplicate(key)) return { delivered: [], duplicate: true };
         this.remember(key);
 
         const delivered: string[] = [];
@@ -270,7 +290,7 @@ class NotificationService {
             dispatchExternal(external, message, this.subjectFor(category), test);
         }
 
-        return delivered;
+        return { delivered, duplicate: false };
     }
 
     /** The in-app channel. One shape, whether it was chosen or stood in. */
@@ -308,6 +328,9 @@ class NotificationService {
 
             if (externalChannelsStore.isActive(id)) {
                 targets.push(id);
+                // A successful dispatch ends the skip state: a later pause is a
+                // new fact, not a repeat of one that was already reported.
+                this.lastSkip.delete(`${id}:${test}`);
                 continue;
             }
 
@@ -319,26 +342,21 @@ class NotificationService {
     /**
      * One log entry per state change, not per announcement — BUG-0753.
      *
-     * A paused channel that stays paused is one fact, and repeating it on every
+     * A paused channel that stays paused is one fact. Repeating it on every
      * firing of an `every_time` rule would fill the 50-entry ring and push out
-     * the real failures the log exists to preserve. A reason change, or the
-     * same reason after the duplicate window, is news again.
+     * the real failures the log exists to preserve; a time window only slows
+     * that down, so the state itself is remembered until it changes or a
+     * delivery succeeds. Test and real sends are tracked separately: a test
+     * press must not consume the record of a real skip.
      */
     private recordSkip(channel: ExternalChannelId, test: boolean): void {
         const reason =
             externalChannelsStore.state(channel) === "paused" ? "paused" : "notConfigured";
-        const now = Date.now();
-        const previous = this.lastSkip.get(channel);
-        if (
-            previous &&
-            previous.reason === reason &&
-            now - previous.atMs < DUPLICATE_WINDOW_MS
-        ) {
-            return;
-        }
+        const key = `${channel}:${test}`;
+        if (this.lastSkip.get(key) === reason) return;
 
-        this.lastSkip.set(channel, { reason, atMs: now });
-        externalDeliveryLog.record({ channel, ok: false, atMs: now, test, reason });
+        this.lastSkip.set(key, reason);
+        externalDeliveryLog.record({ channel, ok: false, atMs: Date.now(), test, reason });
     }
 
     /** The e-mail subject. The body is the same line every other channel gets. */

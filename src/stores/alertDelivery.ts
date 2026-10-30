@@ -29,6 +29,7 @@
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 import { channelSelection, effectiveChannels, type EffectiveChannels } from "../lib/alerts/effectiveChannels";
+import type { ExternalChannelId } from "../lib/notifications/externalChannels";
 import type { RuleDocument } from "../lib/rules/types";
 import { firingMessage } from "./alerts.svelte";
 import { externalChannelsStore } from "./externalChannels.svelte";
@@ -44,6 +45,16 @@ export function ruleEffectiveChannels(rule: RuleDocument): EffectiveChannels {
     });
 }
 
+/** What one test press actually did. */
+export interface TestAnnouncementOutcome {
+    /** Local channels the service delivered on, synchronously. */
+    delivered: string[];
+    /** External channels that were dispatched; their result arrives later. */
+    external: ExternalChannelId[];
+    /** The service's duplicate window swallowed the press. */
+    duplicate: boolean;
+}
+
 /**
  * Sends one labelled test announcement to exactly that set.
  *
@@ -51,17 +62,18 @@ export function ruleEffectiveChannels(rule: RuleDocument): EffectiveChannels {
  * pressing the button twice in a minute sends once. That is the rate limit the
  * item proposes — a second throttle would be a second thing to get wrong.
  *
- * Returns the local channels the service delivered on. External delivery is
- * asynchronous by design and reports to `externalDeliveryLog` instead.
+ * The outcome is explicit because a button that always says "sent" lies twice:
+ * once when the duplicate window suppressed it, and once when the only
+ * channels are asynchronous and have not answered yet.
  */
-export function sendTestAnnouncement(rule: RuleDocument): string[] {
+export function sendTestAnnouncement(rule: RuleDocument): TestAnnouncementOutcome {
     const t = get(_) as (key: string, options?: Record<string, unknown>) => string;
     const channels = ruleEffectiveChannels(rule);
     const body = t("dashboard.alerts.testAnnouncement", {
         values: { message: firingMessage(rule) },
     });
 
-    return notificationService.notify({
+    const outcome = notificationService.notifyDetailed({
         category: "alert-fired",
         eventId: `test:${rule.id}`,
         message: body,
@@ -71,4 +83,10 @@ export function sendTestAnnouncement(rule: RuleDocument): string[] {
         exactChannels: true,
         test: true,
     });
+
+    return {
+        delivered: outcome.delivered,
+        external: channels.external,
+        duplicate: outcome.duplicate,
+    };
 }

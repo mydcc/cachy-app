@@ -75,9 +75,7 @@ describe("BUG-0753: the notification matrix gate", () => {
         return input;
     }
 
-    function titleOf(channel: string): string | null {
-        return cell(channel).closest("[title]")?.getAttribute("title") ?? null;
-    }
+
 
     it("blocks a paused channel and says which switch to flip", () => {
         externalChannelsStore.setDiscord({
@@ -88,7 +86,7 @@ describe("BUG-0753: the notification matrix gate", () => {
         flushSync();
 
         expect(cell("discord").disabled).toBe(true);
-        expect(titleOf("discord")).toBe(
+        expect(target.textContent).toContain(
             "Channel paused — switch it on in External channels below",
         );
     });
@@ -115,7 +113,8 @@ describe("BUG-0753: the notification matrix gate", () => {
         flushSync();
 
         expect(cell("telegram").disabled).toBe(true);
-        expect(titleOf("telegram")).toBe("Set this up below first");
+        expect(cell("telegram").checked).toBe(false);
+        expect(target.textContent).toContain("Set this up below first");
     });
 
     it("leaves a configured, enabled channel operable", () => {
@@ -127,6 +126,8 @@ describe("BUG-0753: the notification matrix gate", () => {
         flushSync();
 
         expect(cell("discord").disabled).toBe(false);
-        expect(titleOf("discord")).toBeNull();
+        expect(target.textContent).not.toContain(
+            "Channel paused — switch it on in External channels below",
+        );
     });
 });

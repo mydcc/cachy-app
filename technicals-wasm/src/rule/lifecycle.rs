@@ -399,6 +399,18 @@ mod tests {
                 serde_json::to_string(&method).expect("a unit variant serialises"),
                 format!("\"{wire}\"")
             );
+            let parsed: TriggerMethod = serde_json::from_str(&format!("\"{wire}\""))
+                .expect("the same spelling must deserialize");
+            assert_eq!(parsed, method);
         }
+    }
+
+    /// An older core refuses the document rather than dropping the channel.
+    ///
+    /// ADR-0018 decision 7 states this cost; the test keeps the statement true.
+    #[test]
+    fn an_unknown_trigger_method_is_refused_not_ignored() {
+        let parsed: Result<TriggerMethod, _> = serde_json::from_str("\"carrier_pigeon\"");
+        assert!(parsed.is_err());
     }
 }

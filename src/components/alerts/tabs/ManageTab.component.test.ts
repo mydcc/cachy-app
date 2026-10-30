@@ -1220,7 +1220,7 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     notificationService.reset();
     notificationPolicyStore.reset();
     seedRules([rule()]);
-    const notify = vi.spyOn(notificationService, "notify");
+    const notify = vi.spyOn(notificationService, "notifyDetailed");
 
     const el = render();
     const button = el.querySelector<HTMLButtonElement>(".test-btn");

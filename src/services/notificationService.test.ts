@@ -449,6 +449,23 @@ describe("the external channels — FEAT-0397", () => {
         expect(externalDeliveryLog.entries[0].reason).toBe("notConfigured");
     });
 
+    it("reports the pause again after a successful delivery", () => {
+        externalChannelsStore.setDiscord({ enabled: false, webhookUrl: WEBHOOK, format: "minimal" });
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        notificationService.notify({ category: "alert-fired", eventId: "r-1@0", message: "one" });
+        expect(externalDeliveryLog.entries).toHaveLength(1);
+
+        externalChannelsStore.setDiscord({ enabled: true });
+        notificationService.notify({ category: "alert-fired", eventId: "r-2@0", message: "two" });
+        expect(externalMock.dispatchExternal).toHaveBeenCalledTimes(1);
+
+        externalChannelsStore.setDiscord({ enabled: false });
+        notificationService.notify({ category: "alert-fired", eventId: "r-3@0", message: "three" });
+
+        expect(externalDeliveryLog.entries).toHaveLength(2);
+    });
+
     it("records a wanted channel with missing credentials as not configured", () => {
         notificationPolicyStore.setChannel("alert-fired", "discord", true);
 

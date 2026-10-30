@@ -95,11 +95,29 @@ beforeEach(() => {
 });
 
 describe("the test send reuses the duplicate window as its rate limit", () => {
-    it("sends once when the same rule is tested twice in a minute", () => {
-        sendTestAnnouncement(rule("rule-a"));
-        sendTestAnnouncement(rule("rule-a"));
+    it("sends once and reports the suppression on the second press", () => {
+        const first = sendTestAnnouncement(rule("rule-a"));
+        const second = sendTestAnnouncement(rule("rule-a"));
 
+        expect(first.duplicate).toBe(false);
+        expect(second.duplicate).toBe(true);
+        expect(second.delivered).toEqual([]);
         expect(externalMock.dispatchExternal).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends again once the window has passed", () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-10-30T10:00:00Z"));
+        try {
+            expect(sendTestAnnouncement(rule("rule-a")).duplicate).toBe(false);
+
+            vi.setSystemTime(new Date("2026-10-30T10:01:01Z"));
+            expect(sendTestAnnouncement(rule("rule-a")).duplicate).toBe(false);
+
+            expect(externalMock.dispatchExternal).toHaveBeenCalledTimes(2);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("lets two different rules each send their own test", () => {

@@ -33,12 +33,9 @@
     import {
         EVALUATION_KEYS,
         FREQUENCY_KEYS,
-        METHOD_KEYS,
+        channelsLabel,
     } from "../../../lib/alerts/lifecycleLabels";
-    import {
-        isSilentSet,
-        methodForChannel,
-    } from "../../../lib/alerts/effectiveChannels";
+    import { isSilentSet } from "../../../lib/alerts/effectiveChannels";
     import { ruleEffectiveChannels } from "../../../stores/alertDelivery";
     import type { ManageRow } from "./manageView";
     import { KIND_KEYS, STATUS_KEYS } from "./manageView";
@@ -99,11 +96,7 @@
       only way a trader can tell an alarm they will hear from one they will not.
     */
     let effective = $derived(ruleEffectiveChannels(row.rule));
-    let channels = $derived(
-        [...effective.local, ...effective.external]
-            .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
-            .join(", "),
-    );
+    let channels = $derived(channelsLabel(effective, $_));
     let silent = $derived(isSilentSet(effective));
 
     /*

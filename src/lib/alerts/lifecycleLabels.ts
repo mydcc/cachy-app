@@ -25,7 +25,10 @@
  * read-only row cannot drift into two spellings of the same setting.
  */
 
+import type { ExternalChannelId } from "../notifications/externalChannels";
+import type { LocalNotificationChannel } from "../notificationPolicy";
 import type { TranslationKey } from "../../locales/schema";
+import { methodForChannel } from "./effectiveChannels";
 import type {
   EvaluationMode,
   TriggerFrequency,
@@ -53,6 +56,24 @@ export const LOCAL_METHODS: readonly TriggerMethod[] = ["in_app", "browser", "so
 
 /** The methods that leave the device, in the order the selector shows them. */
 export const EXTERNAL_METHODS: readonly TriggerMethod[] = ["email", "discord", "telegram"];
+
+/**
+ * One spelling of a resolved channel set, for every surface that shows it.
+ *
+ * `effectiveChannels` owns which channels; this owns how they read, so the
+ * footer, the row and the test toast cannot drift into three wordings.
+ */
+export function channelsLabel(
+  channels: {
+    local: readonly LocalNotificationChannel[];
+    external: readonly ExternalChannelId[];
+  },
+  translate: (key: TranslationKey) => string,
+): string {
+  return [...channels.local, ...channels.external]
+    .map((channel) => translate(METHOD_KEYS[methodForChannel(channel)]))
+    .join(", ");
+}
 
 export const EVALUATION_KEYS: Record<EvaluationMode, TranslationKey> = {
   close: "dashboard.alerts.panel.evaluationModeOption.close",

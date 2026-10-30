@@ -20,11 +20,11 @@
         FREQUENCY_KEYS,
         LOCAL_METHODS,
         METHOD_KEYS,
+        channelsLabel,
     } from "../../lib/alerts/lifecycleLabels";
     import {
         channelSelection,
         isSilentSet,
-        methodForChannel,
     } from "../../lib/alerts/effectiveChannels";
     import { externalChannelsStore } from "../../stores/externalChannels.svelte";
     import { ruleEffectiveChannels, sendTestAnnouncement } from "../../stores/alertDelivery";
@@ -45,9 +45,11 @@
      * absent rather than present-and-inert — FEAT-0748: a tick that delivers
      * nothing is the silent alarm this feature exists to prevent.
      *
-     * A channel already ticked stays visible even after it is paused: hiding it
-     * would leave a method in the draft that cannot be unticked, and re-enabling
-     * the channel later would silently re-arm a choice nobody confirmed.
+     * A channel already ticked stays visible after it is paused or its
+     * credentials lapse, and stays **operable for unchecking**: disabling it
+     * would leave a method in the draft with no way out of this panel, and
+     * re-enabling the channel later would silently re-arm a choice nobody
+     * confirmed. Only the hint says it will not deliver right now.
      */
     const externalMethods = $derived(
         EXTERNAL_METHODS.filter((method) => {
@@ -56,31 +58,27 @@
         }),
     );
 
-    function isPausedMethod(method: TriggerMethod): boolean {
-        return (
-            EXTERNAL_METHODS.includes(method) &&
-            !externalChannelsStore.isActive(method as "email" | "discord" | "telegram")
-        );
+    /** `ok`, `needsSetup` or `paused`; local methods are always usable here. */
+    function methodState(method: TriggerMethod): "ok" | "needsSetup" | "paused" {
+        if (!EXTERNAL_METHODS.includes(method)) return "ok";
+        return externalChannelsStore.state(method as "email" | "discord" | "telegram");
     }
 
     const effective = $derived(ruleEffectiveChannels(draft));
 
-    const effectiveLabel = $derived(
-        [...effective.local, ...effective.external]
-            .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
-            .join(", "),
-    );
+    const effectiveLabel = $derived(channelsLabel(effective, $_));
 
     let testStatus = $state("");
 
     function sendTest(): void {
-        // The service returns the local channels it delivered on; external
-        // delivery is asynchronous. Saying "sent to <effective set>" is the
-        // honest acknowledgement either way — silence was the old complaint.
-        sendTestAnnouncement(draft);
-        testStatus = $_("dashboard.alerts.panel.lifecycle.testSent", {
-            values: { channels: effectiveLabel },
-        });
+        const outcome = sendTestAnnouncement(draft);
+        // "Dispatched", not "delivered": external channels answer later, and
+        // the duplicate window means the second press dispatched nothing.
+        testStatus = outcome.duplicate
+            ? $_("dashboard.alerts.panel.lifecycle.testSuppressed")
+            : $_("dashboard.alerts.panel.lifecycle.testDispatched", {
+                  values: { channels: effectiveLabel },
+              });
     }
 
     /**
@@ -172,13 +170,13 @@
                 }),
             );
         }
-        if (selection.local || selection.external) {
-            parts.push(
-                [...(selection.local ?? []), ...(selection.external ?? [])]
-                    .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
-                    .join(", "),
-            );
-        }
+        // The effective set, not the raw ticks: the closed summary sits above
+        // a line that may say "no channel is active", and they must agree.
+        parts.push(
+            isSilentSet(effective)
+                ? $_("dashboard.alerts.panel.lifecycle.effectiveNoneShort")
+                : effectiveLabel,
+        );
         if (draft.note !== undefined) {
             parts.push($_("dashboard.alerts.panel.lifecycle.summaryNoted"));
         }
@@ -227,17 +225,21 @@
             {$_("dashboard.alerts.panel.lifecycle.triggerMethod")}
         </legend>
         {#each [...LOCAL_METHODS, ...externalMethods] as method (method)}
-            <label class="method" class:paused={isPausedMethod(method)}>
+            {@const state = methodState(method)}
+            <label class="method" class:unavailable={state !== "ok"}>
                 <input
                     type="checkbox"
                     checked={(draft.trigger_methods ?? []).includes(method)}
-                    disabled={isPausedMethod(method)}
-                    title={isPausedMethod(method)
-                        ? $_("settings.notifications.channelPaused")
-                        : undefined}
                     onchange={(e) => toggleMethod(method, e.currentTarget.checked)}
                 />
                 <span>{$_(METHOD_KEYS[method])}</span>
+                {#if state !== "ok"}
+                    <span class="method-hint">
+                        {state === "paused"
+                            ? $_("settings.notifications.channelPaused")
+                            : $_("settings.notifications.channelNeedsSetup")}
+                    </span>
+                {/if}
             </label>
         {/each}
         <p class="field-hint">
@@ -263,9 +265,11 @@
         >
             {$_("dashboard.alerts.panel.lifecycle.sendTest")}
         </button>
-        {#if testStatus}
-            <span class="test-status" aria-live="polite">{testStatus}</span>
-        {/if}
+        <!-- Always rendered: a live region inserted together with its text is
+             not announced by every screen reader. -->
+        <span class="test-status" aria-live="polite">
+            {isSilentSet(effective) ? "" : testStatus}
+        </span>
     </div>
 
     <label class="field">
@@ -403,9 +407,13 @@
         opacity: 0.6;
     }
 
-    .method.paused {
+    .method.unavailable {
         color: var(--text-secondary);
         font-style: italic;
+    }
+
+    .method-hint {
+        font-size: var(--font-size-xs, 0.75rem);
     }
 
     .test-status {

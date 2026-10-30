@@ -216,8 +216,9 @@ export function isChannelActive(
     config: ExternalChannelsConfig,
     channel: ExternalChannelId,
 ): boolean {
-    if (!config[channel].enabled) return false;
-    return validateChannel(config, channel) === null;
+    // One classification, collapsed to a boolean — the matrix asks for the
+    // three-way state and delivery asks only this, so the two cannot diverge.
+    return externalChannelState(config, channel) === "ok";
 }
 
 /** Why an external channel cannot carry anything right now. */

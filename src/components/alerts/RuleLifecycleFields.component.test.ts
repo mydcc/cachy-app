@@ -169,7 +169,24 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
     button.click();
     flushSync();
 
-    expect(target.querySelector(".test-status")?.textContent).toContain("Test sent to In-app");
+    expect(target.querySelector(".test-status")?.textContent).toContain(
+      "Test dispatched to In-app",
+    );
+  });
+
+  it("does not claim a second press sent anything", () => {
+    render();
+    const button = target.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+
+    button.click();
+    flushSync();
+    button.click();
+    flushSync();
+
+    expect(target.querySelector(".test-status")?.textContent).toContain(
+      "Already tested a moment ago",
+    );
   });
 
   it("says so when nothing would be announced", () => {
@@ -209,8 +226,15 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
 
     const labels = [...target.querySelectorAll(".method span")].map((s) => s.textContent);
     expect(labels).toContain("Discord");
+    // Still operable so the choice can be removed; the hint says it will not
+    // deliver right now.
     const boxes = target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
-    expect(boxes[3].disabled).toBe(true);
+    expect(boxes[3].disabled).toBe(false);
+    expect(target.textContent).toContain("Channel paused");
+
+    boxes[3].click();
+    flushSync();
+    expect(alertPanelState.draft.trigger_methods).toEqual([]);
   });
 
   it("adds and removes a channel without disturbing the others", () => {

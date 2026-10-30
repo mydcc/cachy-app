@@ -174,11 +174,6 @@
           {#each row.channels as ch (ch.channel)}
             <div
               class="flex items-center gap-2"
-              title={ch.needsSetup
-                ? $_("settings.notifications.channelNeedsSetup")
-                : ch.paused
-                  ? $_("settings.notifications.channelPaused")
-                  : undefined}
             >
               <label
                 class="text-[11px] cursor-pointer {ch.needsSetup || ch.paused
@@ -202,7 +197,7 @@
               {/if}
               <Toggle
                 id="notify-{row.category}-{ch.channel}"
-                checked={ch.enabled && !ch.paused}
+                checked={ch.enabled && !ch.paused && !ch.needsSetup}
                 disabled={ch.blocked}
                 onchange={(e) =>
                   toggle(row.category, ch.channel, (e.currentTarget as HTMLInputElement).checked)}
