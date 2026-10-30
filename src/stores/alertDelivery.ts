@@ -40,6 +40,7 @@ export function ruleEffectiveChannels(rule: RuleDocument): EffectiveChannels {
     return effectiveChannels(channelSelection(rule.trigger_methods), {
         wants: (channel) => notificationPolicyStore.wants("alert-fired", channel),
         isActive: (channel) => externalChannelsStore.isActive(channel),
+        categorySilent: notificationPolicyStore.isSilent("alert-fired"),
     });
 }
 

@@ -419,6 +419,7 @@ export type TranslationKey =
   | "dashboard.alerts.panel.lifecycle.effective"
   | "dashboard.alerts.panel.lifecycle.effectiveNone"
   | "dashboard.alerts.panel.lifecycle.sendTest"
+  | "dashboard.alerts.panel.lifecycle.testSent"
   | "dashboard.alerts.testAnnouncement"
   | "dashboard.alerts.brokenRule.toast"
   | "dashboard.alerts.brokenRule.badge"

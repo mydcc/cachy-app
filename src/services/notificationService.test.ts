@@ -418,6 +418,37 @@ describe("the external channels — FEAT-0397", () => {
         });
     });
 
+    it("records a paused channel once per state, not once per announcement", () => {
+        // BUG-0753's own diagnostics must survive an `every_time` alarm: two
+        // firings of the same pause are one fact, and the ring holds 50.
+        externalChannelsStore.setDiscord({ enabled: false, webhookUrl: WEBHOOK, format: "minimal" });
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-paused-1@0",
+            message: "first",
+        });
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-paused-2@0",
+            message: "second",
+        });
+
+        expect(externalDeliveryLog.entries).toHaveLength(1);
+
+        // A different reason is a new fact and gets its own entry.
+        externalChannelsStore.setDiscord({ webhookUrl: "" });
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-paused-3@0",
+            message: "third",
+        });
+
+        expect(externalDeliveryLog.entries).toHaveLength(2);
+        expect(externalDeliveryLog.entries[0].reason).toBe("notConfigured");
+    });
+
     it("records a wanted channel with missing credentials as not configured", () => {
         notificationPolicyStore.setChannel("alert-fired", "discord", true);
 

@@ -22,6 +22,7 @@
         METHOD_KEYS,
     } from "../../lib/alerts/lifecycleLabels";
     import {
+        channelSelection,
         isSilentSet,
         methodForChannel,
     } from "../../lib/alerts/effectiveChannels";
@@ -37,16 +38,30 @@
 
     const draft = $derived(alertPanelState.draft);
 
+    const selection = $derived(channelSelection(draft.trigger_methods));
+
     /**
      * External channels the trader could actually use. An unconfigured one is
      * absent rather than present-and-inert — FEAT-0748: a tick that delivers
      * nothing is the silent alarm this feature exists to prevent.
+     *
+     * A channel already ticked stays visible even after it is paused: hiding it
+     * would leave a method in the draft that cannot be unticked, and re-enabling
+     * the channel later would silently re-arm a choice nobody confirmed.
      */
     const externalMethods = $derived(
-        EXTERNAL_METHODS.filter((method) =>
-            externalChannelsStore.isActive(method as "email" | "discord" | "telegram"),
-        ),
+        EXTERNAL_METHODS.filter((method) => {
+            const id = method as "email" | "discord" | "telegram";
+            return externalChannelsStore.isActive(id) || (selection.external?.includes(id) ?? false);
+        }),
     );
+
+    function isPausedMethod(method: TriggerMethod): boolean {
+        return (
+            EXTERNAL_METHODS.includes(method) &&
+            !externalChannelsStore.isActive(method as "email" | "discord" | "telegram")
+        );
+    }
 
     const effective = $derived(ruleEffectiveChannels(draft));
 
@@ -56,8 +71,16 @@
             .join(", "),
     );
 
+    let testStatus = $state("");
+
     function sendTest(): void {
+        // The service returns the local channels it delivered on; external
+        // delivery is asynchronous. Saying "sent to <effective set>" is the
+        // honest acknowledgement either way — silence was the old complaint.
         sendTestAnnouncement(draft);
+        testStatus = $_("dashboard.alerts.panel.lifecycle.testSent", {
+            values: { channels: effectiveLabel },
+        });
     }
 
     /**
@@ -149,11 +172,10 @@
                 }),
             );
         }
-        const methods = draft.trigger_methods ?? [];
-        if (methods.length > 0) {
+        if (selection.local || selection.external) {
             parts.push(
-                methods
-                    .map((m) => $_(METHOD_KEYS[m]))
+                [...(selection.local ?? []), ...(selection.external ?? [])]
+                    .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
                     .join(", "),
             );
         }
@@ -205,10 +227,14 @@
             {$_("dashboard.alerts.panel.lifecycle.triggerMethod")}
         </legend>
         {#each [...LOCAL_METHODS, ...externalMethods] as method (method)}
-            <label class="method">
+            <label class="method" class:paused={isPausedMethod(method)}>
                 <input
                     type="checkbox"
                     checked={(draft.trigger_methods ?? []).includes(method)}
+                    disabled={isPausedMethod(method)}
+                    title={isPausedMethod(method)
+                        ? $_("settings.notifications.channelPaused")
+                        : undefined}
                     onchange={(e) => toggleMethod(method, e.currentTarget.checked)}
                 />
                 <span>{$_(METHOD_KEYS[method])}</span>
@@ -237,6 +263,9 @@
         >
             {$_("dashboard.alerts.panel.lifecycle.sendTest")}
         </button>
+        {#if testStatus}
+            <span class="test-status" aria-live="polite">{testStatus}</span>
+        {/if}
     </div>
 
     <label class="field">
@@ -372,5 +401,16 @@
     .test-btn:disabled {
         cursor: not-allowed;
         opacity: 0.6;
+    }
+
+    .method.paused {
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+
+    .test-status {
+        flex-basis: 100%;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs, 0.75rem);
     }
 </style>

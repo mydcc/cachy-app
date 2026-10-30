@@ -450,7 +450,8 @@
           "summaryNoted": "mit Notiz",
           "effective": "Geht an {channels}",
           "effectiveNone": "Kein Kanal aktiv — es würde nichts angekündigt",
-          "sendTest": "Test senden"
+          "sendTest": "Test senden",
+          "testSent": "Test an {channels} gesendet"
         }
       },
       "testAnnouncement": "Test — {message}",

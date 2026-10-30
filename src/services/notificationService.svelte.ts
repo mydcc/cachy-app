@@ -71,8 +71,9 @@ export interface NotificationRequest {
      * Absent or empty: the category policy decides, which is what every rule
      * authored before this field existed means.
      *
-     * The external half is `externalChannels` below; both are bounded by the
-     * policy. A category the trader silenced entirely stays silent —
+     * The external half is `externalChannels` below and is bounded by the
+     * policy. A local tick outranks the category default (BUG-0750) but not a
+     * category the trader silenced entirely —
      * `isSilent` is checked before either field is read.
      */
     localChannels?: readonly LocalNotificationChannel[];
@@ -95,7 +96,10 @@ export interface NotificationRequest {
      * the policy and the test would prove a channel the rule never uses.
      */
     exactChannels?: boolean;
-    /** Marks the announcement as a test in the delivery log and the body. */
+    /**
+     * Marks the announcement as a test in the delivery log. The body's "Test —"
+     * prefix comes from the caller (`dashboard.alerts.testAnnouncement`).
+     */
     test?: boolean;
 }
 
@@ -111,6 +115,9 @@ export type BrowserPermission = "unsupported" | "default" | "granted" | "denied"
 class NotificationService {
     /** `notificationKey` → when it was last announced. */
     private recent = new Map<string, number>();
+
+    /** Last reported skip per channel, so the log records transitions only. */
+    private lastSkip = new Map<ExternalChannelId, { reason: "paused" | "notConfigured"; atMs: number }>();
 
     /**
      * Bounds `recent` so a long session cannot grow it without limit — the same
@@ -189,9 +196,13 @@ class NotificationService {
         );
 
         /*
-         * One place for the precedence, so the toast, the OS notification and
-         * the tone cannot disagree about who decides. `undefined` and `[]` both
-         * mean "the policy decides".
+         * One place for the local precedence, so the toast, the OS notification
+         * and the tone cannot disagree about who decides. `undefined` and `[]`
+         * both mean "the policy decides".
+         *
+         * The external half is resolved separately in `externalTargets`; the
+         * display path shares its *resolver* (`effectiveChannels`) but resolves
+         * before delivery, because it also needs to say why a channel is out.
          */
         const wantsLocal = (channel: LocalNotificationChannel): boolean =>
             selected.length > 0 || exactChannels
@@ -300,20 +311,34 @@ class NotificationService {
                 continue;
             }
 
-            externalDeliveryLog.record({
-                channel: id,
-                ok: false,
-                atMs: Date.now(),
-                test,
-                /*
-                 * Two states the trader can act on differently: missing
-                 * credentials is "set this up", a valid-but-switched-off
-                 * channel is "switch it on".
-                 */
-                reason: externalChannelsStore.problem(id) === null ? "paused" : "notConfigured",
-            });
+            this.recordSkip(id, test);
         }
         return targets;
+    }
+
+    /**
+     * One log entry per state change, not per announcement — BUG-0753.
+     *
+     * A paused channel that stays paused is one fact, and repeating it on every
+     * firing of an `every_time` rule would fill the 50-entry ring and push out
+     * the real failures the log exists to preserve. A reason change, or the
+     * same reason after the duplicate window, is news again.
+     */
+    private recordSkip(channel: ExternalChannelId, test: boolean): void {
+        const reason =
+            externalChannelsStore.state(channel) === "paused" ? "paused" : "notConfigured";
+        const now = Date.now();
+        const previous = this.lastSkip.get(channel);
+        if (
+            previous &&
+            previous.reason === reason &&
+            now - previous.atMs < DUPLICATE_WINDOW_MS
+        ) {
+            return;
+        }
+
+        this.lastSkip.set(channel, { reason, atMs: now });
+        externalDeliveryLog.record({ channel, ok: false, atMs: now, test, reason });
     }
 
     /** The e-mail subject. The body is the same line every other channel gets. */
@@ -359,6 +384,7 @@ class NotificationService {
     /** Test seam: forgets what has been announced. */
     public reset(): void {
         this.recent.clear();
+        this.lastSkip.clear();
     }
 }
 

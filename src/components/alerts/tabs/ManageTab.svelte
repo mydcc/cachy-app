@@ -50,7 +50,12 @@
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
     import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
     import { readBotLogRows } from "../../../services/alertEngine/botStore";
-    import { sendTestAnnouncement } from "../../../stores/alertDelivery";
+    import {
+        ruleEffectiveChannels,
+        sendTestAnnouncement,
+    } from "../../../stores/alertDelivery";
+    import { METHOD_KEYS } from "../../../lib/alerts/lifecycleLabels";
+    import { methodForChannel } from "../../../lib/alerts/effectiveChannels";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
@@ -209,7 +214,17 @@
      * so pressing it cannot spend a `once` rule.
      */
     function testRow(row: ManageRow) {
+        const channels = ruleEffectiveChannels(row.rule);
         sendTestAnnouncement(row.rule);
+        // A toast is the only acknowledgement an external-only set produces:
+        // the in-app channel is by definition not part of it.
+        const label = [...channels.local, ...channels.external]
+            .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
+            .join(", ");
+        uiState.showToast(
+            $_("dashboard.alerts.panel.lifecycle.testSent", { values: { channels: label } }),
+            "info",
+        );
     }
 
     function deleteRow(id: string) {

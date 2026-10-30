@@ -162,6 +162,16 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
     );
   });
 
+  it("acknowledges a test so an external-only set is not a dead button", () => {
+    render();
+    const button = target.querySelector<HTMLButtonElement>(".test-btn");
+    if (!button) throw new Error("no test button");
+    button.click();
+    flushSync();
+
+    expect(target.querySelector(".test-status")?.textContent).toContain("Test sent to In-app");
+  });
+
   it("says so when nothing would be announced", () => {
     notificationPolicyStore.setChannel("alert-fired", "in-app", false);
     render();
@@ -170,6 +180,37 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
       "No channel is active",
     );
     expect(target.querySelector<HTMLButtonElement>(".test-btn")?.disabled).toBe(true);
+  });
+
+  it("cannot claim a ticked channel inside a silenced category", () => {
+    notificationPolicyStore.setChannel("alert-fired", "in-app", false);
+    alertPanelState.draft.trigger_methods = ["browser"];
+    render();
+
+    expect(target.querySelector(".effective-label")?.textContent).toContain(
+      "No channel is active",
+    );
+    expect(target.querySelector<HTMLButtonElement>(".test-btn")?.disabled).toBe(true);
+  });
+
+  it("keeps a paused channel visible so its tick can be removed", () => {
+    externalChannelsStore.setDiscord({
+      enabled: true,
+      webhookUrl: "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_",
+      format: "minimal",
+    });
+    alertPanelState.draft.trigger_methods = ["discord"];
+    render();
+
+    expect(target.querySelectorAll('input[type="checkbox"]')).toHaveLength(4);
+
+    externalChannelsStore.setDiscord({ enabled: false });
+    flushSync();
+
+    const labels = [...target.querySelectorAll(".method span")].map((s) => s.textContent);
+    expect(labels).toContain("Discord");
+    const boxes = target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+    expect(boxes[3].disabled).toBe(true);
   });
 
   it("adds and removes a channel without disturbing the others", () => {

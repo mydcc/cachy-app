@@ -380,4 +380,25 @@ mod tests {
     fn the_default_frequency_is_the_behaviour_rules_had_before_this_field() {
         assert_eq!(TriggerFrequency::default(), TriggerFrequency::Once);
     }
+
+    /// The wire names are a contract with `src/lib/rules/types.ts`.
+    ///
+    /// A rename here would make the UI send a method the core rejects, and the
+    /// trader would see "cannot arm this rule" with nothing pointing at why.
+    #[test]
+    fn every_trigger_method_has_the_wire_name_the_ui_sends() {
+        for (method, wire) in [
+            (TriggerMethod::InApp, "in_app"),
+            (TriggerMethod::Browser, "browser"),
+            (TriggerMethod::Sound, "sound"),
+            (TriggerMethod::Email, "email"),
+            (TriggerMethod::Discord, "discord"),
+            (TriggerMethod::Telegram, "telegram"),
+        ] {
+            assert_eq!(
+                serde_json::to_string(&method).expect("a unit variant serialises"),
+                format!("\"{wire}\"")
+            );
+        }
+    }
 }

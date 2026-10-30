@@ -26,6 +26,7 @@ import {
 const policyWantsAll = {
     wants: () => true,
     isActive: () => true,
+    categorySilent: false,
 };
 
 describe("channelSelection", () => {
@@ -58,21 +59,32 @@ describe("channelSelection", () => {
 });
 
 describe("effectiveChannels", () => {
+    it("is empty for a category that is switched off entirely", () => {
+        // `notify()` refuses before it reads the rule, so a rule tick cannot
+        // resurrect a silenced category — and the footer must not claim it can.
+        const effective = effectiveChannels(channelSelection(["browser"]), {
+            ...policyWantsAll,
+            categorySilent: true,
+        });
+
+        expect(effective).toEqual({ local: [], external: [] });
+        expect(isSilentSet(effective)).toBe(true);
+    });
+
     it("uses the rule's local picks and ignores the policy's locals", () => {
         const effective = effectiveChannels(channelSelection(["sound"]), policyWantsAll);
 
         expect(effective.local).toEqual(["sound"]);
-        expect(effective.localFromPolicy).toBe(false);
     });
 
     it("falls back to the policy's locals when the rule selected none", () => {
         const effective = effectiveChannels(channelSelection(undefined), {
             wants: (channel) => channel !== "browser",
             isActive: () => true,
+            categorySilent: false,
         });
 
         expect(effective.local).toEqual(["in-app", "sound"]);
-        expect(effective.localFromPolicy).toBe(true);
     });
 
     it("narrows externals to the rule's picks", () => {
@@ -85,6 +97,7 @@ describe("effectiveChannels", () => {
         const effective = effectiveChannels(channelSelection(["discord"]), {
             wants: () => false,
             isActive: () => true,
+            categorySilent: false,
         });
 
         expect(effective.external).toEqual([]);
@@ -94,6 +107,7 @@ describe("effectiveChannels", () => {
         const effective = effectiveChannels(channelSelection(["discord"]), {
             wants: () => true,
             isActive: () => false,
+            categorySilent: false,
         });
 
         expect(effective.external).toEqual([]);
@@ -103,6 +117,7 @@ describe("effectiveChannels", () => {
         const effective = effectiveChannels(channelSelection(undefined), {
             wants: () => false,
             isActive: () => false,
+            categorySilent: false,
         });
 
         expect(isSilentSet(effective)).toBe(true);

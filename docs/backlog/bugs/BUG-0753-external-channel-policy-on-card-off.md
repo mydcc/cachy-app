@@ -76,8 +76,8 @@ valid.
       `channelPaused` hint; pinned in
       `NotificationSettings.component.test.ts`.
 - [x] The matrix distinguishes "not configured" from "paused" in both locales.
-      *Done:* `externalState()` returns `setup` or `paused` and the copy differs
-      in en/de.
+      *Done:* `externalChannelState()` returns `ok`, `needsSetup` or `paused`
+      and the copy differs in en/de.
 - [x] A delivery attempt on a wanted channel that is paused produces an entry in
       `externalDeliveryLog` rather than nothing — pinned by a test at the
       `notify()` boundary. *Done:* `externalTargets` records `paused` or
@@ -87,8 +87,9 @@ valid.
       and the existing dispatch tests.
 - [x] The predicate used by the matrix and by delivery is one function, so the
       two cannot diverge again. *Done:* both call
-      `externalChannelsStore.isActive`, which delegates to
-      `isChannelActive`.
+      `externalChannelsStore.state`, which delegates to
+      `externalChannelState`; delivery uses `isActive`, which is the same
+      classification collapsed to a boolean.
 
 ## Out of scope
 

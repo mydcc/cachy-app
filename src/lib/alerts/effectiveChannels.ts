@@ -19,9 +19,13 @@
  * Which channels a rule will actually use — FEAT-0748.
  *
  * Two authorities, one answer. The rule may narrow the local channels to the
- * ones the trader ticked and the external channels to the ones they picked;
- * the notification policy remains the ceiling, so a rule can never open a
- * channel the trader silenced or never configured.
+ * ones the trader ticked and the external channels to the ones they picked.
+ * The policy is the ceiling for external egress: a rule can never open a
+ * channel the trader silenced or never configured. For the local channels the
+ * specific choice on the rule outranks the category default (BUG-0750), but a
+ * category switched off completely still wins — `notify()` refuses before it
+ * reads the rule, so this resolver must refuse too or the footer promises a
+ * channel that will stay silent.
  *
  * Pure on purpose: the footer, the Manage row, the test send and the firing
  * sink all need the same set, and four copies of the precedence is how they
@@ -97,8 +101,6 @@ export function channelSelection(
 export interface EffectiveChannels {
     local: LocalNotificationChannel[];
     external: ExternalChannelId[];
-    /** True when the local half comes from the policy, not from the rule. */
-    localFromPolicy: boolean;
 }
 
 export interface ChannelLookups {
@@ -106,6 +108,11 @@ export interface ChannelLookups {
     wants: (channel: LocalNotificationChannel | ExternalChannelId) => boolean;
     /** Configured *and* switched on. */
     isActive: (channel: ExternalChannelId) => boolean;
+    /**
+     * Whether the whole category is off. Checked first, because that is what
+     * `notify()` does; nothing below this line can override it.
+     */
+    categorySilent: boolean;
 }
 
 /**
@@ -121,6 +128,8 @@ export function effectiveChannels(
     selection: ChannelSelection,
     lookups: ChannelLookups,
 ): EffectiveChannels {
+    if (lookups.categorySilent) return { local: [], external: [] };
+
     const local = (
         selection.local ??
         (["in-app", "browser", "sound"] as const).filter((channel) =>
@@ -134,7 +143,7 @@ export function effectiveChannels(
         return lookups.isActive(channel);
     });
 
-    return { local, external, localFromPolicy: selection.local === undefined };
+    return { local, external };
 }
 
 /** The trigger-method spelling of a delivery channel, for labels. */

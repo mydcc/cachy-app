@@ -93,6 +93,24 @@ describe("BUG-0753: the notification matrix gate", () => {
         );
     });
 
+    it("turns a policy-on but paused channel off instead of leaving it reading on", () => {
+        // The reported state: the matrix was switched on first, then the card's
+        // switch went off. `checked` must follow delivery, not memory.
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+        externalChannelsStore.setDiscord({
+            enabled: false,
+            webhookUrl: "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_",
+            format: "minimal",
+        });
+        flushSync();
+
+        expect(cell("discord").checked).toBe(false);
+        expect(cell("discord").disabled).toBe(true);
+        expect(target.textContent).toContain(
+            "Channel paused — switch it on in External channels below",
+        );
+    });
+
     it("distinguishes missing credentials from a paused channel", () => {
         flushSync();
 

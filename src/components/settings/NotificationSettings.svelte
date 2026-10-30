@@ -59,16 +59,12 @@
   /**
    * Why an external channel cannot carry anything right now.
    *
-   * "needsSetup" (missing or invalid credentials) and "paused" (valid but the
-   * card's switch is off) are different things a trader fixes in different
-   * places, so the matrix names both instead of leaving one switch reading "on"
-   * while delivery silently skips it — BUG-0753.
+   * The state comes from the store, which shares its classification with the
+   * delivery log (BUG-0753), so "paused" cannot mean two things on two screens.
    */
   function externalState(channel: NotificationChannel): "ok" | "needsSetup" | "paused" {
     if (!isExternalChannel(channel)) return "ok";
-    const id = channel as ExternalChannelId;
-    if (externalChannelsStore.problem(id) !== null) return "needsSetup";
-    return externalChannelsStore.isActive(id) ? "ok" : "paused";
+    return externalChannelsStore.state(channel as ExternalChannelId);
   }
 
   let permission = $state(notificationService.permission());
@@ -192,9 +188,21 @@
               >
                 {ch.label}
               </label>
+              {#if ch.needsSetup || ch.paused}
+                <!--
+                  Visible, not only a `title`: a disabled checkbox cannot be
+                  focused, so a tooltip is the one place a screen-reader user
+                  will never look.
+                -->
+                <span class="text-[10px] italic text-[var(--text-tertiary)]">
+                  {ch.paused
+                    ? $_("settings.notifications.channelPaused")
+                    : $_("settings.notifications.channelNeedsSetup")}
+                </span>
+              {/if}
               <Toggle
                 id="notify-{row.category}-{ch.channel}"
-                checked={ch.enabled}
+                checked={ch.enabled && !ch.paused}
                 disabled={ch.blocked}
                 onchange={(e) =>
                   toggle(row.category, ch.channel, (e.currentTarget as HTMLInputElement).checked)}

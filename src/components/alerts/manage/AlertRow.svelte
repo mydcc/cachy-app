@@ -92,7 +92,9 @@
     );
 
     /*
-      FEAT-0748 — the channels this rule will actually use, not the raw ticks.
+      FEAT-0748 — the channels the policy and the external switches allow, not
+      the raw ticks. Browser permission and the sound lock are not knowable
+      here; `notify()` degrades those at delivery time (BUG-0750).
       The policy and the device decide the rest, and naming the result is the
       only way a trader can tell an alarm they will hear from one they will not.
     */

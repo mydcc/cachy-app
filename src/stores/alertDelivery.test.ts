@@ -58,7 +58,7 @@ import type { RuleDocument } from "../lib/rules/types";
 import { notificationPolicyStore } from "./notifications.svelte";
 import { externalChannelsStore } from "./externalChannels.svelte";
 import { readRuleState, recordRuleFiring } from "../services/alertEngine/ruleStateStore";
-import { sendTestAnnouncement } from "./alertDelivery";
+import { ruleEffectiveChannels, sendTestAnnouncement } from "./alertDelivery";
 
 const ANCHOR = 1_800_000_000_000;
 
@@ -88,6 +88,19 @@ beforeEach(() => {
     mockNotify.mockReturnValue(["in-app"]);
     notificationPolicyStore.reset();
     externalChannelsStore.reload();
+});
+
+describe("ruleEffectiveChannels", () => {
+    it("is empty when the category is switched off, even with a ticked channel", () => {
+        // BUG-0750 lets a rule outrank the category *default*; it cannot
+        // outrank a category the trader silenced. The footer must agree.
+        notificationPolicyStore.setChannel("alert-fired", "in-app", false);
+
+        expect(ruleEffectiveChannels(ruleDoc({ trigger_methods: ["browser"] }))).toEqual({
+            local: [],
+            external: [],
+        });
+    });
 });
 
 describe("sendTestAnnouncement", () => {

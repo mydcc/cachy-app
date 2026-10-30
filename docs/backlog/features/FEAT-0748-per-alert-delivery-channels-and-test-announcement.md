@@ -89,9 +89,9 @@ Two gaps remain:
 - [x] "Send test" reaches exactly the channels the rule would use, is labelled
       as a test, and leaves `fired_count`, `last_fired_anchor_ms` and
       `enabled` unchanged — pinned by a test.
-      *Done:* `src/services/alertTest.ts` sends with `exactChannels: true` and
-      `test: true`; `alertTest.test.ts` pins both the label and the untouched
-      state; the row's button is wired through `ManageTab`.
+      *Done:* `src/stores/alertDelivery.ts` sends with `exactChannels: true` and
+      `test: true`; `alertDelivery.test.ts` pins both the label and the
+      untouched state; the row's button is wired through `ManageTab`.
 - [x] Unconfigured channels are absent from the selector, not present and
       inert. *Done:* `externalMethods` filters on `externalChannelsStore.isActive`;
       a paused channel disappears with it.
