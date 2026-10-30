@@ -69,6 +69,32 @@ describe("lifecycleOf", () => {
     expect(lifecycleOf(ruleDoc({ enabled: false }), 1, NOW)).toBe("fired");
   });
 
+  /*
+   * BUG-0754 — "fired" describes a spent one-shot rule, not "has ever fired".
+   * A repeating rule keeps evaluating after its first announcement, so it must
+   * keep the status of a rule that is still running.
+   */
+  it("keeps a repeating rule armed after it fired", () => {
+    expect(lifecycleOf(ruleDoc({ frequency: "every_time" }), 3, NOW)).toBe("armed");
+    expect(lifecycleOf(ruleDoc({ frequency: "once_per_candle_close" }), 1, NOW)).toBe("armed");
+  });
+
+  it("calls a repeating rule the trader paused suspended, not fired", () => {
+    expect(lifecycleOf(ruleDoc({ frequency: "every_time", enabled: false }), 2, NOW)).toBe(
+      "suspended",
+    );
+  });
+
+  it("still calls a repeating rule past its validity expired", () => {
+    expect(
+      lifecycleOf(ruleDoc({ frequency: "every_time", valid_until_ms: NOW - 1 }), 1, NOW),
+    ).toBe("expired");
+  });
+
+  it("treats an absent frequency as the one-shot it means", () => {
+    expect(lifecycleOf(ruleDoc(), 1, NOW)).toBe("fired");
+  });
+
   it("ignores a nonsense validity timestamp", () => {
     expect(lifecycleOf(ruleDoc({ valid_until_ms: Number.NaN }), 0, NOW)).toBe("armed");
   });
@@ -111,6 +137,27 @@ describe("alarmRows", () => {
     localStorage.setItem(RULE_STATE_STORAGE_KEY, JSON.stringify({ "rule-a": { fired_count: 1 } }));
 
     expect(alarmRows(NOW)[0].status).toBe("fired");
+  });
+
+  it("carries the fire count and last anchor as facts beside the status", () => {
+    // BUG-0754: a repeating rule shows "fired n×" without losing "armed".
+    seed([ruleDoc({ id: "rule-a", frequency: "every_time" })]);
+    localStorage.setItem(
+      RULE_STATE_STORAGE_KEY,
+      JSON.stringify({ "rule-a": { fired_count: 2, last_fired_anchor_ms: NOW - 60_000 } }),
+    );
+
+    const row = alarmRows(NOW)[0];
+
+    expect(row.status).toBe("armed");
+    expect(row.firedCount).toBe(2);
+    expect(row.lastFiredAnchorMs).toBe(NOW - 60_000);
+  });
+
+  it("defaults the fire count to zero and the anchor to absent", () => {
+    seed([ruleDoc({ id: "rule-a" })]);
+
+    expect(alarmRows(NOW)[0]).toMatchObject({ firedCount: 0, lastFiredAnchorMs: null });
   });
 
   it("is empty when no rule is stored", () => {

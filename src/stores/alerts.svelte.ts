@@ -87,6 +87,16 @@ class AlertsManager {
     rulesVersion = $state(0);
 
     /**
+     * Bumped by every announcement, so the firing log re-reads its ledger.
+     *
+     * Separate from `rulesVersion` on purpose: a firing writes
+     * `cachy_shadow_firings_v1` and, for a repeating rule, changes no rule at
+     * all. Without this the Log tab would stay frozen on a rule that is still
+     * announcing, which is exactly the case FEAT-0747 opens the log for.
+     */
+    firingsVersion = $state(0);
+
+    /**
      * What the FEAT-0387 cutover did to migrated rules at startup, or `null`
      * before it ran. Held as state rather than only logged: `withheld` is the
      * half a trader has to act on, and a report nobody can surface is the
@@ -454,6 +464,7 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
             anchorMs,
             verdict: verdict.verdict,
         });
+        alertState.firingsVersion += 1;
 
         if (!isSpentAfterFiring(rule)) return;
 

@@ -2,7 +2,9 @@
 id: BUG-0754
 title: An armed repeating rule disappears from the active list after firing
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: feature/feat-0747-manage-list
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -64,17 +66,22 @@ which must keep this split when it replaces the components.
 
 ## Acceptance criteria
 
-- [ ] An `every_time` rule with `fired_count > 0` still appears in "Aktiv", with
+- [x] An `every_time` rule with `fired_count > 0` still appears in "Aktiv", with
       a visible "fired n×" marker.
-- [ ] A `once_per_candle_close` rule with `fired_count > 0` still appears in
+- [x] A `once_per_candle_close` rule with `fired_count > 0` still appears in
       "Aktiv".
-- [ ] A `once` rule that fired is disarmed and appears in "Verlauf", not in
-      "Aktiv".
-- [ ] An expired rule that never fired appears in "Verlauf".
-- [ ] `lifecycleOf` no longer decides the list split on its own; a test pins
+- [x] A `once` rule that fired is disarmed and appears in "Verlauf", not in
+      "Aktiv". (FEAT-0747 replaced the two tabs with status chips; `Fired` is
+      the status a spent one-shot rule carries, and it is the chip that
+      replaces "Verlauf".)
+- [x] An expired rule that never fired appears in "Verlauf". (Same redesign:
+      it carries the `Expired` status and is reachable through that filter. It
+      deliberately stays in the main list per FEAT-0393 AC 2 — a setup that
+      lapsed untriggered is not one that fired.)
+- [x] `lifecycleOf` no longer decides the list split on its own; a test pins
       that a fired repeating rule stays active.
-- [ ] The marker is readable by assistive technology, not colour-only, and both
-      locales resolve it.
+- [x] The marker is readable by assistive technology, not colour-only, and both
+      locales resolve it. (`manageList.firedTimes`, text in the row.)
 
 ## Out of scope
 

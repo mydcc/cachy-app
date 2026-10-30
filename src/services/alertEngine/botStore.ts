@@ -33,7 +33,9 @@
  */
 
 import type { ConsequenceLevel, RuleDocument } from "../../lib/rules/types";
+import { logger } from "../logger";
 import { armRule, readRuleStore, removeRule } from "./armRule";
+import { readRuleStates } from "./ruleStateStore";
 
 /**
  * The level that makes a rule a bot.
@@ -60,6 +62,54 @@ export function isBot(rule: RuleDocument): boolean {
  */
 export function readBots(): RuleDocument[] {
   return readRuleStore().filter(isBot);
+}
+
+/** What the firing log needs from a bot; it never appears in the alert rows. */
+export interface BotLogRow {
+  id: string;
+  symbol: string;
+  timeframe: string;
+  name: string | null;
+  firedCount: number;
+  lastFiredAnchorMs: number | null;
+}
+
+/**
+ * Bots as log entries, with their fire state.
+ *
+ * `readRuleStore` throws on a corrupt store — deliberately, because a writer
+ * must not overwrite rules it could not read. A *view* has the opposite duty:
+ * a broken store must degrade the log, not take the tab down. Hence the catch,
+ * matching `readRules()`'s behaviour for alerts.
+ */
+export function readBotLogRows(): Map<string, BotLogRow> {
+  const rows = new Map<string, BotLogRow>();
+  try {
+    const states = readRuleStates();
+    for (const bot of readBots()) {
+      if (typeof bot.id !== "string") continue;
+      const state = states[bot.id];
+      const firedCount =
+        typeof state?.fired_count === "number" ? state.fired_count : 0;
+      const lastFiredAnchorMs =
+        typeof state?.last_fired_anchor_ms === "number"
+          ? state.last_fired_anchor_ms
+          : null;
+      const name = typeof bot.name === "string" ? bot.name.trim() : "";
+      rows.set(bot.id, {
+        id: bot.id,
+        symbol: typeof bot.symbol === "string" ? bot.symbol : "",
+        timeframe:
+          typeof bot.trigger_timeframe === "string" ? bot.trigger_timeframe : "",
+        name: name === "" ? null : name,
+        firedCount,
+        lastFiredAnchorMs,
+      });
+    }
+  } catch (e) {
+    logger.warn("alerts", "[Bots] Reading the log view failed", e);
+  }
+  return rows;
 }
 
 /**

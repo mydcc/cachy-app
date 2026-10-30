@@ -714,6 +714,46 @@
           "hl2": "Median (HL2)",
           "hlc3": "Typical (HLC3)"
         }
+      },
+      "manageList": {
+        "tabAlerts": "Alerts ({count})",
+        "tabLog": "Log ({count})",
+        "searchLabel": "Search",
+        "searchPlaceholder": "Search symbol, name or note",
+        "filterStatus": "Status",
+        "filterKind": "Type",
+        "filterTimeframe": "Timeframe",
+        "filterEvaluation": "Evaluation",
+        "sort": "Sort",
+        "sortSymbol": "Symbol",
+        "sortLastFired": "Last firing",
+        "sortExpiry": "Expiry",
+        "clearFilters": "Clear filters",
+        "status": {
+          "armed": "Armed"
+        },
+        "kind": {
+          "price": "Price",
+          "indicator": "Indicator",
+          "pattern": "Candlestick",
+          "combo": "Combination",
+          "position": "Position",
+          "account": "Account",
+          "drawing": "Drawing",
+          "unknown": "Rule"
+        },
+        "firedTimes": "fired {count}×",
+        "validUntil": "valid until {date}",
+        "lastFired": "last {date}",
+        "noMatches": "No alerts match these filters",
+        "emptyAlerts": "No alerts armed — create one from the chart or the bell",
+        "logEmpty": "Nothing has fired yet",
+        "logCap": "The ledger keeps the last {count} firings; recovered fires appear in addition.",
+        "logAnchorOnly": "No wall clock recorded — the time shown is the candle's open.",
+        "logDeletedRule": "Rule deleted",
+        "logBotRule": "Automation rule",
+        "openRule": "Open rule {name}",
+        "logCandle": "Candle {time}"
       }
     },
     "generalInputs": {

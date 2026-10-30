@@ -2,7 +2,9 @@
 id: FEAT-0747
 title: Manage list with search, filters and firing log
 type: feature
-status: specced
+status: done
+assignee: opencode
+branch: feature/feat-0747-manage-list
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -58,20 +60,25 @@ none of it.
 
 ## Acceptance criteria
 
-- [ ] Every row renders a sentence for price, indicator, combo, candlestick and
+- [x] Every row renders a sentence for price, indicator, combo, candlestick and
       drawing rules in both locales; a rule the renderer cannot phrase still
-      appears with symbol and status.
-- [ ] The counts equal the rows currently visible, and filtering by status and
-      type composes (AND across filter groups).
-- [ ] Search matches symbol, rule name and note, case-insensitively.
-- [ ] A rule with `fired_count > 0` appears in the Log with its time and candle
-      anchor; a rule that never fired has no Log entry.
-- [ ] Log entries survive deleting the rule and are capped by the existing
+      appears with symbol and status. (`manageView.sentenceFor`; the drawing
+      kind is read from the anchor ledger and its rule is an ordinary
+      constant-threshold sentence.)
+- [x] The counts equal the rows currently visible, and filtering by status and
+      type composes (AND across filter groups). (`filterManageRows`, pinned by
+      unit tests and by the tab-label test after a search.)
+- [x] Search matches symbol, rule name and note, case-insensitively.
+- [x] A rule with `fired_count > 0` appears in the Log with its time and candle
+      anchor; a rule that never fired has no Log entry. (Ledger records carry
+      both; a fire that predates the ledger is listed from
+      `last_fired_anchor_ms` with its wall clock explicitly absent.)
+- [x] Log entries survive deleting the rule and are capped by the existing
       ledger; the tab states the cap rather than silently dropping rows.
-- [ ] Paused, expired and broken rows carry distinct text badges; the broken
+- [x] Paused, expired and broken rows carry distinct text badges; the broken
       reason remains available as detail (BUG-0485).
-- [ ] Sorting and filtering run in derived state, not in the template.
-- [ ] The list is keyboard reachable, filter chips expose their pressed state,
+- [x] Sorting and filtering run in derived state, not in the template.
+- [x] The list is keyboard reachable, filter chips expose their pressed state,
       and both locales resolve every string.
 
 ## Out of scope
@@ -92,6 +99,20 @@ none of it.
   already separates the two; the tab reads it.
 - **Delete does not cascade into the log.** A trader deleting an obsolete rule
   is not asking to erase the evidence that it fired.
+- **The Aktiv/Verlauf switch became status chips.** The two tabs were a
+  hard-coded split on "has ever fired", which BUG-0754 shows is the wrong
+  question. Counts, search and the other filters cannot coexist with a binary
+  switch that pre-filters the list, so the same distinction is now the status
+  filter group: `Fired` means spent, `Armed`/`Suspended`/`Expired` mean the rule
+  is still on the desk.
+- **A fire the ledger never saw still gets a Log row.** `fired_count` predates
+  the ledger on some devices, and a ledger write can fail. The fallback entry
+  reads `last_fired_anchor_ms` and leaves `recordedAtMs` null, so the UI says
+  "candle time, no wall clock" instead of inventing one.
+- **The log re-reads on `alertState.firingsVersion`.** A repeating rule fires
+  without writing a rule, so `rulesVersion` alone would leave the Log frozen on
+  exactly the announcements it exists to show. The counter is bumped by the
+  firing sink beside the ledger write.
 
 ## Open questions
 

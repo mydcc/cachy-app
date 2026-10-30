@@ -16,18 +16,19 @@
 -->
 
 <!--
-  FEAT-0389 -- the Manage tab of the Super-Alert panel: armed alerts, history,
-  and the two cutover notices, moved across from AlertDefinitionsModal with
-  their behaviour unchanged.
+  FEAT-0747 — the Manage tab: the operating list of armed rules and the firing
+  log beside it.
 
-  The quick-add form has left: FEAT-0390's Price tab now builds price
-  conditions, so the stop-gap that kept the panel usable while it was still a
-  placeholder has nothing left to do. This tab lists and manages; it does not
-  author.
+  FEAT-0389 moved this tab across from the old modal; FEAT-0542/0543/0746 gave
+  its rows edit, full configuration and pause/duplicate. What was still missing
+  was the overview: one hard-coded Active/History split, a symbol and a
+  fragment of a price comparison per row, and no way to answer "what fired?".
 
-  The engine-failed banner is NOT here: it belongs to the shell, so it stays on
-  screen whichever tab is open. A banner that disappears when the trader
-  switches tabs is the BUG-0382 gap re-opened one tab at a time.
+  The tab owns the banners and the actions; the rows, the filters and the log
+  are components, and the filtering lives in `manageView.ts` so that neither
+  the template nor the test has to mount this file to prove it.
+
+  The engine-failed banner stays on the shell (`AlertPanelView`), not here.
 -->
 
 <script lang="ts">
@@ -38,11 +39,7 @@
         acknowledgeCutoverNotice,
         shouldShowCutoverNotice,
     } from "../../../services/alertEngine/cutoverNotice";
-    import {
-        alarmRows,
-        type AlarmRow,
-        type StoredRule,
-    } from "../../../services/alertEngine/ruleLifecycleView";
+    import { alarmRows } from "../../../services/alertEngine/ruleLifecycleView";
     import { removeRule } from "../../../services/alertEngine/armRule";
     import {
         duplicateRule,
@@ -50,27 +47,56 @@
         type DuplicateRefusal,
         type SetRuleEnabledReason,
     } from "../../../services/alertEngine/ruleActions";
+    import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
+    import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
+    import { readBotLogRows } from "../../../services/alertEngine/botStore";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
-    import {
-        renderRuleSentence,
-        type SentenceTranslator,
-    } from "../../../lib/rules/ruleSentence";
-    import {
-        EVALUATION_KEYS,
-        FREQUENCY_KEYS,
-        METHOD_KEYS,
-    } from "../../../lib/alerts/lifecycleLabels";
-    import type { RuleDocument } from "../../../lib/rules/types";
+    import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
     import type { TranslationKey } from "../../../locales/schema";
-    import { logger } from "../../../services/logger";
+    import AlertFilters from "../manage/AlertFilters.svelte";
+    import AlertRow from "../manage/AlertRow.svelte";
+    import FiringLog from "../manage/FiringLog.svelte";
+    import {
+        buildFiringLog,
+        buildManageRows,
+        filterManageRows,
+        lastFiringByRule,
+        NO_FILTERS,
+        ruleNameOf,
+        sortManageRows,
+        timeframeOptions,
+        type ManageFilters,
+        type ManageRow,
+        type ManageSort,
+    } from "../manage/manageView";
 
-    // Declared to satisfy the shell's tab contract, unused since the quick-add
-    // form left: this tab lists armed rules, which it reads from the store
-    // rather than from the header's symbol.
+    // Declared to satisfy the shell's tab contract, unused: this tab lists
+    // armed rules, which it reads from the store rather than from the header's
+    // symbol.
     let { symbol: _symbol }: { symbol?: string } = $props();
 
-    let listTab = $state<"active" | "history">("active");
+    let listTab = $state<"alerts" | "log">("alerts");
+
+    /** Unique per mount: two panels must not share tab/panel ids. */
+    const instanceId = $props.id();
+
+    /**
+     * Arrow keys move between the two tabs, as the tab pattern promises.
+     * Home/End are omitted because there are only two, and both are reachable
+     * with a single arrow either way.
+     */
+    function onTabKeydown(event: KeyboardEvent) {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const next = listTab === "alerts" ? "log" : "alerts";
+        listTab = next;
+        // Focus follows selection; the id is the one rendered below.
+        document.getElementById(`manage-tab-${instanceId}-${next}`)?.focus();
+    }
+    let query = $state("");
+    let filters = $state<ManageFilters>(NO_FILTERS);
+    let sort = $state<ManageSort>("symbol");
 
     // Read once when the tab mounts, not derived from the alert list: the
     // notice must not vanish mid-read because the trader deleted the last
@@ -83,32 +109,6 @@
     function dismissCutoverNotice() {
         acknowledgeCutoverNotice();
         showCutoverNotice = false;
-    }
-
-
-    /*
-      FEAT-0399 -- read from `cachy_rules_v1`, the store the evaluation loop
-      actually reads. Until this item the list came from `cachy_alerts_v1`
-      while the panel armed rules, so an alarm armed here never appeared in
-      it at all.
-
-      `alertState.rulesVersion` is the dependency that matters: the rule set
-      lives in localStorage, which no rune observes, so every path that writes
-      it bumps that counter and this re-derives. FEAT-0543 added one ordinary
-      dependency beside it — the locale, because the detail's labels and dates
-      are built here.
-
-      FEAT-0543 -- the expandable detail needs the stored document, so the
-      sentence and the locale-dependent metadata are prepared in this same
-      derivation rather than mapped over inside the template.
-    */
-    interface DetailRow extends AlarmRow {
-        sentence: string | null;
-        timeframe: string;
-        evaluation: string;
-        frequency: string;
-        validUntil: string;
-        channels: string;
     }
 
     const translator: SentenceTranslator = (key, values) =>
@@ -139,140 +139,43 @@
         }),
     );
 
-    /**
-     * A translated option label, falling back to the stored value.
-     *
-     * A rule arrives from `JSON.parse` without validation. An unknown enum
-     * value must not become an empty `<dd>` (or a missing-message warning on
-     * every render) — the raw value tells the trader what is stored.
-     */
-    function optionLabel<T extends string>(
-        map: Record<T, TranslationKey>,
-        value: T | undefined,
-        fallback: T,
-    ): string {
-        const stored = value ?? fallback;
-        const key = (map as Record<string, TranslationKey | undefined>)[stored];
-        return key ? $_(key) : stored;
-    }
+    /*
+      FEAT-0399 → FEAT-0747. Three dependencies, each for a distinct write:
 
-    /** Empty means the notification policy decides; unknown methods stay raw. */
-    function channelsFor(rule: StoredRule): string {
-        const methods = Array.isArray(rule.trigger_methods)
-            ? rule.trigger_methods
-            : [];
-        return methods
-            .map((method) => {
-                const key = (METHOD_KEYS as Record<string, TranslationKey | undefined>)[
-                    method
-                ];
-                return key ? $_(key) : String(method);
-            })
-            .join(", ");
-    }
-
-    function formatValidUntil(
-        ms: number | undefined,
-        formatter: Intl.DateTimeFormat,
-    ): string {
-        if (typeof ms !== "number" || !Number.isFinite(ms)) return "";
-        return formatter.format(new Date(ms));
-    }
-
-    /**
-     * A malformed entry is listable so it can be deleted (`alarmRows`
-     * tolerates it), but it cannot always be phrased. `renderRuleSentence`
-     * dereferences the condition graph (`group.of`, `compare.left`, indicator
-     * params) and reads `action` for its lead, so the guard only proves the
-     * outermost shape; the caller catches the rest per row rather than letting
-     * one hand-edited rule take the whole list down.
-     *
-     * A pre-`action` legacy rule meant `notify`, so the display copy gets the
-     * same fill `loadForEdit` applies rather than losing its detail.
-     */
-    const PHRASABLE_KINDS = new Set([
-        "compare",
-        "cross",
-        "pattern",
-        "position",
-        "account",
-        "group",
-    ]);
-
-    function sentenceFor(rule: StoredRule): string | null {
-        const conditions = rule.conditions as { kind?: unknown } | null | undefined;
-        if (
-            !conditions ||
-            typeof conditions !== "object" ||
-            typeof conditions.kind !== "string" ||
-            !PHRASABLE_KINDS.has(conditions.kind)
-        ) {
-            return null;
-        }
-        const display = (
-            rule.action
-                ? rule
-                : { ...rule, action: { consequence_level: "notify" } }
-        ) as RuleDocument;
-        return renderRuleSentence(display, translator);
-    }
-
-    type RowDetail = Pick<
-        DetailRow,
-        "sentence" | "timeframe" | "evaluation" | "frequency" | "validUntil" | "channels"
-    >;
-
-    /**
-     * Total per row: a detail that cannot be prepared hides itself, but the
-     * row and its edit/delete actions survive. Without this, a partial
-     * condition (`{ kind: "group" }`) throws inside the `$derived` and both
-     * list tabs render nothing.
-     */
-    function detailFor(row: AlarmRow): RowDetail {
-        try {
-            const rule = row.rule;
-            return {
-                sentence: sentenceFor(rule),
-                timeframe:
-                    typeof rule.trigger_timeframe === "string"
-                        ? rule.trigger_timeframe
-                        : "",
-                evaluation: optionLabel(
-                    EVALUATION_KEYS,
-                    rule.evaluation_mode,
-                    "close",
-                ),
-                frequency: optionLabel(FREQUENCY_KEYS, rule.frequency, "once"),
-                validUntil: formatValidUntil(rule.valid_until_ms, dateFormatter),
-                channels: channelsFor(rule),
-            };
-        } catch (e) {
-            logger.error("alerts", "rule detail could not be prepared", e);
-            return {
-                sentence: null,
-                timeframe: "",
-                evaluation: "",
-                frequency: "",
-                validUntil: "",
-                channels: "",
-            };
-        }
-    }
-
-    let rows = $derived.by<DetailRow[]>(() => {
-        void alertState.rulesVersion;
-        return alarmRows().map((row) => ({ ...row, ...detailFor(row) }));
+      - `rulesVersion` — the rule set lives in localStorage, which no rune
+        observes, so every path that writes it bumps that counter.
+      - `firingsVersion` — an announcement writes the ledger and, for a
+        repeating rule, touches no rule at all; without this the log would
+        freeze on the very rules it exists to show.
+      - `locale` — the sentences the row renders are built here.
+    */
+    let records = $derived.by(() => {
+        void alertState.firingsVersion;
+        return readShadowLedger().records;
     });
 
-    /*
-      FEAT-0393 AC 2 -- a rule past its validity period stays in the active
-      list with an "expired" badge rather than dropping into history, where
-      every row reads "fired". A setup that lapsed untriggered is not one that
-      paid off, and a trader deciding whether the level held must not be told
-      the wrong one.
-    */
-    let activeAlerts = $derived(rows.filter((r) => r.status !== "fired"));
-    let historyAlerts = $derived(rows.filter((r) => r.status === "fired"));
+    let lastFiring = $derived(lastFiringByRule(records));
+
+    let baseRows = $derived.by<ManageRow[]>(() => {
+        void alertState.rulesVersion;
+        const drawings = readDrawingAnchorLedger();
+        const drawingIds = new Set(Object.keys(drawings.ledger));
+        return buildManageRows(alarmRows(), drawingIds, translator, lastFiring);
+    });
+
+    let visibleRows = $derived(
+        sortManageRows(filterManageRows(baseRows, filters, query), sort),
+    );
+
+    // Bots fire through the same sink but never appear in `alarmRows`, so the
+    // log needs them separately: otherwise an active bot reads as deleted, and
+    // a bot whose ledger write failed disappears.
+    let botRows = $derived.by(() => {
+        void alertState.rulesVersion;
+        return readBotLogRows();
+    });
+    let logEntries = $derived(buildFiringLog(records, baseRows, botRows));
+    let timeframeChoices = $derived(timeframeOptions(baseRows));
 
     /*
       BUG-0485 -- the loop's inert record, keyed by rule id so each row can
@@ -280,23 +183,9 @@
       its subscriber: the store's rule set lives in localStorage and cannot
       carry this, and the loop stays store-free by design.
     */
-    let brokenById = $derived(new Map(alertState.unevaluableReport.map((r) => [r.ruleId, r])));
-
-    const OP_KEYS = {
-        gte: "dashboard.alerts.reaches",
-        gt: "dashboard.alerts.crossesUp",
-        lte: "dashboard.alerts.reaches",
-        lt: "dashboard.alerts.crossesDown",
-        eq: "dashboard.alerts.reaches",
-        neq: "dashboard.alerts.reaches",
-    } as const;
-
-    function formatCondition(row: { op?: keyof typeof OP_KEYS; threshold?: string }) {
-        // A rule whose conditions this list cannot phrase still gets a row:
-        // the trader has to be able to see and delete what they armed.
-        if (row.threshold === undefined || row.op === undefined) return "";
-        return `${$_(OP_KEYS[row.op])} ${row.threshold}`;
-    }
+    let brokenById = $derived(
+        new Map(alertState.unevaluableReport.map((report) => [report.ruleId, report])),
+    );
 
     /**
      * BUG-0755 — why a suspended rule was disabled, as far as the reports
@@ -337,10 +226,7 @@
                 document.getElementById("alert-tab-panel")?.focus();
                 return;
             case "unreadable":
-                uiState.showToast(
-                    $_("dashboard.alerts.editUnreadable"),
-                    "error",
-                );
+                uiState.showToast($_("dashboard.alerts.editUnreadable"), "error");
                 return;
             case "bot":
                 uiState.showToast($_("dashboard.alerts.editNotEditable"), "error");
@@ -355,7 +241,7 @@
      * FEAT-0746 — pause/resume writes only `enabled`; the store keeps the
      * anchors, so resuming cannot replay a candle the rule already saw.
      */
-    function toggleRow(row: DetailRow) {
+    function toggleRow(row: ManageRow) {
         const result = setRuleEnabled(row.id, !row.enabled);
         if (!result.ok) {
             uiState.showToast($_(SET_ENABLED_KEYS[result.reason]), "error");
@@ -369,11 +255,9 @@
      * link to the source hash. The UI composes the localised name, including
      * the "(copy)" suffix; the store carries the string but no locale logic.
      */
-    function duplicateRow(row: DetailRow) {
-        const baseName = row.rule.name?.trim() || row.symbol;
-        const name = $_("dashboard.alerts.copyName", {
-            values: { name: baseName },
-        });
+    function duplicateRow(row: ManageRow) {
+        const baseName = ruleNameOf(row.rule) ?? row.symbol;
+        const name = $_("dashboard.alerts.copyName", { values: { name: baseName } });
         const result = duplicateRule(row.id, name);
         if (!result.ok) {
             uiState.showToast($_(DUPLICATE_REFUSAL_KEYS[result.reason]), "error");
@@ -382,7 +266,6 @@
         alertState.rulesVersion += 1;
         uiState.showToast($_("dashboard.alerts.duplicated"), "success");
     }
-
 </script>
 
 <!--
@@ -481,152 +364,80 @@
     <button
         type="button"
         role="tab"
-        aria-selected={listTab === "active"}
-        class:active={listTab === "active"}
-        onclick={() => (listTab = "active")}
+        id="manage-tab-{instanceId}-alerts"
+        aria-controls={listTab === "alerts" ? `manage-panel-${instanceId}-alerts` : undefined}
+        aria-selected={listTab === "alerts"}
+        tabindex={listTab === "alerts" ? 0 : -1}
+        class:active={listTab === "alerts"}
+        onclick={() => (listTab = "alerts")}
+        onkeydown={onTabKeydown}
     >
-        {$_("dashboard.alerts.active")}
+        {$_("dashboard.alerts.manageList.tabAlerts", { values: { count: visibleRows.length } })}
     </button>
     <button
         type="button"
         role="tab"
-        aria-selected={listTab === "history"}
-        class:active={listTab === "history"}
-        onclick={() => (listTab = "history")}
+        id="manage-tab-{instanceId}-log"
+        aria-controls={listTab === "log" ? `manage-panel-${instanceId}-log` : undefined}
+        aria-selected={listTab === "log"}
+        tabindex={listTab === "log" ? 0 : -1}
+        class:active={listTab === "log"}
+        onclick={() => (listTab = "log")}
+        onkeydown={onTabKeydown}
     >
-        {$_("dashboard.alerts.history")}
+        {$_("dashboard.alerts.manageList.tabLog", { values: { count: logEntries.length } })}
     </button>
 </div>
 
-<div class="alert-list">
-    {#each listTab === "active" ? activeAlerts : historyAlerts as row (row.id)}
-        {@const broken = brokenById.get(row.id)}
-        <div class="alert-item" class:history-item={listTab === "history"}>
-            <div class="row-main">
-                <div class="alert-info">
-                    <strong>{row.symbol}</strong>
-                    <span>{formatCondition(row)}</span>
-                    <!--
-                      BUG-0485 -- a rule that cannot fire belongs next to the
-                      rule, not in a separate report. The badge text is
-                      localised; the title carries the developer-facing reason
-                      (indicator, drawing, timeframe) as the detail.
-                    -->
-                    {#if row.status === "suspended"}
-                        {@const reason = suspendedReason(row.id)}
-                        <span
-                            class="suspended-badge"
-                            title={reason ?? $_("dashboard.alerts.suspendedHint")}
-                        >
-                            {$_("dashboard.alerts.suspended")}
-                        </span>
-                        {#if reason}
-                            <span class="suspended-reason">{reason}</span>
-                        {/if}
-                    {:else if broken}
-                        <span class="broken-badge" title={broken.reason}>
-                            {$_("dashboard.alerts.brokenRule.badge")}
-                        </span>
-                    {:else if row.status === "expired"}
-                        <span class="expired-badge" title={$_("dashboard.alerts.expiredHint")}>
-                            {$_("dashboard.alerts.expired")}
-                        </span>
-                    {:else if listTab === "history"}
-                        <span class="fired-badge">{$_("dashboard.alerts.fired")}</span>
-                    {/if}
-                </div>
-                <div class="row-actions">
-                    {#if row.enabled || row.status !== "fired"}
-                        <button
-                            type="button"
-                            class="pause-btn"
-                            aria-label={$_("dashboard.alerts.pauseAlert")}
-                            aria-pressed={!row.enabled}
-                            title={row.enabled
-                                ? $_("dashboard.alerts.pauseAlert")
-                                : $_("dashboard.alerts.resumeAlert")}
-                            onclick={() => toggleRow(row)}
-                        >
-                            {row.enabled ? "⏸" : "▶"}
-                        </button>
-                    {/if}
-                    <button
-                        type="button"
-                        class="duplicate-btn"
-                        aria-label={$_("dashboard.alerts.duplicateAlert")}
-                        onclick={() => duplicateRow(row)}
-                    >
-                        ⧉
-                    </button>
-                    <button
-                        type="button"
-                        class="edit-btn"
-                        aria-label={$_("dashboard.alerts.editAlert")}
-                        onclick={() => editRow(row.id)}
-                    >
-                        ✎
-                    </button>
-                    <button
-                        type="button"
-                        class="delete-btn"
-                        aria-label={$_("dashboard.alerts.deleteAlert")}
-                        onclick={() => deleteRow(row.id)}
-                    >
-                        ×
-                    </button>
-                </div>
-            </div>
+{#if listTab === "alerts"}
+    <div
+        role="tabpanel"
+        id="manage-panel-{instanceId}-alerts"
+        aria-labelledby="manage-tab-{instanceId}-alerts"
+        tabindex="0"
+    >
+    <AlertFilters
+        bind:query
+        bind:filters
+        bind:sort
+        timeframes={timeframeChoices}
+    />
 
-            {#if row.sentence !== null}
-                <!--
-                  FEAT-0543 -- native details for the keyboard contract and the
-                  disclosure semantics; the content is prepared, not mapped in
-                  the template.
-                -->
-                <details class="row-details">
-                    <summary
-                        aria-label={`${row.symbol}: ${$_("dashboard.alerts.configuration")}`}
-                    >
-                        {$_("dashboard.alerts.configuration")}
-                    </summary>
-                    <p class="detail-sentence">{row.sentence}</p>
-                    <dl class="detail-grid">
-                        {#if row.timeframe}
-                            <dt>{$_("dashboard.alerts.panel.timeframe")}</dt>
-                            <dd>{row.timeframe}</dd>
-                        {/if}
-                        {#if row.evaluation}
-                            <dt>{$_("dashboard.alerts.panel.evaluationMode")}</dt>
-                            <dd>{row.evaluation}</dd>
-                        {/if}
-                        {#if row.frequency}
-                            <dt>{$_("dashboard.alerts.panel.lifecycle.frequency")}</dt>
-                            <dd>{row.frequency}</dd>
-                        {/if}
-                        {#if row.validUntil}
-                            <dt>{$_("dashboard.alerts.panel.lifecycle.validUntil")}</dt>
-                            <dd>{row.validUntil}</dd>
-                        {/if}
-                        {#if row.channels}
-                            <dt>{$_("common.channels")}</dt>
-                            <dd>{row.channels}</dd>
-                        {/if}
-                        {#if row.note}
-                            <dt>{$_("dashboard.alerts.panel.lifecycle.note")}</dt>
-                            <dd>{row.note}</dd>
-                        {/if}
-                    </dl>
-                </details>
-            {/if}
-        </div>
-    {:else}
-        <div class="empty-state">
-            {listTab === "active"
-                ? $_("dashboard.alerts.noActive")
-                : $_("dashboard.alerts.noHistory")}
-        </div>
-    {/each}
-</div>
+    <div class="alert-list">
+        {#if baseRows.length === 0}
+            <div class="empty-state">
+                {$_("dashboard.alerts.manageList.emptyAlerts")}
+            </div>
+        {:else if visibleRows.length === 0}
+            <div class="empty-state">
+                {$_("dashboard.alerts.manageList.noMatches")}
+            </div>
+        {:else}
+            {#each visibleRows as row (row.id)}
+                <AlertRow
+                    {row}
+                    broken={brokenById.get(row.id)}
+                    suspendedReason={suspendedReason(row.id)}
+                    {dateFormatter}
+                    onToggle={toggleRow}
+                    onEdit={editRow}
+                    onDuplicate={duplicateRow}
+                    onDelete={deleteRow}
+                />
+            {/each}
+        {/if}
+    </div>
+    </div>
+{:else}
+    <div
+        role="tabpanel"
+        id="manage-panel-{instanceId}-log"
+        aria-labelledby="manage-tab-{instanceId}-log"
+        tabindex="0"
+    >
+        <FiringLog entries={logEntries} {dateFormatter} onOpenRule={editRow} />
+    </div>
+{/if}
 
 <style>
     .engine-warning {
@@ -689,141 +500,6 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-    }
-    .alert-item {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: var(--space-2);
-        padding: var(--space-3);
-        background: var(--bg-secondary);
-        border-radius: var(--radius-sm);
-        border-left: 3px solid var(--accent-color);
-    }
-    .row-main {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--space-2);
-    }
-    .history-item {
-        border-left-color: var(--text-secondary);
-        opacity: 0.8;
-    }
-    .alert-info {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-        min-width: 0;
-    }
-    .fired-badge {
-        font-size: 0.7rem;
-        color: var(--success-color);
-        text-transform: uppercase;
-        font-weight: var(--font-bold);
-    }
-    /* BUG-0485: reads as broken, not as lapsed — the danger colour is the
-       distinction from the expired badge above. */
-    .broken-badge {
-        margin-left: var(--space-2);
-        padding: 0 var(--space-2);
-        border-radius: var(--radius-sm);
-        background: var(--bg-tertiary, var(--bg-secondary));
-        color: var(--danger-color);
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-    /* Reads as a lapse, not a success: an expired alert never fired. */
-    .expired-badge {
-        margin-left: var(--space-2);
-        padding: 0 var(--space-2);
-        border-radius: var(--radius-sm);
-        background: var(--bg-tertiary, var(--bg-secondary));
-        color: var(--text-secondary);
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-    /* BUG-0755: text, not colour alone — "Suspended" is the state. */
-    .suspended-badge {
-        margin-left: var(--space-2);
-        padding: 0 var(--space-2);
-        border-radius: var(--radius-sm);
-        background: var(--bg-tertiary, var(--bg-secondary));
-        color: var(--warning-color, var(--text-secondary));
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-    .suspended-reason {
-        margin-left: var(--space-2);
-        color: var(--text-secondary);
-        font-size: 0.75rem;
-    }
-    .row-actions {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        flex-shrink: 0;
-    }
-    .edit-btn {
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        font-size: var(--text-xl);
-        cursor: pointer;
-    }
-    .edit-btn:hover {
-        color: var(--accent-color);
-    }
-    .pause-btn,
-    .duplicate-btn {
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        font-size: var(--text-xl);
-        cursor: pointer;
-    }
-    .pause-btn:hover,
-    .duplicate-btn:hover {
-        color: var(--accent-color);
-    }
-    .delete-btn {
-        background: none;
-        border: none;
-        color: var(--danger-color);
-        font-size: var(--text-2xl);
-        cursor: pointer;
-    }
-    .row-details {
-        border-top: 1px solid var(--border-color);
-        padding-top: var(--space-2);
-    }
-    .row-details summary {
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: 0.8rem;
-    }
-    .detail-sentence {
-        margin: var(--space-2) 0;
-        color: var(--text-primary);
-        line-height: 1.5;
-    }
-    .detail-grid {
-        display: grid;
-        grid-template-columns: max-content 1fr;
-        gap: 0.25rem var(--space-3);
-        margin: 0;
-        font-size: 0.8rem;
-    }
-    .detail-grid dt {
-        color: var(--text-secondary);
-    }
-    .detail-grid dd {
-        margin: 0;
-        color: var(--text-primary);
-        overflow-wrap: anywhere;
     }
     .empty-state {
         text-align: center;
