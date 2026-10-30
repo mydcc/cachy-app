@@ -24,7 +24,10 @@
     import { imgbbService } from "../../services/imgbbService";
     import { calculator } from "../../lib/calculator";
     import { sortJournalRows } from "../../lib/journalSort";
-    import { journalDateRange } from "../../lib/journalDateRange";
+    import {
+        isJournalDateInRange,
+        journalDateRange,
+    } from "../../lib/journalDateRange";
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import { icons } from "../../lib/constants";
@@ -420,22 +423,20 @@
         const filterByPaper = tradeMode === "paper";
         const matchesAllStatus = journalFilterStatus === "all";
         const noTagSelected = selectedTag === "";
-        // BUG-0757 — both bounds come from one UTC helper. Building the end
-        // with `setHours` here mixed local end-of-day with the UTC start
-        // `Date.parse` produces, which dropped the last two UTC hours of the
-        // selected day in Europe/Berlin.
+        // BUG-0757 — both bounds and the comparison come from one UTC helper.
+        // Building the end with `setHours` here mixed local end-of-day with the
+        // UTC start `Date.parse` produces, which dropped the last UTC hours of
+        // the selected day in Europe/Berlin.
         const dateRange = journalDateRange(filterDateStart, filterDateEnd);
+        const hasDateFilter =
+            dateRange.startMs !== null || dateRange.endMs !== null;
         return journalState.entries.filter((trade) => {
             if (filterByLive && trade.isPaper) return false;
             if (filterByPaper && !trade.isPaper) return false;
             if (!matchesAllStatus && trade.status !== journalFilterStatus) return false;
             if (selectedSymbol && trade.symbol?.trim() !== selectedSymbol) return false;
             if (!noTagSelected && (!trade.tags || !trade.tags.includes(selectedTag))) return false;
-            if (dateRange.startMs !== null || dateRange.endMs !== null) {
-                const tradeDateMs = Date.parse(trade.date);
-                if (dateRange.startMs !== null && tradeDateMs < dateRange.startMs) return false;
-                if (dateRange.endMs !== null && tradeDateMs > dateRange.endMs) return false;
-            }
+            if (hasDateFilter && !isJournalDateInRange(trade.date, dateRange)) return false;
             if (query) {
                 if ((trade.symbol?.toLowerCase() ?? "").includes(query)) return true;
                 if (trade.notes && trade.notes.toLowerCase().includes(query)) return true;
@@ -614,8 +615,9 @@
              silently disappearing. Every disable reason is visible (BUG-0719). -->
         <JournalSyncButton
             isPro={settingsState.entitlement.isPro}
-            isSyncing={uiState.isPriceFetching}
+            isBusy={uiState.isPriceFetching}
             isLoading={uiState.isLoading}
+            loadingMessage={uiState.loadingMessage}
             onSync={app.syncBitunixHistory}
         />
     {/if}

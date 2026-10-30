@@ -195,7 +195,31 @@ export default defineConfig({
         test: {
           name: "unit",
           env: { VITEST_BROWSER: "false" },
-          exclude: [...VITEST_EXCLUDE, COMPONENT_TESTS],
+          exclude: [
+            ...VITEST_EXCLUDE,
+            COMPONENT_TESTS,
+            // Timezone-sensitive files need a pool whose workers inherit the
+            // real environment; see the `timezone` project below.
+            "**/*.timezone.test.ts",
+          ],
+        },
+      },
+      {
+        /*
+         * BUG-0757 — a test that changes `process.env.TZ` at runtime cannot
+         * prove anything under the `threads` pool: worker threads hold a
+         * per-thread copy of `process.env`, so Node never sees the change and
+         * `Date` keeps the host zone. On a UTC runner the old local-time code
+         * then passes the same assertions as the fix, and the guard is green
+         * for the wrong reason. Child processes inherit a real environment, so
+         * `forks` is the one pool where `TZ` means what the test says.
+         */
+        extends: true,
+        test: {
+          name: "timezone",
+          pool: "forks",
+          env: { VITEST_BROWSER: "false" },
+          include: ["**/*.timezone.test.ts"],
         },
       },
       {

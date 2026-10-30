@@ -20,9 +20,10 @@
  * BUG-0719 — every reason the journal sync button is unavailable is visible.
  *
  * The button used to grey out on `uiState.isLoading` with its normal refresh
- * icon and label, which reads as broken. The component now has one explicit
- * visual state per disable reason; this enumerates them, so adding a fourth
- * condition to `disabled` without a state fails here.
+ * icon and resting label, which reads as broken. Each disable reason now has an
+ * explicit visual state, and the blocking operation's own message is shown:
+ * `isLoading` today covers a screenshot upload, so a generic "loading" sentence
+ * would have named the wrong work.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,13 +31,18 @@ import { flushSync, mount, unmount } from "svelte";
 
 import en from "../../../locales/locales/en.json";
 
+/** Resolve a key against the shipped English dictionary, failing on a typo. */
 function lookup(key: string): string {
-    return key
+    const value = key
         .split(".")
         .reduce<unknown>(
             (acc, part) => (acc as Record<string, unknown>)?.[part],
             en,
-        ) as string;
+        );
+    if (typeof value !== "string") {
+        throw new Error(`missing i18n key: ${key}`);
+    }
+    return value;
 }
 
 vi.mock("../../../locales/i18n", async () => {
@@ -55,16 +61,18 @@ let component: ReturnType<typeof mount> | null = null;
 
 function render(props: {
     isPro?: boolean;
-    isSyncing?: boolean;
+    isBusy?: boolean;
     isLoading?: boolean;
+    loadingMessage?: string;
     onSync?: () => void;
 }) {
     component = mount(JournalSyncButton, {
         target: host,
         props: {
             isPro: props.isPro ?? true,
-            isSyncing: props.isSyncing ?? false,
+            isBusy: props.isBusy ?? false,
             isLoading: props.isLoading ?? false,
+            loadingMessage: props.loadingMessage ?? "",
             onSync: props.onSync ?? vi.fn(),
         },
     });
@@ -95,6 +103,7 @@ describe("BUG-0719 — the sync button names every reason it is unavailable", ()
         );
         // The refresh icon, not the spinner and not the lock.
         expect(button.querySelector(".animate-spin")).toBeNull();
+        expect(button.querySelector(".opacity-70 svg")).not.toBeNull();
         expect(button.textContent).not.toContain("🔒");
 
         button.click();
@@ -110,41 +119,59 @@ describe("BUG-0719 — the sync button names every reason it is unavailable", ()
         expect(button.getAttribute("title")).toBe(
             lookup("journal.syncRequiresPro"),
         );
+        // A disabled button is outside the tab order, so the reason has to be
+        // in the accessible name, not only in the hover title.
+        expect(button.getAttribute("aria-label")).toContain(
+            lookup("journal.syncRequiresPro"),
+        );
     });
 
-    it("shows a spinner and the syncing label while a sync runs", () => {
-        const button = render({ isSyncing: true });
+    it("shows a spinner and the syncing label while a fetch or sync runs", () => {
+        const button = render({ isBusy: true });
 
         expect(button.disabled).toBe(true);
         expect(button.querySelector(".animate-spin")).not.toBeNull();
         expect(button.textContent).toContain(lookup("journal.messages.syncing"));
-        // The accessible name follows the visible label, not the resting one.
         expect(button.getAttribute("aria-label")).toBe(
             lookup("journal.messages.syncing"),
         );
     });
 
-    it("shows a spinner and a loading label while the journal loads", () => {
+    it("shows the blocking operation's own message while it runs", () => {
         // The regression: this used to render the refresh icon and "Sync
-        // Bitunix" while disabled, with no cue that a load was in progress.
-        const button = render({ isLoading: true });
+        // Bitunix" while disabled, with no cue that work was in progress. The
+        // message is the upload's, not a generic "loading": that is what the
+        // producer actually set.
+        const uploading = lookup("journal.messages.uploading");
+        const button = render({ isLoading: true, loadingMessage: uploading });
 
         expect(button.disabled).toBe(true);
         expect(button.querySelector(".animate-spin")).not.toBeNull();
-        expect(button.textContent).toContain(lookup("journal.messages.loading"));
+        expect(button.textContent).toContain(uploading);
         expect(button.textContent).not.toContain(lookup("journal.syncBitunix"));
-        expect(button.getAttribute("aria-label")).toBe(
-            lookup("journal.messages.loading"),
-        );
+        expect(button.getAttribute("aria-label")).toBe(uploading);
     });
 
-    it("keeps the button unavailable while the load and a sync overlap", () => {
-        const onSync = vi.fn();
-        const button = render({ isLoading: true, isSyncing: true, onSync });
+    it("falls back to a generic loading label when no message is set", () => {
+        const button = render({ isLoading: true, loadingMessage: "" });
 
+        expect(button.textContent).toContain(lookup("journal.messages.loading"));
+    });
+
+    it("keeps a non-Pro button locked while other work runs", () => {
+        const onSync = vi.fn();
+        const button = render({
+            isPro: false,
+            isBusy: true,
+            isLoading: true,
+            loadingMessage: lookup("journal.messages.uploading"),
+            onSync,
+        });
+
+        // The Pro gate is the honest reason: this account cannot sync at all.
         expect(button.disabled).toBe(true);
-        // The in-flight sync is the more specific state.
-        expect(button.textContent).toContain(lookup("journal.messages.syncing"));
+        expect(button.textContent).toContain("🔒");
+        expect(button.textContent).toContain(lookup("journal.syncBitunix"));
         button.click();
         expect(onSync).not.toHaveBeenCalled();
     });

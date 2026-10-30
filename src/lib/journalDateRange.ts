@@ -19,13 +19,12 @@
  * BUG-0757 — both journal date-filter bounds live in one time domain.
  *
  * `new Date("2026-01-01")` reads a date-only string as **UTC** midnight, so the
- * old local end-of-day (`setHours(23, 59, 59, 999)`) ended the range hours away
- * from the start in any zone with an offset. In Europe/Berlin that dropped
- * every trade logged between 22:00 and 24:00 UTC on the selected end day.
- *
- * An empty or unparseable field is "no filter", not a `NaN` bound: every
- * comparison against `NaN` is false, so a corrupt value would silently pass
- * everything instead of failing visibly.
+ * old local end-of-day (`setHours(23, 59, 59, 999)`) ended the range up to two
+ * hours before the start's day did: in Europe/Berlin (CEST) the filter dropped
+ * every trade logged between 22:00 and 24:00 UTC on the selected end day, in
+ * CET the last hour. The bounds here are always UTC, and the accepted input
+ * shape is explicit so a zone-less date-time can never sneak in and shift a
+ * day.
  */
 export interface JournalDateRange {
     /** Inclusive lower bound, or `null` when the start field is empty. */
@@ -34,26 +33,65 @@ export interface JournalDateRange {
     endMs: number | null;
 }
 
-function utcBound(
-    value: string,
-    hour: number,
-    minute: number,
-    second: number,
-    ms: number,
-): number | null {
-    if (value === "") return null;
+/** The `<input type="date">` value shape; anything else is not a journal bound. */
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
+/**
+ * Parses `YYYY-MM-DD` as UTC midnight, or returns `null`.
+ *
+ * The round-trip check rejects date-only lookalikes that `Date` would roll
+ * over (`2026-02-31` becomes March 3rd), and the regex rejects a date-time:
+ * `new Date("2026-01-01T00:30")` is parsed in the *local* zone, which would
+ * move the bound to a different UTC day before `setUTCHours` ever runs.
+ */
+function parseUtcDay(value: string): number | null {
+    const match = DATE_ONLY.exec(value);
+    if (!match) return null;
 
-    date.setUTCHours(hour, minute, second, ms);
-    return date.getTime();
+    const [, year, month, day] = match;
+    const ms = Date.UTC(Number(year), Number(month) - 1, Number(day));
+
+    // `Date.UTC` rolls impossible dates over; the filter must not invent one.
+    const parsed = new Date(ms);
+    if (
+        parsed.getUTCFullYear() !== Number(year) ||
+        parsed.getUTCMonth() !== Number(month) - 1 ||
+        parsed.getUTCDate() !== Number(day)
+    ) {
+        return null;
+    }
+    return ms;
 }
 
 /** Start- and end-of-day bounds for the journal's date filter, both in UTC. */
 export function journalDateRange(start: string, end: string): JournalDateRange {
+    const startMs = parseUtcDay(start);
+    const endMs = parseUtcDay(end);
+
     return {
-        startMs: utcBound(start, 0, 0, 0, 0),
-        endMs: utcBound(end, 23, 59, 59, 999),
+        startMs,
+        endMs:
+            endMs === null
+                ? null
+                : endMs + 24 * 60 * 60 * 1000 - 1,
     };
+}
+
+/**
+ * Whether a journal entry's ISO timestamp falls inside the filter.
+ *
+ * Kept next to the bounds so the comparison domain is not re-derived at the
+ * call site: the bounds are UTC and `Date.parse` reads an ISO timestamp as UTC.
+ * A date the timestamp parser cannot read is kept rather than hidden — the
+ * filter is a view, and silently dropping a row is worse than showing one.
+ */
+export function isJournalDateInRange(
+    date: string,
+    range: JournalDateRange,
+): boolean {
+    const ms = Date.parse(date);
+    if (Number.isNaN(ms)) return true;
+    if (range.startMs !== null && ms < range.startMs) return false;
+    if (range.endMs !== null && ms > range.endMs) return false;
+    return true;
 }
