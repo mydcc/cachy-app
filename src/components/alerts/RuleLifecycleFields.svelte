@@ -26,7 +26,7 @@
         methodForChannel,
     } from "../../lib/alerts/effectiveChannels";
     import { externalChannelsStore } from "../../stores/externalChannels.svelte";
-    import { ruleEffectiveChannels, sendTestAnnouncement } from "../../services/alertTest";
+    import { ruleEffectiveChannels, sendTestAnnouncement } from "../../stores/alertDelivery";
     import {
         NOTE_MAX_CHARS,
         type TriggerFrequency,

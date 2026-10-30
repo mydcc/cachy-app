@@ -35,6 +35,11 @@
         FREQUENCY_KEYS,
         METHOD_KEYS,
     } from "../../../lib/alerts/lifecycleLabels";
+    import {
+        isSilentSet,
+        methodForChannel,
+    } from "../../../lib/alerts/effectiveChannels";
+    import { ruleEffectiveChannels } from "../../../stores/alertDelivery";
     import type { ManageRow } from "./manageView";
     import { KIND_KEYS, STATUS_KEYS } from "./manageView";
 
@@ -47,6 +52,7 @@
         onEdit,
         onDuplicate,
         onDelete,
+        onTest,
     }: {
         row: ManageRow;
         broken?: { reason: string } | undefined;
@@ -56,6 +62,7 @@
         onEdit: (id: string) => void;
         onDuplicate: (row: ManageRow) => void;
         onDelete: (id: string) => void;
+        onTest: (row: ManageRow) => void;
     } = $props();
 
     /**
@@ -84,15 +91,18 @@
         row.lastFiredAtMs === null ? "" : dateFormatter.format(new Date(row.lastFiredAtMs)),
     );
 
-    /** Empty means the notification policy decides; unknown methods stay raw. */
+    /*
+      FEAT-0748 — the channels this rule will actually use, not the raw ticks.
+      The policy and the device decide the rest, and naming the result is the
+      only way a trader can tell an alarm they will hear from one they will not.
+    */
+    let effective = $derived(ruleEffectiveChannels(row.rule));
     let channels = $derived(
-        (Array.isArray(row.rule.trigger_methods) ? row.rule.trigger_methods : [])
-            .map((method) => {
-                const key = (METHOD_KEYS as Record<string, TranslationKey | undefined>)[method];
-                return key ? $_(key) : String(method);
-            })
+        [...effective.local, ...effective.external]
+            .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
             .join(", "),
     );
+    let silent = $derived(isSilentSet(effective));
 
     /*
       A repeating rule can fire many times; the count is text, not colour, and
@@ -136,6 +146,15 @@
                 {#if lastFired}
                     <span>{$_("dashboard.alerts.manageList.lastFired", { values: { date: lastFired } })}</span>
                 {/if}
+                <span class="row-channels">
+                    {#if silent}
+                        {$_("dashboard.alerts.panel.lifecycle.effectiveNone")}
+                    {:else}
+                        {$_("dashboard.alerts.panel.lifecycle.effective", {
+                            values: { channels },
+                        })}
+                    {/if}
+                </span>
             </div>
 
             <!--
@@ -177,6 +196,16 @@
                     {row.enabled ? "⏸" : "▶"}
                 </button>
             {/if}
+            <button
+                type="button"
+                class="test-btn"
+                aria-label={$_("dashboard.alerts.panel.lifecycle.sendTest")}
+                title={$_("dashboard.alerts.panel.lifecycle.sendTest")}
+                disabled={silent}
+                onclick={() => onTest(row)}
+            >
+                ✓
+            </button>
             <button
                 type="button"
                 class="duplicate-btn"
@@ -230,10 +259,8 @@
                     <dt>{$_("dashboard.alerts.panel.lifecycle.validUntil")}</dt>
                     <dd>{validUntil}</dd>
                 {/if}
-                {#if channels}
-                    <dt>{$_("common.channels")}</dt>
-                    <dd>{channels}</dd>
-                {/if}
+                <dt>{$_("common.channels")}</dt>
+                <dd>{silent ? $_("dashboard.alerts.panel.lifecycle.effectiveNone") : channels}</dd>
                 {#if row.note}
                     <dt>{$_("dashboard.alerts.panel.lifecycle.note")}</dt>
                     <dd>{row.note}</dd>
@@ -353,6 +380,7 @@
         flex-shrink: 0;
     }
     .pause-btn,
+    .test-btn,
     .duplicate-btn,
     .edit-btn {
         background: none;
@@ -362,9 +390,14 @@
         cursor: pointer;
     }
     .pause-btn:hover,
+    .test-btn:hover,
     .duplicate-btn:hover,
     .edit-btn:hover {
         color: var(--accent-color);
+    }
+    .test-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
     .delete-btn {
         background: none;

@@ -50,6 +50,7 @@
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
     import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
     import { readBotLogRows } from "../../../services/alertEngine/botStore";
+    import { sendTestAnnouncement } from "../../../stores/alertDelivery";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
@@ -200,6 +201,15 @@
             return $_("dashboard.alerts.suspendedOrphan");
         }
         return null;
+    }
+
+    /**
+     * FEAT-0748 — one labelled test to the channels this rule would use. The
+     * service owns the body and the delivery; nothing here touches rule state,
+     * so pressing it cannot spend a `once` rule.
+     */
+    function testRow(row: ManageRow) {
+        sendTestAnnouncement(row.rule);
     }
 
     function deleteRow(id: string) {
@@ -423,6 +433,7 @@
                     onEdit={editRow}
                     onDuplicate={duplicateRow}
                     onDelete={deleteRow}
+                    onTest={testRow}
                 />
             {/each}
         {/if}

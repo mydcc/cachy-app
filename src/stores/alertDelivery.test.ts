@@ -27,11 +27,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("$app/env", () => ({ browser: true }));
 
-vi.mock("./logger", () => ({
+vi.mock("../services/logger", () => ({
     logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock("./toastService.svelte", () => ({
+vi.mock("../services/toastService.svelte", () => ({
     toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
@@ -50,15 +50,15 @@ const { mockNotify } = vi.hoisted(() => ({
     mockNotify: vi.fn(() => ["in-app"]),
 }));
 
-vi.mock("./notificationService.svelte", () => ({
+vi.mock("../services/notificationService.svelte", () => ({
     notificationService: { notify: mockNotify },
 }));
 
 import type { RuleDocument } from "../lib/rules/types";
-import { notificationPolicyStore } from "../stores/notifications.svelte";
-import { externalChannelsStore } from "../stores/externalChannels.svelte";
-import { readRuleState, recordRuleFiring } from "./alertEngine/ruleStateStore";
-import { sendTestAnnouncement } from "./alertTest";
+import { notificationPolicyStore } from "./notifications.svelte";
+import { externalChannelsStore } from "./externalChannels.svelte";
+import { readRuleState, recordRuleFiring } from "../services/alertEngine/ruleStateStore";
+import { sendTestAnnouncement } from "./alertDelivery";
 
 const ANCHOR = 1_800_000_000_000;
 

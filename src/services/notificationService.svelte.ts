@@ -71,9 +71,9 @@ export interface NotificationRequest {
      * Absent or empty: the category policy decides, which is what every rule
      * authored before this field existed means.
      *
-     * The external channels are deliberately not selectable here; see
-     * `LocalNotificationChannel`. A category the trader silenced entirely stays
-     * silent — `isSilent` is checked before this field is read.
+     * The external half is `externalChannels` below; both are bounded by the
+     * policy. A category the trader silenced entirely stays silent —
+     * `isSilent` is checked before either field is read.
      */
     localChannels?: readonly LocalNotificationChannel[];
     /**
@@ -150,8 +150,8 @@ class NotificationService {
      *
      * `request.localChannels`, when present and non-empty, takes over the three
      * local channels: the trader picked them on this rule, and a specific choice
-     * on the alert outranks the category default (BUG-0750). The external
-     * channels stay policy-only either way.
+     * on the alert outranks the category default (BUG-0750). The external ones
+     * narrow the policy's set the same way (FEAT-0748), never widen it.
      *
      * Returns the channels actually delivered on, so a test can assert the
      * absence of delivery rather than the presence of a message.

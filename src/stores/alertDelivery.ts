@@ -28,12 +28,12 @@
 
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
-import { externalChannelsStore } from "../stores/externalChannels.svelte";
-import { notificationPolicyStore } from "../stores/notifications.svelte";
-import { firingMessage } from "../stores/alerts.svelte";
 import { channelSelection, effectiveChannels, type EffectiveChannels } from "../lib/alerts/effectiveChannels";
 import type { RuleDocument } from "../lib/rules/types";
-import { notificationService } from "./notificationService.svelte";
+import { firingMessage } from "./alerts.svelte";
+import { externalChannelsStore } from "./externalChannels.svelte";
+import { notificationPolicyStore } from "./notifications.svelte";
+import { notificationService } from "../services/notificationService.svelte";
 
 /** The channels this rule would use, after the policy and the device. */
 export function ruleEffectiveChannels(rule: RuleDocument): EffectiveChannels {
