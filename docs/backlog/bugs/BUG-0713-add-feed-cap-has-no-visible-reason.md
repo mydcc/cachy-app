@@ -2,9 +2,7 @@
 id: BUG-0713
 title: Adding a custom RSS feed disables at five with no visible reason
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/ui-settings-reasons
+status: done
 priority: P3
 milestone: none
 created: "2026-10-21"
@@ -54,11 +52,11 @@ reason that is visible without hover. Keep the button in the tab order with
 
 ## Acceptance criteria
 
-- [ ] The cap exists as one named value, used by the button and by the visible
+- [x] The cap exists as one named value, used by the button and by the visible
       hint
-- [ ] The reached-limit state is readable without hover and announced to a
+- [x] The reached-limit state is readable without hover and announced to a
       screen reader
-- [ ] A test asserts the hint and the disabled state at the cap
+- [x] A test asserts the hint and the disabled state at the cap
 
 ## Links
 
