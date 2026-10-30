@@ -75,6 +75,20 @@
     let { symbol: _symbol }: { symbol?: string } = $props();
 
     let listTab = $state<"alerts" | "log">("alerts");
+
+    /**
+     * Arrow keys move between the two tabs, as the tab pattern promises.
+     * Home/End are omitted because there are only two, and both are reachable
+     * with a single arrow either way.
+     */
+    function onTabKeydown(event: KeyboardEvent) {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const next = listTab === "alerts" ? "log" : "alerts";
+        listTab = next;
+        // Focus follows selection; the id is the one rendered below.
+        document.getElementById(`manage-tab-${next}`)?.focus();
+    }
     let query = $state("");
     let filters = $state<ManageFilters>(NO_FILTERS);
     let sort = $state<ManageSort>("symbol");
@@ -338,24 +352,38 @@
     <button
         type="button"
         role="tab"
+        id="manage-tab-alerts"
+        aria-controls="manage-panel-alerts"
         aria-selected={listTab === "alerts"}
+        tabindex={listTab === "alerts" ? 0 : -1}
         class:active={listTab === "alerts"}
         onclick={() => (listTab = "alerts")}
+        onkeydown={onTabKeydown}
     >
         {$_("dashboard.alerts.manageList.tabAlerts", { values: { count: visibleRows.length } })}
     </button>
     <button
         type="button"
         role="tab"
+        id="manage-tab-log"
+        aria-controls="manage-panel-log"
         aria-selected={listTab === "log"}
+        tabindex={listTab === "log" ? 0 : -1}
         class:active={listTab === "log"}
         onclick={() => (listTab = "log")}
+        onkeydown={onTabKeydown}
     >
         {$_("dashboard.alerts.manageList.tabLog", { values: { count: logEntries.length } })}
     </button>
 </div>
 
 {#if listTab === "alerts"}
+    <div
+        role="tabpanel"
+        id="manage-panel-alerts"
+        aria-labelledby="manage-tab-alerts"
+        tabindex="0"
+    >
     <AlertFilters
         bind:query
         bind:filters
@@ -387,8 +415,16 @@
             {/each}
         {/if}
     </div>
+    </div>
 {:else}
-    <FiringLog entries={logEntries} {dateFormatter} onOpenRule={editRow} />
+    <div
+        role="tabpanel"
+        id="manage-panel-log"
+        aria-labelledby="manage-tab-log"
+        tabindex="0"
+    >
+        <FiringLog entries={logEntries} {dateFormatter} onOpenRule={editRow} />
+    </div>
 {/if}
 
 <style>

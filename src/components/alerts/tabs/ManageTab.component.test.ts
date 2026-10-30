@@ -32,7 +32,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 import en from "../../../locales/locales/en.json";
 import ManageTab from "./ManageTab.svelte";
-import { alertState } from "../../../stores/alerts.svelte";
+import { alertState, notifyingRuleSink } from "../../../stores/alerts.svelte";
 import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import { uiState } from "../../../stores/ui.svelte";
 import * as ruleActions from "../../../services/alertEngine/ruleActions";
@@ -263,6 +263,53 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(suspended?.getAttribute("aria-pressed")).toBe("true");
     expect(el.querySelectorAll(".alert-item")).toHaveLength(1);
     expect(el.textContent).toContain("ETHUSDT");
+  });
+
+  it("ORs chips inside one group and clears them", () => {
+    seedRules(
+      [rule({ id: "armed" }), rule({ id: "paused", symbol: "ETHUSDT", enabled: false })],
+      {},
+    );
+
+    const el = render();
+    const chip = (label: string) =>
+      Array.from(el.querySelectorAll<HTMLButtonElement>(".chip")).find(
+        (candidate) => candidate.textContent?.trim() === label,
+      )!;
+
+    chip(en.dashboard.alerts.manageList.status.armed).click();
+    flushSync();
+    chip(en.dashboard.alerts.suspended).click();
+    flushSync();
+
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(2);
+
+    (el.querySelector(".clear") as HTMLButtonElement).click();
+    flushSync();
+
+    expect(el.querySelectorAll(".alert-item")).toHaveLength(2);
+    expect(chip(en.dashboard.alerts.manageList.status.armed).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+  });
+
+  it("sorts through the select, not only in the model", () => {
+    seedRules([
+      rule({ id: "btc", symbol: "BTCUSDT", valid_until_ms: 2_000_000_000_000 }),
+      rule({ id: "eth", symbol: "ETHUSDT", valid_until_ms: 1_900_000_000_000 }),
+    ]);
+
+    const el = render();
+    const select = el.querySelector<HTMLSelectElement>(".sort select");
+    if (!select) throw new Error("no sort select");
+
+    expect(el.querySelector(".alert-item strong")?.textContent).toBe("BTCUSDT");
+
+    select.value = "expiry";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+
+    expect(el.querySelector(".alert-item strong")?.textContent).toBe("ETHUSDT");
   });
 
   it("says the list is empty rather than rendering an empty box", () => {
@@ -740,28 +787,28 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(pause?.getAttribute("aria-label")).toBe(
       en.dashboard.alerts.pauseAlert,
     );
-    expect(pause?.getAttribute("aria-pressed")).toBe("false");
+    // One state signal: the action name. `aria-pressed` alongside a label that
+    // already flips reads as "Resume, pressed" for a running rule.
+    expect(pause?.hasAttribute("aria-pressed")).toBe(false);
 
     pause!.click();
     flushSync();
 
     const resume = el.querySelector<HTMLButtonElement>(".pause-btn");
-    // The accessible name stays a toggle name; the state is aria-pressed.
     expect(resume?.getAttribute("aria-label")).toBe(
-      en.dashboard.alerts.pauseAlert,
+      en.dashboard.alerts.resumeAlert,
     );
     expect(resume?.getAttribute("title")).toBe(
       en.dashboard.alerts.resumeAlert,
     );
-    expect(resume?.getAttribute("aria-pressed")).toBe("true");
     expect(resume?.closest(".alert-item")?.querySelector(".suspended-badge")).not.toBeNull();
 
     resume!.click();
     flushSync();
 
     expect(
-      el.querySelector<HTMLButtonElement>(".pause-btn")?.getAttribute("aria-pressed"),
-    ).toBe("false");
+      el.querySelector<HTMLButtonElement>(".pause-btn")?.getAttribute("aria-label"),
+    ).toBe(en.dashboard.alerts.pauseAlert);
   });
 
   it("FEAT-0746: hides pause on a spent once row but still offers duplicate", () => {
@@ -970,7 +1017,9 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     const entry = el.querySelector(".log-item");
     expect(entry?.textContent).toContain("BTCUSDT");
-    expect(entry?.querySelector("[title]")).not.toBeNull();
+    expect(entry?.textContent).toContain(en.dashboard.alerts.manageList.logAnchorOnly);
+    // No wall clock was invented, so the "candle" meta must be absent.
+    expect(entry?.querySelector(".log-times .meta")).toBeNull();
   });
 
   it("FEAT-0747: says the log is empty rather than rendering nothing", () => {
@@ -984,4 +1033,58 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
       en.dashboard.alerts.manageList.logEmpty,
     );
   });
+
+  it("FEAT-0747: the firing sink is what makes the log re-read", () => {
+    seedRules([rule({ id: "rule-1", frequency: "every_time" })]);
+
+    const el = render();
+    const [, logTab] = listTabs(el);
+    expect(logTab.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.tabLog.replace("{count}", "0"),
+    );
+
+    const before = alertState.firingsVersion;
+    notifyingRuleSink({
+      rule: rule({ id: "rule-1", frequency: "every_time" }) as never,
+      verdict: { verdict: "fires" } as never,
+      anchorMs: Date.parse("2026-10-30T09:59:00Z"),
+    });
+    flushSync();
+
+    expect(alertState.firingsVersion).toBe(before + 1);
+    const [, refreshedLogTab] = listTabs(el);
+    expect(refreshedLogTab.textContent?.trim()).toBe(
+      en.dashboard.alerts.manageList.tabLog.replace("{count}", "1"),
+    );
+  });
+
+  it("FEAT-0747: opens a rule from its log entry", () => {
+    seedRules([rule({ id: "rule-1", name: "Breakout" })]);
+    seedLedger([firingRecord()]);
+
+    const el = render();
+    listTabs(el)[1].click();
+    flushSync();
+
+    const link = el.querySelector<HTMLButtonElement>(".rule-link");
+    if (!link) throw new Error("no rule link");
+    link.click();
+    flushSync();
+
+    expect(alertPanelState.draft.id).toBe("rule-1");
+  });
+
+  it("FEAT-0747: keeps an unnamed rule openable in the log", () => {
+    seedRules([rule({ id: "rule-1", name: "" })]);
+    seedLedger([firingRecord()]);
+
+    const el = render();
+    listTabs(el)[1].click();
+    flushSync();
+
+    const entry = el.querySelector(".log-item");
+    expect(entry?.textContent).not.toContain(en.dashboard.alerts.manageList.logDeletedRule);
+    expect(entry?.querySelector(".rule-link")?.textContent?.trim()).toBe("rule-1");
+  });
+
 });

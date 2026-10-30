@@ -26,10 +26,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type {
-  AlarmRow,
-  AlertLifecycleStatus,
-} from "../../../services/alertEngine/ruleLifecycleView";
+import type { AlarmRow } from "../../../services/alertEngine/ruleLifecycleView";
 import type { ShadowFiringRecord } from "../../../services/alertEngine/shadowLedger";
 import type { RuleDocument } from "../../../lib/rules/types";
 import {
@@ -93,7 +90,6 @@ function manageRow(overrides: Partial<ManageRow> = {}): ManageRow {
     kind: "price",
     timeframe: "1h",
     evaluation: "close",
-    evaluationMode: "close",
     frequency: "once",
     validUntilMs: null,
     lastFiredAtMs: null,
@@ -179,7 +175,6 @@ describe("buildManageRows", () => {
 
     expect(row).toMatchObject({
       evaluation: "close",
-      evaluationMode: "close",
       frequency: "once",
       timeframe: "1h",
       validUntilMs: null,
@@ -195,7 +190,7 @@ describe("buildManageRows", () => {
       new Map(),
     );
 
-    expect(row).toMatchObject({ evaluation: "intrabar", evaluationMode: "intrabar", validUntilMs: 5_000 });
+    expect(row).toMatchObject({ evaluation: "intrabar", validUntilMs: 5_000 });
   });
 
   it("marks a rule from the drawing ledger as a drawing rule", () => {
@@ -243,6 +238,12 @@ describe("matchesQuery", () => {
   it("matches everything when the query is blank", () => {
     expect(matchesQuery(row, "   ")).toBe(true);
   });
+
+  it("survives a hand-edited non-string field", () => {
+    const broken = manageRow({ symbol: 42 as unknown as string, rule: ruleDoc({ name: 7 as unknown as string }) });
+    expect(() => matchesQuery(broken, "btc")).not.toThrow();
+    expect(matchesQuery(broken, "btc")).toBe(false);
+  });
 });
 
 describe("filterManageRows", () => {
@@ -262,10 +263,32 @@ describe("filterManageRows", () => {
     ).toEqual(["a", "b"]);
   });
 
-  it("composes groups with AND", () => {
+  it("composes groups with AND, keeping the row that satisfies both", () => {
+    const armedIndicator = manageRow({ id: "c", status: "armed", kind: "indicator" });
     expect(
-      filterManageRows(rows, { ...NO_FILTERS, status: ["armed"], kind: ["indicator"] }, ""),
+      filterManageRows([...rows, armedIndicator], { ...NO_FILTERS, status: ["armed"], kind: ["indicator"] }, ""),
+    ).toEqual([armedIndicator]);
+  });
+
+  it("filters by the raw evaluation value", () => {
+    const unknown = manageRow({ id: "unknown", evaluation: "tickwise" });
+    const candidates = [...rows, unknown];
+
+    expect(
+      filterManageRows(candidates, { ...NO_FILTERS, evaluation: ["close"] }, "").map((r) => r.id),
+    ).toEqual(["a", "b"]);
+    expect(
+      filterManageRows(candidates, { ...NO_FILTERS, evaluation: ["intrabar"] }, ""),
     ).toEqual([]);
+  });
+
+  it("filters by timeframe", () => {
+    const hourly = manageRow({ id: "h", timeframe: "1h" });
+    const daily = manageRow({ id: "d", timeframe: "1d" });
+
+    expect(
+      filterManageRows([hourly, daily], { ...NO_FILTERS, timeframe: ["1d"] }, "").map((r) => r.id),
+    ).toEqual(["d"]);
   });
 
   it("composes the search with the filters", () => {
@@ -398,24 +421,36 @@ describe("buildFiringLog", () => {
     expect(entries[0].recordedAtMs).toBe(1_000);
   });
 
-  it("caps the log at the ledger's own bound", () => {
+  it("caps the log at the ledger's own bound, keeping the newest", () => {
     const records = Array.from({ length: 520 }, (_, index) =>
       firingRecord({ recordedAtMs: index }),
     );
 
-    expect(buildFiringLog(records, []).length).toBe(500);
+    const entries = buildFiringLog(records, []);
+
+    expect(entries).toHaveLength(500);
+    expect(entries[0].recordedAtMs).toBe(519);
+    expect(entries.at(-1)?.recordedAtMs).toBe(20);
   });
-});
 
-describe("BUG-0754: fired stays a fact, not a lifecycle status", () => {
-  it("keeps a repeating rule armed while carrying its fire count", () => {
-    const row = alarmRow({
-      status: "armed" satisfies AlertLifecycleStatus,
-      firedCount: 3,
-      rule: ruleDoc({ frequency: "every_time" }),
-    });
+  it("keeps a state-only fallback even when the ledger is at its cap", () => {
+    const records = Array.from({ length: 500 }, (_, index) =>
+      firingRecord({ id: `rule-${index}`, recordedAtMs: index }),
+    );
+    const fallback = manageRow({ id: "recovered", firedCount: 1, lastFiredAnchorMs: 42 });
 
-    expect(row.status).toBe("armed");
-    expect(row.firedCount).toBe(3);
+    const entries = buildFiringLog(records, [fallback]);
+
+    expect(entries).toHaveLength(501);
+    expect(entries.at(-1)).toMatchObject({ ruleId: "recovered", recordedAtMs: null });
+  });
+
+  it("keeps an unnamed but existing rule distinguishable from a deleted one", () => {
+    const entries = buildFiringLog(
+      [firingRecord({ id: "nameless" })],
+      [manageRow({ id: "nameless", rule: ruleDoc({ id: "nameless", name: "" }) })],
+    );
+
+    expect(entries[0]).toMatchObject({ ruleName: null, ruleExists: true });
   });
 });

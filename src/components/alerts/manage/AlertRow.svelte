@@ -166,8 +166,9 @@
                 <button
                     type="button"
                     class="pause-btn"
-                    aria-label={$_("dashboard.alerts.pauseAlert")}
-                    aria-pressed={!row.enabled}
+                    aria-label={row.enabled
+                        ? $_("dashboard.alerts.pauseAlert")
+                        : $_("dashboard.alerts.resumeAlert")}
                     title={row.enabled
                         ? $_("dashboard.alerts.pauseAlert")
                         : $_("dashboard.alerts.resumeAlert")}

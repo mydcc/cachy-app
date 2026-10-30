@@ -106,6 +106,7 @@
             <button
                 type="button"
                 class="chip"
+                class:bg-accent-paired={filters.status.includes(status)}
                 aria-pressed={filters.status.includes(status)}
                 onclick={() => toggleStatus(status)}
             >
@@ -120,6 +121,7 @@
             <button
                 type="button"
                 class="chip"
+                class:bg-accent-paired={filters.kind.includes(kind)}
                 aria-pressed={filters.kind.includes(kind)}
                 onclick={() => toggleKind(kind)}
             >
@@ -135,6 +137,7 @@
                 <button
                     type="button"
                     class="chip"
+                    class:bg-accent-paired={filters.timeframe.includes(timeframe)}
                     aria-pressed={filters.timeframe.includes(timeframe)}
                     onclick={() => toggleTimeframe(timeframe)}
                 >
@@ -150,6 +153,7 @@
             <button
                 type="button"
                 class="chip"
+                class:bg-accent-paired={filters.evaluation.includes(evaluation)}
                 aria-pressed={filters.evaluation.includes(evaluation)}
                 onclick={() => toggleEvaluation(evaluation)}
             >
@@ -160,7 +164,10 @@
 
     <label class="sort">
         <span class="field-label">{$_("dashboard.alerts.manageList.sort")}</span>
-        <select bind:value={sort}>
+        <select
+            value={sort}
+            onchange={(e) => (sort = e.currentTarget.value as ManageSort)}
+        >
             <option value="symbol">{$_("dashboard.alerts.manageList.sortSymbol")}</option>
             <option value="last-fired">{$_("dashboard.alerts.manageList.sortLastFired")}</option>
             <option value="expiry">{$_("dashboard.alerts.manageList.sortExpiry")}</option>
@@ -228,8 +235,6 @@
         cursor: pointer;
     }
     .chip[aria-pressed="true"] {
-        background: var(--bg-accent-paired, var(--bg-tertiary, var(--bg-secondary)));
-        color: var(--text-primary);
         border-color: var(--accent-color);
     }
     .sort {

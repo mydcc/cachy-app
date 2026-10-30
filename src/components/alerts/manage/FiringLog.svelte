@@ -50,21 +50,21 @@
     <div class="empty-state">{$_("dashboard.alerts.manageList.logEmpty")}</div>
 {:else}
     <div class="log-list">
-        {#each entries as entry (`${entry.ruleId}:${entry.recordedAtMs}:${entry.anchorMs}`)}
+        {#each entries as entry, index (`${entry.ruleId}:${entry.recordedAtMs}:${entry.anchorMs}:${index}`)}
             {@const anchor = format(entry.anchorMs)}
             <div class="log-item">
                 <div class="log-main">
                     <strong>{entry.symbol}</strong>
-                    {#if entry.ruleName}
+                    {#if entry.ruleExists}
                         <button
                             type="button"
                             class="rule-link"
                             aria-label={$_("dashboard.alerts.manageList.openRule", {
-                                values: { name: entry.ruleName },
+                                values: { name: entry.ruleName ?? entry.ruleId },
                             })}
                             onclick={() => onOpenRule(entry.ruleId)}
                         >
-                            {entry.ruleName}
+                            {entry.ruleName ?? entry.ruleId}
                         </button>
                     {:else}
                         <span class="deleted-rule">
@@ -88,8 +88,11 @@
                           failed write) still gets an entry from the rule's own
                           anchor — but it must not pretend to have a wall clock.
                         -->
-                        <span title={$_("dashboard.alerts.manageList.logAnchorOnly")}>
-                            {anchor}
+                        <span
+                            class="anchor-time"
+                            title={$_("dashboard.alerts.manageList.logAnchorOnly")}
+                        >
+                            {$_("dashboard.alerts.manageList.logAnchorOnly")} {anchor}
                         </span>
                     {/if}
                     {#if anchor && entry.recordedAtMs !== null}

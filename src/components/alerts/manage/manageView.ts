@@ -23,9 +23,9 @@
  * arbitrary number of rules, so the answering has to be testable without
  * mounting a component and the template may not map or filter in `{#each}`.
  *
- * Everything here is pure: rows in, rows out, no storage, no runes. The one
- * dependency on the outside world is the sentence translator, which is passed
- * in so the module stays locale-agnostic.
+ * Everything here is pure: rows in, rows out, no storage, no runes. The
+ * sentence translator is passed in so the module stays locale-agnostic; the
+ * logger is the only ambient dependency, used when a sentence cannot render.
  */
 
 import type {
@@ -36,6 +36,7 @@ import type {
 import type { ShadowFiringRecord } from "../../../services/alertEngine/shadowLedger";
 import { SHADOW_LEDGER_MAX_RECORDS } from "../../../services/alertEngine/shadowLedger";
 import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
+import { logger } from "../../../services/logger";
 import { renderRuleSentence } from "../../../lib/rules/ruleSentence";
 import type { EvaluationMode, RuleDocument } from "../../../lib/rules/types";
 import type { TranslationKey } from "../../../locales/schema";
@@ -138,8 +139,6 @@ export interface ManageRow extends AlarmRow {
   timeframe: string;
   /** The stored value, kept raw so an unknown one can be shown verbatim. */
   evaluation: string;
-  /** The value the filter groups on, defaulted the way the core reads it. */
-  evaluationMode: EvaluationMode;
   /** The stored value, kept raw so an unknown one can be shown verbatim. */
   frequency: string;
   validUntilMs: number | null;
@@ -157,8 +156,15 @@ export interface FiringEntry {
   /** Open time of the candle the verdict was computed on. */
   anchorMs: number | null;
   verdict: string | null;
-  /** The rule's current name, or null once the rule was deleted. */
+  /** The rule's current name, or null when the rule has none. */
   ruleName: string | null;
+  /**
+   * Whether the rule still exists, independently of its name.
+   *
+   * An unnamed rule (`name: ""`, the arming default) is not a deleted one; the
+   * log shows its id and keeps the open link while it is still in the store.
+   */
+  ruleExists: boolean;
 }
 
 function isOperand(value: unknown): value is { kind?: unknown; of?: unknown } {
@@ -220,7 +226,10 @@ export function sentenceFor(rule: StoredRule, translator: SentenceTranslator): s
       rule.action ? rule : { ...rule, action: { consequence_level: "notify" } }
     ) as RuleDocument;
     return renderRuleSentence(display, translator);
-  } catch {
+  } catch (e) {
+    // Not user-facing: the row simply has no sentence. Logged because the
+    // alternative is a silent feature regression on every affected row.
+    logger.warn("alerts", "Could not render a rule sentence", e);
     return null;
   }
 }
@@ -245,7 +254,6 @@ export function buildManageRows(
       kind: kindOf(rule, drawingRuleIds.has(row.id)),
       timeframe: typeof rule.trigger_timeframe === "string" ? rule.trigger_timeframe : "",
       evaluation,
-      evaluationMode: evaluation === "intrabar" ? "intrabar" : "close",
       frequency: typeof rule.frequency === "string" ? rule.frequency : "once",
       validUntilMs: finiteOrNull(rule.valid_until_ms),
       lastFiredAtMs: lastFiringById.get(row.id) ?? null,
@@ -258,9 +266,11 @@ export function matchesQuery(row: ManageRow, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (needle === "") return true;
 
-  return [row.symbol, row.rule.name ?? "", row.note ?? ""].some((value) =>
-    value.toLowerCase().includes(needle),
-  );
+  // A hand-edited store can hold a number or null where a string belongs; the
+  // search must not take the whole list down with it.
+  return [row.symbol, row.rule.name, row.note]
+    .map((value) => (typeof value === "string" ? value : ""))
+    .some((value) => value.toLowerCase().includes(needle));
 }
 
 function matchesGroup<T>(selected: readonly T[], value: T): boolean {
@@ -279,7 +289,8 @@ export function filterManageRows(
       matchesGroup(filters.status, row.status) &&
       matchesGroup(filters.kind, row.kind) &&
       matchesGroup(filters.timeframe, row.timeframe) &&
-      matchesGroup(filters.evaluation, row.evaluationMode),
+      // Raw, so an unknown mode is never silently counted as "close".
+      matchesGroup(filters.evaluation, row.evaluation),
   );
 }
 
@@ -296,8 +307,11 @@ export function sortManageRows(rows: readonly ManageRow[], sort: ManageSort): Ma
       if (delta !== 0) return delta;
     }
 
-    const bySymbol = a.symbol.localeCompare(b.symbol);
-    return bySymbol !== 0 ? bySymbol : a.id.localeCompare(b.id);
+    const symbolA = typeof a.symbol === "string" ? a.symbol : "";
+    const symbolB = typeof b.symbol === "string" ? b.symbol : "";
+    const bySymbol = symbolA.localeCompare(symbolB);
+    if (bySymbol !== 0) return bySymbol;
+    return String(a.id).localeCompare(String(b.id));
   });
 
   return sorted;
@@ -344,13 +358,13 @@ export function buildFiringLog(
   const rowById = new Map(rows.map((row) => [row.id, row]));
   const announced = new Set<string>();
 
-  const entries: FiringEntry[] = [];
+  const ledgerEntries: FiringEntry[] = [];
 
   for (const record of records) {
     if (record.source !== "rule") continue;
     announced.add(record.id);
     const row = rowById.get(record.id);
-    entries.push({
+    ledgerEntries.push({
       ruleId: record.id,
       symbol: record.symbol,
       timeframe: record.timeframe ?? row?.timeframe ?? "",
@@ -358,12 +372,14 @@ export function buildFiringLog(
       anchorMs: finiteOrNull(record.anchorMs),
       verdict: record.verdict ?? null,
       ruleName: row?.rule.name?.trim() || null,
+      ruleExists: row !== undefined,
     });
   }
 
+  const fallbackEntries: FiringEntry[] = [];
   for (const row of rows) {
     if (row.firedCount <= 0 || announced.has(row.id)) continue;
-    entries.push({
+    fallbackEntries.push({
       ruleId: row.id,
       symbol: row.symbol,
       timeframe: row.timeframe,
@@ -371,15 +387,24 @@ export function buildFiringLog(
       anchorMs: row.lastFiredAnchorMs,
       verdict: null,
       ruleName: row.rule.name?.trim() || null,
+      ruleExists: true,
     });
   }
 
-  entries.sort((a, b) => {
+  const byNewestFirst = (a: FiringEntry, b: FiringEntry) => {
     const wallClockA = a.recordedAtMs ?? Number.NEGATIVE_INFINITY;
     const wallClockB = b.recordedAtMs ?? Number.NEGATIVE_INFINITY;
     if (wallClockA !== wallClockB) return wallClockB - wallClockA;
     return (b.anchorMs ?? Number.NEGATIVE_INFINITY) - (a.anchorMs ?? Number.NEGATIVE_INFINITY);
-  });
+  };
 
-  return entries.slice(0, SHADOW_LEDGER_MAX_RECORDS);
+  ledgerEntries.sort(byNewestFirst);
+  fallbackEntries.sort(byNewestFirst);
+
+  /*
+   * The cap applies to ledger records, which is what its label promises. The
+   * fallbacks are recovered fires whose ledger write never happened; slicing
+   * after merging would discard exactly those first, because they sort last.
+   */
+  return [...ledgerEntries.slice(0, SHADOW_LEDGER_MAX_RECORDS), ...fallbackEntries];
 }
