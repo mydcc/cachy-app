@@ -230,3 +230,53 @@ describe("AccountList", () => {
         expect(host.querySelector('[data-testid="modal-frame-stub"]')).toBeNull();
     });
 });
+
+/**
+ * BUG-0714 — with one account, the reason its Remove button is disabled has to
+ * be on the surface. It used to live in a `title` on a disabled (unfocusable)
+ * button: no keyboard path, no touch path, and the accessible name never
+ * carried it.
+ */
+describe("BUG-0714 — the last-account reason is visible, not hover-only", () => {
+    beforeEach(() => {
+        settings.accounts = [
+            { id: "acc-1", name: "Main", exchange: "bitunix", keys: {} },
+        ];
+        settings.activeAccountId = "acc-1";
+    });
+
+    afterEach(() => {
+        settings.accounts = [
+            { id: "acc-1", name: "Main", exchange: "bitunix", keys: {} },
+            { id: "acc-2", name: "Second", exchange: "bitunix", keys: {} },
+        ];
+    });
+
+    it("renders the reason and puts it in the accessible name", () => {
+        render();
+
+        const hint = "The last account cannot be removed.";
+        const remove = buttonLabelled("Remove");
+
+        expect(remove.disabled).toBe(true);
+        expect(host.textContent).toContain(hint);
+        expect(remove.getAttribute("aria-label")).toBe(`Remove — ${hint}`);
+        // The explanation is a visible paragraph, not the hover title.
+        expect(remove.getAttribute("title")).toBeNull();
+    });
+
+    it("drops both the hint and the reason once a second account exists", () => {
+        settings.accounts = [
+            { id: "acc-1", name: "Main", exchange: "bitunix", keys: {} },
+            { id: "acc-2", name: "Second", exchange: "bitunix", keys: {} },
+        ];
+        render();
+
+        const remove = buttonLabelled("Remove");
+        expect(remove.disabled).toBe(false);
+        expect(host.textContent).not.toContain(
+            "The last account cannot be removed.",
+        );
+        expect(remove.getAttribute("aria-label")).toBeNull();
+    });
+});

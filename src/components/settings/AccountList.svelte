@@ -167,16 +167,25 @@
                         size="sm"
                         extraClasses="whitespace-nowrap"
                         disabled={!canRemove}
-                        title={canRemove
-                            ? undefined
-                            : $_(
+                        ariaLabel={!canRemove
+                            ? `${$_("settings.connections.accounts.remove")} — ${$_(
                                   "settings.connections.accounts.removeLastHint",
-                              )}
+                              )}`
+                            : undefined}
                         onClick={() => handleRemove(account)}
                     >
                         {$_("settings.connections.accounts.remove")}
                     </Button>
                 </div>
+                {#if !canRemove}
+                    <!-- BUG-0714 — the last-account reason used to live in a
+                         `title` on a disabled (unfocusable) button. It belongs
+                         on the surface, and in the accessible name because the
+                         control itself cannot be reached. -->
+                    <p class="text-xs text-[var(--text-secondary)]">
+                        {$_("settings.connections.accounts.removeLastHint")}
+                    </p>
+                {/if}
             </div>
         </div>
     {/each}

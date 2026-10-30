@@ -264,9 +264,16 @@
                 {#each availableTimeframes as tf (tf)}
                     {@const isSelected =
                         settingsState.analysisTimeframes.includes(tf)}
+                    {@const isLastSelected =
+                        isSelected &&
+                        settingsState.analysisTimeframes.length === 1}
                     <!-- FEAT-0611 escape: segmented timeframe toggle with a selected state and a last-one guard; FEAT-0607 owns the segmented pattern -->
                     <button
                         class="timeframe-btn {isSelected ? 'selected' : ''}"
+                        aria-disabled={isLastSelected ? "true" : undefined}
+                        aria-describedby={isLastSelected
+                            ? "timeframe-minimum-hint"
+                            : undefined}
                         onclick={() => {
                             if (isSelected) {
                                 // Don't allow removing last timeframe
@@ -290,6 +297,15 @@
                     </button>
                 {/each}
             </div>
+            {#if settingsState.analysisTimeframes.length === 1}
+                <!-- BUG-0718 — with one timeframe left, clicking it refuses in
+                     the handler. The reason belongs on the surface, and the
+                     button keeps its tab stop so it can be read together with
+                     this paragraph. -->
+                <p class="help-text" id="timeframe-minimum-hint">
+                    {$_("settings.calculation.lastTimeframeHint")}
+                </p>
+            {/if}
             <p class="help-text">
                 {$_("settings.calculation.timeframesHelpExtended")}
                 <strong>{$_("settings.calculation.recommendation")}</strong>
@@ -605,9 +621,13 @@
         transition: all 0.2s;
     }
 
-    .timeframe-btn:hover {
+    .timeframe-btn:hover:not([aria-disabled="true"]) {
         border-color: var(--primary-color);
         background: var(--bg-hover);
+    }
+
+    .timeframe-btn[aria-disabled="true"] {
+        cursor: not-allowed;
     }
 
     .timeframe-btn.selected {
