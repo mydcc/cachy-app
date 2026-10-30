@@ -1398,6 +1398,7 @@
       "timeframesHelpExtended": "Each selected timeframe multiplies API calls and CPU usage.",
       "timeframeReco": "Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.",
       "timeframesWarning": "{count} timeframes selected: Expect {count}x API calls and higher CPU load",
+      "lastTimeframeHint": "At least one timeframe stays selected.",
       "cacheShort": "Cache:"
     },
     "visuals": {
@@ -2249,6 +2250,7 @@
       "createToken": "Create access token",
       "createTokenError": "Could not create a token. Try again.",
       "addFeed": "Add Feed",
+      "feedLimitReached": "Limit of {max} custom feeds reached.",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
       "customFeeds": "Custom Feeds",

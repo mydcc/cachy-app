@@ -2,7 +2,7 @@
 id: BUG-0714
 title: The remove-account button explains its disabled state only in a title
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 created: "2026-10-21"
@@ -57,8 +57,8 @@ only channel.
 
 ## Acceptance criteria
 
-- [ ] The last-account reason is visible without hover and reachable by keyboard
-- [ ] A component test asserts the reason is in the DOM when the button is
+- [x] The last-account reason is visible without hover and reachable by keyboard
+- [x] A component test asserts the reason is in the DOM when the button is
       unavailable
 
 ## Links

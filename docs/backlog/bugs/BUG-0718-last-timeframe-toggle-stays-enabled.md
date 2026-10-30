@@ -2,7 +2,7 @@
 id: BUG-0718
 title: The last calculation-timeframe toggle stays enabled and silently refuses
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 created: "2026-10-21"
@@ -55,9 +55,9 @@ silent refusal.
 
 ## Acceptance criteria
 
-- [ ] With one timeframe left, the control either communicates why it cannot be
+- [x] With one timeframe left, the control either communicates why it cannot be
       removed or removes itself and selects a replacement
-- [ ] A test drives the one-left case
+- [x] A test drives the one-left case
 
 ## Links
 

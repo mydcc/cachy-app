@@ -30,6 +30,13 @@
     // Helper for masking inputs
     let showKeys: Record<string, boolean> = $state({});
 
+    /**
+     * BUG-0713 — one cap, read by the add handler, the counter and the
+     * reached-limit hint. It used to be a literal `5` in the template, so the
+     * button stopped responding with nothing on the surface naming the limit.
+     */
+    const MAX_CUSTOM_RSS_FEEDS = 5;
+
     function toggleKeyVisibility(id: string) {
         showKeys[id] = !showKeys[id];
     }
@@ -66,7 +73,7 @@
 
     function addCustomFeed() {
         if (!settingsState.customRssFeeds) settingsState.customRssFeeds = [];
-        if (settingsState.customRssFeeds.length < 5) {
+        if (settingsState.customRssFeeds.length < MAX_CUSTOM_RSS_FEEDS) {
             settingsState.customRssFeeds = [
                 ...settingsState.customRssFeeds,
                 "",
@@ -84,6 +91,17 @@
     }
 
     const activeSubTab = $derived(uiState.settingsConnectionsSubTab);
+
+    // BUG-0713 — the counter and the hint read the same count as the guard.
+    const customFeedCount = $derived(settingsState.customRssFeeds?.length ?? 0);
+    const atCustomFeedLimit = $derived(
+        customFeedCount >= MAX_CUSTOM_RSS_FEEDS,
+    );
+    const customFeedLimitHint = $derived(
+        $_("settings.connections.feedLimitReached", {
+            values: { max: MAX_CUSTOM_RSS_FEEDS },
+        }),
+    );
 
     const subTabs = [
         {
@@ -503,15 +521,31 @@
                             </div>
                         {/each}
                     {/if}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        extraClasses="w-max"
-                        onClick={addCustomFeed}
-                        disabled={(settingsState.customRssFeeds?.length || 0) >= 5}
-                    >
-                        + {$_("settings.connections.addFeed")}
-                    </Button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            extraClasses="w-max"
+                            onClick={addCustomFeed}
+                            ariaDisabled={atCustomFeedLimit}
+                            ariaLabel={atCustomFeedLimit
+                                ? `${$_("settings.connections.addFeed")} — ${customFeedLimitHint}`
+                                : undefined}
+                            title={atCustomFeedLimit
+                                ? customFeedLimitHint
+                                : undefined}
+                        >
+                            + {$_("settings.connections.addFeed")}
+                        </Button>
+                        <span class="text-xs text-[var(--text-secondary)]"
+                            >{customFeedCount} / {MAX_CUSTOM_RSS_FEEDS}</span
+                        >
+                    </div>
+                    {#if atCustomFeedLimit}
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            {customFeedLimitHint}
+                        </p>
+                    {/if}
                 </div>
             </section>
         {/if}

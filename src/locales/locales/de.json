@@ -1398,6 +1398,7 @@
       "timeframesHelpExtended": "Jeder ausgewählte Zeitrahmen vervielfacht API-Aufrufe und CPU-Last.",
       "timeframeReco": "Scalper: 5m, 15m. Daytrader: 15m, 1h, 4h. Swingtrader: 1h, 4h, 1d.",
       "timeframesWarning": "{count} Zeitrahmen ausgewählt: Erwarte {count}x API-Aufrufe und höhere CPU-Last",
+      "lastTimeframeHint": "Mindestens ein Zeitrahmen bleibt ausgewählt.",
       "cacheShort": "Cache:"
     },
     "visuals": {
@@ -2257,6 +2258,7 @@
       "rss": "RSS Feeds",
       "customFeeds": "Eigene Feeds",
       "addFeed": "Feed hinzufügen",
+      "feedLimitReached": "Limit von {max} eigenen Feeds erreicht.",
       "filter": "Filter",
       "plan": "Plan",
       "filterAll": "Alle",

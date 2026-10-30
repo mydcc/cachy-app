@@ -36,6 +36,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 
+import en from "../../locales/locales/en.json";
+
 const locale = vi.hoisted(() => ({ current: "en" as "en" | "de" }));
 
 vi.mock("../../locales/i18n", async () => {
@@ -142,6 +144,20 @@ function buttonLabelled(label: string): HTMLButtonElement {
     return button;
 }
 
+/** The copy a user reads, so a wording change is not a false red. */
+function message(key: string): string {
+    const value = key
+        .split(".")
+        .reduce<unknown>(
+            (acc, part) => (acc as Record<string, unknown>)?.[part],
+            en,
+        );
+    if (typeof value !== "string") {
+        throw new Error(`missing i18n key: ${key}`);
+    }
+    return value;
+}
+
 beforeEach(() => {
     locale.current = "en";
     localStorage.clear();
@@ -228,5 +244,87 @@ describe("AccountList", () => {
             expect.objectContaining({ confirmedAt: null }),
         );
         expect(host.querySelector('[data-testid="modal-frame-stub"]')).toBeNull();
+    });
+});
+
+/**
+ * BUG-0714 — with one account, the reason its Remove button is unavailable has
+ * to be on the surface. It used to live in a `title` on a natively disabled
+ * button: no keyboard path, no touch path, and the accessible name never
+ * carried it.
+ */
+describe("BUG-0714 — the last-account reason is visible and keyboard-reachable", () => {
+    const removeLabel = message("settings.connections.accounts.remove");
+    const hint = message("settings.connections.accounts.removeLastHint");
+
+    /** Every Remove control, in row order. */
+    function removeButtons(): HTMLButtonElement[] {
+        return Array.from(
+            host.querySelectorAll<HTMLButtonElement>("button"),
+        ).filter((button) => button.textContent?.trim() === removeLabel);
+    }
+
+    beforeEach(() => {
+        settings.accounts = [
+            { id: "acc-1", name: "Main", exchange: "bitunix", keys: {} },
+        ];
+        settings.activeAccountId = "acc-1";
+    });
+
+    afterEach(() => {
+        settings.accounts = [
+            { id: "acc-1", name: "Main", exchange: "bitunix", keys: {} },
+            { id: "acc-2", name: "Second", exchange: "bitunix", keys: {} },
+        ];
+    });
+
+    it("renders the reason, names it on the control and keeps the control focusable", () => {
+        render();
+
+        const remove = buttonLabelled(removeLabel);
+
+        expect(host.textContent).toContain(hint);
+        expect(remove.getAttribute("aria-disabled")).toBe("true");
+        // `aria-disabled`, not native `disabled`: a disabled control is outside
+        // the tab order, which is where the reason is needed.
+        expect(remove.disabled).toBe(false);
+        remove.focus();
+        expect(document.activeElement).toBe(remove);
+
+        expect(remove.getAttribute("aria-label")).toBe(
+            `${removeLabel} — ${hint}`,
+        );
+        // The explanation is a visible paragraph, not the hover title.
+        expect(remove.getAttribute("title")).toBeNull();
+    });
+
+    it("does not open the confirmation when the unavailable control is pressed", () => {
+        render();
+
+        const showCalls = vi.mocked(modalState.show).mock.calls.length;
+        buttonLabelled(removeLabel).click();
+        flushSync();
+
+        // The primitive refuses the press, so the handler never starts a
+        // destructive flow it would then have to abandon.
+        expect(vi.mocked(modalState.show).mock.calls.length).toBe(showCalls);
+        expect(settings.removeAccount).not.toHaveBeenCalled();
+    });
+
+    it("drops the hint and the reason once a second account exists", () => {
+        settings.accounts = [
+            { id: "acc-1", name: "Main", exchange: "bitunix", keys: {} },
+            { id: "acc-2", name: "Second", exchange: "bitunix", keys: {} },
+        ];
+        render();
+
+        const removes = removeButtons();
+        expect(removes).toHaveLength(2);
+        for (const remove of removes) {
+            expect(remove.disabled).toBe(false);
+            expect(remove.getAttribute("aria-disabled")).toBeNull();
+            expect(remove.getAttribute("aria-label")).toBeNull();
+        }
+        expect(host.textContent).not.toContain(hint);
     });
 });
