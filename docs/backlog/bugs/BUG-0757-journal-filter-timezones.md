@@ -2,7 +2,9 @@
 id: BUG-0757
 title: Journal date filter uses local end bound against UTC start bound
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-journal-dates
 priority: P3
 milestone: none
 editions: [community, pro, private]

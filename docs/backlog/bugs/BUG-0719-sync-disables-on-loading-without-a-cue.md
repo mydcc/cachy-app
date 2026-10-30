@@ -2,7 +2,9 @@
 id: BUG-0719
 title: Journal sync disables on uiState.isLoading with no visible reason
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-journal-dates
 priority: P3
 milestone: none
 created: "2026-10-21"
