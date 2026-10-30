@@ -16,9 +16,17 @@
     import { intlTagFor } from "../../lib/i18n/intlTag";
     import { alertPanelState } from "../../stores/alertPanel.svelte";
     import {
+        EXTERNAL_METHODS,
         FREQUENCY_KEYS,
+        LOCAL_METHODS,
         METHOD_KEYS,
     } from "../../lib/alerts/lifecycleLabels";
+    import {
+        isSilentSet,
+        methodForChannel,
+    } from "../../lib/alerts/effectiveChannels";
+    import { externalChannelsStore } from "../../stores/externalChannels.svelte";
+    import { ruleEffectiveChannels, sendTestAnnouncement } from "../../services/alertTest";
     import {
         NOTE_MAX_CHARS,
         type TriggerFrequency,
@@ -26,9 +34,31 @@
     } from "../../lib/rules/types";
 
     const FREQUENCIES: TriggerFrequency[] = ["once", "every_time", "once_per_candle_close"];
-    const METHODS: TriggerMethod[] = ["in_app", "browser", "sound"];
 
     const draft = $derived(alertPanelState.draft);
+
+    /**
+     * External channels the trader could actually use. An unconfigured one is
+     * absent rather than present-and-inert — FEAT-0748: a tick that delivers
+     * nothing is the silent alarm this feature exists to prevent.
+     */
+    const externalMethods = $derived(
+        EXTERNAL_METHODS.filter((method) =>
+            externalChannelsStore.isActive(method as "email" | "discord" | "telegram"),
+        ),
+    );
+
+    const effective = $derived(ruleEffectiveChannels(draft));
+
+    const effectiveLabel = $derived(
+        [...effective.local, ...effective.external]
+            .map((channel) => $_(METHOD_KEYS[methodForChannel(channel)]))
+            .join(", "),
+    );
+
+    function sendTest(): void {
+        sendTestAnnouncement(draft);
+    }
 
     /**
      * An `Intl` locale tag for the app's language, not the browser's.
@@ -174,7 +204,7 @@
         <legend class="field-label">
             {$_("dashboard.alerts.panel.lifecycle.triggerMethod")}
         </legend>
-        {#each METHODS as method (method)}
+        {#each [...LOCAL_METHODS, ...externalMethods] as method (method)}
             <label class="method">
                 <input
                     type="checkbox"
@@ -188,6 +218,26 @@
             {$_("dashboard.alerts.panel.lifecycle.triggerMethodHint")}
         </p>
     </fieldset>
+
+    <div class="effective">
+        <span class="field-hint effective-label">
+            {#if isSilentSet(effective)}
+                {$_("dashboard.alerts.panel.lifecycle.effectiveNone")}
+            {:else}
+                {$_("dashboard.alerts.panel.lifecycle.effective", {
+                    values: { channels: effectiveLabel },
+                })}
+            {/if}
+        </span>
+        <button
+            type="button"
+            class="test-btn"
+            onclick={sendTest}
+            disabled={isSilentSet(effective)}
+        >
+            {$_("dashboard.alerts.panel.lifecycle.sendTest")}
+        </button>
+    </div>
 
     <label class="field">
         <span class="field-label">{$_("dashboard.alerts.panel.lifecycle.note")}</span>
@@ -294,5 +344,33 @@
     .methods .field-hint {
         flex-basis: 100%;
         align-self: flex-start;
+    }
+
+    .effective {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-sm, 0.5rem);
+    }
+
+    .effective-label {
+        flex: 1 1 12rem;
+        align-self: flex-start;
+    }
+
+    .test-btn {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm, 0.25rem);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: var(--font-size-xs, 0.75rem);
+        cursor: pointer;
+    }
+
+    .test-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
     }
 </style>

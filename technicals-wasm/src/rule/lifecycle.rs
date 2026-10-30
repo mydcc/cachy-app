@@ -63,12 +63,13 @@ pub enum TriggerFrequency {
 
 /// A channel a trigger is announced on.
 ///
-/// Only the channels that exist. `Sound` is named because
-/// [`FEAT-0392`](../../../docs/backlog/features/FEAT-0392-notification-sound-channel.md)
-/// is the next item and the shape is known; external channels are deliberately
-/// absent, because FEAT-0397 has three unresolved constraints and a schema
-/// invented for a feature that may not ship in that shape is a migration owed
-/// for nothing.
+/// Every channel the delivery layer knows. The external three are selectable
+/// per rule since FEAT-0748, but the rule only *narrows*: the notification
+/// policy remains the ceiling and a channel the trader has not configured
+/// cannot carry anything. Core validation therefore accepts the name without
+/// knowing whether the device can reach it — whether a channel is configured
+/// and switched on belongs to the device, not to a document that may be
+/// imported on another one.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum TriggerMethod {
@@ -78,6 +79,12 @@ pub enum TriggerMethod {
     Browser,
     /// An audible cue. Owned by FEAT-0392.
     Sound,
+    /// An e-mail through the trader's own Mailgun account — ADR-0018.
+    Email,
+    /// A Discord webhook the trader owns — ADR-0018.
+    Discord,
+    /// A Telegram bot the trader owns — ADR-0018.
+    Telegram,
 }
 
 /// Whether a rule may still announce itself, and why not when it may not.

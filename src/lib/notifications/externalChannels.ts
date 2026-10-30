@@ -149,6 +149,7 @@ export type ConfigProblem =
  */
 export type FailureReason =
     | "notConfigured"
+    | "paused"
     | "network"
     | "timeout"
     | "unauthorized"

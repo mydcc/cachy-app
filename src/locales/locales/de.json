@@ -440,13 +440,20 @@
           "methodOption": {
             "in_app": "In der App",
             "browser": "Browser",
-            "sound": "Ton"
+            "sound": "Ton",
+            "email": "E-Mail",
+            "discord": "Discord",
+            "telegram": "Telegram"
           },
           "legend": "Lebenszyklus",
           "summaryUntil": "bis {date}",
-          "summaryNoted": "mit Notiz"
+          "summaryNoted": "mit Notiz",
+          "effective": "Geht an {channels}",
+          "effectiveNone": "Kein Kanal aktiv — es würde nichts angekündigt",
+          "sendTest": "Test senden"
         }
       },
+      "testAnnouncement": "Test — {message}",
       "brokenRule": {
         "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann.",
         "badge": "Kann nicht auslösen"
@@ -2745,6 +2752,7 @@
       },
       "failures": {
         "notConfigured": "Kanal nicht vollständig eingerichtet.",
+        "paused": "Kanal ist pausiert.",
         "network": "Keine Verbindung zum Dienst.",
         "timeout": "Der Dienst hat nicht rechtzeitig geantwortet.",
         "unauthorized": "Der Dienst hat die Zugangsdaten abgelehnt.",
@@ -2765,6 +2773,7 @@
       "channelDiscord": "Discord",
       "channelTelegram": "Telegram",
       "channelNeedsSetup": "Erst unten einrichten",
+      "channelPaused": "Kanal pausiert — unten bei „Externe Kanäle“ einschalten",
       "soundTitle": "Ton-Kanal",
       "soundIntro": "Ein Ton erreicht dich auch dann, wenn Cachy im Hintergrund-Tab liegt. Er ist pro Ereignis einzeln schaltbar.",
       "soundVolume": "Lautstärke",

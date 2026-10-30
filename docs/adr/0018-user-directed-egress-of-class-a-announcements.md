@@ -6,6 +6,10 @@
 - **Amended:** 2026-10-28 — per-rule selection of the three local channels shipped
   (BUG-0750); per-rule *external* selection remains deferred, so the egress
   reasoning below is unchanged for `email`, `discord` and `telegram`.
+- **Amended:** 2026-10-30 — per-rule selection now covers the external channels
+  too (FEAT-0748). The policy remains the ceiling; a rule can only narrow
+  delivery to a channel that is configured and switched on. A test send goes
+  through the same service and is labelled as a test.
 
 ## Context
 
@@ -71,6 +75,18 @@ buys nothing except the word.
    delivered on, because a `fetch` cannot be truthfully reported by a function
    that has already returned. The outcome — success, or a reason — lands in
    `externalDeliveryLog` and is rendered per channel in the settings UI.
+
+6. **A rule may narrow external delivery, never widen it.** `trigger_methods`
+   may name `email`, `discord` or `telegram` (FEAT-0748), and delivery then
+   uses the intersection of the rule's choice, the category policy and the
+   channel's own switch. A rule that names a channel the policy does not want,
+   or one that is not configured, delivers nothing on it: the specific choice
+   ranks above the category default only within the ceiling the trader set in
+   Settings. Selecting no external method means "the policy decides", which is
+   how every rule authored before the field existed behaves. The field stays
+   hash-excluded, so no journal linkage migrates.
+   A wanted channel that is not active is recorded in `externalDeliveryLog`
+   (`paused` or `notConfigured`) instead of being skipped silently — BUG-0753.
 
 ## Consequences
 

@@ -440,13 +440,20 @@
           "methodOption": {
             "in_app": "In-app",
             "browser": "Browser",
-            "sound": "Sound"
+            "sound": "Sound",
+            "email": "Email",
+            "discord": "Discord",
+            "telegram": "Telegram"
           },
           "legend": "Lifecycle",
           "summaryUntil": "until {date}",
-          "summaryNoted": "noted"
+          "summaryNoted": "noted",
+          "effective": "Goes to {channels}",
+          "effectiveNone": "No channel is active — nothing would be announced",
+          "sendTest": "Send test"
         }
       },
+      "testAnnouncement": "Test — {message}",
       "brokenRule": {
         "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate.",
         "badge": "Cannot fire"
@@ -2745,6 +2752,7 @@
       },
       "failures": {
         "notConfigured": "Channel is not fully set up.",
+        "paused": "Channel is paused.",
         "network": "Could not reach the service.",
         "timeout": "The service did not answer in time.",
         "unauthorized": "The service rejected the credentials.",
@@ -2765,6 +2773,7 @@
       "channelDiscord": "Discord",
       "channelTelegram": "Telegram",
       "channelNeedsSetup": "Set this up below first",
+      "channelPaused": "Channel paused — switch it on in External channels below",
       "soundTitle": "Sound channel",
       "soundIntro": "A sound reaches you while Cachy sits in a background tab. It switches on per event, like the other channels.",
       "soundVolume": "Volume",

@@ -59,6 +59,7 @@ vi.mock("./externalDelivery", () => externalMock);
 import { notificationService } from "./notificationService.svelte";
 import { notificationPolicyStore } from "../stores/notifications.svelte";
 import { externalChannelsStore } from "../stores/externalChannels.svelte";
+import { externalDeliveryLog } from "../stores/externalDeliveryLog.svelte";
 import {
     DEFAULT_NOTIFICATION_POLICY,
     NOTIFICATION_CATEGORIES,
@@ -86,6 +87,7 @@ beforeEach(() => {
     notificationService.reset();
     notificationPolicyStore.reset();
     externalChannelsStore.reload();
+    externalDeliveryLog.clear();
     delete (globalThis as { Notification?: unknown }).Notification;
 });
 
@@ -390,7 +392,102 @@ describe("the external channels — FEAT-0397", () => {
             ["discord"],
             "BTCUSDT crossed 70000",
             expect.any(String),
+            false,
         );
+    });
+
+    it("records a wanted channel that is paused instead of skipping it silently", () => {
+        // BUG-0753: valid credentials, the card's switch off. The policy still
+        // says "on", so the only honest place to explain the silence is the log.
+        externalChannelsStore.setDiscord({ enabled: false, webhookUrl: WEBHOOK, format: "minimal" });
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-paused@0",
+            message: "BTCUSDT crossed 70000",
+        });
+
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+        expect(externalDeliveryLog.entries).toHaveLength(1);
+        expect(externalDeliveryLog.entries[0]).toMatchObject({
+            channel: "discord",
+            ok: false,
+            reason: "paused",
+            test: false,
+        });
+    });
+
+    it("records a wanted channel with missing credentials as not configured", () => {
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-setup@0",
+            message: "BTCUSDT crossed 70000",
+        });
+
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+        expect(externalDeliveryLog.entries[0]).toMatchObject({
+            channel: "discord",
+            reason: "notConfigured",
+        });
+    });
+
+    it("narrows delivery to the external channels the rule selected", () => {
+        configureDiscord();
+        externalChannelsStore.setTelegram({
+            enabled: true,
+            botToken: "123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw",
+            chatId: "42",
+        });
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+        notificationPolicyStore.setChannel("alert-fired", "telegram", true);
+
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-narrow@0",
+            message: "BTCUSDT crossed 70000",
+            externalChannels: ["telegram"],
+        });
+
+        expect(externalMock.dispatchExternal).toHaveBeenCalledWith(
+            ["telegram"],
+            "BTCUSDT crossed 70000",
+            expect.any(String),
+            false,
+        );
+    });
+
+    it("cannot open a channel the policy does not want", () => {
+        configureDiscord();
+        // The policy wants no external channel for alerts by default.
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-ceiling@0",
+            message: "BTCUSDT crossed 70000",
+            externalChannels: ["discord"],
+        });
+
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+    });
+
+    it("delivers on exactly the given channels when the test send asks for it", () => {
+        configureDiscord();
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        // `exactChannels` with an empty list means "nothing external", not "the
+        // policy decides" — a test must prove the rule's set, not a fallback.
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "test:r-1",
+            message: "Test",
+            externalChannels: [],
+            exactChannels: true,
+            test: true,
+        });
+
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
     });
 
     it("leaves external channels out of the delivered list", () => {
@@ -550,6 +647,7 @@ describe("a rule's own channel selection — BUG-0750", () => {
             ["discord"],
             "BTCUSDT crossed 70000",
             expect.any(String),
+            false,
         );
     });
 

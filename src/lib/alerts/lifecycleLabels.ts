@@ -43,7 +43,16 @@ export const METHOD_KEYS: Record<TriggerMethod, TranslationKey> = {
   in_app: "dashboard.alerts.panel.lifecycle.methodOption.in_app",
   browser: "dashboard.alerts.panel.lifecycle.methodOption.browser",
   sound: "dashboard.alerts.panel.lifecycle.methodOption.sound",
+  email: "dashboard.alerts.panel.lifecycle.methodOption.email",
+  discord: "dashboard.alerts.panel.lifecycle.methodOption.discord",
+  telegram: "dashboard.alerts.panel.lifecycle.methodOption.telegram",
 };
+
+/** The methods this app can deliver on-device. */
+export const LOCAL_METHODS: readonly TriggerMethod[] = ["in_app", "browser", "sound"];
+
+/** The methods that leave the device, in the order the selector shows them. */
+export const EXTERNAL_METHODS: readonly TriggerMethod[] = ["email", "discord", "telegram"];
 
 export const EVALUATION_KEYS: Record<EvaluationMode, TranslationKey> = {
   close: "dashboard.alerts.panel.evaluationModeOption.close",

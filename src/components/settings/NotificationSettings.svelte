@@ -57,16 +57,18 @@
   } as const satisfies Record<NotificationChannel, string>;
 
   /**
-   * An external channel with no credentials has nothing to offer here.
+   * Why an external channel cannot carry anything right now.
    *
-   * It is disabled rather than hidden, with a hint pointing at the section
-   * below: a trader looking for "Discord" in this list needs to find out *why*
-   * it is not available, and a row that silently is not rendered tells them the
-   * feature does not exist.
+   * "needsSetup" (missing or invalid credentials) and "paused" (valid but the
+   * card's switch is off) are different things a trader fixes in different
+   * places, so the matrix names both instead of leaving one switch reading "on"
+   * while delivery silently skips it — BUG-0753.
    */
-  function externalProblem(channel: NotificationChannel): boolean {
-    if (!isExternalChannel(channel)) return false;
-    return externalChannelsStore.problem(channel as ExternalChannelId) !== null;
+  function externalState(channel: NotificationChannel): "ok" | "needsSetup" | "paused" {
+    if (!isExternalChannel(channel)) return "ok";
+    const id = channel as ExternalChannelId;
+    if (externalChannelsStore.problem(id) !== null) return "needsSetup";
+    return externalChannelsStore.isActive(id) ? "ok" : "paused";
   }
 
   let permission = $state(notificationService.permission());
@@ -115,8 +117,9 @@
            * permanent. Only a browser that cannot play at all blocks it.
            */
           (channel === "sound" && soundAvailability === "unsupported") ||
-          externalProblem(channel),
-        needsSetup: externalProblem(channel),
+          externalState(channel) !== "ok",
+        needsSetup: externalState(channel) === "needsSetup",
+        paused: externalState(channel) === "paused",
       })),
     })),
   );
@@ -175,10 +178,14 @@
           {#each row.channels as ch (ch.channel)}
             <div
               class="flex items-center gap-2"
-              title={ch.needsSetup ? $_("settings.notifications.channelNeedsSetup") : undefined}
+              title={ch.needsSetup
+                ? $_("settings.notifications.channelNeedsSetup")
+                : ch.paused
+                  ? $_("settings.notifications.channelPaused")
+                  : undefined}
             >
               <label
-                class="text-[11px] cursor-pointer {ch.needsSetup
+                class="text-[11px] cursor-pointer {ch.needsSetup || ch.paused
                   ? 'text-[var(--text-tertiary)] italic'
                   : 'text-[var(--text-secondary)]'}"
                 for="notify-{row.category}-{ch.channel}"

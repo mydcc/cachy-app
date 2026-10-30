@@ -36,6 +36,7 @@ import { soundChannel } from "./soundChannel.svelte";
 import { TONE_FOR_CATEGORY } from "../lib/notificationTones";
 import { dispatchExternal } from "./externalDelivery";
 import { externalChannelsStore } from "../stores/externalChannels.svelte";
+import { externalDeliveryLog } from "../stores/externalDeliveryLog.svelte";
 import { EXTERNAL_NOTIFICATION_CHANNELS } from "../lib/notificationPolicy";
 import type { ExternalChannelId } from "../lib/notifications/externalChannels";
 import { logger } from "./logger";
@@ -75,6 +76,27 @@ export interface NotificationRequest {
      * silent — `isSilent` is checked before this field is read.
      */
     localChannels?: readonly LocalNotificationChannel[];
+    /**
+     * The external channels this particular announcement asks for — FEAT-0748.
+     *
+     * Non-empty: narrows the policy's external set to these, and only where the
+     * policy already wants them *and* the channel is active. Absent or empty:
+     * the policy decides, as it did before this field existed.
+     *
+     * A rule can therefore never open a channel the trader silenced: the policy
+     * is the ceiling, not a default the rule may overrule.
+     */
+    externalChannels?: readonly ExternalChannelId[];
+    /**
+     * Treat both lists as exhaustive rather than as a narrowing — FEAT-0748.
+     *
+     * Only the test send passes this. A rule's test must reach *exactly* the
+     * set the rule would use; without this flag an empty list would fall back to
+     * the policy and the test would prove a channel the rule never uses.
+     */
+    exactChannels?: boolean;
+    /** Marks the announcement as a test in the delivery log and the body. */
+    test?: boolean;
 }
 
 /**
@@ -135,7 +157,16 @@ class NotificationService {
      * absence of delivery rather than the presence of a message.
      */
     public notify(request: NotificationRequest): string[] {
-        const { category, eventId, message, tone = "info", localChannels } = request;
+        const {
+            category,
+            eventId,
+            message,
+            tone = "info",
+            localChannels,
+            externalChannels,
+            exactChannels = false,
+            test = false,
+        } = request;
 
         if (notificationPolicyStore.isSilent(category)) return [];
 
@@ -148,12 +179,22 @@ class NotificationService {
         const selected = localChannels?.filter(isLocalNotificationChannel) ?? [];
 
         /*
+         * The external half — FEAT-0748. Sanitised the same way: a name this
+         * build does not know must not turn into a selection that matches
+         * nothing, because that would mute an alarm the trader asked for.
+         */
+        const selectedExternal = (externalChannels ?? []).filter(
+            (channel): channel is ExternalChannelId =>
+                (EXTERNAL_NOTIFICATION_CHANNELS as readonly string[]).includes(channel),
+        );
+
+        /*
          * One place for the precedence, so the toast, the OS notification and
          * the tone cannot disagree about who decides. `undefined` and `[]` both
          * mean "the policy decides".
          */
         const wantsLocal = (channel: LocalNotificationChannel): boolean =>
-            selected.length > 0
+            selected.length > 0 || exactChannels
                 ? selected.includes(channel)
                 : notificationPolicyStore.wants(category, channel);
 
@@ -213,8 +254,10 @@ class NotificationService {
          * outcome goes to `externalDeliveryLog` and the settings UI reads it
          * there.
          */
-        const external = this.externalTargets(category);
-        if (external.length > 0) dispatchExternal(external, message, this.subjectFor(category));
+        const external = this.externalTargets(category, selectedExternal, test, exactChannels);
+        if (external.length > 0) {
+            dispatchExternal(external, message, this.subjectFor(category), test);
+        }
 
         return delivered;
     }
@@ -227,19 +270,48 @@ class NotificationService {
     }
 
     /**
-     * The external channels this category should reach: wanted by the policy,
-     * and actually configured.
+     * The external channels this announcement should reach.
      *
-     * Both halves matter. A channel switched on with a cleared webhook would
-     * otherwise produce one failure entry per alert, which buries the entries
-     * that describe a real problem.
+     * Two authorities: the policy decides whether a channel may carry this
+     * category at all, and the rule may narrow the result further. A rule
+     * naming a channel the policy does not want is not a request the service
+     * can honour — the policy is the ceiling (ADR-0018).
+     *
+     * A wanted channel that is not active is skipped *with an entry in the
+     * delivery log* (BUG-0753): silence was the defect, not the skip itself.
      */
-    private externalTargets(category: NotificationCategory): ExternalChannelId[] {
+    private externalTargets(
+        category: NotificationCategory,
+        requested: readonly ExternalChannelId[],
+        test: boolean,
+        exact: boolean,
+    ): ExternalChannelId[] {
         const targets: ExternalChannelId[] = [];
         for (const channel of EXTERNAL_NOTIFICATION_CHANNELS) {
             if (!notificationPolicyStore.wants(category, channel)) continue;
             const id = channel as ExternalChannelId;
-            if (externalChannelsStore.isActive(id)) targets.push(id);
+            // In exact mode an empty list means "nothing external", not "the
+            // policy decides": the test send resolves the set beforehand.
+            if (exact && !requested.includes(id)) continue;
+            if (!exact && requested.length > 0 && !requested.includes(id)) continue;
+
+            if (externalChannelsStore.isActive(id)) {
+                targets.push(id);
+                continue;
+            }
+
+            externalDeliveryLog.record({
+                channel: id,
+                ok: false,
+                atMs: Date.now(),
+                test,
+                /*
+                 * Two states the trader can act on differently: missing
+                 * credentials is "set this up", a valid-but-switched-off
+                 * channel is "switch it on".
+                 */
+                reason: externalChannelsStore.problem(id) === null ? "paused" : "notConfigured",
+            });
         }
         return targets;
     }
