@@ -2,9 +2,7 @@
 id: BUG-0728
 title: Button variants drift from the semantic colour pairs in several themes
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/ui-theme-contrast
+status: done
 priority: P2
 milestone: none
 created: 2026-10-22
@@ -64,6 +62,17 @@ pairs; `--btn-warning-bg` is the one token that is *not* re-declared per theme.
    (preferred) or change the value so both families agree.
 3. Where a divergence is intentional, record it next to the theme block with the
    ratio it produces.
+
+## Acceptance criteria
+
+- [x] A test resolves every `--btn-*-bg` / `--btn-*-text` pair in every theme
+      block through the cascade and asserts `>= 4.5:1` at the primitive's
+      14 px/700
+- [x] Every pair below that threshold is fixed
+- [x] Each theme that keeps a fill divergent from its semantic colour records
+      the ratio next to the block
+- [x] A pair restored to its pre-fix value turns the gate red (matrix success
+      with `--green-400` on `--green-400`: `1.00:1`)
 
 ## Out of scope
 
