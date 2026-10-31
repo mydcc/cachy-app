@@ -94,7 +94,7 @@ function renderIndicatorsTab(): HTMLElement {
     flushSync();
 
     const tabs = [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-    const indicatorsTab = tabs.find((tab) => tab.textContent?.trim() === lookup("indicatorLessons.title"));
+    const indicatorsTab = tabs.find((tab) => tab.getAttribute("aria-label") === lookup("indicatorLessons.title"));
     if (!indicatorsTab) throw new Error("the indicators tab is not rendered");
     indicatorsTab.click();
     flushSync();

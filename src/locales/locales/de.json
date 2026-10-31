@@ -3002,6 +3002,7 @@
   },
   "chartPatterns": {
     "title": "Chartmuster Akademie",
+    "shortTitle": "Chartmuster",
     "searchPlaceholder": "Muster suchen...",
     "searchLabel": "Muster suchen",
     "categoryLabel": "Nach Kategorie filtern",
@@ -3827,6 +3828,7 @@
   },
   "candlestickPatterns": {
     "title": "Candlestick Muster Akademie",
+    "shortTitle": "Candlestick",
     "doji": {
       "name": "Doji",
       "description": "Ein Doji bildet sich, wenn Eröffnungs- und Schlusskurs fast identisch sind. Er signalisiert ein Gleichgewicht zwischen Käufern und Verkäufern.\n\n### Mathematische Kriterien\n\n  $$ |\\text{Open} - \\text{Close}| \\le 0.1 \\times (\\text{High} - \\text{Low}) $$",
@@ -4325,6 +4327,7 @@
     "title": "Trading Akademie",
     "structure": {
       "title": "Marktstruktur & Regime",
+      "shortTitle": "Struktur",
       "openLesson": "Lektion öffnen",
       "read": {
         "timeframe": "Timeframe (alle Demos)",
@@ -5087,6 +5090,7 @@
   },
   "indicatorLessons": {
     "title": "Indikatoren & Setups",
+    "shortTitle": "Indikatoren",
     "searchLabel": "Indikatoren durchsuchen",
     "searchPlaceholder": "Indikatoren suchen...",
     "groupLabel": "Gruppe",

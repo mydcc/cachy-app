@@ -3029,6 +3029,7 @@
   },
   "chartPatterns": {
     "title": "Chart Patterns Academy",
+    "shortTitle": "Patterns",
     "searchPlaceholder": "Search patterns...",
     "searchLabel": "Search patterns",
     "categoryLabel": "Filter by category",
@@ -4272,7 +4273,8 @@
       "interpretation": "### Rules\n* Support is solid. Buy.",
       "indicatorCombination": "The signal is reinforced by high volume on the wick candles and the bullish confirmation candle. A bullish divergence in the RSI or MACD makes a successful reversal more likely."
     },
-    "title": "Candlestick Academy"
+    "title": "Candlestick Academy",
+    "shortTitle": "Candlestick"
   },
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",
@@ -4385,6 +4387,7 @@
     "title": "Trading Academy",
     "structure": {
       "title": "Market Structure & Regime",
+      "shortTitle": "Structure",
       "openLesson": "Open lesson",
       "read": {
         "timeframe": "Timeframe (all demos)",
@@ -5087,6 +5090,7 @@
   },
   "indicatorLessons": {
     "title": "Indicators & Setups",
+    "shortTitle": "Indicators",
     "searchLabel": "Search indicators",
     "searchPlaceholder": "Search indicators...",
     "groupLabel": "Group",

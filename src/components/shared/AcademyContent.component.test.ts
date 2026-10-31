@@ -77,9 +77,14 @@ function render() {
     flushSync();
 }
 
+/*
+ * BUG-0762: tabs render both label variants (short + full) in the DOM for
+ * the container-query switch, so textContent is no longer a stable lookup.
+ * The accessible name is the full label, at every width.
+ */
 function tabButton(labelKey: string): HTMLButtonElement {
-    const el = [...host.querySelectorAll<HTMLButtonElement>("button")].find(
-        (b) => b.textContent?.trim() === lookup(labelKey),
+    const el = [...host.querySelectorAll<HTMLButtonElement>('button[role="tab"]')].find(
+        (b) => b.getAttribute("aria-label") === lookup(labelKey),
     );
     if (!el) throw new Error(`tab ${labelKey} not rendered`);
     return el;
