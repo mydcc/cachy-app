@@ -51,8 +51,8 @@ export type ToggleTarget =
     | "market-sentiment";
 
 export type DerivedFlagKey =
-    | "isTechnicalsVisible"
     | "effectiveShowSidebarActivity"
+    | "sidebarActivityAvailable"
     | "journalFetching"
     | "multipleAccounts"
     | "rssFeedCapacityAvailable";
@@ -103,6 +103,11 @@ export interface Placement {
     keyboard: KeyboardRoute;
     visibleWhen?: Condition;
     enabledWhen?: Condition;
+    /**
+     * Why the control cannot act when `enabledWhen` is false (BUG-0715).
+     * A disabled rail button that does not say what blocks it reads as broken.
+     */
+    disabledReason?: TranslationKey;
     /** Visual selected state (a toggle that is on, a panel that is open). */
     activeWhen?: Condition;
 }
@@ -444,10 +449,11 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         opener: { kind: "toggle", target: "technicals" },
         placements: [
             rail(70, "panels", {
-                enabledWhen: {
-                    kind: "derived",
-                    key: "isTechnicalsVisible",
-                },
+                // BUG-0715: the chevron and the rail now share one flag, so the
+                // button is honest at both widths. The panel lives in the
+                // sidebar column, which is why the column gates the button.
+                enabledWhen: { kind: "setting", key: "showSidebars" },
+                disabledReason: "dashboard.railSidebarsHidden",
                 activeWhen: {
                     kind: "setting",
                     key: "showTechnicals",
@@ -463,13 +469,10 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         opener: { kind: "toggle", target: "market-overview" },
         placements: [
             rail(80, "panels", {
-                enabledWhen: {
-                    kind: "all",
-                    conditions: [
-                        { kind: "setting", key: "showSidebars" },
-                        { kind: "viewport", minWidth: 1280 },
-                    ],
-                },
+                // The mobile stack renders the same panel, so the toggle has an
+                // effect below xl; only the column gates it.
+                enabledWhen: { kind: "setting", key: "showSidebars" },
+                disabledReason: "dashboard.railSidebarsHidden",
                 activeWhen: {
                     kind: "setting",
                     key: "showMarketOverview",
@@ -485,14 +488,22 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         opener: { kind: "toggle", target: "market-activity" },
         placements: [
             rail(90, "panels", {
+                // BUG-0715: availability and the stored preference are two
+                // questions. This one asks whether an account could fill the
+                // panel at all; the active state asks whether the panel is
+                // actually shown. Gating on the effective value made the
+                // button refuse to switch itself off for users who can use it.
                 enabledWhen: {
+                    kind: "all",
+                    conditions: [
+                        { kind: "setting", key: "showSidebars" },
+                        { kind: "derived", key: "sidebarActivityAvailable" },
+                    ],
+                },
+                disabledReason: "dashboard.railActivityUnavailable",
+                activeWhen: {
                     kind: "derived",
                     key: "effectiveShowSidebarActivity",
-                },
-                activeWhen: {
-                    kind: "setting",
-                    key: "showSidebarActivity",
-                    equals: true,
                 },
             }),
         ],
@@ -504,7 +515,8 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         opener: { kind: "toggle", target: "market-sentiment" },
         placements: [
             rail(100, "panels", {
-                enabledWhen: { kind: "viewport", minWidth: 1280 },
+                enabledWhen: { kind: "setting", key: "showSidebars" },
+                disabledReason: "dashboard.railSidebarsHidden",
                 activeWhen: {
                     kind: "setting",
                     key: "showMarketSentiment",

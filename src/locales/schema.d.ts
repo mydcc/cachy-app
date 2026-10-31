@@ -179,6 +179,8 @@ export type TranslationKey =
   | "dashboard.resetButtonTitle"
   | "dashboard.resetConfirmTitle"
   | "dashboard.resetConfirmMessage"
+  | "dashboard.railSidebarsHidden"
+  | "dashboard.railActivityUnavailable"
   | "dashboard.themeSwitcherAriaLabel"
   | "dashboard.openPositions"
   | "dashboard.favorites"

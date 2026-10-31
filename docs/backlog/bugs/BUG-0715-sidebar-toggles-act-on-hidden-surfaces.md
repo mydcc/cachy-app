@@ -2,7 +2,7 @@
 id: BUG-0715
 title: Left-rail toggles can stay lit while the panel they name is not rendered
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 created: "2026-10-21"
@@ -79,11 +79,11 @@ Make each rail button read and write the same value its panel reads:
 
 ## Acceptance criteria
 
-- [ ] Each rail button's active state matches what the corresponding panel
+- [x] Each rail button's active state matches what the corresponding panel
       actually renders, at `xl` and below
-- [ ] A pressed button never leaves the same panel invisible without a reason
-- [ ] The sentiment toggle has the same effect at both widths
-- [ ] A component test covers the no-keys and `showSidebars`-off cases
+- [x] A pressed button never leaves the same panel invisible without a reason
+- [x] The sentiment toggle has the same effect at both widths
+- [x] A component test covers the no-keys and `showSidebars`-off cases
 
 ## Links
 

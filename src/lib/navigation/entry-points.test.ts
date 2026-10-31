@@ -74,6 +74,28 @@ describe("entry-point registry data", () => {
         expect(missing).toEqual([]);
     });
 
+    it("gives every gated rail placement a reason in both locales", () => {
+        // BUG-0715: the rail renders `aria-disabled` without saying why when a
+        // conditioned placement has no `disabledReason`. Scoped to the rail
+        // because only that surface reads `enabled` for the user.
+        const missing: string[] = [];
+        for (const entry of ENTRY_POINTS) {
+            for (const placement of entry.placements) {
+                if (placement.surface !== "rail") continue;
+                if (!placement.enabledWhen) continue;
+                if (placement.enabledWhen.kind === "always") continue;
+                const reason = placement.disabledReason;
+                if (!reason) {
+                    missing.push(`${entry.id}: no disabledReason`);
+                    continue;
+                }
+                if (!hasKey(en, reason)) missing.push(`${entry.id}: en:${reason}`);
+                if (!hasKey(de, reason)) missing.push(`${entry.id}: de:${reason}`);
+            }
+        }
+        expect(missing).toEqual([]);
+    });
+
     it("gives every entry an icon, opener and placement", () => {
         for (const entry of ENTRY_POINTS) {
             expect(entry.icon, entry.id).toBeTruthy();
@@ -187,7 +209,18 @@ describe("surface resolver", () => {
         expect(
             active(
                 "market-activity",
-                context({ settings: { showSidebarActivity: true } }),
+                context({ derived: { effectiveShowSidebarActivity: true } }),
+            ),
+        ).toBe(true);
+        // The active state carries no viewport token: it means the panel is
+        // shown, not that a width is wide enough (BUG-0715).
+        expect(
+            active(
+                "market-activity",
+                context({
+                    viewportWidth: 1000,
+                    derived: { effectiveShowSidebarActivity: true },
+                }),
             ),
         ).toBe(true);
         expect(
@@ -205,17 +238,16 @@ describe("surface resolver", () => {
     });
 
     it("evaluates the rail panel preconditions", () => {
-        const technicals = () =>
-            getSurfaceEntries("rail", context()).find(
+        const technicals = (ctx: EntryContext) =>
+            getSurfaceEntries("rail", ctx).find(
                 ({ entry }) => entry.id === "technicals",
             )!.enabled;
-        expect(technicals()).toBe(false);
-        expect(
-            getSurfaceEntries(
-                "rail",
-                context({ derived: { isTechnicalsVisible: true } }),
-            ).find(({ entry }) => entry.id === "technicals")!.enabled,
-        ).toBe(true);
+        // BUG-0715: the chevron and the rail share one flag; only the column
+        // that holds the panel gates the button.
+        expect(technicals(context({ settings: { showSidebars: false } }))).toBe(
+            false,
+        );
+        expect(technicals(context())).toBe(true);
 
         const overview = (ctx: EntryContext) =>
             getSurfaceEntries("rail", ctx).find(
@@ -224,7 +256,8 @@ describe("surface resolver", () => {
         expect(overview(context({ settings: { showSidebars: false } }))).toBe(
             false,
         );
-        expect(overview(context({ viewportWidth: 1000 }))).toBe(false);
+        // The mobile stack renders the same panel, so width no longer gates it.
+        expect(overview(context({ viewportWidth: 1000 }))).toBe(true);
         expect(overview(context())).toBe(true);
 
         const activity = (ctx: EntryContext) =>
@@ -232,20 +265,34 @@ describe("surface resolver", () => {
                 ({ entry }) => entry.id === "market-activity",
             )!.enabled;
         expect(activity(context())).toBe(false);
+        // Availability alone is not enough while the column that holds the
+        // panel is off (BUG-0715).
         expect(
             activity(
                 context({
-                    derived: { effectiveShowSidebarActivity: true },
+                    settings: { showSidebars: false },
+                    derived: { sidebarActivityAvailable: true },
+                }),
+            ),
+        ).toBe(false);
+        expect(
+            activity(
+                context({
+                    derived: { sidebarActivityAvailable: true },
                 }),
             ),
         ).toBe(true);
 
-        const sentiment = (width: number) =>
-            getSurfaceEntries("rail", context({ viewportWidth: width })).find(
+        const sentiment = (ctx: EntryContext) =>
+            getSurfaceEntries("rail", ctx).find(
                 ({ entry }) => entry.id === "market-sentiment",
             )!.enabled;
-        expect(sentiment(1000)).toBe(false);
-        expect(sentiment(1440)).toBe(true);
+        // The mobile copy honours the same flag, so the toggle works at both
+        // widths; the column is the only gate (BUG-0715).
+        expect(sentiment(context({ viewportWidth: 1000 }))).toBe(true);
+        expect(sentiment(context({ settings: { showSidebars: false } }))).toBe(
+            false,
+        );
     });
 });
 
@@ -269,7 +316,7 @@ describe("evaluateCondition", () => {
             empty: "",
         },
         derived: {
-            isTechnicalsVisible: true,
+            sidebarActivityAvailable: true,
             effectiveShowSidebarActivity: false,
         },
         data: { news: true, sentiment: false },
@@ -402,7 +449,7 @@ describe("evaluateCondition", () => {
         ).toBe(true);
         expect(
             evaluateCondition(
-                { kind: "derived", key: "isTechnicalsVisible" },
+                { kind: "derived", key: "sidebarActivityAvailable" },
                 ctx,
             ),
         ).toBe(true);

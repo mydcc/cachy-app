@@ -875,7 +875,21 @@ export class SettingsManager {
     return true;
   }
 
-  get effectiveShowSidebarActivity() {
+  /**
+   * Whether an account could fill the activity panel at all (BUG-0715).
+   *
+   * Kept apart from the stored preference: the rail disables on *this*, while
+   * the active state reads `effectiveShowSidebarActivity`. Conflating the two
+   * made the button refuse to switch itself off for exactly the users who can
+   * use it.
+   *
+   * FEAT-0327: a paper account is an account to show. The credential test
+   * answers "does a venue know us", which was the same question until paper
+   * trading existed; someone practising before funding an account has
+   * positions, orders and a balance, and none of it was reachable from the
+   * panel this feature exists to be watched in.
+   */
+  get sidebarActivityAvailable(): boolean {
     const bitget = keysForActiveAccount(this.accounts, this.activeAccountId, "bitget");
     const bitunix = keysForActiveAccount(this.accounts, this.activeAccountId, "bitunix");
     const hasBitgetKeys = Boolean(
@@ -885,20 +899,11 @@ export class SettingsManager {
     const hasApiKeys =
       this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
 
-    /*
-     * FEAT-0327: a paper account is an account to show.
-     *
-     * The credential test asks "is there anything in this panel" and answers
-     * it with "does a venue know us", which was the same question until paper
-     * trading existed. It is not any more: someone practising before funding
-     * an account has positions, orders and a balance, and none of it was
-     * reachable — the panel this feature exists to be watched in was hidden
-     * from exactly the people using it.
-     */
-    return (
-      (this.entitlement.isPro || hasApiKeys || paperState.enabled) &&
-      this.showSidebarActivity
-    );
+    return this.entitlement.isPro || hasApiKeys || paperState.enabled;
+  }
+
+  get effectiveShowSidebarActivity(): boolean {
+    return this.sidebarActivityAvailable && this.showSidebarActivity;
   }
 
   get showMarketSentiment(): DisplaySettingsStore["showMarketSentiment"] {

@@ -216,6 +216,12 @@ describe("FEAT-0732: the rail renders the entry-point registry", () => {
     document.body.appendChild(target);
     windowManager.close("assistant");
     uiState.showMarketDashboardModal = false;
+    // BUG-0715: the activity button's active state now reads whether an
+    // account can fill the panel. Pin that here, or the assertion below flips
+    // with an ambient Pro flag or stored keys.
+    settingsState.accounts = [];
+    settingsState.entitlement.isPro = false;
+    settingsState.apiProvider = "bitunix";
     settingsState.showTechnicals = false;
     settingsState.showMarketOverview = true;
     settingsState.showSidebarActivity = false;
@@ -343,9 +349,11 @@ describe("FEAT-0732: the rail renders the entry-point registry", () => {
     expect(
       control(el, "settings.toggleMarketTiles")!.classList.contains("active"),
     ).toBe(true);
+    // BUG-0715: the stored preference is on, but no account can fill the
+    // panel, so the button must not claim it is rendering.
     expect(
       control(el, "dashboard.marketActivity")!.classList.contains("active"),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       control(el, "settings.toggleMarketSentiment")!.classList.contains(
         "active",

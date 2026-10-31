@@ -58,6 +58,8 @@ interface Placement {
   visibleWhen?: Condition;
   /** Allow interaction. Default: always. */
   enabledWhen?: Condition;
+  /** Why `enabledWhen` is false; rendered as the control's description. */
+  disabledReason?: TranslationKey;
   /**
    * Visual selected state (an open panel, an active toggle). Default: not
    * selected. This is a hint for the surface, never a substitute for
@@ -201,10 +203,10 @@ should be filed once rather than patched in five surfaces.
 | `alerts` | `dashboard.alerts.panel.open` | `rail-alerts` | `toggle` alerts | rail | always |
 | `academy` | `academy.title` | `rail-academy` | `window` academy | rail | always |
 | `assistant` | `sidePanel.aiAssistant` | `rail-assistant` | `toggle` assistant | rail | always; active state from `state("showAssistant")` |
-| `technicals` | `settings.showTechnicals` | `icons.chart` | `toggle` technicals | rail | visible always; enabled `derived("isTechnicalsVisible")` (BUG-0715) |
-| `market-overview` | `settings.toggleMarketTiles` | `rail-market-overview` | `toggle` market-overview | rail | visible always; enabled `all(setting("showSidebars"), viewport(1280))` |
-| `market-activity` | `dashboard.marketActivity` | `rail-market-activity` | `toggle` market-activity | rail | visible always; enabled `derived("effectiveShowSidebarActivity")` (BUG-0715) |
-| `market-sentiment` | `settings.toggleMarketSentiment` | `rail-market-sentiment` | `toggle` market-sentiment | rail | visible always; enabled `viewport(1280)`; below `xl` the mobile copy has a different condition (BUG-0715) |
+| `technicals` | `settings.showTechnicals` | `icons.chart` | `toggle` technicals | rail | visible always; enabled `setting("showSidebars")`, reason `dashboard.railSidebarsHidden` (BUG-0715) |
+| `market-overview` | `settings.toggleMarketTiles` | `rail-market-overview` | `toggle` market-overview | rail | visible always; enabled `setting("showSidebars")`, reason `dashboard.railSidebarsHidden` (the mobile stack renders it below `xl`) |
+| `market-activity` | `dashboard.marketActivity` | `rail-market-activity` | `toggle` market-activity | rail | visible always; enabled `all(setting("showSidebars"), derived("sidebarActivityAvailable"))`, active `derived("effectiveShowSidebarActivity")`, reason `dashboard.railActivityUnavailable` (BUG-0715) |
+| `market-sentiment` | `settings.toggleMarketSentiment` | `rail-market-sentiment` | `toggle` market-sentiment | rail | visible always; enabled `setting("showSidebars")`, reason `dashboard.railSidebarsHidden`; the mobile copy honours the same flag (BUG-0715) |
 
 `rail-*` names are registry icon keys for the inline SVGs currently local to
 `LeftControlPanel`; migration lifts them into the central icon map. `icons.*`
