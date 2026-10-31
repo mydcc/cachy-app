@@ -5119,5 +5119,30 @@
       "refusedHeading": "Von diesem Build nicht gezeichnet",
       "timeframeLabel": "Zeitrahmen der Lektion"
     }
+  },
+  "technicals": {
+    "context": {
+      "title": "Kontext",
+      "bias": "Bias",
+      "structure": "Struktur",
+      "resistance": "Widerstand",
+      "support": "Unterstützung",
+      "adx": "ADX",
+      "chop": "Chop",
+      "volatility": "Volatilität",
+      "rising": "steigend",
+      "falling": "fallend",
+      "flat": "flach",
+      "above": "darüber",
+      "below": "darunter",
+      "bosUp": "BOS aufwärts",
+      "bosDown": "BOS abwärts",
+      "chochUp": "CHoCH aufwärts",
+      "chochDown": "CHoCH abwärts",
+      "candlesAgo": "{n} Kerzen",
+      "noBreak": "kein Bruch",
+      "candlesAgoZero": "diese Kerze",
+      "candlesAgoOne": "1 Kerze"
+    }
   }
 }

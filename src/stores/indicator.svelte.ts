@@ -50,6 +50,7 @@ export const DEFAULT_INDICATOR_SETTINGS: IndicatorSettings = deepFreeze({
   preferredEngine: 'auto',
 
     panelSections: {
+      context: true,
       summary: true,
       oscillators: true,
       movingAverages: true,
