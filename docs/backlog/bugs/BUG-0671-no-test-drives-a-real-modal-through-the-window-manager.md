@@ -2,7 +2,7 @@
 id: BUG-0671
 title: No test drives a real modal through the window manager, so a dialog's visibility is unproven
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -87,12 +87,12 @@ rules reach a screen.
 
 ## Acceptance criteria
 
-- [ ] A test mounts `WindowContainer` and a real `ModalFrame` modal together
-- [ ] It fails if the closeOnBlur sweep takes the modal's host (both the
+- [x] A test mounts `WindowContainer` and a real `ModalFrame` modal together
+- [x] It fails if the closeOnBlur sweep takes the modal's host (both the
       registration and the pointer-down path)
-- [ ] It fails if the modal is not stacked above a maximized host window
-- [ ] It asserts rendered content, not a manager call
-- [ ] It does not mock `windowManager`, `ModalFrame` or `WindowContainer`
+- [x] It fails if the modal is not stacked above a maximized host window
+- [x] It asserts rendered content, not a manager call
+- [x] It does not mock `windowManager`, `ModalFrame` or `WindowContainer`
 
 ## Out of scope
 
