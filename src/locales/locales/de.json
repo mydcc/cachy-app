@@ -5127,7 +5127,8 @@
       "structure": "Struktur",
       "resistance": "Widerstand",
       "support": "Unterstützung",
-      "regime": "Regime",
+      "adx": "ADX",
+      "chop": "Chop",
       "volatility": "Volatilität",
       "rising": "steigend",
       "falling": "fallend",
@@ -5138,8 +5139,10 @@
       "bosDown": "BOS abwärts",
       "chochUp": "CHoCH aufwärts",
       "chochDown": "CHoCH abwärts",
-      "candlesAgo": "vor {n} Kerzen",
-      "noBreak": "kein Bruch"
+      "candlesAgo": "{n} Kerzen",
+      "noBreak": "kein Bruch",
+      "candlesAgoZero": "diese Kerze",
+      "candlesAgoOne": "1 Kerze"
     }
   }
 }

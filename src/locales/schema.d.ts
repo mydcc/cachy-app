@@ -4176,7 +4176,8 @@ export type TranslationKey =
   | "technicals.context.structure"
   | "technicals.context.resistance"
   | "technicals.context.support"
-  | "technicals.context.regime"
+  | "technicals.context.adx"
+  | "technicals.context.chop"
   | "technicals.context.volatility"
   | "technicals.context.rising"
   | "technicals.context.falling"
@@ -4188,4 +4189,6 @@ export type TranslationKey =
   | "technicals.context.chochUp"
   | "technicals.context.chochDown"
   | "technicals.context.candlesAgo"
-  | "technicals.context.noBreak";
+  | "technicals.context.noBreak"
+  | "technicals.context.candlesAgoZero"
+  | "technicals.context.candlesAgoOne";

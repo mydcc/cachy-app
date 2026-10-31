@@ -34,7 +34,7 @@
   import { INDICATOR_CATALOGUE } from "../../lib/alerts/indicatorCatalogue";
   import { computeLessonSeries } from "../../lib/academy/indicatorLessonSeries";
   import { LESSON_HISTORY_TARGET, lessonKlines } from "../../lib/academy/lessonSettings";
-  import { computeStructureRead } from "../../lib/academy/structureRead";
+  import { computeStructureRead, type StructureBar } from "../../lib/academy/structureRead";
   import { higherTimeframe, recentLevels } from "../../lib/academy/structureSignals";
 
   interface Props {
@@ -76,26 +76,23 @@
 
   /*
    * Market-context check (FEAT-0766): the reading order the Academy lesson
-   * explains, applied to the current symbol. Structure lives on the analysis
-   * timeframe, direction and levels on the bias timeframe one step above.
+   * explains, applied to the current symbol. Direction and levels live on the
+   * bias timeframe one step above; structure and regime on the analysis one.
    */
-  interface ContextBar {
-    time: number;
-    high: number;
-    low: number;
-    close: number;
-  }
-
   const ADX_TREND_THRESHOLD = 25;
+  /** The band the lesson teaches for Choppiness: above is chop, below is trend. */
+  const CHOP_CHOP_ABOVE = 61.8;
+  const CHOP_TREND_BELOW = 38.2;
+  /** The first period of the lesson's EMA trio — the row must not drift from it. */
+  const CONTEXT_EMA_PERIOD = 21;
 
   let biasTimeframe = $derived(higherTimeframe(timeframe));
 
-  function contextBars(tf: string): ContextBar[] {
+  function contextBars(tf: string): StructureBar[] {
     const market = marketState.data[symbol];
-    void market?.klinesLastUpdated?.[tf];
     const klines = market?.klines?.[tf];
     if (!klines || klines.length === 0) return [];
-    const out: ContextBar[] = [];
+    const out: StructureBar[] = [];
     // Same validation the lesson charts use: one bad candle must not skew a swing.
     for (const kline of lessonKlines(klines)) {
       const time = Number(kline.time); // audit: safe — epoch-ms timestamp
@@ -109,9 +106,11 @@
   }
 
   let analysisBars = $derived(contextBars(timeframe));
-  let biasBars = $derived(contextBars(biasTimeframe));
+  // The top of the ladder has no timeframe above it: reuse the analysis series
+  // instead of computing the same read twice over identical bars.
+  let biasBars = $derived(biasTimeframe === timeframe ? analysisBars : contextBars(biasTimeframe));
   let analysisRead = $derived(computeStructureRead(analysisBars));
-  let biasRead = $derived(computeStructureRead(biasBars));
+  let biasRead = $derived(biasTimeframe === timeframe ? analysisRead : computeStructureRead(biasBars));
 
   /** The nth-from-last finite value of a series, or null. Display only (ADR-0021). */
   function lastFinite(values: readonly (string | null)[] | undefined, skip = 0): number | null {
@@ -128,9 +127,10 @@
     return null;
   }
 
+  const EMA_ENTRY = INDICATOR_CATALOGUE.find((item) => item.id === "ema");
+
   let biasEma = $derived.by(() => {
-    const entry = INDICATOR_CATALOGUE.find((item) => item.id === "ema");
-    if (!entry || biasBars.length === 0) return null;
+    if (!EMA_ENTRY || biasBars.length === 0) return null;
     const candles = biasBars.map((bar) => ({
       open_time_ms: bar.time,
       open: String(bar.close),
@@ -138,9 +138,9 @@
       low: String(bar.low),
       close: String(bar.close),
     }));
-    const values = computeLessonSeries(entry, candles, biasTimeframe).lines.find(
-      (line) => line.name === "value",
-    )?.values;
+    const values = computeLessonSeries(EMA_ENTRY, candles, biasTimeframe, {
+      period: CONTEXT_EMA_PERIOD,
+    }).lines.find((line) => line.name === "value")?.values;
     return { now: lastFinite(values), prev: lastFinite(values, 1) };
   });
 
@@ -151,7 +151,8 @@
     if (now === null || prev === null || close === null) return "—";
     const direction = now > prev ? "rising" : now < prev ? "falling" : "flat";
     const side = close > now ? "above" : close < now ? "below" : "flat";
-    return `${$_(`technicals.context.${direction}` as TranslationKey)} · ${$_(`technicals.context.${side}` as TranslationKey)}`;
+    const ema = $_(`dashboard.alerts.indicators.name.ema` as TranslationKey);
+    return `${ema} ${CONTEXT_EMA_PERIOD} ${$_(`technicals.context.${direction}` as TranslationKey)} · ${$_(`technicals.context.${side}` as TranslationKey)}`;
   });
 
   let lastBreak = $derived(
@@ -172,7 +173,13 @@
             ? "chochUp"
             : "chochDown";
     const ago = analysisBars.length - 1 - event.index;
-    return `${$_(`technicals.context.${kind}` as TranslationKey)} · ${$_("technicals.context.candlesAgo", { values: { n: ago } })}`;
+    const distance =
+      ago === 0
+        ? $_(`technicals.context.candlesAgoZero` as TranslationKey)
+        : ago === 1
+          ? $_(`technicals.context.candlesAgoOne` as TranslationKey)
+          : $_("technicals.context.candlesAgo", { values: { n: ago } });
+    return `${$_(`technicals.context.${kind}` as TranslationKey)} · ${distance}`;
   });
 
   let biasClose = $derived(biasBars.length > 0 ? biasBars[biasBars.length - 1].close : null);
@@ -184,26 +191,33 @@
   );
   let nearestSupport = $derived(contextLevels.find((level) => level.side === "support") ?? null);
 
-  let regimeValue = $derived.by(() => {
+  let adxValue = $derived.by(() => {
     const adx = data?.advanced?.adx?.value;
-    const chop = data?.advanced?.choppiness?.value;
-    if (adx === undefined || chop === undefined) return "—";
+    if (typeof adx !== "number" || !Number.isFinite(adx)) return "—";
     const comparator = adx >= ADX_TREND_THRESHOLD ? "≥" : "<";
-    return `ADX ${adx.toFixed(1)} ${comparator} ${ADX_TREND_THRESHOLD} · Chop ${chop.toFixed(1)}`;
+    return `${adx.toFixed(1)} ${comparator} ${ADX_TREND_THRESHOLD}`;
+  });
+
+  let chopValue = $derived.by(() => {
+    const chop = data?.advanced?.choppiness?.value;
+    if (typeof chop !== "number" || !Number.isFinite(chop)) return "—";
+    return `${chop.toFixed(1)} (${CHOP_TREND_BELOW}–${CHOP_CHOP_ABOVE})`;
   });
 
   let volatilityValue = $derived.by(() => {
     const bb = data?.volatility?.bb;
     const atr = data?.volatility?.atr;
-    if (!bb || atr === undefined) return "—";
+    if (!bb || typeof atr !== "number" || !Number.isFinite(atr)) return "—";
     const width = TechnicalsPresenter.calculateBollingerBandWidth(bb.upper, bb.lower, bb.middle);
-    return `BW ${width.toFixed(2)} % · ATR ${TechnicalsPresenter.formatVal(atr, indicatorSettings?.precision)}`;
+    return `BW ${width.toFixed(2)} % · ATR ${TechnicalsPresenter.formatVal(atr, 2)}`;
   });
 
   /*
    * The bias timeframe needs its own candles — the analysis channel does not
    * carry them. Registered only while the block is on, so hiding it costs
-   * nothing.
+   * nothing. `chart` is deliberate: it is the requirement that pages the deep
+   * history the structure read needs, and the backfill on a `chartHistoryLimit`
+   * change is depth this block wants anyway.
    */
   $effect(() => {
     const current = symbol;
@@ -213,8 +227,18 @@
     if (!needed) return;
     const channel = `kline_${bias}`;
     untrack(() => {
-      void marketWatcher.ensureHistory(current, bias, LESSON_HISTORY_TARGET);
+      const pending = marketWatcher.ensureHistory(current, bias, LESSON_HISTORY_TARGET);
       marketWatcher.register(current, channel, "chart");
+      // A chart-depth fetch may hold the per-symbol lock and drop the deeper
+      // target. Once it settles, re-issue once if the store is still short.
+      if (pending && typeof pending.then === "function") {
+        void pending.then(() => {
+          const stored = marketState.data[current]?.klines?.[bias]?.length ?? 0;
+          if (stored < LESSON_HISTORY_TARGET) {
+            void marketWatcher.ensureHistory(current, bias, LESSON_HISTORY_TARGET);
+          }
+        });
+      }
     });
     return () => marketWatcher.unregister(current, channel, "chart");
   });
@@ -327,22 +351,21 @@
       >
         <div class="flex flex-col gap-4">
           <!-- Market-context check (FEAT-0766): the reading order the Academy
-               lesson explains, applied to the current symbol. Five lines, no
-               expander, no verdict — the interpretation stays with the reader. -->
+               lesson explains, applied to the current symbol. Every row names
+               its own timeframe, because the steps run on two of them. -->
           {#if indicatorSettings.panelSections.context}
             <div class="flex flex-col gap-1" data-testid="technicals-context">
               <div
                 class="flex justify-between items-baseline text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
                 <span>{$_("technicals.context.title")}</span>
-                <span class="font-mono text-[var(--text-tertiary)]">{biasTimeframe}</span>
               </div>
               <div
                 class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 data-testid="context-bias"
               >
                 <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.bias")}</span
+                  >{$_("technicals.context.bias")} {biasTimeframe}</span
                 >
                 <span class="font-mono text-[var(--text-primary)] text-right">{biasValue}</span>
               </div>
@@ -351,7 +374,7 @@
                 data-testid="context-structure"
               >
                 <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.structure")}</span
+                  >{$_("technicals.context.structure")} {timeframe}</span
                 >
                 <span class="font-mono text-[var(--text-primary)] text-right">{structureValue}</span>
               </div>
@@ -360,7 +383,7 @@
                 data-testid="context-resistance"
               >
                 <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.resistance")}</span
+                  >{$_("technicals.context.resistance")} {biasTimeframe}</span
                 >
                 <span class="font-mono text-[var(--text-primary)] text-right"
                   >{nearestResistance
@@ -376,7 +399,7 @@
                 data-testid="context-support"
               >
                 <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.support")}</span
+                  >{$_("technicals.context.support")} {biasTimeframe}</span
                 >
                 <span class="font-mono text-[var(--text-primary)] text-right"
                   >{nearestSupport
@@ -389,19 +412,28 @@
               </div>
               <div
                 class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-regime"
+                data-testid="context-adx"
               >
                 <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.regime")}</span
+                  >{$_("technicals.context.adx")} {timeframe}</span
                 >
-                <span class="font-mono text-[var(--text-primary)] text-right">{regimeValue}</span>
+                <span class="font-mono text-[var(--text-primary)] text-right">{adxValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-chop"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.chop")} {timeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{chopValue}</span>
               </div>
               <div
                 class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 data-testid="context-volatility"
               >
                 <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.volatility")}</span
+                  >{$_("technicals.context.volatility")} {timeframe}</span
                 >
                 <span class="font-mono text-[var(--text-primary)] text-right">{volatilityValue}</span>
               </div>

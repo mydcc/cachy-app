@@ -33,14 +33,19 @@ A **Kontext** block at the top of the Technicals panel body, switchable like
 every other section through `indicatorSettings.panelSections`:
 
 ```
-KONTEXT                         4h
-Bias               EMA fallend · darunter
-Struktur            BOS abwärts · 42
-Widerstand                      76.954
-Unterstützung                   76.208
-Regime          ADX 16,8 < 25 · Chop 57,8
-Volatilität      BW 1,3 % · ATR 336
+KONTEXT
+Bias 4h                EMA 21 fallend · darunter
+Struktur 1h            BOS abwärts · 42 Kerzen
+Widerstand 4h                          76.954
+Unterstützung 4h                       76.208
+ADX 1h                                16,8 < 25
+Chop 1h                       57,8 (38,2–61,8)
+Volatilität 1h       BW 1,3 % · ATR 336,61
 ```
+
+Every row names its own timeframe: direction and levels run on the bias
+timeframe, structure and regime on the analysis one. The two regime
+measurements get a row each so both can carry their taught threshold.
 
 - The bias timeframe is fixed one step above the analysis timeframe
   (`higherTimeframe()`), never configurable — the rule is part of the lesson.
@@ -55,19 +60,23 @@ Volatilität      BW 1,3 % · ATR 336
 - [x] The block renders only when `indicatorSettings.panelSections.context` is
       true, and the toggle appears in the panel-sections settings like the
       others.
-- [x] Six rows in the order bias → structure → resistance → support → regime →
-      volatility; the header names the bias timeframe.
-- [x] The structure row names the last BOS/CHoCH and its distance in candles;
+- [x] Seven rows in the order bias → structure → resistance → support → ADX →
+      choppiness → volatility; every row names its own timeframe.
+- [x] The structure row names the last BOS/CHoCH and its distance in candles,
+      with a distinct wording for the forming candle and for a single candle;
       the level rows name the nearest swing resistance and support of the bias
       timeframe.
-- [x] ADX, Choppiness, bandwidth and ATR carry their taught threshold inline.
+- [x] ADX carries its trend threshold and Choppiness its 38.2–61.8 band inline;
+      bandwidth and ATR are shown as measured, because they have no taught
+      threshold.
 - [x] No data renders `—`; no connection leaves the block empty without an
       error state.
 - [x] No interaction: no expander, no navigation, no chart.
 - [x] Colors come from CSS variables only.
 - [x] New strings in `de.json` and `en.json`; `schema.d.ts` regenerated.
-- [x] A component test pins the row order, the threshold rendering and the
-      no-data fallback.
+- [x] A component test pins the row order, the threshold rendering, the
+      no-data fallback, the levels coming from the bias timeframe and the
+      channel being registered and released.
 
 ## Out of scope
 
