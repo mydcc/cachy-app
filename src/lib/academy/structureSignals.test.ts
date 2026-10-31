@@ -24,17 +24,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import {
-    detectBreaks,
-    findSwings,
-    higherTimeframe,
-    recentLevels,
-    type PriceBar,
-} from "./structureSignals";
-
-function bar(high: number, low: number, close: number): PriceBar {
-    return { high, low, close };
-}
+import { higherTimeframe, recentLevels } from "./structureSignals";
 
 describe("higherTimeframe", () => {
     it("steps roughly four times up the quick-pick ladder", () => {
@@ -47,72 +37,6 @@ describe("higherTimeframe", () => {
     it("returns the input at the top of the ladder or off it", () => {
         expect(higherTimeframe("1d")).toBe("1d");
         expect(higherTimeframe("nonsense")).toBe("nonsense");
-    });
-});
-
-describe("findSwings", () => {
-    const bars = [
-        bar(10, 9, 9.5),
-        bar(12, 10, 11),
-        bar(11, 8.5, 10),
-        bar(13, 11, 12.5),
-        bar(12, 10.5, 11),
-    ];
-
-    it("marks strict fractal highs and lows", () => {
-        expect(findSwings(bars, 1)).toEqual([
-            { index: 1, price: 12, side: "high" },
-            { index: 2, price: 8.5, side: "low" },
-            { index: 3, price: 13, side: "high" },
-        ]);
-    });
-
-    it("marks nothing on ties, short input or empty input", () => {
-        const tied = [bar(10, 9, 9.5), bar(10, 9, 9.5), bar(10, 9, 9.5)];
-        expect(findSwings(tied, 1)).toEqual([]);
-        expect(findSwings(bars.slice(0, 2), 1)).toEqual([]);
-        expect(findSwings([], 2)).toEqual([]);
-    });
-});
-
-describe("detectBreaks", () => {
-    const bars = [
-        bar(10, 9, 9.5),
-        bar(12, 10, 11),
-        bar(11, 8.5, 10),
-        bar(13, 11, 12.5),
-        bar(12, 10.5, 11),
-    ];
-    const swings = findSwings(bars, 1);
-
-    it("names the trend with the first break, then tracks BOS and CHOCH", () => {
-        const closes = [9.5, 11, 10, 12.5, 11, 8, 7.5];
-        expect(detectBreaks(closes, swings)).toEqual([
-            { index: 3, price: 12.5, kind: "BOS-up" },
-            { index: 5, price: 8, kind: "CHOCH-down" },
-        ]);
-    });
-
-    it("emits one event per level on a steady run beyond the same swing", () => {
-        const closes = [9.5, 11, 10, 12.5, 11, 13.5, 14];
-        expect(detectBreaks(closes, swings)).toEqual([
-            { index: 3, price: 12.5, kind: "BOS-up" },
-            { index: 5, price: 13.5, kind: "BOS-up" },
-        ]);
-    });
-
-    it("mirrors the turn: BOS-down first, then CHOCH-up", () => {
-        const closes = [11, 10, 9, 8, 9, 10, 13.5];
-        expect(detectBreaks(closes, swings)).toEqual([
-            { index: 3, price: 8, kind: "BOS-down" },
-            { index: 6, price: 13.5, kind: "CHOCH-up" },
-        ]);
-    });
-
-    it("holds the level on an equal close and breaks nothing without swings", () => {
-        const closes = [9.5, 11, 10, 12.5, 11, 8, 8.5];
-        expect(detectBreaks(closes, swings).map((event) => event.index)).toEqual([3, 5]);
-        expect(detectBreaks([9.5, 11, 10], [])).toEqual([]);
     });
 });
 

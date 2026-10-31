@@ -4424,7 +4424,9 @@
         "legendSwings": "Swing highs and lows",
         "legendBos": "BOS (structure break)",
         "legendChoch": "CHOCH (change of character)",
-        "legendZone": "Flip zone (ex resistance)"
+        "legendZone": "Flip zone (ex resistance)",
+        "legendSweep": "Sweep (S)",
+        "legendIdm": "IDM (Inducement)"
       },
       "s3": {
         "title": "Levels that persist",

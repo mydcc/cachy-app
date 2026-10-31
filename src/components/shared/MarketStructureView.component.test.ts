@@ -116,7 +116,14 @@ describe("MarketStructureView", () => {
         const view = renderView();
         const diagram = view.querySelector('[data-testid="structure-diagram"]');
         expect(diagram, "structure diagram missing").not.toBeNull();
-        for (const key of ["legendSwings", "legendBos", "legendChoch", "legendZone"]) {
+        for (const key of [
+            "legendSwings",
+            "legendBos",
+            "legendChoch",
+            "legendZone",
+            "legendSweep",
+            "legendIdm",
+        ]) {
             expect(view.textContent).toContain(lookup(`academy.structure.s2.${key}`));
         }
     });
@@ -236,38 +243,33 @@ describe("MarketStructureView", () => {
         ).not.toBeNull();
     });
 
-    it("passes integer-second markers and R/S price lines to the s2/s3 charts", () => {
+    it("draws the mc.pine read: swing dots, CHoCH/BOS arrows, sweep S, IDM and fib lines", () => {
         tradeState.symbol = "BTCUSDT";
         const key = normalizeSymbol("BTCUSDT", "bitunix");
         const at = (i: number, stepMs: number) => 1_700_000_000_000 + i * stepMs;
-        const kline = (time: number, high: number, low: number, close: number): Kline =>
-            ({ open: close, high, low, close, time }) as unknown as Kline;
+        const closes = [
+            100, 101, 102, 103, 104, 105, 106, 105, 104, 103, 102, 101,
+            102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
+            108, 106, 107, 108, 107, 105, 107, 110, 112, 114,
+            116, 118, 117, 118,
+            116, 114, 112, 110, 108, 106, 104, 102, 100, 98,
+            96, 94, 92, 90, 88, 89, 90, 91, 92,
+            93, 94, 92, 91, 90, 89,
+        ];
+        const kline = (i: number, close: number, stepMs = 3_600_000): Kline =>
+            ({
+                open: close,
+                high: i === 36 ? 124 : close + 0.5,
+                low: close - 0.5,
+                close,
+                time: at(i, stepMs),
+            }) as unknown as Kline;
         marketState.data[key] = {
             klines: {
-                "1h": [
-                    kline(at(0, 3_600_000), 100, 98, 99),
-                    kline(at(1, 3_600_000), 102, 99, 101),
-                    kline(at(2, 3_600_000), 110, 100, 108),
-                    kline(at(3, 3_600_000), 105, 101, 104),
-                    kline(at(4, 3_600_000), 104, 100, 103),
-                    kline(at(5, 3_600_000), 100, 95, 97),
-                    kline(at(6, 3_600_000), 98, 90, 93),
-                    kline(at(7, 3_600_000), 99, 92, 96),
-                    kline(at(8, 3_600_000), 101, 93, 99),
-                    kline(at(9, 3_600_000), 103, 96, 100),
-                    kline(at(10, 3_600_000), 106, 99, 104),
-                    kline(at(11, 3_600_000), 108, 102, 112),
-                ],
-                "4h": [
-                    kline(at(0, 14_400_000), 200, 190, 195),
-                    kline(at(1, 14_400_000), 205, 192, 200),
-                    kline(at(2, 14_400_000), 220, 195, 210),
-                    kline(at(3, 14_400_000), 210, 198, 205),
-                    kline(at(4, 14_400_000), 208, 196, 202),
-                    kline(at(5, 14_400_000), 200, 180, 190),
-                    kline(at(6, 14_400_000), 195, 182, 188),
-                    kline(at(7, 14_400_000), 198, 185, 192),
-                ],
+                "1h": closes.map((close, i) => kline(i, close)),
+                // Different timeframe, same path: the s1 series must come from
+                // the shared timeframe, not the bias one.
+                "4h": closes.map((close, i) => kline(i, close, 14_400_000)),
             },
         } as unknown as MarketData;
 
@@ -293,37 +295,69 @@ describe("MarketStructureView", () => {
             time: number;
             position: string;
             shape: string;
+            text?: string;
         }>;
-        expect(markers.length).toBe(3);
-        expect(markers[0]).toMatchObject({
-            time: Math.floor(at(2, 3_600_000) / 1000),
-            position: "aboveBar",
-            shape: "circle",
-        });
-        expect(markers[1]).toMatchObject({
-            time: Math.floor(at(6, 3_600_000) / 1000),
-            position: "aboveBar",
-            shape: "circle",
-        });
-        expect(markers[2]).toMatchObject({
-            time: Math.floor(at(11, 3_600_000) / 1000),
-            position: "belowBar",
-            shape: "arrowUp",
-        });
+        // Seven ATR-filtered swings plus the four structure events.
+        expect(markers.length).toBe(11);
         for (const marker of markers) expect(Number.isInteger(marker.time)).toBe(true);
+        expect(markers).toEqual(
+            expect.arrayContaining([
+                // The inducement-gated BOS arrow at bar 32 ...
+                expect.objectContaining({
+                    time: Math.floor(at(32, 3_600_000) / 1000),
+                    position: "belowBar",
+                    shape: "arrowUp",
+                }),
+                // ... the sweep's "S" at bar 36 ...
+                expect.objectContaining({
+                    time: Math.floor(at(36, 3_600_000) / 1000),
+                    position: "aboveBar",
+                    shape: "circle",
+                    text: "S",
+                }),
+                // ... and the CHoCH-down arrow at bar 43.
+                expect.objectContaining({
+                    time: Math.floor(at(43, 3_600_000) / 1000),
+                    position: "aboveBar",
+                    shape: "arrowDown",
+                }),
+            ]),
+        );
 
-        // s3: nearest HTF resistance above and support below, titled R/S.
-        const priceLines = JSON.parse(stubs[2].getAttribute("data-pricelines") ?? "null") as Array<{
+        // s2: the inducement line, dotted and titled IDM.
+        const idmLines = JSON.parse(stubs[1].getAttribute("data-pricelines") ?? "null") as Array<{
+            price: number;
+            title: string;
+            lineStyle?: string;
+        }>;
+        expect(idmLines).toEqual([
+            expect.objectContaining({ price: 94.5, title: "IDM", lineStyle: "dotted" }),
+        ]);
+
+        // s3: the six Fibonacci levels on the current structure range.
+        const fibLines = JSON.parse(stubs[2].getAttribute("data-pricelines") ?? "null") as Array<{
             price: number;
             title: string;
         }>;
-        expect(priceLines).toEqual([
-            expect.objectContaining({ price: 220, title: "R" }),
-            expect.objectContaining({ price: 180, title: "S" }),
+        expect(fibLines.map((line) => line.title)).toEqual([
+            "0.236",
+            "0.382",
+            "0.5",
+            "0.618",
+            "0.786",
+            "0.886",
+        ]);
+        expect(fibLines[0].price).toBeCloseTo(87.5 + 36.5 * 0.236, 6);
+
+        // The s1 chart draws the EMA trio over the *shared* timeframe.
+        expect(JSON.parse(stubs[0].getAttribute("data-series") ?? "null")).toEqual([
+            "EMA 21",
+            "EMA 50",
+            "EMA 200",
         ]);
 
         // The s2 readout names the same break the markers show.
-        expect(view.textContent).toContain(lookup("academy.structure.read.bosUp"));
+        expect(view.textContent).toContain(lookup("academy.structure.read.chochDown"));
 
         // The sticky readout repeats the same reading above the cards.
         const readout = view.querySelector('[data-testid="structure-readout"]');
@@ -334,8 +368,6 @@ describe("MarketStructureView", () => {
             lookup("academy.structure.read.summaryLabel"),
         );
         expect(readout!.textContent).toContain("4h");
-        expect(readout!.textContent).toContain(lookup("academy.structure.read.bosUp"));
-        expect(readout!.textContent).toContain("220");
-        expect(readout!.textContent).toContain("180");
+        expect(readout!.textContent).toContain(lookup("academy.structure.read.chochDown"));
     });
 });

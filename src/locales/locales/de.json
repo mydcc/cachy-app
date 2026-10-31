@@ -4364,7 +4364,9 @@
         "legendSwings": "Swing-Hochs und -Tiefs",
         "legendBos": "BOS (Strukturbruch)",
         "legendChoch": "CHOCH (Charakterwechsel)",
-        "legendZone": "Flip-Zone (ex Widerstand)"
+        "legendZone": "Flip-Zone (ex Widerstand)",
+        "legendSweep": "Sweep (S)",
+        "legendIdm": "IDM (Inducement)"
       },
       "s3": {
         "title": "Level, die bleiben",

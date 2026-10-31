@@ -45,11 +45,15 @@
       readStoredLessonTimeframe,
    } from "../../lib/academy/lessonSettings";
    import {
-      detectBreaks,
-      findSwings,
       higherTimeframe,
       recentLevels,
    } from "../../lib/academy/structureSignals";
+   import {
+      computeStructureRead,
+      fibLevels,
+      FIB_RATIOS,
+   } from "../../lib/academy/structureRead";
+   import { readCssColor } from "../../lib/themeColors";
    import type {
       LessonChartLine,
       LessonChartMarker,
@@ -226,9 +230,20 @@
    let bars = $derived(readBars(sharedTf));
    let higherBars = $derived(readBars(biasTf));
    let closes = $derived(bars.map((bar) => bar.close));
-   let swings = $derived(findSwings(bars.map((bar) => ({ high: bar.high, low: bar.low, close: bar.close }))));
-   let breaks = $derived(detectBreaks(closes, swings));
-   let lastBreak = $derived(breaks.length > 0 ? breaks[breaks.length - 1] : null);
+   /*
+    * FEAT-0765: the mc.pine structure read replaces the fractal/close-break
+    * pair — ATR-filtered swings, CHoCH/BOS with the inducement gate, sweeps.
+    * Events are confirmed-bar only, so a reading never moves afterwards.
+    */
+   let read = $derived(computeStructureRead(bars));
+   let higherRead = $derived(computeStructureRead(higherBars));
+   let swings = $derived(read.swings);
+   let structureEvents = $derived(read.events);
+   let lastBreak = $derived(
+      [...structureEvents]
+         .reverse()
+         .find((event) => event.kind.startsWith("BOS") || event.kind.startsWith("CHOCH")) ?? null,
+   );
    let higherCloses = $derived(higherBars.map((bar) => bar.close));
 
    /*
@@ -248,7 +263,36 @@
    let chopSeries = $derived(seriesFor("choppiness", bars, sharedTf));
    let bollingerSeries = $derived(seriesFor("bollinger", bars, sharedTf));
    let atrSeries = $derived(seriesFor("atr", bars, sharedTf));
-   let higherSwings = $derived(findSwings(higherBars.map((bar) => ({ high: bar.high, low: bar.low, close: bar.close }))));
+   let higherSwings = $derived(higherRead.swings);
+
+   /*
+    * The mc.pine EMA trio (21/50/200), computed through the same catalogue
+    * engine as every other lesson line and merged into one series override
+    * for the s1 chart. The names are the PineScript's own and stay
+    * language-neutral, like every indicator name in the app.
+    */
+   const EMA_TRIO_PERIODS = [21, 50, 200] as const;
+   let emaTrioSeries = $derived.by<LessonSeries | null>(() => {
+      const entry = entryFor("ema");
+      if (!entry || bars.length === 0) return null;
+      // Review follow-up: the trio is drawn on the shared-timeframe chart, so
+      // it must be computed over that timeframe's candles — bias-TF values at
+      // shared-TF timestamps would paint the wrong line.
+      const candles = toEvalCandles(bars);
+      const lines = EMA_TRIO_PERIODS.flatMap((period) =>
+         computeLessonSeries(entry, candles, sharedTf, { period }).lines.map((line) => ({
+            ...line,
+            name: `EMA ${period}`,
+         })),
+      );
+      return { lines, refused: [] };
+   });
+   let emaTrioReadout = $derived(
+      EMA_TRIO_PERIODS.map((period) => {
+         const values = emaTrioSeries?.lines.find((line) => line.name === `EMA ${period}`)?.values;
+         return `${period} ${directionOf(lastValue(values), secondLastValue(values))}`;
+      }).join(" · "),
+   );
 
    /*
     * The live reading, computed once per data change and read by both the
@@ -296,7 +340,10 @@
     */
    function cssColor(name: string, fallback: string): string {
       if (typeof window === "undefined") return fallback;
-      return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+      // Review follow-up: themes wire tokens to each other, and a plain
+      // getPropertyValue returns the unresolved var(...) reference, which the
+      // chart library cannot paint. `readCssColor` walks the chain.
+      return readCssColor(name, fallback);
    }
 
    function markerColor(kind: string): string {
@@ -306,7 +353,7 @@
    }
 
    function markersForChart(): LessonChartMarker[] {
-      const swingMarks = swings.slice(-12).flatMap((swing) => {
+      const swingMarks: LessonChartMarker[] = swings.slice(-12).flatMap((swing) => {
          const timeMs = bars[swing.index]?.time;
          if (timeMs === undefined) return [];
          return [
@@ -318,28 +365,62 @@
             },
          ];
       });
-      const breakMarks = breaks.flatMap((event) => {
-         const timeMs = bars[event.index]?.time;
-         if (timeMs === undefined) return [];
-         return [
-            {
-               time: Math.floor(timeMs / 1000),
-               position: (event.kind === "BOS-up" || event.kind === "CHOCH-up" ? "belowBar" : "aboveBar") as "aboveBar" | "belowBar",
-               color: markerColor(event.kind),
-               shape: (event.kind === "BOS-up" || event.kind === "CHOCH-up" ? "arrowUp" : "arrowDown") as "arrowUp" | "arrowDown",
-            },
-         ];
-      });
-      return [...swingMarks, ...breakMarks];
+      const structureMarks: LessonChartMarker[] = structureEvents.flatMap(
+         (event): LessonChartMarker[] => {
+            const timeMs = bars[event.index]?.time;
+            if (timeMs === undefined) return [];
+            const time = Math.floor(timeMs / 1000);
+            if (event.kind === "Sweep-up" || event.kind === "Sweep-down") {
+               // The PineScript labels a liquidity sweep with an "S" where the
+               // wick took the level and the close came back inside.
+               return [
+                  {
+                     time,
+                     position: event.kind === "Sweep-up" ? "aboveBar" : "belowBar",
+                     color: cssColor("--warning-color", "#ffb300"),
+                     shape: "circle",
+                     text: "S",
+                  },
+               ];
+            }
+            const up = event.kind === "BOS-up" || event.kind === "CHOCH-up";
+            return [
+               {
+                  time,
+                  position: up ? "belowBar" : "aboveBar",
+                  color: markerColor(event.kind),
+                  shape: up ? "arrowUp" : "arrowDown",
+               },
+            ];
+         },
+      );
+      return [...swingMarks, ...structureMarks];
    }
 
-   function levelsForChart(): LessonChartLine[] {
-      if (higherCloses.length === 0) return [];
-      return recentLevels(higherSwings, higherCloses[higherCloses.length - 1], 3).map((level) => ({
+   /** The mc.pine Fibonacci levels on the current structure range (s3). */
+   function fibLines(): LessonChartLine[] {
+      // Review follow-up: the readout names the bias-timeframe levels, so the
+      // ladder hangs on the bias-timeframe range too.
+      return fibLevels(higherRead.range).map((level, index) => ({
          price: level.price,
-         color: level.side === "resistance" ? cssColor("--danger-color", "#ef5350") : cssColor("--success-color", "#26a69a"),
-         title: level.side === "resistance" ? "R" : "S",
+         color: cssColor("--text-secondary", "#a0adc0"),
+         title: String(FIB_RATIOS[index]),
+         lineStyle: "dashed" as const,
       }));
+   }
+
+   /** The inducement line the next BOS has to clear (s2, dotted like Pine). */
+   function inducementLines(): LessonChartLine[] {
+      const idm = read.inducement;
+      if (!idm) return [];
+      return [
+         {
+            price: idm.price,
+            color: cssColor("--text-secondary", "#a0adc0"),
+            title: "IDM",
+            lineStyle: "dotted" as const,
+         },
+      ];
    }
 </script>
 
@@ -445,6 +526,10 @@
                         {directionOf(emaNow, emaPrev)} · {lastHigherClose > emaNow ? text("academy.structure.read.emaAbove") : lastHigherClose < emaNow ? text("academy.structure.read.emaBelow") : text("academy.structure.read.flat")}
                      {/if}
                   </dd>
+               </div>
+               <div class="flex justify-between gap-3">
+                  <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.ema")} 21/50/200</dt>
+                  <dd class="font-mono text-[var(--text-primary)]">{emaTrioReadout}</dd>
                </div>
             </dl>
          {/if}
@@ -553,6 +638,14 @@
                      <span class="inline-block w-2.5 h-2.5 rounded bg-[var(--accent-color)] opacity-40"></span>
                      {text("academy.structure.s2.legendZone")}
                   </span>
+                  <span class="inline-flex items-center gap-1.5">
+                     <span class="inline-flex w-2.5 h-2.5 items-center justify-center rounded-full border border-[var(--warning-color)] text-[8px] leading-none text-[var(--warning-color)]">S</span>
+                     {text("academy.structure.s2.legendSweep")}
+                  </span>
+                  <span class="inline-flex items-center gap-1.5">
+                     <span class="inline-block w-6 border-t border-dotted border-[var(--text-secondary)]"></span>
+                     {text("academy.structure.s2.legendIdm")}
+                  </span>
                </figcaption>
             </figure>
          {/if}
@@ -574,8 +667,9 @@
                         entry={entry}
                         timeframe={sharedTf}
                         showTimeframePicker={false}
+                        series={section.key === "s1" ? (emaTrioSeries ?? undefined) : undefined}
                         markers={section.key === "s2" ? markersForChart() : undefined}
-                        priceLines={section.key === "s3" ? levelsForChart() : undefined}
+                        priceLines={section.key === "s2" ? inducementLines() : section.key === "s3" ? fibLines() : undefined}
                      />
                   {/if}
                {/each}

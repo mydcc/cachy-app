@@ -2,7 +2,7 @@
 id: FEAT-0765
 title: Teach the mc.pine structure read in the Academy
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0686]
+assignee: opencode
+branch: feature/feat-0765-mc-pine-structure-read
 ---
 
 # FEAT-0765 — Teach the mc.pine structure read in the Academy
