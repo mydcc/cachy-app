@@ -3655,6 +3655,8 @@ export type TranslationKey =
   | "academy.structure.s2.legendBos"
   | "academy.structure.s2.legendChoch"
   | "academy.structure.s2.legendZone"
+  | "academy.structure.s2.legendSweep"
+  | "academy.structure.s2.legendIdm"
   | "academy.structure.s3.title"
   | "academy.structure.s3.takeaway"
   | "academy.structure.s3.body"

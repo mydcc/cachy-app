@@ -60,7 +60,6 @@
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import {
-        dimensionOf,
         nameKey,
         outputKey,
         type CatalogueEntry,
@@ -132,6 +131,13 @@
         markers?: readonly LessonChartMarker[];
         /** Horizontal levels, recreated only when their set changes. */
         priceLines?: readonly LessonChartLine[];
+        /**
+         * A full series override (FEAT-0765): the structure lesson computes a
+         * multi-line read (the EMA trio) through the same catalogue engine and
+         * hands the merged lines in, instead of one entry's own output set.
+         * Omitted, the chart computes `entry` as before.
+         */
+        series?: LessonSeries;
     }
 
     let {
@@ -143,6 +149,7 @@
         showTimeframePicker = true,
         markers,
         priceLines,
+        series,
     }: Props = $props();
 
     /**
@@ -318,7 +325,7 @@
     });
 
     let computed = $derived<LessonSeries>(
-        computeLessonSeries(entry, candles, timeframe, params, field),
+        series ?? computeLessonSeries(entry, candles, timeframe, params, field),
     );
 
     /**
@@ -336,7 +343,12 @@
      */
     function paneFor(lineName: string): number {
         if (entry.placement === "pane") return 1;
-        return dimensionOf(entry, lineName) === "price" ? 0 : 1;
+        const dimension = entry.outputs.find((output) => output.name === lineName)?.dimension;
+        if (dimension === "price") return 0;
+        // A caller-supplied override line (FEAT-0765 EMA trio) is not a
+        // declared output; a price-placement entry keeps those on the candles.
+        if (dimension === undefined) return entry.placement === "price" ? 0 : 1;
+        return 1;
     }
 
     let container = $state<HTMLElement | null>(null);
@@ -392,7 +404,19 @@
     /** One string per level; the join is the recreate-when-changed signature. */
     function priceLineSignature(lines: readonly LessonChartLine[] | undefined): string {
         if (!lines) return "";
-        return lines.map((line) => `${line.price}:${line.color}:${line.title ?? ""}`).join(",");
+        return lines
+            .map(
+                (line) =>
+                    `${line.price}:${line.color}:${line.title ?? ""}:${line.lineStyle ?? "dashed"}`,
+            )
+            .join(",");
+    }
+
+    /** lightweight-charts LineStyle: solid 0, dotted 1, dashed 2. */
+    function lineStyleValue(style: LessonChartLine["lineStyle"]): number {
+        if (style === "dotted") return 1;
+        if (style === "solid") return 0;
+        return 2;
     }
 
     /** One string per marker; the join is the recreate-when-changed signature. */
@@ -814,7 +838,7 @@
                         price: line.price,
                         color: line.color,
                         lineWidth: 1,
-                        lineStyle: 2,
+                        lineStyle: lineStyleValue(line.lineStyle),
                         axisLabelVisible: true,
                         title: line.title ?? "",
                     }),

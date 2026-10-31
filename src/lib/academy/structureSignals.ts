@@ -45,15 +45,6 @@ export interface Swing {
     side: "high" | "low";
 }
 
-export type BreakKind = "BOS-up" | "BOS-down" | "CHOCH-up" | "CHOCH-down";
-
-export interface StructureBreak {
-    /** Index of the candle whose close made the break. */
-    index: number;
-    price: number;
-    kind: BreakKind;
-}
-
 export interface LevelLine {
     price: number;
     side: "resistance" | "support";
@@ -76,92 +67,6 @@ export function higherTimeframe(
         if (ms !== null && ms >= 4 * base) return pick;
     }
     return tf;
-}
-
-/**
- * N-bar fractal swings: a high strictly greater than the `strength` bars on
- * each side, a low strictly lower. Strictness keeps flat tops unmarked rather
- * than double-marked — a tied extreme is indecision, not a swing.
- */
-export function findSwings(bars: readonly PriceBar[], strength = 2): Swing[] {
-    const out: Swing[] = [];
-    for (let i = strength; i + strength < bars.length; i++) {
-        let isHigh = true;
-        let isLow = true;
-        for (let k = 1; k <= strength; k++) {
-            if (bars[i].high <= bars[i - k].high || bars[i].high <= bars[i + k].high) {
-                isHigh = false;
-            }
-            if (bars[i].low >= bars[i - k].low || bars[i].low >= bars[i + k].low) {
-                isLow = false;
-            }
-            if (!isHigh && !isLow) break;
-        }
-        if (isHigh) out.push({ index: i, price: bars[i].high, side: "high" });
-        if (isLow) out.push({ index: i, price: bars[i].low, side: "low" });
-    }
-    return out;
-}
-
-/**
- * Breaks of structure over closes, read against confirmed past swings only.
- *
- * No trend yet: the first break in either direction names the trend (BOS).
- * In an uptrend a close above the last swing high extends it (BOS-up); a
- * close below the last swing low breaks character first (CHOCH-down) and the
- * trend flips — further closes below keep breaking structure downward.
- * Mirrored in a downtrend. Equal closes never break: a tie holds the level.
- *
- * One event per level: a break marks its reference as spent, so a steady run
- * of closes beyond the same swing emits exactly one event instead of one per
- * bar. A new swing on that side re-arms its reference.
- */
-export function detectBreaks(
-    closes: readonly number[],
-    swings: readonly Swing[],
-): StructureBreak[] {
-    const out: StructureBreak[] = [];
-    let trend: 1 | -1 | 0 = 0;
-    let lastHigh = -Infinity;
-    let lastLow = Infinity;
-    let highSpent = false;
-    let lowSpent = false;
-    let swingCursor = 0;
-    for (let i = 0; i < closes.length; i++) {
-        while (swingCursor < swings.length && swings[swingCursor].index < i) {
-            const swing = swings[swingCursor];
-            if (swing.side === "high") {
-                lastHigh = swing.price;
-                highSpent = false;
-            } else {
-                lastLow = swing.price;
-                lowSpent = false;
-            }
-            swingCursor++;
-        }
-        const close = closes[i];
-        // Both bounds must be known: without a confirmed high and low the
-        // first close would always "break" against infinity.
-        if (!Number.isFinite(lastHigh) || !Number.isFinite(lastLow)) continue;
-        if (trend >= 0 && close > lastHigh && !highSpent) {
-            out.push({ index: i, price: close, kind: "BOS-up" });
-            trend = 1;
-            highSpent = true;
-        } else if (trend <= 0 && close < lastLow && !lowSpent) {
-            out.push({ index: i, price: close, kind: "BOS-down" });
-            trend = -1;
-            lowSpent = true;
-        } else if (trend === 1 && close < lastLow && !lowSpent) {
-            out.push({ index: i, price: close, kind: "CHOCH-down" });
-            trend = -1;
-            lowSpent = true;
-        } else if (trend === -1 && close > lastHigh && !highSpent) {
-            out.push({ index: i, price: close, kind: "CHOCH-up" });
-            trend = 1;
-            highSpent = true;
-        }
-    }
-    return out;
 }
 
 /**

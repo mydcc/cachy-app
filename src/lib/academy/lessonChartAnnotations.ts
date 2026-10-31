@@ -43,4 +43,10 @@ export interface LessonChartLine {
     price: number;
     color: string;
     title?: string;
+    /**
+     * `dashed` (default) keeps the cockpit's level look; `dotted` marks the
+     * inducement, `solid` is available for anchors that should not read as a
+     * zone edge.
+     */
+    lineStyle?: "solid" | "dashed" | "dotted";
 }

@@ -862,7 +862,10 @@ describe("FEAT-0677 — the live lesson chart", () => {
                 markers: [
                     { time: 1_700_000_000, position: "belowBar", color: "#fff", shape: "circle", text: "BOS" },
                 ],
-                priceLines: [{ price: 101.5, color: "#fff", title: "R" }],
+                priceLines: [
+                    { price: 101.5, color: "#fff", title: "R" },
+                    { price: 99.5, color: "#fff", title: "IDM", lineStyle: "dotted" },
+                ],
             },
         }) as never;
         flushSync();
@@ -871,8 +874,48 @@ describe("FEAT-0677 — the live lesson chart", () => {
             { time: 1_700_000_000, position: "belowBar", color: "#fff", shape: "circle", text: "BOS" },
         ]);
         expect(lw.candleSeries.createPriceLine).toHaveBeenCalledWith(
-            expect.objectContaining({ price: 101.5, title: "R" }),
+            expect.objectContaining({ price: 101.5, title: "R", lineStyle: 2 }),
         );
+        expect(lw.candleSeries.createPriceLine).toHaveBeenCalledWith(
+            expect.objectContaining({ price: 99.5, title: "IDM", lineStyle: 1 }),
+        );
+    });
+
+    it("draws a caller-supplied series override instead of the entry's outputs (FEAT-0765)", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const entry = catalogueEntry("ema");
+        if (!entry) throw new Error("no catalogue entry for ema");
+        if (component) {
+            unmount(component as never);
+            component = null;
+        }
+        host.innerHTML = "";
+        lw.lineSeries.length = 0;
+        const count = marketState.data[normalizeSymbol("BTCUSDT", "bitunix")]!.klines![TIMEFRAME]!.length;
+        component = mount(IndicatorLessonChart, {
+            target: host,
+            props: {
+                entry,
+                series: {
+                    lines: [
+                        { name: "EMA 21", values: Array.from({ length: count }, () => "101") },
+                        { name: "EMA 50", values: Array.from({ length: count }, () => "99") },
+                    ],
+                    refused: [],
+                },
+            },
+        }) as never;
+        flushSync();
+        const view = host.firstElementChild as HTMLElement;
+
+        // Two caller lines, drawn as two series on the price pane, and the
+        // legend names them.
+        expect(lw.lineSeries.length).toBe(2);
+        expect(lw.lineSeries.map((series) => series.paneIndex)).toEqual([0, 0]);
+        expect(view.textContent).toContain("EMA 21");
+        expect(view.textContent).toContain("EMA 50");
     });
 
     it("follows a parent timeframe and hides its own picker", () => {

@@ -28,6 +28,11 @@
   hidden
   data-markers={JSON.stringify(props.markers ?? null)}
   data-pricelines={JSON.stringify(props.priceLines ?? null)}
+  data-series={JSON.stringify(
+    (props.series as { lines?: Array<{ name: string }> } | undefined)?.lines?.map(
+      (line) => line.name,
+    ) ?? null,
+  )}
 >
   {Object.keys(props).length}
 </span>
