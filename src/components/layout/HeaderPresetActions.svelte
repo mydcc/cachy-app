@@ -37,6 +37,8 @@
     import { presetState } from "../../stores/preset.svelte";
     import { tradeState } from "../../stores/trade.svelte";
     import { modalState } from "../../stores/modal.svelte";
+    import { escapeHtml } from "../../utils/utils";
+    import { trackCustomEvent } from "../../services/trackingService";
 
     async function deleteSelectedPreset() {
         const name = presetState.selectedPreset;
@@ -45,11 +47,17 @@
         const confirmed = await modalState.show(
             $_("dashboard.deletePresetConfirmTitle"),
             $_("dashboard.deletePresetConfirmMessage", {
-                values: { name },
+                // The dialog renders its message as HTML; a preset name is data.
+                values: { name: escapeHtml(name) },
             }),
             "confirm",
         );
-        if (confirmed === true) await app.deletePreset(name);
+        if (confirmed === true) {
+            await app.deletePreset(name);
+            // The click is a request, not the action: only a confirmed delete
+            // is the event worth recording.
+            trackCustomEvent("Presets", "Click", "DeletePreset");
+        }
     }
 
     async function resetTradeForm() {
@@ -58,7 +66,10 @@
             $_("dashboard.resetConfirmMessage"),
             "confirm",
         );
-        if (confirmed === true) tradeState.resetInputs(true);
+        if (confirmed === true) {
+            tradeState.resetInputs(true);
+            trackCustomEvent("Actions", "Click", "ResetAll");
+        }
     }
 </script>
 
@@ -67,21 +78,11 @@
     variant="danger"
     title={$_("dashboard.deletePresetTitle")}
     disabled={!presetState.selectedPreset}
-    onClick={deleteSelectedPreset}
-    track={{
-        category: "Presets",
-        action: "Click",
-        name: "DeletePreset",
-    }}>{@html icons.delete}</Button
+    onClick={deleteSelectedPreset}>{@html icons.delete}</Button
 >
 <Button
     id="reset-btn"
     variant="default"
     title={$_("dashboard.resetButtonTitle")}
-    onClick={resetTradeForm}
-    track={{
-        category: "Actions",
-        action: "Click",
-        name: "ResetAll",
-    }}>{@html icons.broom}</Button
+    onClick={resetTradeForm}>{@html icons.broom}</Button
 >

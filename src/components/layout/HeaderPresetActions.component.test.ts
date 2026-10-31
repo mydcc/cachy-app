@@ -22,8 +22,18 @@
  * The reset button replaced every trade-form value except symbol and trade
  * type on the first click; the delete button removed the selected preset from
  * localStorage. Both now go through `modalState` like every other destructive
- * action in the app, and both messages name what is lost. These cases pin the
- * cancel path: a gate that asks and then acts anyway is worse than no gate.
+ * action in the app, and both messages name what is lost.
+ *
+ * The cancel cases use the *real* action (no spy over `resetInputs` /
+ * `deletePreset`), because a spy would make "the state is untouched" true no
+ * matter what the handler does. They also wait for the handler to resume after
+ * its `await` before asserting: `waitFor` only proves the dialog was asked, and
+ * a gate that asks and then acts anyway is the one regression this file exists
+ * to catch.
+ *
+ * The dialog's own "No" button is exercised through the real store in
+ * `HeaderPresetActions.dialog.component.test.ts`; here `modalState` is mocked so
+ * the component's branch is isolated.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -75,6 +85,11 @@ const STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_PRESETS_KEY;
 let host: HTMLDivElement;
 let component: ReturnType<typeof mount> | null = null;
 
+/** Lets the handler resume after `await modalState.show(...)`. */
+function afterHandler() {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 function render(): void {
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -86,6 +101,10 @@ function control(id: string): HTMLButtonElement {
     const element = host.querySelector<HTMLButtonElement>(`#${id}`);
     if (!element) throw new Error(`no #${id} rendered`);
     return element;
+}
+
+function storedPresetNames(): string[] {
+    return Object.keys(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"));
 }
 
 beforeEach(() => {
@@ -105,21 +124,20 @@ afterEach(() => {
 describe("BUG-0716 — the header confirms before it destroys", () => {
     it("asks before resetting and leaves every field when cancelled", async () => {
         tradeState.entryPrice = "123";
-        const reset = vi
-            .spyOn(tradeState, "resetInputs")
-            .mockImplementation(() => {});
         vi.mocked(modalState.show).mockResolvedValue(false);
 
         render();
         control("reset-btn").click();
 
         await vi.waitFor(() => expect(modalState.show).toHaveBeenCalledTimes(1));
+        await afterHandler();
+
         const [title, body, type] = vi.mocked(modalState.show).mock.calls[0];
         expect(title).toBe(message("dashboard.resetConfirmTitle"));
         expect(body).toBe(message("dashboard.resetConfirmMessage"));
         expect(type).toBe("confirm");
 
-        expect(reset).not.toHaveBeenCalled();
+        // The real reset would clear this; nothing did.
         expect(tradeState.entryPrice).toBe("123");
     });
 
@@ -129,29 +147,27 @@ describe("BUG-0716 — the header confirms before it destroys", () => {
             JSON.stringify({ Mine: { entryPrice: "1" } }),
         );
         presetState.selectedPreset = "Mine";
-        const remove = vi.spyOn(app, "deletePreset").mockResolvedValue();
         vi.mocked(modalState.show).mockResolvedValue(false);
 
         render();
         control("delete-preset-btn").click();
 
         await vi.waitFor(() => expect(modalState.show).toHaveBeenCalledTimes(1));
+        await afterHandler();
+
         const [title, body, type] = vi.mocked(modalState.show).mock.calls[0];
         expect(title).toBe(message("dashboard.deletePresetConfirmTitle"));
         expect(body).toBe(
             message("dashboard.deletePresetConfirmMessage", { name: "Mine" }),
         );
+        expect(body).toContain("Mine");
         expect(type).toBe("confirm");
 
-        expect(remove).not.toHaveBeenCalled();
-        expect(
-            Object.keys(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}")),
-        ).toContain("Mine");
-        // Cancelling also leaves the loader on the preset it had selected.
-        expect(presetState.selectedPreset).toBe("Mine");
+        // The real delete writes localStorage; the preset is still there.
+        expect(storedPresetNames()).toContain("Mine");
     });
 
-    it("performs each action after confirmation", async () => {
+    it("performs each action only after confirmation", async () => {
         localStorage.setItem(
             STORAGE_KEY,
             JSON.stringify({ Mine: { entryPrice: "1" } }),
@@ -171,11 +187,16 @@ describe("BUG-0716 — the header confirms before it destroys", () => {
         await vi.waitFor(() => expect(reset).toHaveBeenCalledWith(true));
     });
 
-    it("keeps delete unavailable without a selection", () => {
+    it("keeps delete unavailable until a preset is selected", () => {
         render();
 
         expect(control("delete-preset-btn").disabled).toBe(true);
         control("delete-preset-btn").click();
         expect(modalState.show).not.toHaveBeenCalled();
+
+        presetState.selectedPreset = "Mine";
+        flushSync();
+
+        expect(control("delete-preset-btn").disabled).toBe(false);
     });
 });

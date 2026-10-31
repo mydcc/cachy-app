@@ -415,7 +415,7 @@ precondition.
 | Header | `#preset-loader` (select) | applies the chosen preset on change | — | — (selection is shown) |
 | Header | `#save-preset-btn` | prompts for a name, then saves | — | — |
 | Header | `#delete-preset-btn` | confirms, naming the preset, then deletes it | a preset is selected | yes — the loader shows its placeholder when none is |
-| Header | `#reset-btn` | resets every input except symbol and trade type | — | — |
+| Header | `#reset-btn` | confirms, then resets every input except symbol and trade type | — | — |
 | Header | `#theme-switcher` | cycles theme forward; right-click cycles backward | — | icon shows the current theme; the backward gesture is undiscoverable |
 | Header | `#view-journal-btn-desktop` (`hidden md:inline-block`) | opens the journal modal | — | — |
 | Trade-form footer | pulse `🚀` | projectile effect | — | — |
@@ -617,10 +617,10 @@ handler shape and the same active marker.
 The "no" rows are not one class. Engaging the kill switch is the safe direction;
 clearing a cache or reloading loses nothing persisted; the "restore defaults"
 family is recoverable by reconfiguring, though it is itself inconsistent —
-hotkeys confirm, notification policy does not. The header pair was none of these: form values and a saved preset were gone in
-one click, next to a theme switch. BUG-0716 closed that gap; the remaining rows
-are listed so FEAT-0607 can decide one rule for the family instead of a
-different one per tab.
+hotkeys confirm, notification policy does not. The header pair was none of
+these: form values and a saved preset were gone in one click, next to a theme
+switch. BUG-0716 closed that gap; the remaining rows are listed so FEAT-0607
+can decide one rule for the family instead of a different one per tab.
 
 ### 8.6 The preset trio, checked against each other
 
@@ -630,10 +630,10 @@ different one per tab.
 | `#save-preset-btn` | opens a name prompt | never | the prompt is the gate |
 | `#delete-preset-btn` | confirms, naming the preset, then deletes | when nothing is selected | yes — `modalState` |
 
-The trio now shares one model: the loader applies on change, save prompts for
-a name and delete confirms naming the preset (BUG-0716). The loader's
-placeholder option doubles as the empty selection, which is why the delete
-button's disabled state is readable at all.
+The trio no longer has the one control that acted without asking: the loader
+applies on change, save prompts for a name, delete confirms naming the preset
+(BUG-0716). The loader's placeholder option doubles as the empty selection,
+which is why the delete button's disabled state is readable at all.
 
 ### 8.7 Controls that act on another surface
 

@@ -55,8 +55,10 @@ translates nothing, so its two dialogs ship keys.
 ## Fix
 
 1. Translate at the two call sites (`$_("modals.clearJournal.title")`, …) to
-   match the components, or make `modalState.show` translate keys. Pick one and
-   state it in the method's doc comment; do not leave both conventions.
+   match the components, and write the convention into `modalState.show`'s doc
+   comment: it receives copy, not keys. Making `show` translate instead would
+   re-run every component call site that already passes translated text, so
+   that option is rejected rather than left open.
 2. A regression test that mounts a `DialogWindow` through `modalState` and
    asserts the rendered title is not a `modals.*` key would have caught this.
 
