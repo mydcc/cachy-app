@@ -54,6 +54,7 @@
   import Tooltip from "../components/shared/Tooltip.svelte";
   import CachyIcon from "../components/shared/CachyIcon.svelte";
   import Button from "../components/shared/Button.svelte";
+  import HeaderPresetActions from "../components/layout/HeaderPresetActions.svelte";
   import MarketOverview from "../components/shared/MarketOverview.svelte";
   import PositionsSidebar from "../components/shared/PositionsSidebar.svelte";
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
@@ -465,29 +466,7 @@
               name: "SavePreset",
             }}>{@html icons.save}</Button
           >
-          <Button
-            id="delete-preset-btn"
-            variant="danger"
-            title={$_("dashboard.deletePresetTitle")}
-            disabled={!presetState.selectedPreset}
-            onClick={() => app.deletePreset(presetState.selectedPreset)}
-            track={{
-              category: "Presets",
-              action: "Click",
-              name: "DeletePreset",
-            }}>{@html icons.delete}</Button
-          >
-          <Button
-            id="reset-btn"
-            variant="default"
-            title={$_("dashboard.resetButtonTitle")}
-            onClick={() => tradeState.resetInputs(true)}
-            track={{
-              category: "Actions",
-              action: "Click",
-              name: "ResetAll",
-            }}>{@html icons.broom}</Button
-          >
+          <HeaderPresetActions />
           <Button
             id="theme-switcher"
             variant="default"
