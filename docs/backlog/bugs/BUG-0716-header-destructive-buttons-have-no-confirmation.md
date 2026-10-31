@@ -2,9 +2,7 @@
 id: BUG-0716
 title: The header's reset and delete-preset buttons act without confirmation
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/ui-destructive-confirmations
+status: done
 priority: P2
 milestone: none
 created: "2026-10-21"
@@ -65,12 +63,12 @@ save prompts for a name, delete would then confirm. The audit table in
 
 ## Acceptance criteria
 
-- [ ] Reset asks before replacing the trade form, and cancelling leaves every
+- [x] Reset asks before replacing the trade form, and cancelling leaves every
       field untouched
-- [ ] Delete asks before removing the preset, and cancelling keeps it in the
+- [x] Delete asks before removing the preset, and cancelling keeps it in the
       loader
-- [ ] A component test covers both cancel paths
-- [ ] The other destructive controls without confirmation are listed in the
+- [x] A component test covers both cancel paths
+- [x] The other destructive controls without confirmation are listed in the
       audit table, not silently fixed here
 
 ## Links
