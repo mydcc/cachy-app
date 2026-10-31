@@ -129,8 +129,10 @@ describe("FEAT-0767 — the market-structure lesson", () => {
         expect(view.querySelector("canvas")).toBeNull();
         expect(view.querySelector("[data-testid^='structure-chart-']")).toBeNull();
         expect(view.querySelector("[data-testid='structure-readout']")).toBeNull();
-        // No timeframe picker: the lesson has no live layer to drive.
-        expect(view.querySelector("[aria-label^='Timeframe']")).toBeNull();
+        // No picker of any kind: the only controls are the five lesson chips,
+        // asserted by count so a restored dropdown cannot slip past a label.
+        expect(view.querySelectorAll("button")).toHaveLength(5);
+        expect(view.querySelectorAll("select, [role='combobox']")).toHaveLength(0);
     });
 
     it("subscribes to no market channel", () => {
@@ -146,14 +148,27 @@ describe("FEAT-0767 — the market-structure lesson", () => {
         expect(view.textContent).toContain(lookup("academy.structure.panelHint"));
     });
 
-    it("opens the matching indicator lesson from a chip", () => {
+    it("opens the matching indicator lesson from every chip", () => {
         const view = renderView();
 
-        const chip = view.querySelector<HTMLButtonElement>('[data-testid="structure-open-ema"]');
-        expect(chip, "no ema chip on the bias card").not.toBeNull();
-        chip!.click();
-        flushSync();
+        for (const id of ["ema", "adx", "choppiness", "bollinger", "atr"]) {
+            const chip = view.querySelector<HTMLButtonElement>(`[data-testid="structure-open-${id}"]`);
+            expect(chip, `no chip for ${id}`).not.toBeNull();
+            chip!.click();
+            flushSync();
+            expect(onOpenIndicators).toHaveBeenLastCalledWith(id);
+        }
+        expect(onOpenIndicators).toHaveBeenCalledTimes(5);
+    });
 
-        expect(onOpenIndicators).toHaveBeenCalledWith("ema");
+    it("describes each drawing instead of repeating its heading", () => {
+        const view = renderView();
+
+        for (const key of SECTIONS) {
+            const card = view.querySelector(`[data-testid="structure-${key}"]`)!;
+            const svg = card.querySelector(`[data-testid="structure-diagram-${key}"]`)!;
+            expect(svg.getAttribute("aria-labelledby"), key).toBe(`structure-alt-${key}`);
+            expect(card.textContent, key).toContain(lookup(`academy.structure.${key}.diagramAlt`));
+        }
     });
 });

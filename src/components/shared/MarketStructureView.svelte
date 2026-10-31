@@ -108,11 +108,16 @@
          </header>
 
          <figure class="flex flex-col gap-2 min-w-0" data-testid="structure-figure-{section.key}">
+            <!-- The heading above already names the card; the drawing needs a
+                 description of what it shows, not a repetition of the title. -->
+            <p class="sr-only" id="structure-alt-{section.key}">
+               {text(`academy.structure.${section.key}.diagramAlt`)}
+            </p>
             <svg
                viewBox="0 0 400 240"
                class="w-full h-auto max-w-[520px] mx-auto"
                role="img"
-               aria-label={title}
+               aria-labelledby="structure-alt-{section.key}"
                data-testid="structure-diagram-{section.key}"
             >
                {#if section.key === "s1"}
@@ -130,7 +135,7 @@
                   <text
                      x="18"
                      y="26"
-                     fill="var(--text-tertiary)"
+                     fill="var(--text-secondary)"
                      font-size="11"
                      font-family="monospace">4h</text
                   >
@@ -154,12 +159,12 @@
                   <text
                      x="18"
                      y="138"
-                     fill="var(--text-tertiary)"
+                     fill="var(--text-secondary)"
                      font-size="11"
                      font-family="monospace">1h</text
                   >
                   <polyline
-                     points="24,146 44,166 64,152 84,176 104,160 124,186 144,170 164,192 184,178 204,200 224,186 244,208 264,194 284,212 304,200 324,214 344,204 364,216 378,208"
+                     points="24,150 44,168 64,156 84,182 104,162 124,186 144,166 164,190 184,170 204,192 224,172 244,188 264,168 284,190 304,174 324,186 344,168 364,184 378,176"
                      fill="none"
                      stroke="var(--text-primary)"
                      stroke-width="1.5"
@@ -220,28 +225,22 @@
                      stroke-dasharray="6 4"
                      opacity="0.7"
                   />
-                  <rect
-                     x="8"
-                     y="176"
-                     width="384"
-                     height="12"
-                     fill="var(--text-tertiary)"
-                     opacity="0.1"
-                  />
                   <polyline
-                     points="20,214 46,150 66,178 92,74 112,120 138,78 158,128 182,120 206,50 226,44 250,86 274,96 300,58 340,34 378,22"
+                     points="20,214 46,150 66,178 92,74 112,120 138,78 158,128 182,120 206,50 226,44 250,72 274,74 300,58 340,34 378,22"
                      fill="none"
                      stroke="var(--text-primary)"
                      stroke-width="2"
                      stroke-linejoin="round"
                      stroke-linecap="round"
                   />
-                  <circle
-                     cx="274"
-                     cy="96"
-                     r="5"
+                  <rect
+                     x="270"
+                     y="70"
+                     width="8"
+                     height="8"
+                     transform="rotate(45 274 74)"
                      fill="none"
-                     stroke="var(--warning-color)"
+                     stroke="var(--accent-color)"
                      stroke-width="2"
                   />
                {:else if section.key === "s4a"}
@@ -292,7 +291,7 @@
                      stroke-dasharray="5 4"
                   />
                   <polyline
-                     points="222,150 244,68 266,170 288,70 310,168 332,66 354,172 376,74"
+                     points="222,150 244,56 266,170 288,184 310,168 332,58 354,172 376,74"
                      fill="none"
                      stroke="var(--warning-color)"
                      stroke-width="1.5"
@@ -321,7 +320,7 @@
                      stroke-dasharray="6 4"
                   />
                   <polyline
-                     points="16,120 44,52 70,186 96,66 122,178 148,78 172,166 192,112"
+                     points="16,120 44,64 70,168 96,80 122,142 148,96 172,122 192,112"
                      fill="none"
                      stroke="var(--text-primary)"
                      stroke-width="1.5"
@@ -350,7 +349,7 @@
                      opacity="0.7"
                   />
                   <polyline
-                     points="192,112 216,100 240,74 264,58 288,48 312,34 336,26 360,16 384,8"
+                     points="192,112 216,104 240,86 264,84 288,70 312,64 336,50 360,40 384,20"
                      fill="none"
                      stroke="var(--text-primary)"
                      stroke-width="2.5"

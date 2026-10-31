@@ -47,15 +47,17 @@ everything live:
 - [x] The tab registers no kline channel and requests no history.
 - [x] No sticky readout, no timeframe picker, no bias timeframe in the view.
 - [x] Five cards, each with exactly one schematic and its takeaway; the s2
-      schematic is unchanged.
+      schematic is unchanged, and every schematic carries a description of what
+      it shows rather than a repeat of its heading.
 - [x] The lesson chips still open the matching indicator lesson.
-- [x] The static and the app route render the same markup.
+- [x] The view takes no route-dependent prop, so the app and the static route
+      cannot render different markup.
 - [x] `MarketStructureView`'s `showLiveChart` prop is gone and every caller is
       updated.
 - [x] Strings that only the live layer used are removed from `de.json` and
       `en.json`; `schema.d.ts` regenerated.
-- [x] The component test asserts the absence of a chart, the schematic per
-      card and the identical static route.
+- [x] The component test asserts the absence of a chart, the chip count as the
+      only controls, the schematic per card and its description.
 
 ## Out of scope
 
