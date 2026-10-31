@@ -250,6 +250,22 @@
    let atrSeries = $derived(seriesFor("atr", bars, sharedTf));
    let higherSwings = $derived(findSwings(higherBars.map((bar) => ({ high: bar.high, low: bar.low, close: bar.close }))));
 
+   /*
+    * The live reading, computed once per data change and read by both the
+    * sticky readout and the per-card `dl`s — the strip and the cards can
+    * never disagree about the same value.
+    */
+   let emaNow = $derived(lastValue(emaSeries?.lines.find((line) => line.name === "value")?.values));
+   let emaPrev = $derived(secondLastValue(emaSeries?.lines.find((line) => line.name === "value")?.values));
+   let lastHigherClose = $derived(higherCloses.length > 0 ? higherCloses[higherCloses.length - 1] : null);
+   let nearestLevels = $derived(lastHigherClose === null ? [] : recentLevels(higherSwings, lastHigherClose, 1));
+   let nearestResistance = $derived(nearestLevels.find((level) => level.side === "resistance") ?? null);
+   let nearestSupport = $derived(nearestLevels.find((level) => level.side === "support") ?? null);
+   let adxNow = $derived(lastValue(adxSeries?.lines.find((item) => item.name === "adx")?.values));
+   let chopNow = $derived(lastValue(chopSeries?.lines.find((item) => item.name === "value")?.values));
+   let bwNow = $derived(lastValue(bollingerSeries?.lines.find((item) => item.name === "bandwidth")?.values));
+   let atrNow = $derived(lastValue(atrSeries?.lines.find((item) => item.name === "value")?.values));
+
    interface Section {
       key: "s1" | "s2" | "s3" | "s4a" | "s4b";
       charts: readonly string[];
@@ -327,8 +343,26 @@
    }
 </script>
 
+{#snippet lessonChips(section: Section)}
+   {#if section.lessons.length > 0}
+      <div class="flex flex-wrap gap-2">
+         {#each section.lessons as id (id)}
+            <button
+               type="button"
+               class="text-xs px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--accent-color)]"
+               aria-label={`${text("academy.structure.openLesson")}: ${lessonName(id)}`}
+               data-testid="structure-open-{id}"
+               onclick={() => onOpenIndicators(id)}
+            >
+               {lessonName(id)} →
+            </button>
+         {/each}
+      </div>
+   {/if}
+{/snippet}
+
 <div
-   class="flex flex-col gap-6 h-full min-h-0 min-w-0 overflow-y-auto"
+   class="flex flex-col gap-6 h-full min-h-0 min-w-0 overflow-y-auto scroll-pt-8"
    data-testid="structure-view"
 >
    <div class="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
@@ -343,23 +377,60 @@
       <span>{text("academy.structure.read.biasTf")}: {biasTf}</span>
    </div>
 
+   {#if showLiveChart}
+      <!-- The reading the cards below explain, pinned above them: one
+           scrollable line, same contract as the tab bar (BUG-0762). -->
+      <div
+         class="sticky top-0 z-10 flex items-center gap-4 overflow-x-auto whitespace-nowrap border-b border-[var(--border-color)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[10px] uppercase tracking-wide text-[var(--text-secondary)]"
+         role="group"
+         aria-label={text("academy.structure.read.summaryLabel")}
+         data-testid="structure-readout"
+      >
+         <span class="shrink-0">
+            {text("dashboard.alerts.indicators.name.ema")} ({biasTf}):
+            <span class="font-mono text-[var(--text-primary)]">{directionOf(emaNow, emaPrev)}</span>
+         </span>
+         <span class="shrink-0">
+            {text("academy.structure.read.lastBreak")}:
+            <span class="font-mono text-[var(--text-primary)]">
+               {#if lastBreak === null}
+                  {text("academy.structure.read.noBreak")}
+               {:else}
+                  {breakKindLabel(lastBreak.kind)} · {text("academy.structure.read.candlesAgo", { n: closes.length - 1 - lastBreak.index })}
+               {/if}
+            </span>
+         </span>
+         <span class="shrink-0">
+            {text("academy.structure.read.nearestResistance")} / {text("academy.structure.read.nearestSupport")}:
+            <span class="font-mono text-[var(--text-primary)]">{nearestResistance ? formatPrice(nearestResistance.price) : "—"} / {nearestSupport ? formatPrice(nearestSupport.price) : "—"}</span>
+         </span>
+         <span class="shrink-0">
+            {text("dashboard.alerts.indicators.name.adx")} / {text("dashboard.alerts.indicators.name.choppiness")}:
+            <span class="font-mono text-[var(--text-primary)]">{adxNow === null ? "—" : format1(adxNow)} / {chopNow === null ? "—" : format1(chopNow)}</span>
+         </span>
+         <span class="shrink-0">
+            {text("dashboard.alerts.indicators.output.bandwidth")} / {text("dashboard.alerts.indicators.name.atr")}:
+            <span class="font-mono text-[var(--text-primary)]">{bwNow === null ? "—" : `${format1(bwNow)} %`} / {atrNow === null ? "—" : formatPrice(atrNow)}</span>
+         </span>
+      </div>
+   {/if}
+
    {#each SECTIONS as section, index (section.key)}
       {@const title = text(`academy.structure.${section.key}.title`)}
       {@const body = text(`academy.structure.${section.key}.body`)}
       <article
-         class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)] flex flex-col gap-4 min-w-0"
+         class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)] flex flex-col gap-4 min-w-0 {showLiveChart
+            ? '@3xl:grid @3xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] @3xl:items-start @3xl:gap-6'
+            : ''}"
          data-testid="structure-{section.key}"
       >
+         <div class="flex flex-col gap-4 min-w-0" data-testid="structure-prose-{section.key}">
          <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)]">
             {index + 1}. {title}
          </h3>
          <p class="text-sm font-bold text-[var(--text-primary)]">{text(`academy.structure.${section.key}.takeaway`)}</p>
 
          {#if section.key === "s1"}
-            {@const emaValues = emaSeries?.lines.find((line) => line.name === "value")?.values}
-            {@const emaNow = lastValue(emaValues)}
-            {@const emaPrev = secondLastValue(emaValues)}
-            {@const lastHigher = higherCloses.length > 0 ? higherCloses[higherCloses.length - 1] : null}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("academy.structure.read.biasTf")}</dt>
@@ -368,10 +439,10 @@
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.ema")}</dt>
                   <dd class="font-mono text-[var(--text-primary)]">
-                     {#if emaNow === null || lastHigher === null}
+                     {#if emaNow === null || lastHigherClose === null}
                         {text("academy.structure.read.noData")}
                      {:else}
-                        {directionOf(emaNow, emaPrev)} · {lastHigher > emaNow ? text("academy.structure.read.emaAbove") : lastHigher < emaNow ? text("academy.structure.read.emaBelow") : text("academy.structure.read.flat")}
+                        {directionOf(emaNow, emaPrev)} · {lastHigherClose > emaNow ? text("academy.structure.read.emaAbove") : lastHigherClose < emaNow ? text("academy.structure.read.emaBelow") : text("academy.structure.read.flat")}
                      {/if}
                   </dd>
                </div>
@@ -394,25 +465,19 @@
          {/if}
 
          {#if section.key === "s3"}
-            {@const close = higherCloses.length > 0 ? higherCloses[higherCloses.length - 1] : null}
-            {@const zoneLevels = close === null ? [] : recentLevels(higherSwings, close, 1)}
-            {@const resistance = zoneLevels.find((level) => level.side === "resistance") ?? null}
-            {@const support = zoneLevels.find((level) => level.side === "support") ?? null}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("academy.structure.read.nearestResistance")}</dt>
-                  <dd class="font-mono text-[var(--text-primary)]">{resistance ? formatPrice(resistance.price) : text("academy.structure.read.noData")}</dd>
+                  <dd class="font-mono text-[var(--text-primary)]">{nearestResistance ? formatPrice(nearestResistance.price) : text("academy.structure.read.noData")}</dd>
                </div>
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("academy.structure.read.nearestSupport")}</dt>
-                  <dd class="font-mono text-[var(--text-primary)]">{support ? formatPrice(support.price) : text("academy.structure.read.noData")}</dd>
+                  <dd class="font-mono text-[var(--text-primary)]">{nearestSupport ? formatPrice(nearestSupport.price) : text("academy.structure.read.noData")}</dd>
                </div>
             </dl>
          {/if}
 
          {#if section.key === "s4a"}
-            {@const adxNow = lastValue(adxSeries?.lines.find((item) => item.name === "adx")?.values)}
-            {@const chopNow = lastValue(chopSeries?.lines.find((item) => item.name === "value")?.values)}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.adx")}</dt>
@@ -430,8 +495,6 @@
          {/if}
 
          {#if section.key === "s4b"}
-            {@const bwNow = lastValue(bollingerSeries?.lines.find((item) => item.name === "bandwidth")?.values)}
-            {@const atrNow = lastValue(atrSeries?.lines.find((item) => item.name === "value")?.values)}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.output.bandwidth")}</dt>
@@ -494,37 +557,29 @@
             </figure>
          {/if}
 
-         {#if showLiveChart}
-            {#if section.hint}
-               <p class="text-sm text-[var(--text-secondary)]">{text(section.hint)}</p>
-            {/if}
-            {#each section.charts as id (id)}
-               {@const entry = entryFor(id)}
-               {#if entry}
-                  <IndicatorLessonChart
-                     entry={entry}
-                     timeframe={sharedTf}
-                     showTimeframePicker={false}
-                     markers={section.key === "s2" ? markersForChart() : undefined}
-                     priceLines={section.key === "s3" ? levelsForChart() : undefined}
-                  />
-               {/if}
-            {/each}
+         {#if !showLiveChart}
+            {@render lessonChips(section)}
          {/if}
+         </div>
 
-         {#if section.lessons.length > 0}
-            <div class="flex flex-wrap gap-2">
-               {#each section.lessons as id (id)}
-                  <button
-                     type="button"
-                     class="text-xs px-2 py-1 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--accent-color)]"
-                     aria-label={`${text("academy.structure.openLesson")}: ${lessonName(id)}`}
-                     data-testid="structure-open-{id}"
-                     onclick={() => onOpenIndicators(id)}
-                  >
-                     {lessonName(id)} →
-                  </button>
+         {#if showLiveChart}
+            <div class="flex flex-col gap-4 min-w-0" data-testid="structure-chart-{section.key}">
+               {#if section.hint}
+                  <p class="text-sm text-[var(--text-secondary)]">{text(section.hint)}</p>
+               {/if}
+               {#each section.charts as id (id)}
+                  {@const entry = entryFor(id)}
+                  {#if entry}
+                     <IndicatorLessonChart
+                        entry={entry}
+                        timeframe={sharedTf}
+                        showTimeframePicker={false}
+                        markers={section.key === "s2" ? markersForChart() : undefined}
+                        priceLines={section.key === "s3" ? levelsForChart() : undefined}
+                     />
+                  {/if}
                {/each}
+               {@render lessonChips(section)}
             </div>
          {/if}
       </article>

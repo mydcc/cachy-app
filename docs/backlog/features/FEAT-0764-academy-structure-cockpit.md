@@ -2,7 +2,7 @@
 id: FEAT-0764
 title: Turn the market-structure tab into a two-column cockpit
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0686]
+assignee: opencode
+branch: feature/feat-0764-academy-structure-cockpit
 ---
 
 # FEAT-0764 — Turn the market-structure tab into a two-column cockpit

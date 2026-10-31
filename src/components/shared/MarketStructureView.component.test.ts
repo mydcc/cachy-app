@@ -46,6 +46,11 @@ vi.mock("../../locales/i18n", async () => {
     };
 });
 
+/*
+ * The cockpit registers kline channels itself (FEAT-0686, FEAT-0763). The
+ * watcher is mocked so the view mounts without a provider; the readout
+ * assertions below read marketState directly.
+ */
 vi.mock("../../services/marketWatcher", () => ({
     marketWatcher: { register: vi.fn(), unregister: vi.fn(), ensureHistory: vi.fn() },
 }));
@@ -180,6 +185,57 @@ describe("MarketStructureView", () => {
         );
     });
 
+    it("lays each card out as prose and chart columns above the container step", () => {
+        const view = renderView({ showLiveChart: true });
+
+        for (const key of ["s1", "s2", "s3", "s4a", "s4b"]) {
+            const article = view.querySelector(`[data-testid="structure-${key}"]`);
+            expect(article, `section ${key} missing`).not.toBeNull();
+            // Two columns from the @3xl container step; below it the card is
+            // the same single reading flow as before (mobile stays stacked).
+            expect(article!.classList.contains("@3xl:grid")).toBe(true);
+            expect(
+                article!.classList.contains("@3xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"),
+            ).toBe(true);
+
+            const prose = article!.querySelector(`[data-testid="structure-prose-${key}"]`);
+            const chart = article!.querySelector(`[data-testid="structure-chart-${key}"]`);
+            expect(prose, `prose column missing in ${key}`).not.toBeNull();
+            expect(chart, `chart column missing in ${key}`).not.toBeNull();
+            expect(prose!.textContent).toContain(lookup(`academy.structure.${key}.body`));
+            expect(prose!.textContent).toContain(lookup(`academy.structure.${key}.takeaway`));
+        }
+
+        // The static schematic belongs to the prose column, not the chart one.
+        const s2Prose = view.querySelector('[data-testid="structure-prose-s2"]');
+        expect(s2Prose!.querySelector('[data-testid="structure-diagram"]')).not.toBeNull();
+
+        // Lesson chips follow the chart in the live layout (the old stacked
+        // order); on narrow widths the chart column stacks below the prose.
+        const s1Chart = view.querySelector('[data-testid="structure-chart-s1"]');
+        expect(s1Chart!.querySelector('[data-testid="structure-open-ema"]')).not.toBeNull();
+        const s1Prose = view.querySelector('[data-testid="structure-prose-s1"]');
+        expect(s1Prose!.querySelector('[data-testid="structure-open-ema"]')).toBeNull();
+    });
+
+    it("hides the readout and the chart column on the static SEO route", () => {
+        const view = renderView({ showLiveChart: false });
+
+        expect(view.querySelector('[data-testid="structure-readout"]')).toBeNull();
+        for (const key of ["s1", "s2", "s3", "s4a", "s4b"]) {
+            const article = view.querySelector(`[data-testid="structure-${key}"]`);
+            expect(article!.classList.contains("@3xl:grid")).toBe(false);
+            expect(article!.querySelector(`[data-testid="structure-chart-${key}"]`)).toBeNull();
+            expect(
+                article!.querySelector(`[data-testid="structure-prose-${key}"]`),
+            ).not.toBeNull();
+        }
+        // Without a chart column the chips stay in the prose.
+        expect(
+            view.querySelector('[data-testid="structure-prose-s1"] [data-testid="structure-open-ema"]'),
+        ).not.toBeNull();
+    });
+
     it("passes integer-second markers and R/S price lines to the s2/s3 charts", () => {
         tradeState.symbol = "BTCUSDT";
         const key = normalizeSymbol("BTCUSDT", "bitunix");
@@ -268,5 +324,18 @@ describe("MarketStructureView", () => {
 
         // The s2 readout names the same break the markers show.
         expect(view.textContent).toContain(lookup("academy.structure.read.bosUp"));
+
+        // The sticky readout repeats the same reading above the cards.
+        const readout = view.querySelector('[data-testid="structure-readout"]');
+        expect(readout, "readout strip missing").not.toBeNull();
+        expect(readout!.classList.contains("sticky")).toBe(true);
+        expect(readout!.getAttribute("role")).toBe("group");
+        expect(readout!.getAttribute("aria-label")).toBe(
+            lookup("academy.structure.read.summaryLabel"),
+        );
+        expect(readout!.textContent).toContain("4h");
+        expect(readout!.textContent).toContain(lookup("academy.structure.read.bosUp"));
+        expect(readout!.textContent).toContain("220");
+        expect(readout!.textContent).toContain("180");
     });
 });

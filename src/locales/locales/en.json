@@ -4399,6 +4399,7 @@
         "emaBelow": "Price below EMA",
         "noData": "No data",
         "lastBreak": "Last break",
+        "summaryLabel": "Readout",
         "noBreak": "No break in the visible candles",
         "candlesAgo": "{n} candles ago",
         "nearestResistance": "Nearest resistance",
