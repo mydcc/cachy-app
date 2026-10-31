@@ -44,12 +44,13 @@
         const name = presetState.selectedPreset;
         if (!name) return;
 
+        // The dialog renders its message as HTML; a preset name is data.
+        const body = $_("dashboard.deletePresetConfirmMessage", {
+            values: { name: escapeHtml(name) },
+        });
         const confirmed = await modalState.show(
             $_("dashboard.deletePresetConfirmTitle"),
-            $_("dashboard.deletePresetConfirmMessage", {
-                // The dialog renders its message as HTML; a preset name is data.
-                values: { name: escapeHtml(name) },
-            }),
+            body,
             "confirm",
         );
         if (confirmed === true) {
