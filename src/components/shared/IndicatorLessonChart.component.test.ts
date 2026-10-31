@@ -74,6 +74,7 @@ const lw = vi.hoisted(() => {
         removePriceLine: vi.fn(),
     };
     const markersPlugin = { setMarkers: vi.fn(), detach: vi.fn() };
+    const timeScale = { fitContent: vi.fn(), applyOptions: vi.fn() };
     const lineSeries: Array<{
         options: Record<string, unknown>;
         paneIndex: number;
@@ -82,6 +83,7 @@ const lw = vi.hoisted(() => {
     }> = [];
     let paneCount = 0;
     const chart = {
+        timeScale: () => timeScale,
         // Models the library's real clamp: a requested pane index beyond the
         // panes that exist is clamped to the pane a new one creates, so the test
         // cannot pass against a skip-index the library would silently merge.
@@ -113,7 +115,7 @@ const lw = vi.hoisted(() => {
             paneCount = 0;
         },
     };
-    return { CandlestickSeries, LineSeries, candleSeries, markersPlugin, lineSeries, chart };
+    return { CandlestickSeries, LineSeries, candleSeries, markersPlugin, lineSeries, chart, timeScale };
 });
 
 vi.mock("lightweight-charts", () => ({
@@ -128,7 +130,7 @@ vi.mock("lightweight-charts", () => ({
 }));
 
 vi.mock("../../services/marketWatcher", () => ({
-    marketWatcher: { register: vi.fn(), unregister: vi.fn() },
+    marketWatcher: { register: vi.fn(), unregister: vi.fn(), ensureHistory: vi.fn() },
 }));
 
 vi.mock("../../stores/market.svelte", async () => {
@@ -924,5 +926,75 @@ describe("FEAT-0677 — the live lesson chart", () => {
 
         expect(onTimeframeChange).toHaveBeenCalledWith("4h");
         expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("4h");
+    });
+
+    it("draws the newest 600 candles, warms the same depth and fits once (FEAT-0763)", () => {
+        seedKlines("BTCUSDT", 700);
+        const market = marketState.data[normalizeSymbol("BTCUSDT", "bitunix")]!;
+        const klines = market.klines![TIMEFRAME]!;
+
+        render("ema");
+
+        // Window: the newest LESSON_CANDLE_WINDOW candles, oldest first.
+        const data = lw.candleSeries.setData.mock.calls.at(-1)?.[0] as Array<{
+            time: number;
+        }>;
+        expect(data).toHaveLength(600);
+        expect(data[0].time).toBe(klines[100].time / 1000);
+
+        // The pager is asked for the same depth the chart draws — and asked
+        // *before* registering, so the per-symbol lock is taken by the deep
+        // request (review follow-up: order is part of the contract).
+        expect(marketWatcher.ensureHistory).toHaveBeenCalledWith(
+            "BTCUSDT",
+            TIMEFRAME,
+            600,
+        );
+        expect(
+            vi.mocked(marketWatcher.ensureHistory).mock.invocationCallOrder[0],
+        ).toBeLessThan(vi.mocked(marketWatcher.register).mock.invocationCallOrder[0]);
+
+        // Initial preset: fit once, not per tick.
+        expect(lw.timeScale.fitContent).toHaveBeenCalledTimes(1);
+
+        // A live tick redraws the window without refitting.
+        const last = klines[klines.length - 1];
+        klines.push({ ...last, time: last.time + 3_600_000 });
+        market.klinesLastUpdated = { [TIMEFRAME]: Date.now() };
+        flushSync();
+
+        const after = lw.candleSeries.setData.mock.calls.at(-1)?.[0] as Array<{
+            time: number;
+        }>;
+        expect(after).toHaveLength(600);
+        expect(after[599].time).toBe((last.time + 3_600_000) / 1000);
+        expect(lw.timeScale.fitContent).toHaveBeenCalledTimes(1);
+    });
+
+    it("refits while a partial window fills toward the lesson depth (FEAT-0763 review)", () => {
+        seedKlines("BTCUSDT", 200);
+        const market = marketState.data[normalizeSymbol("BTCUSDT", "bitunix")]!;
+        const klines = market.klines![TIMEFRAME]!;
+
+        render("ema");
+        expect(lw.timeScale.fitContent).toHaveBeenCalledTimes(1);
+
+        // Backfill arrives in a second chunk: the still-partial window refits
+        // instead of staying on the ~200 persisted candles.
+        const base = klines[klines.length - 1].time;
+        for (let i = 1; i <= 400; i++) {
+            const previous = klines[klines.length - 1];
+            klines.push({ ...previous, time: base + i * 3_600_000 });
+        }
+        market.klinesLastUpdated = { [TIMEFRAME]: Date.now() };
+        flushSync();
+        expect(lw.timeScale.fitContent).toHaveBeenCalledTimes(2);
+
+        // At the full depth a live tick no longer refits.
+        const last = klines[klines.length - 1];
+        klines.push({ ...last, time: last.time + 3_600_000 });
+        market.klinesLastUpdated = { [TIMEFRAME]: Date.now() };
+        flushSync();
+        expect(lw.timeScale.fitContent).toHaveBeenCalledTimes(2);
     });
 });

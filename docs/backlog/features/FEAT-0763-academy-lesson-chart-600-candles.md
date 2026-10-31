@@ -2,7 +2,7 @@
 id: FEAT-0763
 title: Draw 600 candles in the Academy lesson charts
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0686]
+assignee: opencode
+branch: feature/feat-0763-lesson-chart-600-candles
 ---
 
 # FEAT-0763 — Draw 600 candles in the Academy lesson charts

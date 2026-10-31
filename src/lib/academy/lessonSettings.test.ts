@@ -26,7 +26,15 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { isDrawableTimeframe, lessonParams, settingsCardFor } from "./lessonSettings";
+import {
+    isDrawableTimeframe,
+    lessonKlines,
+    LESSON_CANDLE_WINDOW,
+    LESSON_HISTORY_TARGET,
+    lessonParams,
+    settingsCardFor,
+} from "./lessonSettings";
+import type { Kline } from "../../services/technicalsTypes";
 import { INDICATOR_CATALOGUE, catalogueEntry, type CatalogueEntry } from "../alerts/indicatorCatalogue";
 import { ANALYSIS_TIMEFRAMES, TIMEFRAME_QUICK_PICKS } from "../constants";
 import { defaultSettings } from "../../stores/settings/settingsTypes";
@@ -257,5 +265,48 @@ describe("FEAT-0684 — a lesson's timeframe is validated at the boundary", () =
         ]) {
             expect(picks.has(timeframe), timeframe).toBe(true);
         }
+    });
+});
+
+describe("FEAT-0763 — the lesson candle window", () => {
+    function klines(count: number): Kline[] {
+        return Array.from({ length: count }, (_, i) => ({
+            time: 1_700_000_000_000 + i * 3_600_000,
+        })) as unknown as Kline[];
+    }
+
+    it("draws and warms the same depth", () => {
+        expect(LESSON_CANDLE_WINDOW).toBe(600);
+        expect(LESSON_HISTORY_TARGET).toBe(LESSON_CANDLE_WINDOW);
+    });
+
+    it("returns the newest window, oldest first", () => {
+        const rows = klines(700);
+        const window = lessonKlines(rows);
+        expect(window).toHaveLength(600);
+        expect(window[0].time).toBe(rows[100].time);
+        expect(window[599].time).toBe(rows[699].time);
+    });
+
+    it("drops non-finite and out-of-order candles before the chart sees them", () => {
+        const rows = klines(10);
+        rows[3] = { time: Number.NaN } as unknown as Kline;
+        rows[4] = { time: 0 } as unknown as Kline;
+        rows[5] = { ...rows[2] } as Kline; // duplicate timestamp: not ascending
+        const window = lessonKlines(rows, 10);
+        expect(window.map((kline) => kline.time)).toEqual([
+            rows[0].time,
+            rows[1].time,
+            rows[2].time,
+            rows[6].time,
+            rows[7].time,
+            rows[8].time,
+            rows[9].time,
+        ]);
+    });
+
+    it("handles missing history without inventing any", () => {
+        expect(lessonKlines(undefined)).toEqual([]);
+        expect(lessonKlines([])).toEqual([]);
     });
 });

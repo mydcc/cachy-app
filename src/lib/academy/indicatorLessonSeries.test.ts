@@ -171,4 +171,22 @@ describe("indicator lesson series", () => {
         expect(overClose.some((value) => value !== null)).toBe(true);
         expect(overHl2).not.toEqual(overClose);
     });
+
+    it("computes the structure tab's five lessons over the full 600-candle window", () => {
+        const rows = candles(600);
+        for (const id of ["ema", "adx", "choppiness", "bollinger", "atr"]) {
+            const entry = catalogueEntry(id);
+            if (!entry) throw new Error(`no catalogue entry for ${id}`);
+            const { lines, refused } = computeLessonSeries(entry, rows, "1h");
+            expect(refused, `${id} refused lines`).toEqual([]);
+            expect(lines.length, `${id} produced no line`).toBeGreaterThan(0);
+            for (const line of lines) {
+                expect(line.values.length, `${id}.${line.name}`).toBe(600);
+                expect(
+                    line.values.some((value) => value !== null),
+                    `${id}.${line.name} paints nothing`,
+                ).toBe(true);
+            }
+        }
+    });
 });
