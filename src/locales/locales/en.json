@@ -4389,33 +4389,11 @@
       "title": "Market Structure & Regime",
       "shortTitle": "Structure",
       "openLesson": "Open lesson",
-      "read": {
-        "timeframe": "Timeframe (all demos)",
-        "biasTf": "Bias timeframe",
-        "rising": "rising",
-        "falling": "falling",
-        "flat": "flat",
-        "emaAbove": "Price above EMA",
-        "emaBelow": "Price below EMA",
-        "noData": "No data",
-        "lastBreak": "Last break",
-        "summaryLabel": "Readout",
-        "noBreak": "No break in the visible candles",
-        "candlesAgo": "{n} candles ago",
-        "nearestResistance": "Nearest resistance",
-        "nearestSupport": "Nearest support",
-        "bosUp": "BOS up",
-        "bosDown": "BOS down",
-        "chochUp": "CHOCH up",
-        "chochDown": "CHOCH down",
-        "adxThreshold": "Threshold 25",
-        "chopThreshold": "Thresholds 61.8 / 38.2"
-      },
+      "panelHint": "This reading order is applied in the Technicals panel as a context block — bias, structure, levels, regime, volatility, for the symbol you are looking at.",
       "s1": {
         "title": "The higher timeframe decides first",
         "takeaway": "No trade without looking up: read the higher timeframe first, then trade the lower one.",
-        "body": "Before you read a pattern or a signal on your trading timeframe, read the one above it: in Elder's triple-screen sense you never trade against the higher timeframe — you trade with it or not at all. “4h bearish” commits you: shorts are the plan, longs need above-average evidence and tighter targets, and invalidation sits at the 4h structure, not on your 5m candle.",
-        "chartHint": "The chart below follows the same logic as the indicator lessons, timeframe switch included: flip from 4h to 5m and watch the same reading change its story — the lower timeframe chops where the higher one still has direction."
+        "body": "Before you read a pattern or a signal on your trading timeframe, read the one above it: in Elder's triple-screen sense you never trade against the higher timeframe — you trade with it or not at all. “4h bearish” commits you: shorts are the plan, longs need above-average evidence and tighter targets, and invalidation sits at the 4h structure, not on your 5m candle. The lower timeframe chops where the higher one still has direction."
       },
       "s2": {
         "title": "Structure: reading breaks, not guessing",
@@ -4424,9 +4402,7 @@
         "legendSwings": "Swing highs and lows",
         "legendBos": "BOS (structure break)",
         "legendChoch": "CHOCH (change of character)",
-        "legendZone": "Flip zone (ex resistance)",
-        "legendSweep": "Sweep (S)",
-        "legendIdm": "IDM (Inducement)"
+        "legendZone": "Flip zone (ex resistance)"
       },
       "s3": {
         "title": "Levels that persist",

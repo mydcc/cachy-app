@@ -76,7 +76,6 @@
          <CandlestickPatternsView />
       {:else if tabs.activeTab === "marketStructure"}
          <MarketStructureView
-            showLiveChart={showLiveChart}
             onOpenIndicators={(id) => {
                pendingLesson = id;
                tabs.setTab("indicators");

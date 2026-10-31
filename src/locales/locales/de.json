@@ -4329,33 +4329,11 @@
       "title": "Marktstruktur & Regime",
       "shortTitle": "Struktur",
       "openLesson": "Lektion öffnen",
-      "read": {
-        "timeframe": "Timeframe (alle Demos)",
-        "biasTf": "Bias-Timeframe",
-        "rising": "steigend",
-        "falling": "fallend",
-        "flat": "flach",
-        "emaAbove": "Kurs über EMA",
-        "emaBelow": "Kurs unter EMA",
-        "noData": "Keine Daten",
-        "lastBreak": "Letzter Bruch",
-        "summaryLabel": "Lesart",
-        "noBreak": "Kein Bruch in den sichtbaren Kerzen",
-        "candlesAgo": "vor {n} Kerzen",
-        "nearestResistance": "Nächster Widerstand",
-        "nearestSupport": "Nächste Unterstützung",
-        "bosUp": "BOS aufwärts",
-        "bosDown": "BOS abwärts",
-        "chochUp": "CHOCH aufwärts",
-        "chochDown": "CHOCH abwärts",
-        "adxThreshold": "Schwelle 25",
-        "chopThreshold": "Schwellen 61,8 / 38,2"
-      },
+      "panelHint": "Diese Lesereihenfolge steht im Technicals-Panel als Kontext-Block — Bias, Struktur, Level, Regime, Volatilität, für das Symbol, das du gerade ansiehst.",
       "s1": {
         "title": "Der höhere Timeframe entscheidet zuerst",
         "takeaway": "Kein Trade ohne Blick nach oben: erst den höheren Timeframe lesen, dann den unteren handeln.",
-        "body": "Bevor du eine Formation oder ein Signal auf deinem Trading-Timeframe liest, lies den Timeframe darüber: Im Triple-Screen-Sinn von Elder tradest du niemals gegen den höheren Timeframe — du handelst mit ihm oder gar nicht. „4h bearish“ verpflichtet dich: Shorts sind der Plan, Longs brauchen überdurchschnittliche Evidenz und engere Ziele, und die Invalidierung liegt an der 4h-Struktur, nicht an deiner 5m-Kerze.",
-        "chartHint": "Der Chart unten folgt derselben Logik wie die Indikator-Lektionen, inklusive Timeframe-Umschalter: Kippe von 4h auf 5m und beobachte, wie dieselbe Lesart ihre Geschichte ändert — der tiefere Timeframe rauscht, wo der höhere noch Richtung hat."
+        "body": "Bevor du eine Formation oder ein Signal auf deinem Trading-Timeframe liest, lies den Timeframe darüber: Im Triple-Screen-Sinn von Elder tradest du niemals gegen den höheren Timeframe — du handelst mit ihm oder gar nicht. „4h bearish“ verpflichtet dich: Shorts sind der Plan, Longs brauchen überdurchschnittliche Evidenz und engere Ziele, und die Invalidierung liegt an der 4h-Struktur, nicht an deiner 5m-Kerze. Der tiefere Timeframe rauscht, wo der höhere noch Richtung hat."
       },
       "s2": {
         "title": "Struktur: Brüche lesen, nicht raten",
@@ -4364,9 +4342,7 @@
         "legendSwings": "Swing-Hochs und -Tiefs",
         "legendBos": "BOS (Strukturbruch)",
         "legendChoch": "CHOCH (Charakterwechsel)",
-        "legendZone": "Flip-Zone (ex Widerstand)",
-        "legendSweep": "Sweep (S)",
-        "legendIdm": "IDM (Inducement)"
+        "legendZone": "Flip-Zone (ex Widerstand)"
       },
       "s3": {
         "title": "Level, die bleiben",
