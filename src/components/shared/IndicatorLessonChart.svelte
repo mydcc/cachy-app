@@ -71,6 +71,9 @@
     } from "../../lib/academy/indicatorLessonSeries";
     import {
         isDrawableTimeframe,
+        lessonKlines,
+        LESSON_CANDLE_WINDOW,
+        LESSON_HISTORY_TARGET,
         readStoredLessonTimeframe,
     } from "../../lib/academy/lessonSettings";
     import type { EvaluationCandle, ParamValue, PriceField } from "../../lib/rules/types";
@@ -196,13 +199,6 @@
     }
 
     /**
-     * How much history the indicator is computed over. Enough to clear the
-     * widest warmup in the catalogue — Ichimoku's `span_b_period` (52) plus its
-     * displacement — while keeping the per-tick recomputation bounded.
-     */
-    const LESSON_CANDLE_WINDOW = 300;
-
-    /**
      * The palette the legend and the drawn lines share, as CSS variables so
      * themes keep working. The canvas needs a resolved colour (the chart
      * library cannot read `var(...)`), which `cssColor` reads at creation.
@@ -312,20 +308,13 @@
         const klines = market?.klines?.[timeframe];
         if (!klines || klines.length === 0) return [];
 
-        // Defence in depth, the same guard CandleChartView keeps: the series API
-        // requires finite, strictly ascending times and throws from inside an
-        // `$effect` otherwise — and such a throw bubbles to `handleGlobalError`
-        // (BUG-0213). A malformed or out-of-order candle is dropped here so it
-        // can never freeze the chart (BUG-0248).
-        const rows: EvaluationCandle[] = [];
-        let lastTime = -Infinity;
-        for (const kline of klines.slice(-LESSON_CANDLE_WINDOW)) {
-            const time = Number(kline.time); // audit: safe — epoch-ms timestamp
-            if (!Number.isFinite(time) || time <= 0 || time <= lastTime) continue;
-            lastTime = time;
-            rows.push(toEvaluationCandle(kline, time));
-        }
-        return rows;
+        // The window and the series-API guards live in `lessonKlines`
+        // (FEAT-0763): the structure cockpit reads through the same function,
+        // so the two cannot disagree about how much history a lesson draws.
+        // The guard rationale (BUG-0213/BUG-0248) is documented there.
+        return lessonKlines(klines).map((kline) =>
+            toEvaluationCandle(kline, Number(kline.time)), // audit: safe — validated by lessonKlines
+        );
     });
 
     let computed = $derived<LessonSeries>(
@@ -663,11 +652,37 @@
         // storage settings synchronously, so without this the effect would
         // acquire dependencies it does not intend and re-register on an
         // unrelated settings change.
-        untrack(() => marketWatcher.register(current, channel, "chart"));
+        // FEAT-0763: ask for the lesson depth *before* registering. The
+        // register path pages history at the user's chart depth, which may be
+        // lower than the window a lesson draws; `ensureHistory` locks per
+        // symbol:timeframe, so this first call wins and a shallower one becomes
+        // a no-op instead of the lesson arriving short.
+        untrack(() => {
+            const pending = marketWatcher.ensureHistory(current, timeframe, LESSON_HISTORY_TARGET);
+            marketWatcher.register(current, channel, "chart");
+            // Review follow-up: a chart-depth fetch may hold the per-symbol
+            // lock and drop the lesson's deeper target. Once it settles,
+            // re-issue once if the store is still short of the draw window.
+            if (pending && typeof pending.then === "function") {
+                void pending.then(() => {
+                    const stored =
+                        marketState.data[normalizeSymbol(current, "bitunix")]?.klines?.[timeframe]
+                            ?.length ?? 0;
+                    if (stored < LESSON_HISTORY_TARGET) {
+                        void marketWatcher.ensureHistory(current, timeframe, LESSON_HISTORY_TARGET);
+                    }
+                });
+            }
+        });
         return () => {
             marketWatcher.unregister(current, channel, "chart");
         };
     });
+
+    /** The symbol/timeframe whose dataset the time scale was last fitted to. */
+    let fittedKey: string | null = null;
+    /** How many candles that fit covered, so a partial window can refit. */
+    let fittedCount = 0;
 
     // Candle + line rendering. Tracked on `chart`/`candleSeries` so it re-runs
     // once `onMount` has created them, then on every data or lesson change.
@@ -693,6 +708,26 @@
                     close: toChartNumber(candle.close),
                 })),
             );
+
+            // Initial preset (FEAT-0763): fit the drawn window once per
+            // symbol/timeframe, so a lesson opens on its full history instead
+            // of the library default of a few hundred bars at the right edge.
+            // Later ticks keep the user's own zoom.
+            const fitKey = `${symbol}|${timeframe}`;
+            if (rows.length > 0) {
+                // Review follow-up: the cold path restores ~200 persisted
+                // candles first and the backfill arrives later. Fitting the
+                // first partial set would leave the chart on ~200 bars — the
+                // exact symptom of FEAT-0763 — so refit while the window
+                // grows toward the lesson depth.
+                const stillFilling =
+                    fittedCount < LESSON_CANDLE_WINDOW && rows.length > fittedCount;
+                if (fittedKey !== fitKey || stillFilling) {
+                    activeChart.timeScale().fitContent();
+                    fittedKey = fitKey;
+                    fittedCount = rows.length;
+                }
+            }
 
             const signature = `${entry.placement}|${series.lines
                 .map((line) => `${line.name}:${paneFor(line.name)}`)
@@ -842,7 +877,7 @@
     <!-- The container stays mounted whether or not data has arrived, so
          `onMount` always binds it; an empty chart simply draws nothing. -->
     <div
-        class="w-full min-w-0 {candles.length === 0 ? 'h-0' : 'h-64'}"
+        class="w-full min-w-0 {candles.length === 0 ? 'h-0' : 'h-64 @md:h-72'}"
         bind:this={container}
         role="img"
         aria-label="{lessonName} · {symbol} · {timeframe}"

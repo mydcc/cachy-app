@@ -46,6 +46,10 @@ vi.mock("../../locales/i18n", async () => {
     };
 });
 
+vi.mock("../../services/marketWatcher", () => ({
+    marketWatcher: { register: vi.fn(), unregister: vi.fn(), ensureHistory: vi.fn() },
+}));
+
 vi.mock("./IndicatorLessonChart.svelte", async () => ({
     default: (await import("../../tests/helpers/ChartPropSpy.svelte")).default,
 }));
@@ -63,11 +67,14 @@ import { normalizeSymbol } from "../../utils/symbolUtils";
 import type { MarketData } from "../../stores/market/types";
 import type { Kline } from "../../services/technicalsTypes";
 import MarketStructureView from "./MarketStructureView.svelte";
+import { marketWatcher } from "../../services/marketWatcher";
+import { LESSON_HISTORY_TARGET } from "../../lib/academy/lessonSettings";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -138,6 +145,41 @@ describe("MarketStructureView", () => {
         expect(shown.textContent).toContain(lookup("academy.structure.s1.chartHint"));
     });
 
+    it("keeps swings from the full 600-candle window, not the last 300 (FEAT-0763)", () => {
+        tradeState.symbol = "BTCUSDT";
+        const key = normalizeSymbol("BTCUSDT", "bitunix");
+        const at = (i: number) => 1_700_000_000_000 + i * 3_600_000;
+        const kline = (time: number, high: number, low: number, close: number): Kline =>
+            ({ open: close, high, low, close, time }) as unknown as Kline;
+        const bars: Kline[] = [];
+        // A swing high at bar 10, then 590 flat candles: a slice(-300) drops
+        // the swing and its marker, the shared 600 window keeps it.
+        for (let i = 0; i < 601; i++) {
+            if (i === 10) bars.push(kline(at(i), 150, 99, 120));
+            else bars.push(kline(at(i), 101, 99, 100));
+        }
+        marketState.data[key] = {
+            klines: { "1h": bars, "4h": bars },
+        } as unknown as MarketData;
+
+        const view = renderView({ showLiveChart: true });
+        const stubs = view.querySelectorAll('[data-testid="empty-stub"]');
+        const markers = JSON.parse(stubs[1].getAttribute("data-markers") ?? "null") as Array<{
+            time: number;
+            position: string;
+            shape: string;
+        }>;
+        expect(markers).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    time: Math.floor(at(10) / 1000),
+                    position: "aboveBar",
+                    shape: "circle",
+                }),
+            ]),
+        );
+    });
+
     it("passes integer-second markers and R/S price lines to the s2/s3 charts", () => {
         tradeState.symbol = "BTCUSDT";
         const key = normalizeSymbol("BTCUSDT", "bitunix");
@@ -176,6 +218,18 @@ describe("MarketStructureView", () => {
         const view = renderView({ showLiveChart: true });
         const stubs = view.querySelectorAll('[data-testid="empty-stub"]');
         expect(stubs.length).toBe(5);
+
+        // FEAT-0763: both cockpit timeframes warm the full lesson depth.
+        expect(marketWatcher.ensureHistory).toHaveBeenCalledWith(
+            "BTCUSDT",
+            "1h",
+            LESSON_HISTORY_TARGET,
+        );
+        expect(marketWatcher.ensureHistory).toHaveBeenCalledWith(
+            "BTCUSDT",
+            "4h",
+            LESSON_HISTORY_TARGET,
+        );
 
         // s2: one circle per swing (high and low alike) plus the BOS-up
         // arrow, all on integer seconds.

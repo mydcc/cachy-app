@@ -41,6 +41,7 @@ import { safeLocalStorage } from "../../utils/storageWrapper";
 import { CONSTANTS } from "../constants";
 import type { CatalogueEntry } from "../alerts/indicatorCatalogue";
 import type { IndicatorRef, ParamValue, PriceField } from "../rules/types";
+import type { Kline } from "../../services/technicalsTypes";
 
 /** A settings card, the shape `indicatorSettingsSeed` reads. */
 type SettingsCard = Record<string, unknown>;
@@ -177,4 +178,47 @@ export function readStoredLessonTimeframe(): string {
     if (stored === null) return LESSON_TIMEFRAME_FALLBACK;
     const canonical = normalizeTimeframeInput(stored);
     return isDrawableTimeframe(canonical) ? canonical : LESSON_TIMEFRAME_FALLBACK;
+}
+
+/**
+ * FEAT-0763 — how much history a lesson chart draws and warms.
+ *
+ * 600 one-hour candles are roughly 25 days: enough for the catalogue's widest
+ * warmup (Ichimoku's 52-bar span plus its displacement) and, more importantly,
+ * for a readable swing picture — a "4h is bearish" reading needs weeks of
+ * structure behind it, not days. One number for the indicator chart and the
+ * structure cockpit, so the two cannot disagree about how much history a
+ * lesson shows.
+ */
+export const LESSON_CANDLE_WINDOW = 600;
+
+/**
+ * How many candles the charts ask the history pager for. The exchange serves
+ * about 200 per request; `ensureHistory` fans out across ranges (ADR-0022) and
+ * the store keeps the merged result, so asking for the draw window up front is
+ * what keeps the first render from arriving short.
+ */
+export const LESSON_HISTORY_TARGET = LESSON_CANDLE_WINDOW;
+
+/**
+ * The newest `window` candles of `klines`, oldest first, with the series-API
+ * guards applied: a non-finite or non-ascending candle makes the chart library
+ * throw from inside an `$effect`, and such a throw bubbles to
+ * `handleGlobalError` (BUG-0213) and can freeze the chart (BUG-0248). Dropping
+ * it here means neither caller has to remember the guard.
+ */
+export function lessonKlines(
+    klines: readonly Kline[] | undefined,
+    window: number = LESSON_CANDLE_WINDOW,
+): Kline[] {
+    if (!klines || klines.length === 0) return [];
+    const out: Kline[] = [];
+    let lastTime = -Infinity;
+    for (const kline of klines.slice(-window)) {
+        const time = Number(kline.time); // audit: safe — epoch-ms timestamp
+        if (!Number.isFinite(time) || time <= 0 || time <= lastTime) continue;
+        lastTime = time;
+        out.push(kline);
+    }
+    return out;
 }

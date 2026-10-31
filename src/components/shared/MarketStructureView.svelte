@@ -40,6 +40,8 @@
    import { computeLessonSeries, type LessonSeries } from "../../lib/academy/indicatorLessonSeries";
    import {
       isDrawableTimeframe,
+      lessonKlines,
+      LESSON_HISTORY_TARGET,
       readStoredLessonTimeframe,
    } from "../../lib/academy/lessonSettings";
    import {
@@ -128,8 +130,16 @@
       const current = symbol;
       const live = showLiveChart;
       if (!current || !live) return;
-      const channels = [...new Set([`kline_${sharedTf}`, `kline_${biasTf}`])];
+      const timeframes = [...new Set([sharedTf, biasTf])];
+      const channels = timeframes.map((tf) => `kline_${tf}`);
       untrack(() => {
+         // FEAT-0763: ask for the lesson depth before registering — the
+         // register path pages at the user's chart depth, which may be lower
+         // than the window a lesson draws. `ensureHistory` locks per
+         // symbol:timeframe, so this first call wins.
+         for (const tf of timeframes) {
+            void marketWatcher.ensureHistory(current, tf, LESSON_HISTORY_TARGET);
+         }
          for (const channel of channels) marketWatcher.register(current, channel, "chart");
       });
       return () => {
@@ -144,22 +154,21 @@
       close: number;
    }
 
-   /** Validated candle history for one timeframe, oldest first. */
+   /** Validated candle history for one timeframe, oldest first (FEAT-0763 window). */
    function readBars(tf: string): Bar[] {
       const market = marketState.data[normalizeSymbol(symbol, "bitunix")];
       void market?.klinesLastUpdated?.[tf];
       const klines = market?.klines?.[tf];
       if (!klines || klines.length === 0) return [];
       const out: Bar[] = [];
-      let lastTime = -Infinity;
-      for (const kline of klines.slice(-300)) {
+      // `lessonKlines` already guarantees finite, positive, ascending times
+      // (review follow-up: the duplicate guard here was dead code).
+      for (const kline of lessonKlines(klines)) {
          const time = Number(kline.time); // audit: safe — epoch-ms timestamp
          const high = Number(kline.high); // audit: safe — f64 indicator-engine input (ADR-0021)
          const low = Number(kline.low); // audit: safe — f64 indicator-engine input (ADR-0021)
          const close = Number(kline.close); // audit: safe — f64 indicator-engine input (ADR-0021)
-         if (!Number.isFinite(time) || time <= 0 || time <= lastTime) continue;
          if (!Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) continue;
-         lastTime = time;
          out.push({ time, high, low, close });
       }
       return out;

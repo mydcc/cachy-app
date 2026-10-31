@@ -56,6 +56,7 @@ vi.mock("lightweight-charts", () => ({
         })),
         removeSeries: vi.fn(),
         applyOptions: vi.fn(),
+        timeScale: () => ({ fitContent: vi.fn(), applyOptions: vi.fn() }),
         remove: vi.fn(),
         subscribeCrosshairMove: vi.fn(),
         unsubscribeCrosshairMove: vi.fn(),
@@ -67,7 +68,7 @@ vi.mock("lightweight-charts", () => ({
 }));
 
 vi.mock("../../services/marketWatcher", () => ({
-    marketWatcher: { register: vi.fn(), unregister: vi.fn() },
+    marketWatcher: { register: vi.fn(), unregister: vi.fn(), ensureHistory: vi.fn() },
 }));
 
 vi.mock("../../stores/market.svelte", async () => {
