@@ -2,7 +2,9 @@
 id: BUG-0671
 title: No test drives a real modal through the window manager, so a dialog's visibility is unproven
 type: bug
-status: ready
+status: in-progress
+assignee: opencode
+branch: fix/ui-modal-integration
 priority: P2
 milestone: none
 editions: [community, pro, private]
