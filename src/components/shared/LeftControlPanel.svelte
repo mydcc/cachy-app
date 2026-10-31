@@ -73,10 +73,11 @@
       viewportWidth,
       ui: { showAssistant: uiState.showAssistant },
       derived: {
-        // BUG-0715: the rail reads the same derived value the panel renders
+        // BUG-0715: the rail reads the same derived values the panels render
         // from, so a stored preference cannot light a panel that is not there.
         effectiveShowSidebarActivity:
           settingsState.effectiveShowSidebarActivity,
+        sidebarActivityAvailable: settingsState.sidebarActivityAvailable,
       },
       data: {},
     };
@@ -125,9 +126,12 @@
     {@const name = label(item.entry)}
     <button
       class="control-btn"
-      class:active={item.active}
+      class:active={item.active && item.enabled}
       class:unavailable={!item.enabled}
       aria-disabled={item.enabled ? undefined : "true"}
+      aria-pressed={item.entry.opener.kind === "toggle"
+        ? item.active && item.enabled
+        : undefined}
       aria-describedby={reason ? `rail-reason-${item.entry.id}` : undefined}
       onclick={() => {
         if (item.enabled) openEntry(item.entry);
@@ -138,7 +142,7 @@
             values: { label: name, count },
           })
         : name}
-      use:trackClick={track(item.entry)}
+      use:trackClick={item.enabled ? track(item.entry) : undefined}
     >
       {@html resolveEntryIcon(item.entry.icon)}
       {#if count > 0}

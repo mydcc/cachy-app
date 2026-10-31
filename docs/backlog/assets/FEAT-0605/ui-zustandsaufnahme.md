@@ -432,8 +432,8 @@ precondition.
 | Left rail | Journal restore | raises and restores a minimized journal window | a journal window is minimized | the button exists only then |
 | Left rail | Technicals | toggles `showTechnicals`, the same flag the chevron writes | the sidebar column is on (`showSidebars`) | yes — one flag; disabled with a reason while the column is off (BUG-0715) |
 | Left rail | Market overview | sets `showMarketOverview` | sidebar column rendered; the panel exists at both widths | yes — the panel follows the flag |
-| Left rail | Market activity | toggles `showSidebarActivity` | `effectiveShowSidebarActivity` (Pro, keys or paper account) and the sidebar column | yes — active follows the derived value; disabled with a reason without an account (BUG-0715) |
-| Left rail | Sentiment | toggles `showMarketSentiment` | the sidebar column; the panel also needs `enableNewsAnalysis` and a news key at both widths | yes — the mobile copy honours the same flag (BUG-0715) |
+| Left rail | Market activity | toggles `showSidebarActivity` | the sidebar column and `sidebarActivityAvailable` (Pro, keys or paper account) | yes — active follows `effectiveShowSidebarActivity`; disabled with a reason when no account can fill it (BUG-0715) |
+| Left rail | Sentiment | toggles `showMarketSentiment` | the sidebar column | yes — the mobile copy honours the same flag, and the panel's own empty state covers missing news keys (BUG-0715) |
 | Right sidebar | Toggle technicals (`#btn-toggle-technicals`) | shows or hides the panel | the sidebar column exists | — |
 | Right sidebar | Open chart | opens a chart window | — | — |
 | Right sidebar | Refresh stats | refetches the price | — | — |

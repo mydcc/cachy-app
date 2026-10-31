@@ -24,9 +24,9 @@
  * page-local flag, activity needed Pro or exchange keys, sentiment ignored its
  * own flag below xl, and all four did nothing while the sidebar column was off.
  *
- * These cases pin the two states the acceptance criteria name — no usable
- * account, and the column switched off — plus the active class following what
- * the panel actually renders.
+ * These cases pin the cross product the acceptance criteria name — no usable
+ * account, the column switched off, and a Pro account with the column off —
+ * plus the active class following what the panel actually renders.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -100,19 +100,19 @@ function railButton(key: keyof typeof PANEL_LABELS): HTMLButtonElement {
     const label = message(PANEL_LABELS[key]);
     const button = Array.from(
         host.querySelectorAll<HTMLButtonElement>(".control-btn"),
-    ).find((candidate) =>
-        candidate.getAttribute("aria-label")?.startsWith(label),
-    );
+    ).find((candidate) => candidate.getAttribute("aria-label") === label);
     if (!button) throw new Error(`no rail button for ${key}`);
     return button;
 }
 
 beforeEach(() => {
     localStorage.clear();
-    // No account that could fill the activity panel.
+    // Nothing that could fill the activity panel, and the least privileged
+    // account, so each case starts from a known availability.
     settingsState.accounts = [];
-    settingsState.activeAccountId = null;
+    settingsState.activeAccountId = "";
     settingsState.apiProvider = "bitunix";
+    settingsState.entitlement.isPro = false;
     settingsState.showSidebars = true;
     settingsState.showTechnicals = true;
     settingsState.showMarketOverview = true;
@@ -125,6 +125,10 @@ afterEach(() => {
     component = null;
     host?.remove();
     Object.assign(settingsState, original);
+    // `entitlement` is a nested store, so `Object.assign` above cannot restore
+    // it; without this the Pro case leaks into the next test.
+    settingsState.entitlement.isPro = original.isPro;
+    settingsState.activeAccountId = original.activeAccountId;
 });
 
 describe("BUG-0715 — the rail matches the panel it names", () => {
@@ -140,20 +144,29 @@ describe("BUG-0715 — the rail matches the panel it names", () => {
             // Reachable on purpose: a native disabled button is where the
             // reason cannot be read.
             expect(button.disabled, key).toBe(false);
+            // The visual state follows the gate, not the stored preference.
+            expect(button.classList.contains("unavailable"), key).toBe(true);
+            expect(button.classList.contains("active"), key).toBe(false);
         }
 
-        // Activity names its own blocker, which is also true here: no account
-        // can fill the panel and the sidebars that hold it are off.
         const activity = railButton("activity");
         expect(activity.getAttribute("aria-disabled")).toBe("true");
         expect(describedReason(activity)).toBe(
             message("dashboard.railActivityUnavailable"),
         );
 
+        // Refused while the column is off, and the same listener still works
+        // once it is on — a missing handler must not look like a gate.
         const before = settingsState.showTechnicals;
         railButton("technicals").click();
         flushSync();
         expect(settingsState.showTechnicals).toBe(before);
+
+        settingsState.showSidebars = true;
+        flushSync();
+        railButton("technicals").click();
+        flushSync();
+        expect(settingsState.showTechnicals).toBe(!before);
     });
 
     it("disables market activity without an account and says what it needs", () => {
@@ -168,6 +181,7 @@ describe("BUG-0715 — the rail matches the panel it names", () => {
         // button must not claim it is active.
         expect(settingsState.showSidebarActivity).toBe(true);
         expect(activity.classList.contains("active")).toBe(false);
+        expect(activity.classList.contains("unavailable")).toBe(true);
 
         activity.click();
         flushSync();
@@ -185,6 +199,27 @@ describe("BUG-0715 — the rail matches the panel it names", () => {
         expect(activity.getAttribute("aria-disabled")).toBeNull();
         expect(activity.hasAttribute("aria-describedby")).toBe(false);
         expect(activity.classList.contains("active")).toBe(true);
+
+        // Availability and the preference are separate questions: switching it
+        // off must be possible for a user who can use the panel.
+        activity.click();
+        flushSync();
+        expect(settingsState.showSidebarActivity).toBe(false);
+        expect(activity.getAttribute("aria-disabled")).toBeNull();
+        expect(activity.classList.contains("active")).toBe(false);
+    });
+
+    it("keeps activity unlit for a Pro account while the sidebars are off", () => {
+        settingsState.entitlement.isPro = true;
+        settingsState.showSidebars = false;
+        render();
+
+        const activity = railButton("activity");
+        // The derived effective value is still true (Pro + preference), but the
+        // panel it names cannot render, so the control is unavailable.
+        expect(settingsState.effectiveShowSidebarActivity).toBe(true);
+        expect(activity.getAttribute("aria-disabled")).toBe("true");
+        expect(activity.classList.contains("active")).toBe(false);
     });
 
     it("keeps the technicals button in step with the panel flag", () => {

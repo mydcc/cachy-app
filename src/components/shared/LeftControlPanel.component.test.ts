@@ -216,6 +216,12 @@ describe("FEAT-0732: the rail renders the entry-point registry", () => {
     document.body.appendChild(target);
     windowManager.close("assistant");
     uiState.showMarketDashboardModal = false;
+    // BUG-0715: the activity button's active state now reads whether an
+    // account can fill the panel. Pin that here, or the assertion below flips
+    // with an ambient Pro flag or stored keys.
+    settingsState.accounts = [];
+    settingsState.entitlement.isPro = false;
+    settingsState.apiProvider = "bitunix";
     settingsState.showTechnicals = false;
     settingsState.showMarketOverview = true;
     settingsState.showSidebarActivity = false;

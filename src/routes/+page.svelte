@@ -765,7 +765,7 @@
     {#if settingsState.showSidebars}
       <!-- Mobile MarketOverview position -->
       <div class="xl:hidden mt-8 flex flex-col gap-4">
-        {#if settingsState.showMarketSentiment && settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
+        {#if settingsState.showMarketSentiment}
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
         {/if}
 

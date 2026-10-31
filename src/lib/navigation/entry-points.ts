@@ -52,6 +52,7 @@ export type ToggleTarget =
 
 export type DerivedFlagKey =
     | "effectiveShowSidebarActivity"
+    | "sidebarActivityAvailable"
     | "journalFetching"
     | "multipleAccounts"
     | "rssFeedCapacityAvailable";
@@ -487,12 +488,17 @@ const GLOBAL_DESTINATIONS: Entry[] = [
         opener: { kind: "toggle", target: "market-activity" },
         placements: [
             rail(90, "panels", {
-                // BUG-0715: the button reads what the panel reads. The stored
-                // preference can be on while no account can fill the panel;
-                // the derived value is the one that renders.
+                // BUG-0715: availability and the stored preference are two
+                // questions. This one asks whether an account could fill the
+                // panel at all; the active state asks whether the panel is
+                // actually shown. Gating on the effective value made the
+                // button refuse to switch itself off for users who can use it.
                 enabledWhen: {
-                    kind: "derived",
-                    key: "effectiveShowSidebarActivity",
+                    kind: "all",
+                    conditions: [
+                        { kind: "setting", key: "showSidebars" },
+                        { kind: "derived", key: "sidebarActivityAvailable" },
+                    ],
                 },
                 disabledReason: "dashboard.railActivityUnavailable",
                 activeWhen: {

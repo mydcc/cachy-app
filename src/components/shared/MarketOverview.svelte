@@ -529,7 +529,9 @@
     : undefined}
 >
   <div class="absolute top-2 right-2 flex gap-1 z-50">
-    {#if settingsState.showTechnicals && !isFavoriteTile && onToggleTechnicals}
+    <!-- BUG-0715: the chevron writes the same flag as the rail, so it must
+         stay rendered when the panel is off — otherwise it can only hide. -->
+    {#if !isFavoriteTile && onToggleTechnicals}
       <button
         type="button"
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"

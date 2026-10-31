@@ -54,8 +54,7 @@ def verify_technicals(page):
 
     page.evaluate(f"""
         localStorage.setItem('{local_storage_key}', JSON.stringify({json.dumps(settings)}));
-        localStorage.setItem('technicals_panel_visible', 'true');
-    """)
+        """)
 
     print("Reloading...")
     page.reload()
