@@ -2,7 +2,9 @@
 id: BUG-0715
 title: Left-rail toggles can stay lit while the panel they name is not rendered
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-left-rail
 priority: P2
 milestone: none
 created: "2026-10-21"
