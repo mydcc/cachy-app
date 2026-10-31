@@ -19,6 +19,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { isLightTheme } from "./lib/themeBackgrounds";
+import { parseBlocks, readThemesCss, resolveToken } from "./tests/helpers/themeCss";
 
 /**
  * The global ::selection rule (src/app.css) paints marked text with
@@ -30,52 +31,6 @@ import { isLightTheme } from "./lib/themeBackgrounds";
  */
 
 const SELECTION_TOKENS = ["--accent-color", "--text-on-accent"] as const;
-
-function readThemesCss(): string {
-  return readFileSync(join(process.cwd(), "src", "themes.css"), "utf-8");
-}
-
-/** Raw `name: value` declarations of one CSS block body. */
-function parseDeclarations(body: string): Map<string, string> {
-  const vars = new Map<string, string>();
-  for (const [, name, value] of body.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
-    vars.set(`--${name}`, value.trim());
-  }
-  return vars;
-}
-
-/** Selector blocks: `:root, .theme-default` counts as the shared scope. */
-function parseBlocks(css: string): Array<{ selector: string; vars: Map<string, string> }> {
-  // Strip comments so braces inside them cannot confuse the split.
-  const clean = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  const blocks: Array<{ selector: string; vars: Map<string, string> }> = [];
-  for (const [, selector, body] of clean.matchAll(/([^{]+)\{([^}]*)\}/g)) {
-    blocks.push({ selector: selector.trim(), vars: parseDeclarations(body) });
-  }
-  return blocks;
-}
-
-const VAR_PATTERN = /^var\(\s*(--[\w-]+)\s*(?:,\s*(.+))?\)$/;
-
-/**
- * Follows a var() chain inside `scope` (block vars over :root vars).
- * Returns the literal it lands on, or null when the chain dangles with
- * no fallback to save it.
- */
-function resolveToken(
-  value: string,
-  scope: Map<string, string>,
-  seen: Set<string> = new Set(),
-): string | null {
-  const match = value.match(VAR_PATTERN);
-  if (!match) return value;
-  const [, name, fallback] = match;
-  if (seen.has(name)) return fallback?.trim() ?? null;
-  seen.add(name);
-  const next = scope.get(name);
-  if (next === undefined) return fallback?.trim() ?? null;
-  return resolveToken(next, scope, seen);
-}
 
 describe("theme selection tokens", () => {
   it("defines a resolvable --accent-color and --text-on-accent in every theme", () => {
