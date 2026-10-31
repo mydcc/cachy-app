@@ -2,7 +2,7 @@
 id: FEAT-0767
 title: Reduce the market-structure tab to a lesson
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0766]
+assignee: opencode
+branch: feature/feat-0767-academy-structure-lesson
 ---
 
 # FEAT-0767 — Reduce the market-structure tab to a lesson
@@ -41,19 +43,21 @@ everything live:
 
 ## Acceptance criteria
 
-- [ ] The tab mounts no chart and no canvas.
-- [ ] The tab registers no kline channel and requests no history.
-- [ ] No sticky readout, no timeframe picker, no bias timeframe in the view.
-- [ ] Five cards, each with exactly one schematic and its takeaway; the s2
-      schematic is unchanged.
-- [ ] The lesson chips still open the matching indicator lesson.
-- [ ] The static and the app route render the same markup.
-- [ ] `MarketStructureView`'s `showLiveChart` prop is gone and every caller is
+- [x] The tab mounts no chart and no canvas.
+- [x] The tab registers no kline channel and requests no history.
+- [x] No sticky readout, no timeframe picker, no bias timeframe in the view.
+- [x] Five cards, each with exactly one schematic and its takeaway; the s2
+      schematic is unchanged, and every schematic carries a description of what
+      it shows rather than a repeat of its heading.
+- [x] The lesson chips still open the matching indicator lesson.
+- [x] The view takes no route-dependent prop, so the app and the static route
+      cannot render different markup.
+- [x] `MarketStructureView`'s `showLiveChart` prop is gone and every caller is
       updated.
-- [ ] Strings that only the live layer used are removed from `de.json` and
+- [x] Strings that only the live layer used are removed from `de.json` and
       `en.json`; `schema.d.ts` regenerated.
-- [ ] The component test asserts the absence of a chart, the schematic per
-      card and the identical static route.
+- [x] The component test asserts the absence of a chart, the chip count as the
+      only controls, the schematic per card and its description.
 
 ## Out of scope
 

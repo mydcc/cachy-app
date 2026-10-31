@@ -26,7 +26,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { computeStructureRead, fibLevels, type StructureBar } from "./structureRead";
+import { computeStructureRead, type StructureBar } from "./structureRead";
 
 /**
  * A close path with ±0.5 intrabar extremes and open = previous close.
@@ -90,7 +90,7 @@ describe("FEAT-0765 — the mc.pine structure read", () => {
         ]);
     });
 
-    it("carries the post-flip range and inducement for the Fibonacci lesson", () => {
+    it("carries the post-flip range and inducement", () => {
         const read = computeStructureRead(barsFromCloses(BULL_THEN_FLIP, { 36: 124 }));
 
         // After the flip the range runs from the bottom to the swept top.
@@ -99,15 +99,6 @@ describe("FEAT-0765 — the mc.pine structure read", () => {
         // the line is the post-flip sub-swing high, not the pre-flip top.
         expect(read.inducement).toEqual({ index: 57, price: 94.5, side: "high" });
 
-        const levels = fibLevels(read.range);
-        expect(levels.map((level) => level.price)).toEqual([
-            expect.closeTo(87.5 + 36.5 * 0.236, 8),
-            expect.closeTo(87.5 + 36.5 * 0.382, 8),
-            expect.closeTo(87.5 + 36.5 * 0.5, 8),
-            expect.closeTo(87.5 + 36.5 * 0.618, 8),
-            expect.closeTo(87.5 + 36.5 * 0.786, 8),
-            expect.closeTo(87.5 + 36.5 * 0.886, 8),
-        ]);
     });
 
     it("counts a wick one bar after the extreme as a sweep (review follow-up)", () => {
@@ -137,14 +128,5 @@ describe("FEAT-0765 — the mc.pine structure read", () => {
         expect(read.swings).toEqual([]);
         expect(read.events).toEqual([]);
         expect(read.range).toBeNull();
-    });
-
-    it("measures Fibonacci levels down from the high in an uptrend", () => {
-        const levels = fibLevels({ low: 100, high: 200, direction: 1 }, [0.5, 0.618]);
-        expect(levels).toEqual([
-            { price: 150, side: "resistance" },
-            { price: expect.closeTo(200 - 100 * 0.618, 8), side: "resistance" },
-        ]);
-        expect(fibLevels(null)).toEqual([]);
     });
 });

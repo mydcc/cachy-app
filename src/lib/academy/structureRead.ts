@@ -36,7 +36,7 @@
  * Pure TypeScript over plain arrays: no stores, no runes, no DOM.
  */
 
-import type { LevelLine, Swing } from "./structureSignals";
+import type { Swing } from "./structureSignals";
 
 /** One candle, in the units the chart and the structure rules already use. */
 export interface StructureBar {
@@ -399,28 +399,4 @@ export function computeStructureRead(
               : null;
 
     return { swings, events, inducement, range };
-}
-
-/**
- * The Fibonacci levels on the current structure range, drawn the way the
- * PineScript draws them: in an uptrend measured down from the high, in a
- * downtrend up from the low.
- */
-/** The Fibonacci ratios the structure lessons draw. */
-export const FIB_RATIOS = [0.236, 0.382, 0.5, 0.618, 0.786, 0.886] as const;
-
-export function fibLevels(
-    range: StructureRange | null,
-    ratios: readonly number[] = FIB_RATIOS,
-): LevelLine[] {
-    if (!range) return [];
-    const diff = range.high - range.low;
-    if (!Number.isFinite(diff) || diff <= 0) return [];
-    return ratios.map((ratio) => ({
-        price:
-            range.direction === 1
-                ? range.high - diff * ratio
-                : range.low + diff * ratio,
-        side: (range.direction === 1 ? "resistance" : "support") as LevelLine["side"],
-    }));
 }

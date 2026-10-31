@@ -74,14 +74,19 @@ describe("market structure content", () => {
         }
     });
 
-    it("keeps chart references out of the offline body", () => {
-        // The s1 chart hint renders only behind showLiveChart (SEO and
-        // offline read the body alone), so the body itself must not point
-        // at a chart that may not be there.
+    it("points at the panel where the order is applied", () => {
+        for (const [, bundle] of LOCALES) {
+            const hint = nonEmpty(bundle, `academy.structure.panelHint`);
+            expect(hint.length, "panelHint").toBeGreaterThan(20);
+        }
+    });
+
+    it("keeps chart promises out of the offline body", () => {
+        // The tab draws schematics only (FEAT-0767). A body that pointed at a
+        // live chart would promise something the page never renders.
         for (const [, bundle] of LOCALES) {
             const body = nonEmpty(bundle, `academy.structure.s1.body`);
             expect(body.toLowerCase()).not.toContain("chart");
-            nonEmpty(bundle, `academy.structure.s1.chartHint`);
         }
     });
 });

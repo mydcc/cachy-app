@@ -17,18 +17,16 @@
  */
 
 /*
- * FEAT-0679 — the market structure reference tab.
+ * FEAT-0767 — the market-structure tab as a lesson.
  *
- * Five cards in reading order from `academy.structure.*`, a static
- * language-neutral SVG schematic for the structure section, and lesson
- * buttons that ask the parent to switch tabs. The live charts are stubbed:
- * IndicatorLessonChart has its own suite, and this file is about sections,
- * diagram and navigation.
+ * The tab used to be a live dashboard. What must hold now is the absence of
+ * one: no chart, no subscription, no reading strip. Each card carries exactly
+ * one schematic that shows the thing it teaches, because a card without its
+ * picture is the poster the dashboard already was.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
-
 import en from "../../locales/locales/en.json";
 
 function lookup(key: string): string {
@@ -46,328 +44,131 @@ vi.mock("../../locales/i18n", async () => {
     };
 });
 
-/*
- * The cockpit registers kline channels itself (FEAT-0686, FEAT-0763). The
- * watcher is mocked so the view mounts without a provider; the readout
- * assertions below read marketState directly.
- */
+/* The lesson must not open a market channel; the mock proves it does not. */
 vi.mock("../../services/marketWatcher", () => ({
     marketWatcher: { register: vi.fn(), unregister: vi.fn(), ensureHistory: vi.fn() },
 }));
 
-vi.mock("./IndicatorLessonChart.svelte", async () => ({
-    default: (await import("../../tests/helpers/ChartPropSpy.svelte")).default,
-}));
-
-vi.mock("../../stores/market.svelte", async () => {
-    const { marketState } = await import(
-        "../../lib/windows/implementations/marketState.helper.svelte"
-    );
-    return { marketState };
-});
-
-import { tradeState } from "../../stores/trade.svelte";
-import { marketState } from "../../lib/windows/implementations/marketState.helper.svelte";
-import { normalizeSymbol } from "../../utils/symbolUtils";
-import type { MarketData } from "../../stores/market/types";
-import type { Kline } from "../../services/technicalsTypes";
 import MarketStructureView from "./MarketStructureView.svelte";
 import { marketWatcher } from "../../services/marketWatcher";
-import { LESSON_HISTORY_TARGET } from "../../lib/academy/lessonSettings";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
+let onOpenIndicators: ReturnType<typeof vi.fn>;
+
+function renderView(): HTMLElement {
+    if (component) {
+        unmount(component as never);
+        component = null;
+    }
+    host.innerHTML = "";
+
+    component = mount(MarketStructureView, {
+        target: host,
+        props: { onOpenIndicators },
+    }) as never;
+    flushSync();
+
+    const root = host.firstElementChild as HTMLElement;
+    expect(root, `the view rendered nothing:\n${host.innerHTML}`).not.toBeNull();
+    return root;
+}
+
+const SECTIONS = ["s1", "s2", "s3", "s4a", "s4b"] as const;
 
 beforeEach(() => {
+    onOpenIndicators = vi.fn();
     vi.clearAllMocks();
-    localStorage.clear();
     host = document.createElement("div");
     document.body.appendChild(host);
 });
 
 afterEach(() => {
-    if (component) unmount(component);
+    if (component) unmount(component as never);
     component = null;
     host.remove();
 });
 
-function renderView(props: Record<string, unknown> = {}): HTMLElement {
-    component = mount(MarketStructureView, {
-        target: host,
-        props: { showLiveChart: false, onOpenIndicators: vi.fn(), ...props },
-    }) as never;
-    flushSync();
-    return host.firstElementChild as HTMLElement;
-}
-
-describe("MarketStructureView", () => {
-    it("renders all sections with their locale titles and takeaways", () => {
+describe("FEAT-0767 — the market-structure lesson", () => {
+    it("renders the five steps in reading order", () => {
         const view = renderView();
-        for (const section of ["s1", "s2", "s3", "s4a", "s4b"]) {
-            const article = view.querySelector(`[data-testid="structure-${section}"]`);
-            expect(article, `section ${section} missing`).not.toBeNull();
-            expect(article?.textContent).toContain(lookup(`academy.structure.${section}.title`));
-            expect(article?.textContent).toContain(lookup(`academy.structure.${section}.takeaway`));
-            expect(article?.textContent).toContain(lookup(`academy.structure.${section}.body`));
+
+        const cards = [...view.querySelectorAll("[data-testid^='structure-s']")].filter((node) =>
+            SECTIONS.some((key) => node.getAttribute("data-testid") === `structure-${key}`),
+        );
+        expect(cards.map((card) => card.getAttribute("data-testid"))).toEqual(
+            SECTIONS.map((key) => `structure-${key}`),
+        );
+
+        for (const key of SECTIONS) {
+            const card = view.querySelector(`[data-testid="structure-${key}"]`)!;
+            expect(card.textContent).toContain(lookup(`academy.structure.${key}.title`));
+            expect(card.textContent).toContain(lookup(`academy.structure.${key}.takeaway`));
+            expect(card.textContent).toContain(lookup(`academy.structure.${key}.body`));
         }
     });
 
-    it("draws the static structure diagram with its legend", () => {
+    it("gives every card exactly one schematic and keeps the s2 legend", () => {
         const view = renderView();
-        const diagram = view.querySelector('[data-testid="structure-diagram"]');
-        expect(diagram, "structure diagram missing").not.toBeNull();
-        for (const key of [
-            "legendSwings",
-            "legendBos",
-            "legendChoch",
-            "legendZone",
-            "legendSweep",
-            "legendIdm",
-        ]) {
-            expect(view.textContent).toContain(lookup(`academy.structure.s2.${key}`));
+
+        for (const key of SECTIONS) {
+            const card = view.querySelector(`[data-testid="structure-${key}"]`)!;
+            expect(card.querySelectorAll("svg").length, `svg count in ${key}`).toBe(1);
+            expect(card.querySelector(`[data-testid="structure-diagram-${key}"]`)).not.toBeNull();
+        }
+
+        const s2 = view.querySelector('[data-testid="structure-s2"]')!;
+        for (const legend of ["legendSwings", "legendBos", "legendChoch", "legendZone"]) {
+            expect(s2.textContent).toContain(lookup(`academy.structure.s2.${legend}`));
         }
     });
 
-    it("asks the parent to open the indicators tab per lesson button", () => {
-        const onOpenIndicators = vi.fn();
-        const view = renderView({ onOpenIndicators });
+    it("mounts no chart and no reading strip", () => {
+        const view = renderView();
+
+        expect(view.querySelector("canvas")).toBeNull();
+        expect(view.querySelector("[data-testid^='structure-chart-']")).toBeNull();
+        expect(view.querySelector("[data-testid='structure-readout']")).toBeNull();
+        // No picker of any kind: the only controls are the five lesson chips,
+        // asserted by count so a restored dropdown cannot slip past a label.
+        expect(view.querySelectorAll("button")).toHaveLength(5);
+        expect(view.querySelectorAll("select, [role='combobox']")).toHaveLength(0);
+    });
+
+    it("subscribes to no market channel", () => {
+        renderView();
+
+        expect(marketWatcher.register).not.toHaveBeenCalled();
+        expect(marketWatcher.ensureHistory).not.toHaveBeenCalled();
+    });
+
+    it("points at the Technicals panel where the order is applied", () => {
+        const view = renderView();
+
+        expect(view.textContent).toContain(lookup("academy.structure.panelHint"));
+    });
+
+    it("opens the matching indicator lesson from every chip", () => {
+        const view = renderView();
+
         for (const id of ["ema", "adx", "choppiness", "bollinger", "atr"]) {
-            const button = view.querySelector(`[data-testid="structure-open-${id}"]`);
-            expect(button, `button for ${id} missing`).not.toBeNull();
-            (button as HTMLElement).click();
+            const chip = view.querySelector<HTMLButtonElement>(`[data-testid="structure-open-${id}"]`);
+            expect(chip, `no chip for ${id}`).not.toBeNull();
+            chip!.click();
             flushSync();
             expect(onOpenIndicators).toHaveBeenLastCalledWith(id);
         }
         expect(onOpenIndicators).toHaveBeenCalledTimes(5);
     });
 
-    it("mounts no live chart when showLiveChart is false, three when true", () => {
-        const hidden = renderView({ showLiveChart: false });
-        expect(hidden.querySelectorAll('[data-testid="empty-stub"]').length).toBe(0);
-        // Offline and SEO readers get prose and the static diagram only: no
-        // sentence may point at a chart that is not rendered.
-        expect(hidden.textContent).not.toContain(lookup("academy.structure.s1.chartHint"));
-        if (component) unmount(component);
-        component = null;
-        host.innerHTML = "";
+    it("describes each drawing instead of repeating its heading", () => {
+        const view = renderView();
 
-        const shown = renderView({ showLiveChart: true });
-        // One chart per demo entry: ema, ema, ema, adx, bollinger.
-        expect(shown.querySelectorAll('[data-testid="empty-stub"]').length).toBe(5);
-        expect(shown.textContent).toContain(lookup("academy.structure.s1.chartHint"));
-    });
-
-    it("keeps swings from the full 600-candle window, not the last 300 (FEAT-0763)", () => {
-        tradeState.symbol = "BTCUSDT";
-        const key = normalizeSymbol("BTCUSDT", "bitunix");
-        const at = (i: number) => 1_700_000_000_000 + i * 3_600_000;
-        const kline = (time: number, high: number, low: number, close: number): Kline =>
-            ({ open: close, high, low, close, time }) as unknown as Kline;
-        const bars: Kline[] = [];
-        // A swing high at bar 10, then 590 flat candles: a slice(-300) drops
-        // the swing and its marker, the shared 600 window keeps it.
-        for (let i = 0; i < 601; i++) {
-            if (i === 10) bars.push(kline(at(i), 150, 99, 120));
-            else bars.push(kline(at(i), 101, 99, 100));
+        for (const key of SECTIONS) {
+            const card = view.querySelector(`[data-testid="structure-${key}"]`)!;
+            const svg = card.querySelector(`[data-testid="structure-diagram-${key}"]`)!;
+            expect(svg.getAttribute("aria-labelledby"), key).toBe(`structure-alt-${key}`);
+            expect(card.textContent, key).toContain(lookup(`academy.structure.${key}.diagramAlt`));
         }
-        marketState.data[key] = {
-            klines: { "1h": bars, "4h": bars },
-        } as unknown as MarketData;
-
-        const view = renderView({ showLiveChart: true });
-        const stubs = view.querySelectorAll('[data-testid="empty-stub"]');
-        const markers = JSON.parse(stubs[1].getAttribute("data-markers") ?? "null") as Array<{
-            time: number;
-            position: string;
-            shape: string;
-        }>;
-        expect(markers).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    time: Math.floor(at(10) / 1000),
-                    position: "aboveBar",
-                    shape: "circle",
-                }),
-            ]),
-        );
-    });
-
-    it("lays each card out as prose and chart columns above the container step", () => {
-        const view = renderView({ showLiveChart: true });
-
-        for (const key of ["s1", "s2", "s3", "s4a", "s4b"]) {
-            const article = view.querySelector(`[data-testid="structure-${key}"]`);
-            expect(article, `section ${key} missing`).not.toBeNull();
-            // Two columns from the @3xl container step; below it the card is
-            // the same single reading flow as before (mobile stays stacked).
-            expect(article!.classList.contains("@3xl:grid")).toBe(true);
-            expect(
-                article!.classList.contains("@3xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"),
-            ).toBe(true);
-
-            const prose = article!.querySelector(`[data-testid="structure-prose-${key}"]`);
-            const chart = article!.querySelector(`[data-testid="structure-chart-${key}"]`);
-            expect(prose, `prose column missing in ${key}`).not.toBeNull();
-            expect(chart, `chart column missing in ${key}`).not.toBeNull();
-            expect(prose!.textContent).toContain(lookup(`academy.structure.${key}.body`));
-            expect(prose!.textContent).toContain(lookup(`academy.structure.${key}.takeaway`));
-        }
-
-        // The static schematic belongs to the prose column, not the chart one.
-        const s2Prose = view.querySelector('[data-testid="structure-prose-s2"]');
-        expect(s2Prose!.querySelector('[data-testid="structure-diagram"]')).not.toBeNull();
-
-        // Lesson chips follow the chart in the live layout (the old stacked
-        // order); on narrow widths the chart column stacks below the prose.
-        const s1Chart = view.querySelector('[data-testid="structure-chart-s1"]');
-        expect(s1Chart!.querySelector('[data-testid="structure-open-ema"]')).not.toBeNull();
-        const s1Prose = view.querySelector('[data-testid="structure-prose-s1"]');
-        expect(s1Prose!.querySelector('[data-testid="structure-open-ema"]')).toBeNull();
-    });
-
-    it("hides the readout and the chart column on the static SEO route", () => {
-        const view = renderView({ showLiveChart: false });
-
-        expect(view.querySelector('[data-testid="structure-readout"]')).toBeNull();
-        for (const key of ["s1", "s2", "s3", "s4a", "s4b"]) {
-            const article = view.querySelector(`[data-testid="structure-${key}"]`);
-            expect(article!.classList.contains("@3xl:grid")).toBe(false);
-            expect(article!.querySelector(`[data-testid="structure-chart-${key}"]`)).toBeNull();
-            expect(
-                article!.querySelector(`[data-testid="structure-prose-${key}"]`),
-            ).not.toBeNull();
-        }
-        // Without a chart column the chips stay in the prose.
-        expect(
-            view.querySelector('[data-testid="structure-prose-s1"] [data-testid="structure-open-ema"]'),
-        ).not.toBeNull();
-    });
-
-    it("draws the mc.pine read: swing dots, CHoCH/BOS arrows, sweep S, IDM and fib lines", () => {
-        tradeState.symbol = "BTCUSDT";
-        const key = normalizeSymbol("BTCUSDT", "bitunix");
-        const at = (i: number, stepMs: number) => 1_700_000_000_000 + i * stepMs;
-        const closes = [
-            100, 101, 102, 103, 104, 105, 106, 105, 104, 103, 102, 101,
-            102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
-            108, 106, 107, 108, 107, 105, 107, 110, 112, 114,
-            116, 118, 117, 118,
-            116, 114, 112, 110, 108, 106, 104, 102, 100, 98,
-            96, 94, 92, 90, 88, 89, 90, 91, 92,
-            93, 94, 92, 91, 90, 89,
-        ];
-        const kline = (i: number, close: number, stepMs = 3_600_000): Kline =>
-            ({
-                open: close,
-                high: i === 36 ? 124 : close + 0.5,
-                low: close - 0.5,
-                close,
-                time: at(i, stepMs),
-            }) as unknown as Kline;
-        marketState.data[key] = {
-            klines: {
-                "1h": closes.map((close, i) => kline(i, close)),
-                // Different timeframe, same path: the s1 series must come from
-                // the shared timeframe, not the bias one.
-                "4h": closes.map((close, i) => kline(i, close, 14_400_000)),
-            },
-        } as unknown as MarketData;
-
-        const view = renderView({ showLiveChart: true });
-        const stubs = view.querySelectorAll('[data-testid="empty-stub"]');
-        expect(stubs.length).toBe(5);
-
-        // FEAT-0763: both cockpit timeframes warm the full lesson depth.
-        expect(marketWatcher.ensureHistory).toHaveBeenCalledWith(
-            "BTCUSDT",
-            "1h",
-            LESSON_HISTORY_TARGET,
-        );
-        expect(marketWatcher.ensureHistory).toHaveBeenCalledWith(
-            "BTCUSDT",
-            "4h",
-            LESSON_HISTORY_TARGET,
-        );
-
-        // s2: one circle per swing (high and low alike) plus the BOS-up
-        // arrow, all on integer seconds.
-        const markers = JSON.parse(stubs[1].getAttribute("data-markers") ?? "null") as Array<{
-            time: number;
-            position: string;
-            shape: string;
-            text?: string;
-        }>;
-        // Seven ATR-filtered swings plus the four structure events.
-        expect(markers.length).toBe(11);
-        for (const marker of markers) expect(Number.isInteger(marker.time)).toBe(true);
-        expect(markers).toEqual(
-            expect.arrayContaining([
-                // The inducement-gated BOS arrow at bar 32 ...
-                expect.objectContaining({
-                    time: Math.floor(at(32, 3_600_000) / 1000),
-                    position: "belowBar",
-                    shape: "arrowUp",
-                }),
-                // ... the sweep's "S" at bar 36 ...
-                expect.objectContaining({
-                    time: Math.floor(at(36, 3_600_000) / 1000),
-                    position: "aboveBar",
-                    shape: "circle",
-                    text: "S",
-                }),
-                // ... and the CHoCH-down arrow at bar 43.
-                expect.objectContaining({
-                    time: Math.floor(at(43, 3_600_000) / 1000),
-                    position: "aboveBar",
-                    shape: "arrowDown",
-                }),
-            ]),
-        );
-
-        // s2: the inducement line, dotted and titled IDM.
-        const idmLines = JSON.parse(stubs[1].getAttribute("data-pricelines") ?? "null") as Array<{
-            price: number;
-            title: string;
-            lineStyle?: string;
-        }>;
-        expect(idmLines).toEqual([
-            expect.objectContaining({ price: 94.5, title: "IDM", lineStyle: "dotted" }),
-        ]);
-
-        // s3: the six Fibonacci levels on the current structure range.
-        const fibLines = JSON.parse(stubs[2].getAttribute("data-pricelines") ?? "null") as Array<{
-            price: number;
-            title: string;
-        }>;
-        expect(fibLines.map((line) => line.title)).toEqual([
-            "0.236",
-            "0.382",
-            "0.5",
-            "0.618",
-            "0.786",
-            "0.886",
-        ]);
-        expect(fibLines[0].price).toBeCloseTo(87.5 + 36.5 * 0.236, 6);
-
-        // The s1 chart draws the EMA trio over the *shared* timeframe.
-        expect(JSON.parse(stubs[0].getAttribute("data-series") ?? "null")).toEqual([
-            "EMA 21",
-            "EMA 50",
-            "EMA 200",
-        ]);
-
-        // The s2 readout names the same break the markers show.
-        expect(view.textContent).toContain(lookup("academy.structure.read.chochDown"));
-
-        // The sticky readout repeats the same reading above the cards.
-        const readout = view.querySelector('[data-testid="structure-readout"]');
-        expect(readout, "readout strip missing").not.toBeNull();
-        expect(readout!.classList.contains("sticky")).toBe(true);
-        expect(readout!.getAttribute("role")).toBe("group");
-        expect(readout!.getAttribute("aria-label")).toBe(
-            lookup("academy.structure.read.summaryLabel"),
-        );
-        expect(readout!.textContent).toContain("4h");
-        expect(readout!.textContent).toContain(lookup("academy.structure.read.chochDown"));
     });
 });
