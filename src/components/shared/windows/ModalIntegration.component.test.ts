@@ -23,7 +23,7 @@
  * account-switch test stubs `ModalFrame`, and the window tests render empty
  * content. So a dialog that never appeared, vanished during registration, or
  * died under the first press turned no test red — and BUG-0667 shipped two
- * defects through that gap.
+ * user-visible defects through that gap.
  *
  * This mounts the real pair: a real `settings` window (its type is
  * `closeOnBlur`, which is what made registration sweep it), its content
@@ -31,6 +31,10 @@
  * rendering both. Deliberately not mocked: `windowManager`, `ModalFrame`,
  * `WindowContainer`. Only the dictionary is stood in, because these assertions
  * are about rendering and stacking, not copy.
+ *
+ * `data-window-id` on the frame and the inline `z-index` are the DOM contract
+ * this file reads. Renaming either is a deliberate break, not an accident: in
+ * happy-dom they are the only observable identity and stacking hooks.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -51,10 +55,22 @@ function message(key: string): string {
     return value;
 }
 
+/** `$(key, { values })`: the headings carry a placeholder. */
+function t(key: string, values?: Record<string, unknown>): string {
+    const template = message(key);
+    if (!values) return template;
+    return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
+        name in values ? String(values[name]) : whole,
+    );
+}
+
 vi.mock("../../../locales/i18n", async () => {
     const { readable } = await import("svelte/store");
     return {
-        _: readable((key: string) => message(key)),
+        _: readable(
+            (key: string, options?: { values?: Record<string, unknown> }) =>
+                t(key, options?.values),
+        ),
         locale: readable("en"),
         setLocale: vi.fn(),
     };
@@ -68,13 +84,21 @@ import { Z_LAYERS } from "../../../lib/windows/zLayers";
 
 /**
  * The real settings pane type: `closeOnBlur: true` and responsive below its
- * 768 px breakpoint. That combination is what produced both BUG-0667 halves —
- * the sweep closed the pane that mounted the dialog, and on a narrow viewport
- * the pane maximized itself above the compact dialog.
+ * 768 px breakpoint. That combination is what produced BUG-0667 — the sweep
+ * closed the pane that mounted the dialog, and on a narrow viewport the pane
+ * maximized itself above the compact dialog.
+ *
+ * The explicit id is deliberate: the settings type is a singleton, so a stale
+ * window from a failed test would otherwise be matched silently and the new
+ * one never registered. With a private id, `frameOf` throws by name instead.
  */
 class SettingsPaneWindow extends WindowBase {
     constructor() {
-        super({ title: "Settings", windowType: "settings" });
+        super({
+            id: "bug-0671-settings",
+            title: "Settings",
+            windowType: "settings",
+        });
     }
 
     get component() {
@@ -120,11 +144,33 @@ function frameOf(id: string): HTMLElement {
 }
 
 function modalWindow() {
-    const modal = windowManager.windows.find(
+    const modals = windowManager.windows.filter(
         (candidate) => candidate.windowType === "modal",
     );
-    if (!modal) throw new Error("the confirm dialog registered no window");
-    return modal;
+    if (modals.length !== 1) {
+        throw new Error(`expected one modal window, found ${modals.length}`);
+    }
+    return modals[0];
+}
+
+/**
+ * A real press fires `pointerdown` first and `mousedown` after it, and they
+ * reach two different handlers: the frame's own `bringToFront` (where the
+ * BUG-0667 sweep decision lives) and the manager's background listener. A
+ * `mousedown` alone never runs the first one, which is why this dispatches the
+ * sequence instead of one event.
+ */
+function pressInside(element: Element): void {
+    element.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, cancelable: true }),
+    );
+    element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    (element as HTMLElement).focus();
+    flushSync();
+}
+
+function windowIds(): string[] {
+    return windowManager.windows.map((win) => win.id);
 }
 
 function closeAllWindows(): void {
@@ -141,11 +187,19 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    closeAllWindows();
+    // Tear the view down first: closing windows while the container still
+    // renders them lets `ModalFrame`'s teardown re-register the host pane, so
+    // the next test would silently reuse this one's window.
     if (component) unmount(component);
     component = null;
+    flushSync();
+    closeAllWindows();
     host?.remove();
     window.innerWidth = 1024;
+    expect(
+        windowManager.windows,
+        "the window manager still holds windows after teardown",
+    ).toHaveLength(0);
 });
 
 describe("BUG-0671 — a real modal through the real window manager", () => {
@@ -154,20 +208,26 @@ describe("BUG-0671 — a real modal through the real window manager", () => {
         const pane = openSettingsPane();
         openConfirm();
 
+        // AC2, registration half — checked before the dialog lookup so a sweep
+        // regression is reported as "the pane was swept", not as a missing
+        // dialog.
+        expect(windowIds()).toContain(pane.id);
+        expect(host.querySelector(`[data-window-id="${pane.id}"]`)).not.toBeNull();
+
         const dialog = modalWindow();
         const dialogFrame = frameOf(dialog.id);
 
-        // Rendered content, not a manager call: the facts the caller passed
-        // are in the DOM, inside the container, with the dialog's own actions.
+        // AC4 — rendered content, not a manager call: the facts the caller
+        // passed are in the DOM, and the dialog's own action is a real button.
         expect(dialogFrame.textContent).toContain("Account");
         expect(dialogFrame.textContent).toContain("Second");
-        expect(dialogFrame.textContent).toContain(
-            message("settings.confirmations.dialog.confirm"),
-        );
+        expect(
+            buttonsIn(dialogFrame).map((button) => button.textContent?.trim()),
+        ).toContain(t("settings.confirmations.dialog.confirm"));
 
-        // The pane that mounted it survived the registration sweep.
-        expect(frameOf(pane.id)).not.toBeNull();
-        expect(windowManager.windows.map((win) => win.id)).toContain(pane.id);
+        // The backdrop belongs to the dialog, above the pane it dims.
+        const backdrop = host.querySelector<HTMLElement>(".window-backdrop");
+        expect(backdrop).not.toBeNull();
     });
 
     it("keeps the dialog mounted when the first press lands inside it", () => {
@@ -179,38 +239,47 @@ describe("BUG-0671 — a real modal through the real window manager", () => {
         const confirmButton = buttonsIn(frameOf(dialog.id)).find(
             (candidate) =>
                 candidate.textContent?.trim() ===
-                message("settings.confirmations.dialog.confirm"),
+                t("settings.confirmations.dialog.confirm"),
         );
         if (!confirmButton) {
             throw new Error("the dialog rendered no confirm button");
         }
 
-        // The manager's background handler listens for mousedown. A press
-        // inside the dialog is not empty space; if it is read as such, the
-        // sweep closes the dialog (and its host) before the click lands.
-        confirmButton.dispatchEvent(
+        pressInside(confirmButton);
+
+        // AC2, pointer-down half. Both guards are needed to survive this: the
+        // frame root carries `.window-frame` **and** `.glass-panel`, so either
+        // check alone protects the same press.
+        expect(host.querySelector(`[data-window-id="${pane.id}"]`)).not.toBeNull();
+        expect(
+            host.querySelector(`[data-window-id="${dialog.id}"]`),
+        ).not.toBeNull();
+        expect(windowIds()).toContain(dialog.id);
+
+        // The press reaches its own handler: confirming closes the dialog.
+        confirmButton.click();
+        flushSync();
+
+        expect(host.querySelector(`[data-window-id="${dialog.id}"]`)).toBeNull();
+        expect(host.querySelector(`[data-window-id="${pane.id}"]`)).not.toBeNull();
+
+        // Positive control: the same `mousedown` on empty space *does* close
+        // the pane. Without it, this test would also pass if the event never
+        // reached the listener at all — a guard cannot be proven by silence.
+        document.body.dispatchEvent(
             new MouseEvent("mousedown", { bubbles: true }),
         );
         flushSync();
 
-        expect(frameOf(dialog.id)).not.toBeNull();
-        expect(frameOf(pane.id)).not.toBeNull();
-
-        // The press still reaches its own handler: confirming closes the
-        // dialog instead of being swallowed.
-        confirmButton.click();
-        flushSync();
-
-        expect(windowManager.windows.map((win) => win.id)).not.toContain(
-            dialog.id,
-        );
+        expect(windowIds()).not.toContain(pane.id);
     });
 
     it("draws the dialog above the maximized pane that opened it", () => {
-        // Below the settings type's 768 px breakpoint, so the pane maximizes
-        // itself exactly as it did in the reported case. happy-dom defaults to
-        // 1024 px, where the pane would stay floating.
-        window.innerWidth = 700;
+        // Well below the settings type's 768 px breakpoint, so the pane
+        // maximizes itself exactly as it did in the reported case. happy-dom
+        // defaults to 1024 px, where the pane would stay floating. The margin
+        // keeps a legitimate breakpoint tweak from turning this red.
+        window.innerWidth = 500;
 
         render();
         const pane = openSettingsPane();
@@ -224,8 +293,13 @@ describe("BUG-0671 — a real modal through the real window manager", () => {
         const paneZ = Number(frameOf(pane.id).style.zIndex);
         const dialogZ = Number(frameOf(dialog.id).style.zIndex);
 
+        // AC3 — the pane is in the ordinary maximized band, the dialog in the
+        // reserved modal band. Both bounds matter: `>= windowMax` alone would
+        // also pass if the pane were silently moved into the modal band.
         expect(paneZ).toBeGreaterThanOrEqual(Z_LAYERS.windowMax);
+        expect(paneZ).toBeLessThan(Z_LAYERS.modal);
         expect(dialogZ).toBeGreaterThanOrEqual(Z_LAYERS.modal);
+        expect(dialogZ).toBeLessThan(Z_LAYERS.switcher);
         expect(dialogZ).toBeGreaterThan(paneZ);
     });
 });
