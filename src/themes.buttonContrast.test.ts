@@ -23,77 +23,40 @@
  * `--success-color`. The two families were never compared, so a theme could
  * ship a pair that is both different and unreadable: `theme-matrix` rendered
  * the paper submit as #00802b on #00ff41, 3.73:1, below AA for the
- * primitive's 14 px/700 body size. This gate resolves the pairs the way the
- * cascade does — theme block over `:root`, following `var()` chains — and
+ * primitive's 14 px/700 body size. This gate resolves the **resting** pair the
+ * CSS composes — theme block over `:root`, following `var()` chains — and
  * fails below 4.5:1.
  *
- * It deliberately measures the pair the CSS actually composes. A token that
- * dangles (`var(--typo)`) is a failure too, because at computed-value time it
- * makes `color` inherit rather than fall back to something readable.
+ * The hover pair (`--btn-*-hover-bg` with the same label) is not gated yet,
+ * and neither is a component that mixes a semantic fill with a `--btn-*` text
+ * token; both are measured in BUG-0760. A colour syntax this gate cannot read
+ * is reported, not guessed at: `parseColorToRgb` harvests numeric runs, so an
+ * `hsl()` value would otherwise be graded as if it were `rgb()`.
  */
 
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
+import { THEME_BACKGROUNDS } from "./lib/themeBackgrounds";
 import { contrastRatio, parseColorToRgb } from "./lib/themeColors";
+import {
+    parseBlocks,
+    readThemesCss,
+    resolveToken,
+    themeScopes,
+} from "./tests/helpers/themeCss";
 
-/** The filled roles: every variant that paints both a fill and a label. */
+/**
+ * Roles that paint both a fill and a label. `warning` is the fifth and is not
+ * here yet: it has no `--btn-warning-text` (BUG-0759), so there is no token to
+ * pair with its fill.
+ */
 const ROLES = ["default", "accent", "danger", "success"] as const;
 
 /** WCAG 2.1 AA for normal text; the primitive renders at 14 px/700. */
 const MIN_CONTRAST = 4.5;
 
-interface Block {
-    selector: string;
-    vars: Map<string, string>;
-}
-
-function readThemesCss(): string {
-    return readFileSync(join(process.cwd(), "src", "themes.css"), "utf-8");
-}
-
-/** Raw `name: value` declarations of one block body. */
-function parseDeclarations(body: string): Map<string, string> {
-    const vars = new Map<string, string>();
-    for (const [, name, value] of body.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
-        vars.set(`--${name}`, value.trim());
-    }
-    return vars;
-}
-
-function parseBlocks(css: string): Block[] {
-    // Comments first: a brace inside one would split a block in the wrong place.
-    const clean = css.replace(/\/\*[\s\S]*?\*\//g, "");
-    return Array.from(clean.matchAll(/([^{}]+)\{([^}]*)\}/g), ([, selector, body]) => ({
-        selector: selector.trim(),
-        vars: parseDeclarations(body),
-    }));
-}
-
-const VAR_PATTERN = /^var\(\s*(--[\w-]+)\s*(?:,\s*(.+))?\)$/;
-
-/**
- * Follows a `var()` chain to the literal it lands on.
- *
- * Returns `null` when the chain dangles without a fallback: the browser would
- * then fall back to an inherited value, which is not the pair the theme says
- * it ships, so the test must not pretend it resolved one.
- */
-function resolveToken(
-    value: string,
-    scope: Map<string, string>,
-    seen: Set<string> = new Set(),
-): string | null {
-    const match = value.match(VAR_PATTERN);
-    if (!match) return value;
-    const [, name, fallback] = match;
-    if (seen.has(name)) return fallback?.trim() ?? null;
-    seen.add(name);
-    const next = scope.get(name);
-    if (next === undefined) return fallback?.trim() ?? null;
-    return resolveToken(next, scope, seen);
-}
+/** The literal forms this gate can measure; anything else is a failure. */
+const MEASURABLE = /^(#[0-9a-f]{3,8}|rgba?\()/i;
 
 interface Marker {
     label: string;
@@ -101,23 +64,24 @@ interface Marker {
 }
 
 describe("BUG-0728 — filled button pairs meet AA in every theme", () => {
-    it("resolves both tokens of every role and clears 4.5:1", () => {
-        const blocks = parseBlocks(readThemesCss());
+    it("covers every shipped theme and resolves both tokens of every role", () => {
+        const { root, themes } = themeScopes(parseBlocks(readThemesCss()));
 
-        const root = blocks.find((block) => block.selector.includes(":root"));
-        expect(root, ":root block with shared tokens must exist").toBeDefined();
+        // A theme whose CSS block is renamed, wrapped in a descendant selector
+        // or never written would otherwise drop out of the loop silently — the
+        // root scope alone still contributes four passing pairs.
+        expect(themes.length, "theme blocks parsed from themes.css").toBeGreaterThan(0);
+        expect(
+            ["dark", ...themes.map((theme) => theme.name)].sort(),
+            "every shipped theme has one CSS scope",
+        ).toEqual(Object.keys(THEME_BACKGROUNDS).sort());
 
         const markers: Marker[] = [
-            {
-                label: ".theme-default (shared :root)",
-                scope: new Map([...(root?.vars ?? [])]),
-            },
-            ...blocks
-                .filter((block) => /^\.theme-[\w-]+$/.test(block.selector))
-                .map((block) => ({
-                    label: block.selector,
-                    scope: new Map([...(root?.vars ?? []), ...block.vars]),
-                })),
+            { label: ".theme-default (shared :root)", scope: root },
+            ...themes.map((theme) => ({
+                label: `.theme-${theme.name}`,
+                scope: theme.scope,
+            })),
         ];
 
         const failures: string[] = [];
@@ -137,13 +101,32 @@ describe("BUG-0728 — filled button pairs meet AA in every theme", () => {
 
                 const bgLiteral = resolveToken(bgValue, marker.scope);
                 const textLiteral = resolveToken(textValue, marker.scope);
-                const bg = bgLiteral ? parseColorToRgb(bgLiteral) : null;
-                const text = textLiteral ? parseColorToRgb(textLiteral) : null;
 
-                if (!bg || !text) {
+                if (!bgLiteral || !textLiteral) {
                     failures.push(
                         `${marker.label}: ${textToken} (${textValue}) on ` +
                             `${bgToken} (${bgValue}) does not resolve to a colour`,
+                    );
+                    continue;
+                }
+
+                if (
+                    !MEASURABLE.test(bgLiteral) ||
+                    !MEASURABLE.test(textLiteral)
+                ) {
+                    failures.push(
+                        `${marker.label}: ${textLiteral} on ${bgLiteral} uses a ` +
+                            `colour syntax this gate cannot measure`,
+                    );
+                    continue;
+                }
+
+                const bg = parseColorToRgb(bgLiteral);
+                const text = parseColorToRgb(textLiteral);
+                if (!bg || !text) {
+                    failures.push(
+                        `${marker.label}: ${textLiteral} on ${bgLiteral} does not ` +
+                            `parse as a colour`,
                     );
                     continue;
                 }
@@ -160,7 +143,8 @@ describe("BUG-0728 — filled button pairs meet AA in every theme", () => {
 
         expect(
             failures,
-            `${failures.length} filled button pair(s) below ${MIN_CONTRAST}:1`,
+            `${failures.length} filled button pair problem(s) ` +
+                `(below ${MIN_CONTRAST}:1, unmeasurable, or undeclared)`,
         ).toEqual([]);
     });
 });

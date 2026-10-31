@@ -26,6 +26,10 @@
    * BUG-0728: filled button pairs are gated at AA (4.5:1 for the primitive's
    * 14 px/700) by themes.buttonContrast.test.ts. A theme that keeps its own
    * fill instead of the semantic colour records why in its block.
+   *
+   * This scope's danger keeps --red-800 with --blue-100 (6.74:1);
+   * --danger-color with --text-on-danger reads 3.05:1, so deriving it would
+   * trade a darker face for an unreadable label.
    */
   /* --- Shared overlay scrim (theme-independent constant) --- */
   /* Single source of truth for dim layers (onboarding spotlight etc.),
@@ -320,9 +324,9 @@ html[data-density="wide"] .input-field.input-field-sm {
    ================================================================= */
 .theme-light {
   /*
-   * BUG-0728: danger keeps --red-500 with --text-primary (4.74:1);
-   * --danger-color with --text-on-danger would read 5.91:1, but the lighter
-   * fill is this theme's button face, not its link colour.
+   * BUG-0728: danger uses --red-600 with --pure-white (4.83:1) and
+   * --danger-color for its hover fill (6.47:1); the semantic resting pair
+   * (--danger-color with --text-on-danger) would read 5.91:1.
    */
   /* --- Galaxy Overrides --- */
   --galaxy-stars-edge-2: var(--slate-400);
@@ -384,9 +388,9 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-bg: var(--slate-400);
   --btn-default-hover-bg: var(--slate-300);
   --btn-default-text: var(--slate-800);
-  --btn-danger-bg: var(--red-500);
-  --btn-danger-hover-bg: var(--red-600);
-  --btn-danger-text: var(--text-primary);
+  --btn-danger-bg: var(--red-600);
+  --btn-danger-hover-bg: var(--danger-color);
+  --btn-danger-text: var(--pure-white);
   --btn-accent-bg: var(--indigo-600);
   --btn-accent-hover-bg: var(--indigo-500);
   --btn-accent-text: var(--pure-white);
@@ -964,9 +968,9 @@ html[data-density="wide"] .input-field.input-field-sm {
   --text-on-danger: #ffffff;
 
   /* --- Button Colors --- */
-  --btn-default-bg: var(--green-700);
-  --btn-default-hover-bg: var(--green-600);
-  --btn-default-text: var(--slate-100);
+  --btn-default-bg: var(--green-600);
+  --btn-default-hover-bg: var(--green-500);
+  --btn-default-text: var(--matrix-base);
   --btn-danger-bg: var(--red-800);
   --btn-danger-hover-bg: var(--red-900);
   --btn-danger-text: #ffffff;
@@ -1188,9 +1192,10 @@ html[data-density="wide"] .input-field.input-field-sm {
    ================================================================= */
 .theme-gruvbox-dark {
   /*
-   * BUG-0728: danger's semantic pair reads 2.51:1, so the button keeps its own
-   * fill (5.00:1); success keeps the olive (5.29:1) rather than --success-color
-   * (7.94:1), which is the bright highlight.
+   * BUG-0728: default uses --gruv-dark2 with --gruv-light1 (6.43:1, hover
+   * 8.45:1) to stay in the warm palette; danger's semantic pair reads 2.51:1,
+   * so the button keeps its own fill (5.00:1); success keeps the olive
+   * (5.29:1) rather than --success-color (7.94:1), the bright highlight.
    */
   /* --- Palette --- */
   --gruv-dark0-hard: #1d2021;
@@ -1234,9 +1239,9 @@ html[data-density="wide"] .input-field.input-field-sm {
   --text-on-danger: var(--gruv-light1);
 
   /* --- Button Colors --- */
-  --btn-default-bg: var(--gruv-dark4);
-  --btn-default-hover-bg: var(--gruv-dark2);
-  --btn-default-text: var(--slate-50);
+  --btn-default-bg: var(--gruv-dark2);
+  --btn-default-hover-bg: var(--gruv-dark1);
+  --btn-default-text: var(--gruv-light1);
   --btn-danger-bg: var(--gruv-red);
   --btn-danger-hover-bg: var(--gruv-red-bright);
   --btn-danger-text: var(--slate-100);
@@ -1670,7 +1675,8 @@ html[data-density="wide"] .input-field.input-field-sm {
 .theme-obsidian {
   /*
    * BUG-0728: the accent fill is darkened to #0066d6 (5.42:1 with the theme's
-   * white); --accent-color #027aff reads 4.01:1.
+   * white) and its hover to #0055b3 (7.12:1); --accent-color #027aff reads
+   * 4.01:1, and --obsidian-blue-light would leave the hover at 3.10:1.
    */
   /* --- Palette --- */
   --obsidian-bg: #1e1e1e;
@@ -1719,7 +1725,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-danger-hover-bg: var(--obsidian-red-light);
   --btn-danger-text: var(--obsidian-bg);
   --btn-accent-bg: #0066d6;
-  --btn-accent-hover-bg: var(--obsidian-blue-light);
+  --btn-accent-hover-bg: #0055b3;
   --btn-accent-text: var(--obsidian-white);
   --btn-success-bg: var(--obsidian-green);
   --btn-success-hover-bg: var(--obsidian-green-light);
@@ -1871,8 +1877,9 @@ html[data-density="wide"] .input-field.input-field-sm {
    ================================================================= */
 .theme-cobalt2 {
   /*
-   * BUG-0728: the danger fill is darkened to #e01b00 (4.85:1 with white);
-   * --danger-color #ff1e00 reads 3.86:1.
+   * BUG-0728: the danger fill is darkened to #e01b00 (4.85:1 with white) and
+   * its hover to #b81700 (6.64:1); --danger-color #ff1e00 reads 3.86:1, and
+   * --cobalt-red-light would leave the hover at 3.18:1.
    */
   /* --- Palette --- */
   --cobalt-bg: #193549;
@@ -1919,7 +1926,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-hover-bg: var(--cobalt-bg-alt-light);
   --btn-default-text: var(--cobalt-fg);
   --btn-danger-bg: #e01b00;
-  --btn-danger-hover-bg: var(--cobalt-red-light);
+  --btn-danger-hover-bg: #b81700;
   --btn-danger-text: var(--cobalt-fg);
   --btn-accent-bg: var(--cobalt-yellow);
   --btn-accent-hover-bg: var(--cobalt-yellow-light);

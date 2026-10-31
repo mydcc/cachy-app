@@ -62,10 +62,21 @@ outside that gate instead of failing it.
 ## Fix
 
 1. Add `--btn-warning-text` (per theme where the fill differs in lightness) and
-   read it in `.btn-base.btn-warning` and the two `--text-on-warning` rules at
-   `src/themes.css`'s warning overrides.
-2. Extend `src/themes.buttonContrast.test.ts` to include `warning` once the
+   read it in `.btn-base.btn-warning` and the two `--text-on-warning` rules in
+   `src/themes.css`.
+2. Move the fourth consumer with it: `.status-indicator.warning` in
+   `src/components/shared/CalculationDashboard.svelte:387` falls back to
+   `--bg-primary`, which is light on the light themes and dark on the dark
+   ones, so it inherits exactly the defect this item describes.
+3. Extend `src/themes.buttonContrast.test.ts` to include `warning` once the
    token exists, so the pair is gated like the other four roles.
+
+## Acceptance criteria
+
+- [ ] `.btn-base.btn-warning` and `.status-indicator.warning` read
+      `--btn-warning-text`, and no rule references `--text-on-warning`
+- [ ] `warning` is in the gate's role list and every theme's pair clears 4.5:1
+- [ ] The four measured pairs from the table above are pinned by the test
 
 ## Out of scope
 
