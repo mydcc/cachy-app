@@ -4339,6 +4339,7 @@
         "emaBelow": "Kurs unter EMA",
         "noData": "Keine Daten",
         "lastBreak": "Letzter Bruch",
+        "summaryLabel": "Lesart",
         "noBreak": "Kein Bruch in den sichtbaren Kerzen",
         "candlesAgo": "vor {n} Kerzen",
         "nearestResistance": "Nächster Widerstand",

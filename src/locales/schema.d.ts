@@ -3633,6 +3633,7 @@ export type TranslationKey =
   | "academy.structure.read.emaBelow"
   | "academy.structure.read.noData"
   | "academy.structure.read.lastBreak"
+  | "academy.structure.read.summaryLabel"
   | "academy.structure.read.noBreak"
   | "academy.structure.read.candlesAgo"
   | "academy.structure.read.nearestResistance"
