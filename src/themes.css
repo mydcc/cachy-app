@@ -22,6 +22,11 @@
    ================================================================= */
 :root,
 .theme-default {
+  /*
+   * BUG-0728: filled button pairs are gated at AA (4.5:1 for the primitive's
+   * 14 px/700) by themes.buttonContrast.test.ts. A theme that keeps its own
+   * fill instead of the semantic colour records why in its block.
+   */
   /* --- Shared overlay scrim (theme-independent constant) --- */
   /* Single source of truth for dim layers (onboarding spotlight etc.),
      value per FEAT-0300 spec: rgba(0, 0, 0, 0.7). */
@@ -314,6 +319,11 @@ html[data-density="wide"] .input-field.input-field-sm {
    Light Theme
    ================================================================= */
 .theme-light {
+  /*
+   * BUG-0728: danger keeps --red-500 with --text-primary (4.74:1);
+   * --danger-color with --text-on-danger would read 5.91:1, but the lighter
+   * fill is this theme's button face, not its link colour.
+   */
   /* --- Galaxy Overrides --- */
   --galaxy-stars-edge-2: var(--slate-400);
   --galaxy-stars-edge-3: var(--sky-500);
@@ -376,7 +386,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-text: var(--slate-800);
   --btn-danger-bg: var(--red-500);
   --btn-danger-hover-bg: var(--red-600);
-  --btn-danger-text: var(--slate-100);
+  --btn-danger-text: var(--text-primary);
   --btn-accent-bg: var(--indigo-600);
   --btn-accent-hover-bg: var(--indigo-500);
   --btn-accent-text: var(--pure-white);
@@ -482,13 +492,13 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-text: var(--purple-light);
   --btn-danger-bg: var(--core-red-insights);
   --btn-danger-hover-bg: var(--danger-hover-derived);
-  --btn-danger-text: var(--purple-light);
+  --btn-danger-text: var(--galaxy-bg);
   --btn-accent-bg: var(--core-blue-pro);
   --btn-accent-hover-bg: var(--accent-hover-derived);
   --btn-accent-text: var(--purple-light);
   --btn-success-bg: var(--core-green-free);
   --btn-success-hover-bg: var(--success-hover-derived);
-  --btn-success-text: var(--purple-light);
+  --btn-success-text: var(--galaxy-bg);
 
   /* --- Toggle Colors --- */
   --toggle-bg-off: var(--core-meteorite);
@@ -590,13 +600,13 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-text: var(--blue-pro-light);
   --btn-danger-bg: var(--core-red-insights);
   --btn-danger-hover-bg: var(--danger-hover-derived);
-  --btn-danger-text: var(--blue-pro-light);
+  --btn-danger-text: var(--galaxy-bg);
   --btn-accent-bg: var(--core-blue-pro);
   --btn-accent-hover-bg: var(--accent-hover-derived);
   --btn-accent-text: var(--blue-pro-light);
   --btn-success-bg: var(--core-green-free);
   --btn-success-hover-bg: var(--success-hover-derived);
-  --btn-success-text: var(--blue-pro-light);
+  --btn-success-text: var(--galaxy-bg);
 
   /* --- Toggle Colors --- */
   --toggle-bg-off: var(--core-meteorite);
@@ -700,15 +710,15 @@ html[data-density="wide"] .input-field.input-field-sm {
 
   --btn-danger-bg: var(--core-red-insights);
   --btn-danger-hover-bg: var(--danger-hover-derived);
-  --btn-danger-text: var(--red-insights-light);
+  --btn-danger-text: var(--galaxy-bg);
 
   --btn-accent-bg: var(--core-red-insights);
   --btn-accent-hover-bg: var(--accent-hover-derived);
-  --btn-accent-text: var(--red-insights-light);
+  --btn-accent-text: var(--galaxy-bg);
 
   --btn-success-bg: var(--core-green-free);
   --btn-success-hover-bg: var(--success-hover-derived);
-  --btn-success-text: var(--red-insights-light);
+  --btn-success-text: var(--galaxy-bg);
 
   /* --- Toggle Colors --- */
   --toggle-bg-off: var(--core-meteorite);
@@ -815,15 +825,15 @@ html[data-density="wide"] .input-field.input-field-sm {
 
   --btn-danger-bg: var(--core-red-insights);
   --btn-danger-hover-bg: var(--danger-hover-derived);
-  --btn-danger-text: var(--green-free-light);
+  --btn-danger-text: var(--galaxy-bg);
 
   --btn-accent-bg: var(--core-green-free);
   --btn-accent-hover-bg: var(--accent-hover-derived);
-  --btn-accent-text: var(--green-free-light);
+  --btn-accent-text: var(--galaxy-bg);
 
   --btn-success-bg: var(--core-green-free);
   --btn-success-hover-bg: var(--success-hover-derived);
-  --btn-success-text: var(--green-free-light);
+  --btn-success-text: var(--galaxy-bg);
 
   /* --- Toggle Colors --- */
   --toggle-bg-off: var(--core-meteorite);
@@ -839,6 +849,11 @@ html[data-density="wide"] .input-field.input-field-sm {
    VIP Theme
    ================================================================= */
 .theme-VIP {
+  /*
+   * BUG-0728: danger keeps its own fill (6.57:1) where --danger-color reads
+   * 2.75:1 with --text-on-danger; success keeps the theme's green (6.74:1)
+   * rather than --success-color (16.54:1), which is the lime highlight.
+   */
   /* --- Palette --- */
   --gray-900: #121212;
   --gray-800: #1e1e1e;
@@ -909,6 +924,10 @@ html[data-density="wide"] .input-field.input-field-sm {
    Matrix Theme
    ================================================================= */
 .theme-matrix {
+  /*
+   * BUG-0728: danger keeps its own dark red (8.92:1); --danger-color reads
+   * 4.00:1 with --text-on-danger.
+   */
   /* --- Palette --- */
   --matrix-base: #000000;
   --gray-950: #0d0d0d;
@@ -947,7 +966,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   /* --- Button Colors --- */
   --btn-default-bg: var(--green-700);
   --btn-default-hover-bg: var(--green-600);
-  --btn-default-text: var(--matrix-base);
+  --btn-default-text: var(--slate-100);
   --btn-danger-bg: var(--red-800);
   --btn-danger-hover-bg: var(--red-900);
   --btn-danger-text: #ffffff;
@@ -1148,7 +1167,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-text: var(--snow-storm-1);
   --btn-danger-bg: var(--aurora-red);
   --btn-danger-hover-bg: var(--aurora-orange);
-  --btn-danger-text: var(--polar-night-1);
+  --btn-danger-text: var(--slate-950);
   --btn-accent-bg: var(--frost-3);
   --btn-accent-hover-bg: var(--frost-4);
   --btn-accent-text: var(--polar-night-1);
@@ -1168,6 +1187,11 @@ html[data-density="wide"] .input-field.input-field-sm {
    Gruvbox Dark Theme
    ================================================================= */
 .theme-gruvbox-dark {
+  /*
+   * BUG-0728: danger's semantic pair reads 2.51:1, so the button keeps its own
+   * fill (5.00:1); success keeps the olive (5.29:1) rather than --success-color
+   * (7.94:1), which is the bright highlight.
+   */
   /* --- Palette --- */
   --gruv-dark0-hard: #1d2021;
   --gruv-dark0: #282828;
@@ -1212,10 +1236,10 @@ html[data-density="wide"] .input-field.input-field-sm {
   /* --- Button Colors --- */
   --btn-default-bg: var(--gruv-dark4);
   --btn-default-hover-bg: var(--gruv-dark2);
-  --btn-default-text: var(--gruv-light1);
+  --btn-default-text: var(--slate-50);
   --btn-danger-bg: var(--gruv-red);
   --btn-danger-hover-bg: var(--gruv-red-bright);
-  --btn-danger-text: var(--gruv-light1);
+  --btn-danger-text: var(--slate-100);
   --btn-accent-bg: var(--gruv-aqua-bright);
   --btn-accent-hover-bg: var(--gruv-aqua);
   --btn-accent-text: var(--gruv-dark0-hard);
@@ -1286,7 +1310,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-danger-text: var(--mono-bg-dark);
   --btn-accent-bg: var(--mono-pink);
   --btn-accent-hover-bg: var(--mono-pink-light);
-  --btn-accent-text: var(--mono-bg-dark);
+  --btn-accent-text: var(--blue-950);
   --btn-success-bg: var(--mono-green);
   --btn-success-hover-bg: var(--mono-green-light);
   --btn-success-text: var(--mono-bg-dark);
@@ -1348,7 +1372,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   /* --- Button Colors --- */
   --btn-default-bg: var(--tokyo-comment);
   --btn-default-hover-bg: var(--tokyo-comment-light);
-  --btn-default-text: var(--tokyo-fg);
+  --btn-default-text: var(--slate-50);
   --btn-danger-bg: var(--tokyo-red);
   --btn-danger-hover-bg: var(--tokyo-red-light);
   --btn-danger-text: var(--tokyo-bg);
@@ -1416,7 +1440,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   /* --- Button Colors --- */
   --btn-default-bg: var(--ever-gray);
   --btn-default-hover-bg: var(--ever-gray-light);
-  --btn-default-text: var(--ever-bg);
+  --btn-default-text: var(--slate-950);
   --btn-danger-bg: var(--ever-red);
   --btn-danger-hover-bg: var(--ever-red-light);
   --btn-danger-text: var(--ever-bg);
@@ -1487,10 +1511,10 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-text: var(--base1);
   --btn-danger-bg: var(--red);
   --btn-danger-hover-bg: var(--orange);
-  --btn-danger-text: var(--base03);
+  --btn-danger-text: #ffffff;
   --btn-accent-bg: var(--blue);
   --btn-accent-hover-bg: var(--blue-light);
-  --btn-accent-text: var(--base03);
+  --btn-accent-text: var(--blue-950);
   --btn-success-bg: var(--green);
   --btn-success-hover-bg: var(--green-light);
   --btn-success-text: var(--base03);
@@ -1621,10 +1645,10 @@ html[data-density="wide"] .input-field.input-field-sm {
   /* --- Button Colors --- */
   --btn-default-bg: var(--one-comment);
   --btn-default-hover-bg: var(--one-comment-light);
-  --btn-default-text: var(--one-fg);
+  --btn-default-text: var(--slate-100);
   --btn-danger-bg: var(--one-red);
   --btn-danger-hover-bg: var(--one-red-light);
-  --btn-danger-text: var(--one-bg);
+  --btn-danger-text: var(--blue-950);
   --btn-accent-bg: var(--one-blue);
   --btn-accent-hover-bg: var(--one-blue-light);
   --btn-accent-text: var(--one-bg);
@@ -1644,6 +1668,10 @@ html[data-density="wide"] .input-field.input-field-sm {
    Obsidian Theme
    ================================================================= */
 .theme-obsidian {
+  /*
+   * BUG-0728: the accent fill is darkened to #0066d6 (5.42:1 with the theme's
+   * white); --accent-color #027aff reads 4.01:1.
+   */
   /* --- Palette --- */
   --obsidian-bg: #1e1e1e;
   --obsidian-bg-alt: #2a2a2a;
@@ -1690,7 +1718,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-danger-bg: var(--obsidian-red);
   --btn-danger-hover-bg: var(--obsidian-red-light);
   --btn-danger-text: var(--obsidian-bg);
-  --btn-accent-bg: var(--obsidian-blue);
+  --btn-accent-bg: #0066d6;
   --btn-accent-hover-bg: var(--obsidian-blue-light);
   --btn-accent-text: var(--obsidian-white);
   --btn-success-bg: var(--obsidian-green);
@@ -1819,7 +1847,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-border);
   --btn-default-hover-bg: var(--ayu-border-light);
-  --btn-default-text: var(--ayu-fg);
+  --btn-default-text: var(--text-primary);
   --btn-danger-bg: var(--ayu-error);
   --btn-danger-hover-bg: var(--ayu-error-light);
   --btn-danger-text: var(--ayu-bg);
@@ -1842,6 +1870,10 @@ html[data-density="wide"] .input-field.input-field-sm {
    Cobalt2 Theme
    ================================================================= */
 .theme-cobalt2 {
+  /*
+   * BUG-0728: the danger fill is darkened to #e01b00 (4.85:1 with white);
+   * --danger-color #ff1e00 reads 3.86:1.
+   */
   /* --- Palette --- */
   --cobalt-bg: #193549;
   --cobalt-bg-dark: #15232d;
@@ -1886,7 +1918,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-bg: var(--cobalt-bg-alt);
   --btn-default-hover-bg: var(--cobalt-bg-alt-light);
   --btn-default-text: var(--cobalt-fg);
-  --btn-danger-bg: var(--cobalt-red);
+  --btn-danger-bg: #e01b00;
   --btn-danger-hover-bg: var(--cobalt-red-light);
   --btn-danger-text: var(--cobalt-fg);
   --btn-accent-bg: var(--cobalt-yellow);
@@ -2020,7 +2052,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-default-text: var(--midnight-text-primary);
   --btn-danger-bg: var(--midnight-error);
   --btn-danger-hover-bg: color-mix(in srgb, var(--midnight-error) 80%, black);
-  --btn-danger-text: var(--midnight-text-primary);
+  --btn-danger-text: #ffffff;
   --btn-accent-bg: var(--midnight-gold);
   --btn-accent-hover-bg: var(--midnight-gold-hover);
   --btn-accent-text: var(--midnight-bg-main);
@@ -2028,7 +2060,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --btn-success-hover-bg: color-mix(in srgb,
       var(--midnight-success) 80%,
       black);
-  --btn-success-text: var(--midnight-text-primary);
+  --btn-success-text: #ffffff;
 
   /* --- Toggle & UI --- */
   --toggle-bg-off: var(--midnight-bg-overlay);
@@ -2173,6 +2205,11 @@ html[data-density="wide"] .input-field.input-field-sm {
    GitHub Dark Theme
    ================================================================= */
 .theme-github-dark {
+  /*
+   * BUG-0728: accent/danger keep GitHub's own button fills (4.63:1, 4.61:1);
+   * --accent-color/--danger-color read 2.53:1 and 3.35:1 with their text-on
+   * tokens.
+   */
   /* --- Palette --- */
   --gh-dark-bg: #0d1117;
   --gh-dark-bg-alt: #161b22;
@@ -2242,6 +2279,11 @@ html[data-density="wide"] .input-field.input-field-sm {
    GitHub Light Theme
    ================================================================= */
 .theme-github-light {
+  /*
+   * BUG-0728: accent/danger keep GitHub's own button fills (5.08:1, 4.57:1)
+   * rather than --accent-color/--danger-color (5.19:1, 5.36:1): the brand
+   * button colours, not the link colours.
+   */
   /* --- Palette --- */
   --gh-light-bg: #ffffff;
   --gh-light-bg-alt: #f6f8fa;
