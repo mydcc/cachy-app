@@ -2,7 +2,9 @@
 id: BUG-0728
 title: Button variants drift from the semantic colour pairs in several themes
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-theme-contrast
 priority: P2
 milestone: none
 created: 2026-10-22
