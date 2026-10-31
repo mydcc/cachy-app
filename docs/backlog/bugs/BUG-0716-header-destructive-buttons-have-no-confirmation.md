@@ -2,7 +2,9 @@
 id: BUG-0716
 title: The header's reset and delete-preset buttons act without confirmation
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/ui-destructive-confirmations
 priority: P2
 milestone: none
 created: "2026-10-21"
