@@ -5119,5 +5119,27 @@
       "refusedHeading": "Not drawn by this build",
       "timeframeLabel": "Lesson timeframe"
     }
+  },
+  "technicals": {
+    "context": {
+      "title": "Context",
+      "bias": "Bias",
+      "structure": "Structure",
+      "resistance": "Resistance",
+      "support": "Support",
+      "regime": "Regime",
+      "volatility": "Volatility",
+      "rising": "rising",
+      "falling": "falling",
+      "flat": "flat",
+      "above": "above",
+      "below": "below",
+      "bosUp": "BOS up",
+      "bosDown": "BOS down",
+      "chochUp": "CHoCH up",
+      "chochDown": "CHoCH down",
+      "candlesAgo": "{n} candles ago",
+      "noBreak": "no break"
+    }
   }
 }

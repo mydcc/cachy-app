@@ -74,6 +74,10 @@
                     </h4>
                     <div class="space-y-3">
                         <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("technicals.context.title")}</span>
+                            <Toggle bind:checked={indicatorState.panelSections.context} />
+                        </div>
+                        <div class="flex justify-between items-center">
                             <span class="text-sm">{$_("settings.technicals.summary")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.summary} />
                         </div>

@@ -2,7 +2,7 @@
 id: FEAT-0766
 title: Put the market-context check into the Technicals panel
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0765]
+assignee: opencode
+branch: feature/feat-0766-context-check
 ---
 
 # FEAT-0766 — Put the market-context check into the Technicals panel
@@ -50,21 +52,21 @@ Volatilität      BW 1,3 % · ATR 336
 
 ## Acceptance criteria
 
-- [ ] The block renders only when `indicatorSettings.panelSections.context` is
+- [x] The block renders only when `indicatorSettings.panelSections.context` is
       true, and the toggle appears in the panel-sections settings like the
       others.
-- [ ] Six rows in the order bias → structure → resistance → support → regime →
+- [x] Six rows in the order bias → structure → resistance → support → regime →
       volatility; the header names the bias timeframe.
-- [ ] The structure row names the last BOS/CHoCH and its distance in candles;
+- [x] The structure row names the last BOS/CHoCH and its distance in candles;
       the level rows name the nearest swing resistance and support of the bias
       timeframe.
-- [ ] ADX, Choppiness, bandwidth and ATR carry their taught threshold inline.
-- [ ] No data renders `—`; no connection leaves the block empty without an
+- [x] ADX, Choppiness, bandwidth and ATR carry their taught threshold inline.
+- [x] No data renders `—`; no connection leaves the block empty without an
       error state.
-- [ ] No interaction: no expander, no navigation, no chart.
-- [ ] Colors come from CSS variables only.
-- [ ] New strings in `de.json` and `en.json`; `schema.d.ts` regenerated.
-- [ ] A component test pins the row order, the threshold rendering and the
+- [x] No interaction: no expander, no navigation, no chart.
+- [x] Colors come from CSS variables only.
+- [x] New strings in `de.json` and `en.json`; `schema.d.ts` regenerated.
+- [x] A component test pins the row order, the threshold rendering and the
       no-data fallback.
 
 ## Out of scope

@@ -29,6 +29,13 @@
   import TimeframeDropdown from "./TimeframeDropdown.svelte";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
+  import { untrack } from "svelte";
+  import { marketWatcher } from "../../services/marketWatcher";
+  import { INDICATOR_CATALOGUE } from "../../lib/alerts/indicatorCatalogue";
+  import { computeLessonSeries } from "../../lib/academy/indicatorLessonSeries";
+  import { LESSON_HISTORY_TARGET, lessonKlines } from "../../lib/academy/lessonSettings";
+  import { computeStructureRead } from "../../lib/academy/structureRead";
+  import { higherTimeframe, recentLevels } from "../../lib/academy/structureSignals";
 
   interface Props {
     isVisible?: boolean;
@@ -65,6 +72,151 @@
         activeTechnicalsManager.unregister(symbol, timeframe);
       };
     }
+  });
+
+  /*
+   * Market-context check (FEAT-0766): the reading order the Academy lesson
+   * explains, applied to the current symbol. Structure lives on the analysis
+   * timeframe, direction and levels on the bias timeframe one step above.
+   */
+  interface ContextBar {
+    time: number;
+    high: number;
+    low: number;
+    close: number;
+  }
+
+  const ADX_TREND_THRESHOLD = 25;
+
+  let biasTimeframe = $derived(higherTimeframe(timeframe));
+
+  function contextBars(tf: string): ContextBar[] {
+    const market = marketState.data[symbol];
+    void market?.klinesLastUpdated?.[tf];
+    const klines = market?.klines?.[tf];
+    if (!klines || klines.length === 0) return [];
+    const out: ContextBar[] = [];
+    // Same validation the lesson charts use: one bad candle must not skew a swing.
+    for (const kline of lessonKlines(klines)) {
+      const time = Number(kline.time); // audit: safe — epoch-ms timestamp
+      const high = Number(kline.high); // audit: safe — f64 indicator input (ADR-0021)
+      const low = Number(kline.low); // audit: safe — f64 indicator input (ADR-0021)
+      const close = Number(kline.close); // audit: safe — f64 indicator input (ADR-0021)
+      if (!Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) continue;
+      out.push({ time, high, low, close });
+    }
+    return out;
+  }
+
+  let analysisBars = $derived(contextBars(timeframe));
+  let biasBars = $derived(contextBars(biasTimeframe));
+  let analysisRead = $derived(computeStructureRead(analysisBars));
+  let biasRead = $derived(computeStructureRead(biasBars));
+
+  /** The nth-from-last finite value of a series, or null. Display only (ADR-0021). */
+  function lastFinite(values: readonly (string | null)[] | undefined, skip = 0): number | null {
+    if (!values) return null;
+    let seen = 0;
+    for (let i = values.length - 1; i >= 0; i--) {
+      const raw = values[i];
+      if (raw === null || raw === undefined) continue;
+      const parsed = Number(raw); // audit: safe — f64 indicator display value (ADR-0021)
+      if (!Number.isFinite(parsed)) continue;
+      if (seen === skip) return parsed;
+      seen++;
+    }
+    return null;
+  }
+
+  let biasEma = $derived.by(() => {
+    const entry = INDICATOR_CATALOGUE.find((item) => item.id === "ema");
+    if (!entry || biasBars.length === 0) return null;
+    const candles = biasBars.map((bar) => ({
+      open_time_ms: bar.time,
+      open: String(bar.close),
+      high: String(bar.high),
+      low: String(bar.low),
+      close: String(bar.close),
+    }));
+    const values = computeLessonSeries(entry, candles, biasTimeframe).lines.find(
+      (line) => line.name === "value",
+    )?.values;
+    return { now: lastFinite(values), prev: lastFinite(values, 1) };
+  });
+
+  let biasValue = $derived.by(() => {
+    const now = biasEma?.now ?? null;
+    const prev = biasEma?.prev ?? null;
+    const close = biasBars.length > 0 ? biasBars[biasBars.length - 1].close : null;
+    if (now === null || prev === null || close === null) return "—";
+    const direction = now > prev ? "rising" : now < prev ? "falling" : "flat";
+    const side = close > now ? "above" : close < now ? "below" : "flat";
+    return `${$_(`technicals.context.${direction}` as TranslationKey)} · ${$_(`technicals.context.${side}` as TranslationKey)}`;
+  });
+
+  let lastBreak = $derived(
+    [...analysisRead.events]
+      .reverse()
+      .find((event) => event.kind.startsWith("BOS") || event.kind.startsWith("CHOCH")) ?? null,
+  );
+
+  let structureValue = $derived.by(() => {
+    const event = lastBreak;
+    if (event === null) return $_(`technicals.context.noBreak` as TranslationKey);
+    const kind =
+      event.kind === "BOS-up"
+        ? "bosUp"
+        : event.kind === "BOS-down"
+          ? "bosDown"
+          : event.kind === "CHOCH-up"
+            ? "chochUp"
+            : "chochDown";
+    const ago = analysisBars.length - 1 - event.index;
+    return `${$_(`technicals.context.${kind}` as TranslationKey)} · ${$_("technicals.context.candlesAgo", { values: { n: ago } })}`;
+  });
+
+  let biasClose = $derived(biasBars.length > 0 ? biasBars[biasBars.length - 1].close : null);
+  let contextLevels = $derived(
+    biasClose === null ? [] : recentLevels(biasRead.swings, biasClose, 1),
+  );
+  let nearestResistance = $derived(
+    contextLevels.find((level) => level.side === "resistance") ?? null,
+  );
+  let nearestSupport = $derived(contextLevels.find((level) => level.side === "support") ?? null);
+
+  let regimeValue = $derived.by(() => {
+    const adx = data?.advanced?.adx?.value;
+    const chop = data?.advanced?.choppiness?.value;
+    if (adx === undefined || chop === undefined) return "—";
+    const comparator = adx >= ADX_TREND_THRESHOLD ? "≥" : "<";
+    return `ADX ${adx.toFixed(1)} ${comparator} ${ADX_TREND_THRESHOLD} · Chop ${chop.toFixed(1)}`;
+  });
+
+  let volatilityValue = $derived.by(() => {
+    const bb = data?.volatility?.bb;
+    const atr = data?.volatility?.atr;
+    if (!bb || atr === undefined) return "—";
+    const width = TechnicalsPresenter.calculateBollingerBandWidth(bb.upper, bb.lower, bb.middle);
+    return `BW ${width.toFixed(2)} % · ATR ${TechnicalsPresenter.formatVal(atr, indicatorSettings?.precision)}`;
+  });
+
+  /*
+   * The bias timeframe needs its own candles — the analysis channel does not
+   * carry them. Registered only while the block is on, so hiding it costs
+   * nothing.
+   */
+  $effect(() => {
+    const current = symbol;
+    const bias = biasTimeframe;
+    const needed =
+      showPanel && indicatorSettings.panelSections.context && current !== "" && bias !== timeframe;
+    if (!needed) return;
+    const channel = `kline_${bias}`;
+    untrack(() => {
+      void marketWatcher.ensureHistory(current, bias, LESSON_HISTORY_TARGET);
+      marketWatcher.register(current, channel, "chart");
+    });
+    return () => marketWatcher.unregister(current, channel, "chart");
   });
 
   function translateAction(action: string | undefined): string {
@@ -174,6 +326,88 @@
         class="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-128 {settingsState.technicalsFullHeight ? 'xl:max-h-none' : ''}"
       >
         <div class="flex flex-col gap-4">
+          <!-- Market-context check (FEAT-0766): the reading order the Academy
+               lesson explains, applied to the current symbol. Five lines, no
+               expander, no verdict — the interpretation stays with the reader. -->
+          {#if indicatorSettings.panelSections.context}
+            <div class="flex flex-col gap-1" data-testid="technicals-context">
+              <div
+                class="flex justify-between items-baseline text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              >
+                <span>{$_("technicals.context.title")}</span>
+                <span class="font-mono text-[var(--text-tertiary)]">{biasTimeframe}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-bias"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.bias")}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{biasValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-structure"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.structure")}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{structureValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-resistance"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.resistance")}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right"
+                  >{nearestResistance
+                    ? TechnicalsPresenter.formatVal(
+                        nearestResistance.price,
+                        indicatorSettings?.precision,
+                      )
+                    : "—"}</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-support"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.support")}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right"
+                  >{nearestSupport
+                    ? TechnicalsPresenter.formatVal(
+                        nearestSupport.price,
+                        indicatorSettings?.precision,
+                      )
+                    : "—"}</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-regime"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.regime")}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{regimeValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-volatility"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.volatility")}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{volatilityValue}</span>
+              </div>
+            </div>
+          {/if}
+
           <!-- DASHBOARD SECTION (Minimalist List) -->
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->

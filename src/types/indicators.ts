@@ -21,6 +21,8 @@ export interface IndicatorSettings {
 
   // Panel Configuration
   panelSections: {
+    /** The five-line market-context check above the raw lists (FEAT-0766). */
+    context: boolean;
     summary: boolean;
     confluence: boolean;
     volatility: boolean;
