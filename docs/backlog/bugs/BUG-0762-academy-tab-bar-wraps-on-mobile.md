@@ -2,7 +2,7 @@
 id: BUG-0762
 title: Academy tab bar wraps long labels on narrow containers
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0762-academy-tab-single-line
 ---
 
 # BUG-0762 — Academy tab bar wraps long labels on narrow containers

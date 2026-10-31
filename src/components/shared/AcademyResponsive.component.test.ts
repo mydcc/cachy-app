@@ -311,6 +311,40 @@ describe("Academy window resize responsiveness (container queries)", () => {
         expect(document.activeElement).toBe(updated[1]);
     });
 
+    /*
+     * BUG-0762: the bar once used flex-wrap plus a min-w-[140px] floor per
+     * tab, so narrow containers wrapped every long uppercase label onto its
+     * own row. The contract is now a single scrollable line with a
+     * container-query label switch. happy-dom cannot evaluate container queries,
+     * so this pins the structural half: wrap classes gone, no width floor,
+     * short label in the DOM, full label kept for the wide variant and as
+     * the accessible name (width must never change what is announced).
+     */
+    it("tab bar stays one scrollable line with container-switched labels", async () => {
+        const root = await renderAcademy();
+
+        const tablist = root.querySelector('[role="tablist"]') as HTMLElement;
+        expect(tablist).not.toBeNull();
+        expect(tablist.classList.contains("flex-wrap")).toBe(false);
+        expect(tablist.classList.contains("overflow-x-auto")).toBe(true);
+
+        const tabs = [...tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+        expect(tabs.length).toBe(4);
+        const first = tabs[0];
+        // The 140px floor forced the wrap; tabs share the row and only take their
+        // content width when it exceeds the share.
+        expect(first.classList.contains("min-w-[140px]")).toBe(false);
+        expect(first.classList.contains("shrink-0")).toBe(true);
+        expect(first.classList.contains("whitespace-nowrap")).toBe(true);
+
+        const spans = [...first.querySelectorAll("span")];
+        const short = spans.find((span) => span.classList.contains("@4xl:hidden"));
+        const full = spans.find((span) => span.classList.contains("@4xl:inline"));
+        expect(short?.textContent?.trim()).toBe(lookup("chartPatterns.shortTitle"));
+        expect(full?.textContent?.trim()).toBe(lookup("chartPatterns.title"));
+        expect(first.getAttribute("aria-label")).toBe(lookup("chartPatterns.title"));
+    });
+
     it("filters the candlestick list by localized name", async () => {
         const root = await renderAcademy();
 
