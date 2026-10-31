@@ -343,9 +343,11 @@ describe("FEAT-0732: the rail renders the entry-point registry", () => {
     expect(
       control(el, "settings.toggleMarketTiles")!.classList.contains("active"),
     ).toBe(true);
+    // BUG-0715: the stored preference is on, but no account can fill the
+    // panel, so the button must not claim it is rendering.
     expect(
       control(el, "dashboard.marketActivity")!.classList.contains("active"),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       control(el, "settings.toggleMarketSentiment")!.classList.contains(
         "active",

@@ -184,6 +184,8 @@
     "resetButtonTitle": "Alle Eingaben zurücksetzen",
     "resetConfirmTitle": "Trade-Formular zurücksetzen?",
     "resetConfirmMessage": "Alle Eingaben außer Symbol und Trade-Typ werden ersetzt. Gespeicherte Presets bleiben erhalten.",
+    "railSidebarsHidden": "Die Sidebars sind in den Einstellungen → Visuals ausgeblendet.",
+    "railActivityUnavailable": "Marktaktivität benötigt Pro, Exchange-Keys oder ein Paper-Konto und sichtbare Sidebars.",
     "themeSwitcherAriaLabel": "Theme wechseln",
     "openPositions": "Offene Positionen",
     "favorites": "Favoriten",

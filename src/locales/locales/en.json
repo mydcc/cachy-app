@@ -184,6 +184,8 @@
     "resetButtonTitle": "Reset all inputs",
     "resetConfirmTitle": "Reset the trade form?",
     "resetConfirmMessage": "Every input except symbol and trade type is replaced. Saved presets are kept.",
+    "railSidebarsHidden": "The sidebars are hidden in Settings → Visuals.",
+    "railActivityUnavailable": "Market activity needs Pro, exchange keys or a paper account, and the sidebars visible.",
     "themeSwitcherAriaLabel": "Switch Theme",
     "openPositions": "Open Positions",
     "favorites": "Favorites",

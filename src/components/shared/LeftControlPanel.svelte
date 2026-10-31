@@ -73,9 +73,8 @@
       viewportWidth,
       ui: { showAssistant: uiState.showAssistant },
       derived: {
-        // Available as a settings getter. `isTechnicalsVisible` is page-local
-        // state in `+page.svelte`; the rail cannot see it, which is part of
-        // why it deliberately ignores `enabled` (BUG-0715).
+        // BUG-0715: the rail reads the same derived value the panel renders
+        // from, so a stored preference cannot light a panel that is not there.
         effectiveShowSidebarActivity:
           settingsState.effectiveShowSidebarActivity,
       },
@@ -114,16 +113,31 @@
 >
   {#snippet railControl(item: SurfaceEntry)}
     {@const count = item.entry.countProvider?.() ?? 0}
+    <!--
+      BUG-0715 — an unavailable control says why and keeps its tab stop
+      (`aria-disabled`, not native `disabled`): the reason is the whole point,
+      and a disabled button is where it cannot be read.
+    -->
+    {@const reason =
+      item.enabled || !item.placement.disabledReason
+        ? null
+        : $_(item.placement.disabledReason)}
+    {@const name = label(item.entry)}
     <button
       class="control-btn"
       class:active={item.active}
-      onclick={() => openEntry(item.entry)}
-      title={label(item.entry)}
+      class:unavailable={!item.enabled}
+      aria-disabled={item.enabled ? undefined : "true"}
+      aria-describedby={reason ? `rail-reason-${item.entry.id}` : undefined}
+      onclick={() => {
+        if (item.enabled) openEntry(item.entry);
+      }}
+      title={reason ? `${name} — ${reason}` : name}
       aria-label={count > 0 && item.entry.countLabel
         ? $_(item.entry.countLabel, {
-            values: { label: label(item.entry), count },
+            values: { label: name, count },
           })
-        : label(item.entry)}
+        : name}
       use:trackClick={track(item.entry)}
     >
       {@html resolveEntryIcon(item.entry.icon)}
@@ -132,6 +146,11 @@
         <span class="rail-badge bg-danger-paired" aria-hidden="true">
           {count > 99 ? "99+" : count}
         </span>
+      {/if}
+      {#if reason}
+        <!-- The name stays the action; the reason is its description, so a
+             screen reader hears both without the control losing its label. -->
+        <span id={`rail-reason-${item.entry.id}`} class="sr-only">{reason}</span>
       {/if}
     </button>
   {/snippet}
@@ -199,6 +218,16 @@
   .control-btn.active {
     background-color: var(--bg-tertiary);
     color: var(--accent-color);
+  }
+
+  /* Unavailable, not gone: the button keeps its place and its reason. */
+  .control-btn.unavailable,
+  .control-btn.unavailable:hover {
+    background-color: transparent;
+    color: var(--text-secondary);
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
   }
 
   .rail-badge {

@@ -187,7 +187,7 @@ describe("surface resolver", () => {
         expect(
             active(
                 "market-activity",
-                context({ settings: { showSidebarActivity: true } }),
+                context({ derived: { effectiveShowSidebarActivity: true } }),
             ),
         ).toBe(true);
         expect(
@@ -205,17 +205,16 @@ describe("surface resolver", () => {
     });
 
     it("evaluates the rail panel preconditions", () => {
-        const technicals = () =>
-            getSurfaceEntries("rail", context()).find(
+        const technicals = (ctx: EntryContext) =>
+            getSurfaceEntries("rail", ctx).find(
                 ({ entry }) => entry.id === "technicals",
             )!.enabled;
-        expect(technicals()).toBe(false);
-        expect(
-            getSurfaceEntries(
-                "rail",
-                context({ derived: { isTechnicalsVisible: true } }),
-            ).find(({ entry }) => entry.id === "technicals")!.enabled,
-        ).toBe(true);
+        // BUG-0715: the chevron and the rail share one flag; only the column
+        // that holds the panel gates the button.
+        expect(technicals(context({ settings: { showSidebars: false } }))).toBe(
+            false,
+        );
+        expect(technicals(context())).toBe(true);
 
         const overview = (ctx: EntryContext) =>
             getSurfaceEntries("rail", ctx).find(
@@ -224,7 +223,8 @@ describe("surface resolver", () => {
         expect(overview(context({ settings: { showSidebars: false } }))).toBe(
             false,
         );
-        expect(overview(context({ viewportWidth: 1000 }))).toBe(false);
+        // The mobile stack renders the same panel, so width no longer gates it.
+        expect(overview(context({ viewportWidth: 1000 }))).toBe(true);
         expect(overview(context())).toBe(true);
 
         const activity = (ctx: EntryContext) =>
@@ -240,12 +240,16 @@ describe("surface resolver", () => {
             ),
         ).toBe(true);
 
-        const sentiment = (width: number) =>
-            getSurfaceEntries("rail", context({ viewportWidth: width })).find(
+        const sentiment = (ctx: EntryContext) =>
+            getSurfaceEntries("rail", ctx).find(
                 ({ entry }) => entry.id === "market-sentiment",
             )!.enabled;
-        expect(sentiment(1000)).toBe(false);
-        expect(sentiment(1440)).toBe(true);
+        // The mobile copy honours the same flag, so the toggle works at both
+        // widths; the column is the only gate (BUG-0715).
+        expect(sentiment(context({ viewportWidth: 1000 }))).toBe(true);
+        expect(sentiment(context({ settings: { showSidebars: false } }))).toBe(
+            false,
+        );
     });
 });
 

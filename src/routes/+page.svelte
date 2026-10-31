@@ -222,8 +222,6 @@
     handleGlobalKeydown(event);
   }
 
-  let isTechnicalsVisible = $state(true);
-
   // BUG-0423: PositionsSidebar mounts twice (desktop + mobile, CSS-hidden
   // still mounted). Only the visible instance may fetch — the breakpoint
   // mirrors the hidden/xl:flex split in the markup below. Desktop-first
@@ -241,28 +239,23 @@
     return () => mq.removeEventListener("change", apply);
   });
 
-  // Load Technicals visibility state from localStorage
+  /*
+   * BUG-0715 — one flag for the technicals panel. The chevron in
+   * MarketOverview used a second, separately persisted boolean, so the rail
+   * could light while the panel was hidden (and the rail toggle could not
+   * bring it back). `showTechnicals` is the flag the rail already wrote; the
+   * old key is folded into it once and removed.
+   */
   onMount(() => {
-    if (typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem("technicals_panel_visible");
-      if (saved !== null) {
-        isTechnicalsVisible = JSON.parse(saved);
-      }
-    }
-  });
-
-  // Save to localStorage whenever it changes
-  $effect(() => {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(
-        "technicals_panel_visible",
-        JSON.stringify(isTechnicalsVisible),
-      );
-    }
+    if (typeof localStorage === "undefined") return;
+    const legacy = localStorage.getItem("technicals_panel_visible");
+    if (legacy === null) return;
+    localStorage.removeItem("technicals_panel_visible");
+    if (legacy === "false") settingsState.showTechnicals = false;
   });
 
   function toggleTechnicals() {
-    isTechnicalsVisible = !isTechnicalsVisible;
+    settingsState.showTechnicals = !settingsState.showTechnicals;
   }
 
   let isTechnicalsDocked = $derived(
@@ -772,7 +765,7 @@
     {#if settingsState.showSidebars}
       <!-- Mobile MarketOverview position -->
       <div class="xl:hidden mt-8 flex flex-col gap-4">
-        {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
+        {#if settingsState.showMarketSentiment && settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
         {/if}
 
@@ -784,12 +777,12 @@
         {#if settingsState.showMarketOverview}
           <MarketOverview
             onToggleTechnicals={toggleTechnicals}
-            {isTechnicalsVisible}
+            isTechnicalsVisible={settingsState.showTechnicals}
           />
         {/if}
 
-        {#if settingsState.showTechnicals && isTechnicalsVisible}
-          <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
+        {#if settingsState.showTechnicals}
+          <TechnicalsPanel  isVisible={settingsState.showTechnicals} fluidWidth={true} />
         {/if}
 
         {#if settingsState.showMarketOverview && displayedFavorites.length > 0}
@@ -817,22 +810,22 @@
         {#if settingsState.showMarketOverview}
           <MarketOverview
             onToggleTechnicals={toggleTechnicals}
-            {isTechnicalsVisible}
+            isTechnicalsVisible={settingsState.showTechnicals}
           />
         {:else if isTechnicalsDocked}
-          <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
+          <TechnicalsPanel  isVisible={settingsState.showTechnicals} fluidWidth={true} />
         {/if}
 
         <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
         {#if settingsState.showTechnicals && !isTechnicalsDocked}
           <div
             class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
-            class:scale-0={!isTechnicalsVisible}
-            class:scale-100={isTechnicalsVisible}
-            class:opacity-0={!isTechnicalsVisible}
-            class:opacity-100={isTechnicalsVisible}
+            class:scale-0={!settingsState.showTechnicals}
+            class:scale-100={settingsState.showTechnicals}
+            class:opacity-0={!settingsState.showTechnicals}
+            class:opacity-100={settingsState.showTechnicals}
           >
-            <TechnicalsPanel  isVisible={isTechnicalsVisible} />
+            <TechnicalsPanel  isVisible={settingsState.showTechnicals} />
           </div>
         {/if}
 
