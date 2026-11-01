@@ -332,6 +332,10 @@ export abstract class WindowBase {
         this.title = options.title || "";
         this.windowType = options.windowType || "window";
         this.symbol = options.symbol || "";
+        // FEAT-0769 — captured before `restoreState()`, which lets a snapshot
+        // rewrite `symbol`. A scoped rule is matched against the identity the
+        // window was opened as, not against restored data.
+        this.ruleMatchSymbol = this.symbol;
 
         // Apply Registry Defaults first
         const config = windowRegistry.getConfig(this.windowType);
@@ -478,6 +482,12 @@ export abstract class WindowBase {
 
     private hasRestoredPosition = false;
     /**
+     * FEAT-0769 — the symbol the window was constructed with, frozen before a
+     * snapshot can rewrite `symbol`. Instance-scoped rules match this, so a
+     * stale or hand-edited snapshot cannot select a different rule.
+     */
+    private ruleMatchSymbol = "";
+    /**
      * FEAT-0743 — the rule patch this window opened with. The size and the
      * maximized flag land in `applyWindowRule()`; the position is applied only
      * after the constructor's placement block, so a rule that sets just X does
@@ -590,13 +600,20 @@ export abstract class WindowBase {
      * It never runs on a live window, so editing or disabling a rule affects
      * the next open only and never fights a drag.
      *
+     * FEAT-0769 — the match is instance-aware: a rule scoped to this window's
+     * symbol wins over the type-wide one. The symbol is the one the window was
+     * opened with (`ruleMatchSymbol`), captured before `restoreState()` runs,
+     * so a snapshot cannot steer the match.
+     *
      * Size and the maximized flag land here; the position is deferred to
      * `applyRulePosition()` (after the constructor's placement block). Every
      * value still goes through `updateSize`/`updatePosition`, the same clamp
      * path as a drag.
      */
     private applyWindowRule() {
-        const rule = findWindowRule(readWindowRules(), this.windowType);
+        const rule = findWindowRule(readWindowRules(), this.windowType, {
+            symbol: this.ruleMatchSymbol,
+        });
         if (!rule) return;
         this.hasAppliedWindowRule = true;
         const patch = windowRulePatch(rule, this.closeOnBlur);

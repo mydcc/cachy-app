@@ -525,8 +525,8 @@ export function loadCustomValue(
             return;
         case "windowRules":
             // Hand-edited payloads are the only way a bad rule reaches here:
-            // keep the first valid rule per type and drop the rest instead of
-            // letting a malformed entry break every later open.
+            // keep the first valid rule per type *and scope* and drop the rest
+            // instead of letting a malformed entry break every later open.
             target.set("windowRules", sanitizeWindowRules(merged.windowRules));
             return;
         case "sidebarWidth":

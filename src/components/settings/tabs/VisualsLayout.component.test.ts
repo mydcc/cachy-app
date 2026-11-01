@@ -44,12 +44,14 @@ const settingsMock = vi.hoisted(() => ({
     dockingPosition: "top",
     focusFollowsMouse: false,
     windowRules: [] as Array<Record<string, unknown>>,
+    favoriteSymbols: ["BTCUSDT", "ETHUSDT"],
 }));
 vi.mock("../../../stores/settings.svelte", () => ({ settingsState: settingsMock }));
 
 const uiMock = vi.hoisted(() => ({ showAssistant: false, toggleAssistant: vi.fn() }));
 vi.mock("../../../stores/ui.svelte", () => ({ uiState: uiMock }));
 
+import { WINDOW_RULE_TYPES } from "../../../lib/windows/windowRules";
 import VisualsLayout from "./VisualsLayout.svelte";
 
 let host: HTMLElement;
@@ -63,6 +65,7 @@ beforeEach(() => {
     settingsMock.dockingPosition = "top";
     settingsMock.focusFollowsMouse = false;
     settingsMock.windowRules = [];
+    settingsMock.favoriteSymbols = ["BTCUSDT", "ETHUSDT"];
     uiMock.showAssistant = false;
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -276,5 +279,282 @@ describe("FEAT-0743 — window rules section", () => {
         expect(host.textContent).toContain(
             lookup("settings.windowRulesAspectHint"),
         );
+    });
+});
+
+/**
+ * FEAT-0769 — a chart rule can be narrowed to one symbol from the add row.
+ * Every type except chart is seeded so the picker's first free type *is*
+ * chart; happy-dom does not drive `<select>` bindings, so selecting it in the
+ * test would prove nothing about the component.
+ */
+const everyTypeButChart = () =>
+    WINDOW_RULE_TYPES.filter((type) => type !== "chart").map((type) => ({
+        windowType: type,
+        enabled: true,
+    }));
+
+function typeInto(selector: string, value: string) {
+    const input = host.querySelector<HTMLInputElement>(selector);
+    if (!input) throw new Error(`${selector} not rendered`);
+    input.value = value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+    return input;
+}
+
+function changeField(selector: string, value: string) {
+    const input = host.querySelector<HTMLInputElement>(selector);
+    if (!input) throw new Error(`${selector} not rendered`);
+    input.value = value;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    return input;
+}
+
+describe("FEAT-0769 — per-instance chart rules", () => {
+    it("adds a chart rule scoped to the typed symbol", () => {
+        settingsMock.windowRules = everyTypeButChart();
+        render();
+
+        typeInto("#window-rule-add-symbol", "btcusdt");
+        const add = host.querySelector<HTMLButtonElement>("#window-rule-add");
+        if (!add) throw new Error("add rule button not rendered");
+        add.click();
+
+        expect(settingsMock.windowRules).toContainEqual({
+            windowType: "chart",
+            match: { kind: "symbol", value: "BTCUSDT" },
+            enabled: true,
+        });
+    });
+
+    it("adds a type-wide chart rule when the symbol stays empty", () => {
+        settingsMock.windowRules = everyTypeButChart();
+        render();
+
+        const symbol = host.querySelector<HTMLInputElement>(
+            "#window-rule-add-symbol",
+        );
+        if (!symbol) throw new Error("symbol field not rendered");
+        expect(symbol.value).toBe("");
+
+        const add = host.querySelector<HTMLButtonElement>("#window-rule-add");
+        if (!add) throw new Error("add rule button not rendered");
+        add.click();
+
+        expect(settingsMock.windowRules).toContainEqual({
+            windowType: "chart",
+            enabled: true,
+        });
+    });
+
+    it("refuses a symbol that already has a rule and says why", () => {
+        settingsMock.windowRules = [
+            ...everyTypeButChart(),
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+
+        typeInto("#window-rule-add-symbol", "btcusdt");
+
+        const add = host.querySelector<HTMLButtonElement>("#window-rule-add");
+        if (!add) throw new Error("add rule button not rendered");
+        expect(add.disabled).toBe(true);
+        expect(
+            host.querySelector("#window-rule-add-symbol-error")?.textContent,
+        ).toContain(lookup("settings.windowRulesDuplicateSymbol"));
+    });
+
+    it("rejects a symbol the stored shape does not allow", () => {
+        settingsMock.windowRules = everyTypeButChart();
+        render();
+
+        typeInto("#window-rule-add-symbol", "BTC USDT");
+
+        const add = host.querySelector<HTMLButtonElement>("#window-rule-add");
+        if (!add) throw new Error("add rule button not rendered");
+        expect(add.disabled).toBe(true);
+        expect(
+            host.querySelector("#window-rule-add-symbol-error")?.textContent,
+        ).toContain(lookup("settings.windowRulesSymbolInvalid"));
+    });
+
+    it("keeps chart selectable after a chart rule exists", () => {
+        settingsMock.windowRules = [{ windowType: "chart", enabled: true }];
+        render();
+
+        const select = host.querySelector<HTMLSelectElement>(
+            "#window-rule-add-type",
+        );
+        if (!select) throw new Error("rule type select not rendered");
+        expect([...select.options].map((option) => option.value)).toContain(
+            "chart",
+        );
+    });
+
+    it("gives a type-wide and a symbol rule their own field ids", () => {
+        settingsMock.windowRules = [
+            { windowType: "chart", enabled: true },
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+
+        expect(host.querySelector("#window-rule-chart-x")).not.toBeNull();
+        expect(host.querySelector("#window-rule-chart-BTCUSDT-x")).not.toBeNull();
+    });
+
+    it("renders the symbol of a scoped chart rule", () => {
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+
+        const input = host.querySelector<HTMLInputElement>(
+            "#window-rule-chart-BTCUSDT-symbol",
+        );
+        if (!input) throw new Error("scoped chart rule symbol field not rendered");
+        expect(input.value).toBe("BTCUSDT");
+        expect(host.textContent).toContain(
+            `${lookup("settings.windowRulesTypes.chart")} · BTCUSDT`,
+        );
+    });
+
+    it("shows the type-wide caption for a chart rule without a scope", () => {
+        settingsMock.windowRules = [{ windowType: "chart", enabled: true }];
+        render();
+
+        expect(host.querySelector("#window-rule-chart-symbol")).toBeNull();
+        expect(host.textContent).toContain(lookup("settings.windowRulesScopeAll"));
+    });
+
+    it("renames a scoped chart rule", () => {
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+
+        changeField("#window-rule-chart-BTCUSDT-symbol", "ethusdt");
+
+        expect(settingsMock.windowRules[0].match).toEqual({
+            kind: "symbol",
+            value: "ETHUSDT",
+        });
+    });
+
+    it("refuses to rename onto a symbol that already has a rule", () => {
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "ETHUSDT" },
+            },
+        ];
+        render();
+
+        const input = changeField("#window-rule-chart-BTCUSDT-symbol", "ETHUSDT");
+
+        expect(settingsMock.windowRules[0].match).toEqual({
+            kind: "symbol",
+            value: "BTCUSDT",
+        });
+        expect(input.value).toBe("BTCUSDT");
+        // A silent revert reads as a broken field; the reason has to be there.
+        expect(
+            host.querySelector("#window-rule-chart-BTCUSDT-symbol-error")
+                ?.textContent,
+        ).toContain(lookup("settings.windowRulesDuplicateSymbol"));
+        expect(input.getAttribute("aria-invalid")).toBe("true");
+    });
+
+    it("says why a malformed rename was refused", () => {
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+
+        changeField("#window-rule-chart-BTCUSDT-symbol", "BTC USDT");
+
+        expect(
+            host.querySelector("#window-rule-chart-BTCUSDT-symbol-error")
+                ?.textContent,
+        ).toContain(lookup("settings.windowRulesSymbolInvalid"));
+    });
+
+    it("shows the canonical form after a case-only rename", () => {
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+
+        const input = changeField("#window-rule-chart-BTCUSDT-symbol", "btcusdt");
+
+        expect(settingsMock.windowRules[0].match).toEqual({
+            kind: "symbol",
+            value: "BTCUSDT",
+        });
+        // The field must show what is stored, not what was typed.
+        expect(input.value).toBe("BTCUSDT");
+    });
+
+    it("explains why Add is disabled when a type-wide chart rule exists", () => {
+        settingsMock.windowRules = [
+            ...everyTypeButChart(),
+            { windowType: "chart", enabled: true },
+        ];
+        render();
+
+        const add = host.querySelector<HTMLButtonElement>("#window-rule-add");
+        if (!add) throw new Error("add rule button not rendered");
+        expect(add.disabled).toBe(true);
+        expect(
+            host.querySelector("#window-rule-add-symbol-error")?.textContent,
+        ).toContain(lookup("settings.windowRulesTypeWideExists"));
+    });
+
+    it("offers the symbol field only for a type that has instances", () => {
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+            { windowType: "journal", enabled: true },
+        ];
+        render();
+
+        expect(
+            host.querySelector("#window-rule-chart-BTCUSDT-symbol"),
+        ).not.toBeNull();
+        expect(host.querySelector("#window-rule-journal-symbol")).toBeNull();
     });
 });

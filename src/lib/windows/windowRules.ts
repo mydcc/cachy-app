@@ -25,9 +25,11 @@
  * statement that is testable without instantiating windows.
  */
 
+import { normalizeSymbol as canonicalSymbol } from "../../utils/symbolUtils";
 import type { WindowType } from "./types";
 import type {
   WindowRule,
+  WindowRuleMatch,
   WindowRuleType,
 } from "../../stores/settings/settingsTypes";
 
@@ -86,22 +88,156 @@ export function isRuleTarget(type: WindowType): type is WindowRuleType {
 }
 
 /**
- * The enabled rule for `type`, or `undefined`. At most one exists; an
- * overlapping payload is normalized by `sanitizeWindowRules` on load, so
- * first-match is deterministic here too.
+ * Window types whose rules may be narrowed to a single instance (FEAT-0769).
+ *
+ * Only `chart`: its instances are told apart by the symbol they were
+ * constructed with, which is also the identity a trader thinks in. The other
+ * multi-instance types have no per-instance identity a rule could name: `news`
+ * is the singleton market-news window, article readers are `iframe` windows
+ * with a generated id and one shared `news_article` snapshot key, and
+ * `channel` ids are developer-supplied.
+ */
+export const SYMBOL_SCOPED_RULE_TYPES: readonly WindowRuleType[] =
+  Object.freeze(["chart"]);
+
+/**
+ * Canonical rule symbol, used for both storage and matching.
+ *
+ * This is the exchange layer's normalisation, not a local `trim().toUpperCase()`:
+ * charts are constructed with canonical symbols ("BTC" arrives as "BTCUSDT",
+ * "BTCUSDT.P" as "BTCUSDT"), so a rule stored in the typed form would be saved,
+ * shown, and then silently never match.
+ *
+ * The provider argument is retained by `normalizeSymbol` but no longer
+ * consulted (BUG-0599), so the value here has no venue-specific effect. A
+ * non-string collapses to "": the value can come from a hand-edited snapshot,
+ * not only from the editor.
+ */
+export function normalizeRuleSymbol(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  // Length is checked before canonicalisation: the exchange layer expands a
+  // short ticker ("B" -> "BUSDT"), which would turn a one-character typo into a
+  // rule that looks real. A single character is never a contract.
+  if (trimmed.length < 2) return "";
+  return canonicalSymbol(trimmed, "bitunix");
+}
+
+/**
+ * Accepted rule-symbol shape, checked *after* canonicalisation. Deliberately a
+ * form check, not a lookup: a rule on a symbol that is not a current favourite
+ * (or was delisted since) must survive a reload — it is a statement of intent,
+ * not a reference.
+ *
+ * A canonicalisation that leaves something chart symbols never carry (e.g.
+ * "BTC.USDT") passes this check and simply never matches. That is intended:
+ * the rule keeps its meaning until such a symbol appears.
+ */
+export const RULE_SYMBOL_PATTERN = /^[A-Z0-9._-]{2,30}$/;
+
+/** True when `type` may carry an instance-scoped rule. */
+export function supportsSymbolScope(type: WindowRuleType): boolean {
+  return SYMBOL_SCOPED_RULE_TYPES.includes(type);
+}
+
+/**
+ * Scope part of a rule's identity: `""` for a type-wide rule, `symbol:BTCUSDT`
+ * for a scoped one. Only `ruleKey` consumes it, which is what keeps the two
+ * scopes of one type from colliding in the dedupe map and in the UI's list key.
+ */
+export function ruleScopeKey(rule: WindowRule): string {
+  return rule.match ? `${rule.match.kind}:${rule.match.value}` : "";
+}
+
+/** Stable identity of a rule across the whole list: type plus scope. */
+export function ruleKey(rule: WindowRule): string {
+  return `${rule.windowType}|${ruleScopeKey(rule)}`;
+}
+
+/**
+ * True when the list already holds a rule for `symbol` *of the same window
+ * type*, ignoring the one whose key is `exceptKey` (the rule being renamed).
+ * The editor refuses a duplicate instead of merging two rules that would
+ * collide on the same instance. The type is part of the question because a
+ * symbol is only unique within its type — the dedupe key has always been
+ * type plus scope, so this helper must not be stricter than the key.
+ */
+export function hasSymbolRule(
+  rules: readonly WindowRule[] | undefined,
+  type: WindowRuleType,
+  symbol: string,
+  exceptKey?: string,
+): boolean {
+  const wanted = normalizeRuleSymbol(symbol);
+  if (!wanted) return false;
+  return (rules ?? []).some(
+    (rule) =>
+      rule.windowType === type &&
+      rule.match?.kind === "symbol" &&
+      rule.match.value === wanted &&
+      ruleKey(rule) !== exceptKey,
+  );
+}
+
+/** The instance context a rule is matched against; `symbol` is "" when unset. */
+export interface WindowRuleInstance {
+  symbol?: string;
+}
+
+/**
+ * The rule that applies to `type` (and `instance`), or `undefined`.
+ *
+ * A scoped rule wins over the type-wide one for the instance it names, and
+ * only *enabled* rules compete — disabling the specific rule is how you fall
+ * back to the type-wide one, so the filter runs before the match.
  */
 export function findWindowRule(
   rules: readonly WindowRule[] | undefined,
   type: WindowType,
+  instance?: WindowRuleInstance,
 ): WindowRule | undefined {
-  return rules?.find((rule) => rule.enabled && rule.windowType === type);
+  const candidates = (rules ?? []).filter(
+    (rule) => rule.enabled && rule.windowType === type,
+  );
+  if (candidates.length === 0) return undefined;
+
+  const symbol = normalizeRuleSymbol(instance?.symbol);
+  if (symbol) {
+    const specific = candidates.find(
+      (rule) => rule.match?.kind === "symbol" && rule.match.value === symbol,
+    );
+    if (specific) return specific;
+  }
+  return candidates.find((rule) => !rule.match);
+}
+
+/**
+ * Validates a stored scope. Returns `undefined` when the rule is type-wide,
+ * `null` when the entry cannot be trusted.
+ */
+function parseMatch(
+  value: unknown,
+  windowType: WindowRuleType,
+): WindowRuleMatch | null | undefined {
+  if (value === undefined) return undefined;
+  // A scope on a type that cannot have one is not "harmless extra data": it
+  // would silently mean "every instance" after the scope is dropped. Reject
+  // the rule instead, so the container never quietly widens.
+  if (!supportsSymbolScope(windowType)) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const raw = value as Record<string, unknown>;
+  if (raw.kind !== "symbol" || typeof raw.value !== "string") return null;
+  const symbol = normalizeRuleSymbol(raw.value);
+  if (!RULE_SYMBOL_PATTERN.test(symbol)) return null;
+  return { kind: "symbol", value: symbol };
 }
 
 /**
  * Validates one stored rule. Returns `null` when the entry as a whole cannot
- * be a rule: not an object, or an unknown/unsupported window type. A single
- * bad geometry field does not reject the rule — that field is dropped and the
- * remaining actions stay usable.
+ * be a rule: not an object, an unknown/unsupported window type, or a scope that
+ * does not survive `parseMatch`. A single bad geometry field does not reject
+ * the rule — that field is dropped and the remaining actions stay usable.
  */
 export function sanitizeWindowRule(value: unknown): WindowRule | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -110,6 +246,10 @@ export function sanitizeWindowRule(value: unknown): WindowRule | null {
   if (typeof windowType !== "string" || !isRuleTarget(windowType as WindowType)) {
     return null;
   }
+  const type = windowType as WindowRuleType;
+
+  const match = parseMatch(raw.match, type);
+  if (match === null) return null;
 
   const finite = (candidate: unknown, positive: boolean): number | undefined => {
     if (typeof candidate !== "number" || !Number.isFinite(candidate)) {
@@ -122,11 +262,12 @@ export function sanitizeWindowRule(value: unknown): WindowRule | null {
   };
 
   const rule: WindowRule = {
-    windowType: windowType as WindowRuleType,
+    windowType: type,
     // Fail closed, like the keep-above snapshot: only a literal `true` arms a
     // rule, so a hand-edited or truncated payload cannot move a window.
     enabled: raw.enabled === true,
   };
+  if (match) rule.match = match;
 
   const x = finite(raw.x, false);
   const y = finite(raw.y, false);
@@ -143,22 +284,23 @@ export function sanitizeWindowRule(value: unknown): WindowRule | null {
 }
 
 /**
- * Load-path sanitizer. Keeps one rule per window type, preferring an enabled
- * entry over a disabled duplicate so a stale copy cannot silently disable the
- * type. Order follows the first appearance of each type.
+ * Load-path sanitizer. Keeps one rule per window type *and scope*, preferring
+ * an enabled entry over a disabled duplicate so a stale copy cannot silently
+ * disable the instance. Order follows the first appearance of each key.
  */
 export function sanitizeWindowRules(value: unknown): WindowRule[] {
   if (!Array.isArray(value)) return [];
-  const byType = new Map<WindowRuleType, WindowRule>();
+  const byKey = new Map<string, WindowRule>();
   for (const entry of value) {
     const rule = sanitizeWindowRule(entry);
     if (!rule) continue;
-    const existing = byType.get(rule.windowType);
+    const key = ruleKey(rule);
+    const existing = byKey.get(key);
     if (!existing || (!existing.enabled && rule.enabled)) {
-      byType.set(rule.windowType, rule);
+      byKey.set(key, rule);
     }
   }
-  return [...byType.values()];
+  return [...byKey.values()];
 }
 
 const isFiniteNumber = (value: unknown): value is number =>
