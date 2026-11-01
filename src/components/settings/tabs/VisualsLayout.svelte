@@ -318,6 +318,7 @@
                                             ).checked)}
                                     />
                                 </label>
+                                <!-- FEAT-0611 escape: icon-only destructive action inside a rule card; the button primitive has no icon-only danger variant. -->
                                 <button
                                     type="button"
                                     class="rule-remove"
@@ -461,6 +462,7 @@
                         {/each}
                     </select>
                 </label>
+                <!-- FEAT-0611 escape: primary action that must sit inline with the type picker; the button primitive does not fit this row. -->
                 <button
                     type="button"
                     id="window-rule-add"
