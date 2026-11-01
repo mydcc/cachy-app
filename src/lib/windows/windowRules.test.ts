@@ -35,6 +35,10 @@ const rule = (overrides: Partial<WindowRule> = {}): WindowRule => ({
 });
 
 describe("FEAT-0743 — rule matching", () => {
+    it("ships an empty default list", () => {
+        expect(defaultSettings.windowRules).toEqual([]);
+    });
+
     it("matches only an enabled rule for the window's own type", () => {
         const rules = [rule({ windowType: "journal" }), rule({ windowType: "chart" })];
         expect(findWindowRule(rules, "journal")?.windowType).toBe("journal");
@@ -47,11 +51,15 @@ describe("FEAT-0743 — rule matching", () => {
         expect(findWindowRule(undefined, "journal")).toBeUndefined();
     });
 
-    it("does not offer rules for modals, dialogs or the symbol picker", () => {
-        for (const type of ["modal", "dialog", "symbolpicker"] as const) {
+    it("does not offer rules for modals, dialogs, the symbol picker or the unused generic type", () => {
+        for (const type of ["modal", "dialog", "symbolpicker", "window"] as const) {
             expect(isRuleTarget(type)).toBe(false);
             expect(WINDOW_RULE_TYPES).not.toContain(type);
         }
+    });
+
+    it("preselects a type that a real window is constructed with", () => {
+        expect(WINDOW_RULE_TYPES[0]).toBe("journal");
     });
 });
 
@@ -94,8 +102,20 @@ describe("FEAT-0743 — load sanitizer", () => {
         expect(sanitized?.height).toBeUndefined();
     });
 
-    it("defaults a missing enabled flag to true", () => {
-        expect(sanitizeWindowRule({ windowType: "chart" })?.enabled).toBe(true);
+    it("fails closed when the enabled flag is missing or not a literal true", () => {
+        expect(sanitizeWindowRule({ windowType: "chart" })?.enabled).toBe(false);
+        expect(
+            sanitizeWindowRule({ windowType: "chart", enabled: "true" })?.enabled,
+        ).toBe(false);
+    });
+
+    it("prefers an enabled duplicate over a disabled one", () => {
+        const sanitized = sanitizeWindowRules([
+            { windowType: "journal", enabled: false, x: 10 },
+            { windowType: "journal", enabled: true, x: 20 },
+        ]);
+        expect(sanitized).toHaveLength(1);
+        expect(sanitized[0]).toMatchObject({ enabled: true, x: 20 });
     });
 
     it("is the schema's load path for the persisted list", () => {
@@ -137,5 +157,10 @@ describe("FEAT-0743 — open patch", () => {
             isMaximized: true,
             width: 500,
         });
+    });
+
+    it("treats a cleared or hand-edited null field as absent", () => {
+        const cleared = rule({ x: null, width: null } as unknown as Partial<WindowRule>);
+        expect(windowRulePatch(cleared, false)).toEqual({});
     });
 });

@@ -47,7 +47,9 @@ const VIEWPORT_HEIGHT = 900;
 
 let nextId = 0;
 
-function makeWindow(windowType: "journal" | "chart" | "settings" = "journal") {
+type RuleWindowType = "journal" | "chart" | "news" | "settings" | "alertpanel";
+
+function makeWindow(windowType: RuleWindowType = "journal") {
     return new TestWindow({ windowType, id: `rule-test-${nextId++}` });
 }
 
@@ -113,21 +115,35 @@ describe("FEAT-0743 — rule application on open", () => {
         });
     });
 
-    it("leaves the restored geometry alone when the rule is disabled", () => {
+    it("leaves the restored geometry alone when the rule is disabled, and moves it when enabled", () => {
         localStorage.setItem(
             "cachy_win_rule-disabled",
             JSON.stringify({ x: 15, y: 25, width: 420, height: 320 }),
         );
+        localStorage.setItem(
+            "cachy_win_rule-enabled",
+            JSON.stringify({ x: 15, y: 25, width: 420, height: 320 }),
+        );
         setRule({ windowType: "journal", enabled: false, x: 900, y: 700 });
 
-        const win = new TestWindow({ windowType: "journal", id: "rule-disabled" });
-
-        expect({ x: win.x, y: win.y, width: win.width, height: win.height }).toEqual({
-            x: 15,
-            y: 25,
-            width: 420,
-            height: 320,
+        const disabled = new TestWindow({
+            windowType: "journal",
+            id: "rule-disabled",
         });
+        expect({
+            x: disabled.x,
+            y: disabled.y,
+            width: disabled.width,
+            height: disabled.height,
+        }).toEqual({ x: 15, y: 25, width: 420, height: 320 });
+
+        // The positive counterpart: the same rule, enabled, must be visible.
+        setRule({ windowType: "journal", enabled: true, x: 900, y: 700 });
+        const enabled = new TestWindow({
+            windowType: "journal",
+            id: "rule-enabled",
+        });
+        expect({ x: enabled.x, y: enabled.y }).toEqual({ x: 900, y: 700 });
     });
 
     it("opens maximized and ignores the rule's own geometry", () => {
@@ -148,6 +164,20 @@ describe("FEAT-0743 — rule application on open", () => {
         expect(win.height).toBe(VIEWPORT_HEIGHT);
     });
 
+    it("keeps keep-above when the rule maximizes", () => {
+        setRule({
+            windowType: "journal",
+            enabled: true,
+            isMaximized: true,
+            isKeepAbove: true,
+        });
+
+        const win = makeWindow();
+
+        expect(win.isMaximized).toBe(true);
+        expect(win.isKeepAbove).toBe(true);
+    });
+
     it("applies keep-above on a normal window", () => {
         setRule({ windowType: "journal", enabled: true, isKeepAbove: true });
 
@@ -160,7 +190,7 @@ describe("FEAT-0743 — rule application on open", () => {
         expect(makeWindow("settings").isKeepAbove).toBe(false);
     });
 
-    it("clamps geometry through the same path as a drag", () => {
+    it("clamps rule geometry through the drag path", () => {
         setRule({
             windowType: "journal",
             enabled: true,
@@ -172,12 +202,124 @@ describe("FEAT-0743 — rule application on open", () => {
 
         const win = makeWindow();
 
-        // Journal opts into clampToViewport, so the size cannot exceed the
-        // viewport and the position keeps at least part of the window inside.
-        expect(win.width).toBeLessThanOrEqual(VIEWPORT_WIDTH);
-        expect(win.height).toBeLessThanOrEqual(VIEWPORT_HEIGHT);
-        expect(win.x).toBeGreaterThan(-win.width);
-        expect(win.y).toBeGreaterThanOrEqual(0);
+        // Journal opts into clampToViewport, so the size is capped at the
+        // viewport and the position keeps 38% of the window visible:
+        // minX = -(1200 - 1200*0.38) = -744.
+        expect(win.width).toBe(VIEWPORT_WIDTH);
+        expect(win.height).toBe(VIEWPORT_HEIGHT);
+        expect(win.x).toBe(-744);
+        expect(win.y).toBe(0);
+    });
+
+    it("clamps a rule size to the viewport even for types that do not opt in", () => {
+        setRule({
+            windowType: "news",
+            enabled: true,
+            width: 5000,
+            height: 4000,
+        });
+
+        const win = makeWindow("news");
+
+        expect(win.width).toBe(VIEWPORT_WIDTH);
+        expect(win.height).toBe(VIEWPORT_HEIGHT);
+    });
+
+    it("lets the fixed aspect ratio decide the height of an aspect-locked type", () => {
+        setRule({
+            windowType: "chart",
+            enabled: true,
+            width: 640,
+            height: 480,
+        });
+
+        const win = makeWindow("chart");
+
+        // chart: aspectRatio 1.6 and a 44px header => 640 / 1.6 + 44 = 444.
+        expect(win.width).toBe(640);
+        expect(win.height).toBe(444);
+    });
+
+    it("opens a maximized snapshot as a floating window when the rule says not maximized", () => {
+        localStorage.setItem(
+            "cachy_win_rule-unmaximize",
+            JSON.stringify({
+                x: 0,
+                y: 0,
+                width: VIEWPORT_WIDTH,
+                height: VIEWPORT_HEIGHT,
+                isMaximized: true,
+            }),
+        );
+        setRule({
+            windowType: "journal",
+            enabled: true,
+            isMaximized: false,
+        });
+
+        const win = new TestWindow({
+            windowType: "journal",
+            id: "rule-unmaximize",
+        });
+
+        // The snapshot rect was the maximized one; dimensions fall back to the
+        // registry layout and the placement branch centres them.
+        expect(win.isMaximized).toBe(false);
+        expect(win.width).toBe(1000);
+        expect(win.height).toBe(800);
+        expect(win.x).toBe(100);
+        expect(win.y).toBe(50);
+    });
+
+    it("treats geometry on a maximized snapshot as a request to float", () => {
+        localStorage.setItem(
+            "cachy_win_rule-float",
+            JSON.stringify({
+                x: 0,
+                y: 0,
+                width: VIEWPORT_WIDTH,
+                height: VIEWPORT_HEIGHT,
+                isMaximized: true,
+            }),
+        );
+        setRule({
+            windowType: "journal",
+            enabled: true,
+            width: 700,
+        });
+
+        const win = new TestWindow({ windowType: "journal", id: "rule-float" });
+
+        expect(win.isMaximized).toBe(false);
+        expect(win.width).toBe(700);
+        expect(win.height).toBe(800);
+        expect(win.x).toBe(250);
+        expect(win.y).toBe(50);
+    });
+
+    it("keeps the placed axis when the rule sets only one coordinate", () => {
+        setRule({ windowType: "journal", enabled: true, x: 200 });
+
+        const win = makeWindow();
+
+        // Placement centres journal (1000x800) at 100/50; only X is overridden.
+        expect(win.x).toBe(200);
+        expect(win.y).toBe(50);
+    });
+
+    it("falls back to geometry when a maximized rule targets a type that cannot maximize", () => {
+        setRule({
+            windowType: "alertpanel",
+            enabled: true,
+            isMaximized: true,
+            x: 100,
+            y: 80,
+        });
+
+        const win = makeWindow("alertpanel");
+
+        expect(win.isMaximized).toBe(false);
+        expect({ x: win.x, y: win.y }).toEqual({ x: 100, y: 80 });
     });
 
     it("gives two instances of a multi-instance type the same rule", () => {

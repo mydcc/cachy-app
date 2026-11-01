@@ -64,6 +64,7 @@ import { trackAutosaveReads } from "./settings/tracking";
 import { DisplaySettingsStore } from "./settings/display.svelte";
 import { CoreSettingsStore } from "./settings/core.svelte";
 import { setWindowRuleSource } from "../lib/windows/windowRuleSource";
+
 // Domain types and presets live in ./settings/settingsTypes (FEAT-0342);
 // re-exported here so existing importers keep working.
 import type {

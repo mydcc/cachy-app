@@ -278,6 +278,31 @@ export interface TradeFlowSettings {
 export type DensityMode = "compact" | "default" | "wide";
 
 /**
+ * Window types a rule may target (FEAT-0743). A subset of `WindowType`:
+ * modals, dialogs, the symbol picker and the unused generic `window` have no
+ * layout worth restoring. Kept as an `Extract` so a removed `WindowType`
+ * fails the build instead of leaving a dead literal.
+ */
+export type WindowRuleType = Extract<
+  WindowType,
+  | "journal"
+  | "chart"
+  | "academy"
+  | "assistant"
+  | "settings"
+  | "news"
+  | "alertpanel"
+  | "controlcenter"
+  | "channel"
+  | "iframe"
+  | "chatbox"
+  | "guide"
+  | "changelog"
+  | "privacy"
+  | "whitepaper"
+>;
+
+/**
  * One user-defined window layout rule (FEAT-0743).
  *
  * At most one rule per `windowType`. Every action is optional: a rule only
@@ -288,7 +313,7 @@ export type DensityMode = "compact" | "default" | "wide";
  */
 export interface WindowRule {
   /** The single window type this rule matches. */
-  windowType: WindowType;
+  windowType: WindowRuleType;
   /** A disabled rule keeps its settings but does nothing on open. */
   enabled: boolean;
   x?: number;
@@ -297,7 +322,9 @@ export interface WindowRule {
   height?: number;
   /**
    * `true` opens the window maximized and makes x/y/width/height irrelevant.
-   * `false` explicitly un-maximizes a window whose snapshot says maximized.
+   * `false` opens a window whose snapshot was maximized as a floating window:
+   * dimensions the rule does not set fall back to the type's registry layout,
+   * because the snapshot rectangle in that case is the maximized one.
    */
   isMaximized?: boolean;
   /**

@@ -178,7 +178,7 @@ describe("FEAT-0743 — window rules section", () => {
         add.click();
 
         expect(settingsMock.windowRules).toEqual([
-            { windowType: "window", enabled: true },
+            { windowType: "journal", enabled: true },
         ]);
     });
 
@@ -199,12 +199,13 @@ describe("FEAT-0743 — window rules section", () => {
         settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
         render();
 
-        const remove = [...host.querySelectorAll<HTMLButtonElement>("button")].find(
-            (button) =>
-                button.getAttribute("aria-label") ===
-                lookup("settings.windowRulesRemove"),
+        const remove = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-remove",
         );
         if (!remove) throw new Error("remove rule button not rendered");
+        expect(remove.getAttribute("aria-label")).toContain(
+            lookup("settings.windowRulesRemove"),
+        );
         remove.click();
 
         expect(settingsMock.windowRules).toEqual([]);
@@ -227,5 +228,53 @@ describe("FEAT-0743 — window rules section", () => {
         render();
 
         expect(host.textContent).toContain(lookup("settings.windowRulesKeepAboveOn"));
+    });
+
+    it("writes the enable switch, a geometry field and a select through the rule", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        const enable = host.querySelector<HTMLInputElement>(
+            "#window-rule-journal-enabled",
+        );
+        if (!enable) throw new Error("rule enable switch not rendered");
+        enable.click();
+        expect(settingsMock.windowRules[0].enabled).toBe(false);
+
+        const x = host.querySelector<HTMLInputElement>("#window-rule-journal-x");
+        if (!x) throw new Error("rule X input not rendered");
+        x.value = "240";
+        x.dispatchEvent(new Event("input", { bubbles: true }));
+        expect(settingsMock.windowRules[0].x).toBe(240);
+
+        const maximize = host.querySelector<HTMLSelectElement>(
+            "#window-rule-journal-maximized",
+        );
+        if (!maximize) throw new Error("rule maximize select not rendered");
+        maximize.value = "on";
+        maximize.dispatchEvent(new Event("change", { bubbles: true }));
+        expect(settingsMock.windowRules[0].isMaximized).toBe(true);
+    });
+
+    it("clears a geometry field to undefined instead of null", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true, x: 120 }];
+        render();
+
+        const x = host.querySelector<HTMLInputElement>("#window-rule-journal-x");
+        if (!x) throw new Error("rule X input not rendered");
+        x.value = "";
+        x.dispatchEvent(new Event("input", { bubbles: true }));
+
+        expect("x" in settingsMock.windowRules[0]).toBe(false);
+    });
+
+    it("hides the height field for an aspect-locked type", () => {
+        settingsMock.windowRules = [{ windowType: "chart", enabled: true }];
+        render();
+
+        expect(host.querySelector("#window-rule-chart-height")).toBeNull();
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesAspectHint"),
+        );
     });
 });

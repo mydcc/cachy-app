@@ -46,7 +46,9 @@ export class AlertPanelWindow extends WindowBase {
     super({ title: options.title, windowType: "alertpanel" });
     this._onCloseCallback = options.onclose;
     this._symbol = options.symbol;
-    if (!this.hasPersistedPosition()) {
+    // FEAT-0743: a matching rule already chose the geometry; docking right on
+    // the first ever open would silently overwrite it.
+    if (!this.hasAppliedWindowRule && !this.hasPersistedPosition()) {
       this.dockRight();
     }
   }
