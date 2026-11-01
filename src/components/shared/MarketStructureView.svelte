@@ -84,8 +84,15 @@
    {/if}
 {/snippet}
 
+<!--
+   `relative` is load-bearing, not decoration: every card carries an `sr-only`
+   description, which is absolutely positioned. Without a positioned scroll
+   container those boxes resolve against the window's absolutely positioned
+   content wrapper, escape this clip and inflate the window scroll area — a
+   second scrollbar plus ~1900px of empty space below the last card.
+-->
 <div
-   class="flex flex-col gap-8 h-full min-h-0 min-w-0 overflow-y-auto scroll-pt-8"
+   class="relative flex flex-col gap-8 h-full min-h-0 min-w-0 overflow-y-auto scroll-pt-8"
    data-testid="structure-view"
 >
    <p class="text-xs text-[var(--text-secondary)] max-w-[52rem] mx-auto w-full">
