@@ -5108,6 +5108,8 @@
       "structure": "Structure",
       "resistance": "Resistance",
       "support": "Support",
+      "bos": "BOS",
+      "choch": "CHoCH",
       "rising": "rising",
       "falling": "falling",
       "flat": "flat",

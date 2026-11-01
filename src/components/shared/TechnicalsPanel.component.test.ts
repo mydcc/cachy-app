@@ -270,9 +270,17 @@ describe("FEAT-0766 — the market-context check", () => {
 
         // The fixture flips the structure at bar 43 of 62; nothing follows it.
         // The row names its own timeframe, because it is not the bias one.
-        expect(rowText(view, "context-structure")).toBe(
-            `Structure 1h ${lookup("technicals.context.chochDown")} · 18 candles`,
+        // On screen the direction is a glyph, so the distance cannot be split
+        // from its number by a long word; a screen reader gets the phrase.
+        expect(rowText(view, "context-structure")).toContain("1h");
+        expect(rowText(view, "structure-value")).toBe("CHoCH ↓ · 18 candles");
+        expect(rowText(view, "structure-label")).toBe(
+            `${lookup("technicals.context.chochDown")} · 18 candles`,
         );
+        expect(
+            view.querySelector('[data-testid="structure-value"]')!.querySelector(".whitespace-nowrap")
+                ?.textContent,
+        ).toBe("18 candles");
     });
 
     it("does not repeat the values the panel already prints above", () => {

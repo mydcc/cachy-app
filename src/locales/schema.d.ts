@@ -4159,6 +4159,8 @@ export type TranslationKey =
   | "technicals.context.structure"
   | "technicals.context.resistance"
   | "technicals.context.support"
+  | "technicals.context.bos"
+  | "technicals.context.choch"
   | "technicals.context.rising"
   | "technicals.context.falling"
   | "technicals.context.flat"

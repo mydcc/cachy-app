@@ -162,25 +162,65 @@
       .find((event) => event.kind.startsWith("BOS") || event.kind.startsWith("CHOCH")) ?? null,
   );
 
-  let structureValue = $derived.by(() => {
+  /*
+   * The direction is a symbol on screen and a word in the accessible name.
+   * At panel widths below ~400px "aufwärts" (or "up") is what pushes the
+   * distance onto a second line and splits "22" from "Kerzen"; the arrow says
+   * the same in one glyph, while the row keeps the spelled-out phrase for a
+   * screen reader through `aria-label`.
+   */
+  type BreakKey = "bosUp" | "bosDown" | "chochUp" | "chochDown";
+  const BREAK_ARROW: Record<BreakKey, string> = {
+    bosUp: "↑",
+    bosDown: "↓",
+    chochUp: "↑",
+    chochDown: "↓",
+  };
+  const BREAK_TERM: Record<BreakKey, TranslationKey> = {
+    bosUp: "technicals.context.bos",
+    bosDown: "technicals.context.bos",
+    chochUp: "technicals.context.choch",
+    chochDown: "technicals.context.choch",
+  };
+
+  let breakKey = $derived.by((): BreakKey | null => {
     const event = lastBreak;
-    if (event === null) return $_(`technicals.context.noBreak` as TranslationKey);
-    const kind =
-      event.kind === "BOS-up"
-        ? "bosUp"
-        : event.kind === "BOS-down"
-          ? "bosDown"
-          : event.kind === "CHOCH-up"
-            ? "chochUp"
-            : "chochDown";
+    if (event === null) return null;
+    return event.kind === "BOS-up"
+      ? "bosUp"
+      : event.kind === "BOS-down"
+        ? "bosDown"
+        : event.kind === "CHOCH-up"
+          ? "chochUp"
+          : "chochDown";
+  });
+
+  let structureDistance = $derived.by(() => {
+    const event = lastBreak;
+    if (event === null) return null;
     const ago = analysisBars.length - 1 - event.index;
-    const distance =
-      ago === 0
-        ? $_(`technicals.context.candlesAgoZero` as TranslationKey)
-        : ago === 1
-          ? $_(`technicals.context.candlesAgoOne` as TranslationKey)
-          : $_("technicals.context.candlesAgo", { values: { n: ago } });
-    return `${$_(`technicals.context.${kind}` as TranslationKey)} · ${distance}`;
+    return ago === 0
+      ? $_(`technicals.context.candlesAgoZero` as TranslationKey)
+      : ago === 1
+        ? $_(`technicals.context.candlesAgoOne` as TranslationKey)
+        : $_("technicals.context.candlesAgo", { values: { n: ago } });
+  });
+
+  /** What the row shows: term, arrow, then the distance. */
+  let structureHead = $derived.by(() => {
+    const key = breakKey;
+    return key === null
+      ? $_(`technicals.context.noBreak` as TranslationKey)
+      : `${$_(BREAK_TERM[key])} ${BREAK_ARROW[key]} · `;
+  });
+
+  /** What a screen reader reads: the same row with the direction spelled out. */
+  let structureLabel = $derived.by(() => {
+    const key = breakKey;
+    const distance = structureDistance;
+    if (key === null || distance === null)
+      return $_(`technicals.context.noBreak` as TranslationKey);
+    return `${$_(`technicals.context.${key}` as TranslationKey)} · ${distance}`;
   });
 
   let biasClose = $derived(biasBars.length > 0 ? biasBars[biasBars.length - 1].close : null);
@@ -786,13 +826,24 @@
                 <span class="font-mono text-[var(--text-primary)] text-right">{biasValue}</span>
               </div>
               <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                class="relative flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 data-testid="context-structure"
               >
                 <span class="text-[var(--text-secondary)] shrink-0"
                   >{$_("technicals.context.structure")} {timeframe}</span
                 >
-                <span class="font-mono text-[var(--text-primary)] text-right">{structureValue}</span>
+                <span
+                  class="font-mono text-[var(--text-primary)] text-right"
+                  aria-hidden="true"
+                  data-testid="structure-value"
+                  >{structureHead}{#if structureDistance}<span class="whitespace-nowrap"
+                        >{structureDistance}</span
+                      >{/if}</span
+                >
+                <!-- The arrow above carries the direction visually; this keeps
+                     the spelled-out phrase — or the no-break wording, which
+                     has no arrow — for a screen reader. -->
+                <span class="sr-only" data-testid="structure-label">{structureLabel}</span>
               </div>
               <div
                 class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"

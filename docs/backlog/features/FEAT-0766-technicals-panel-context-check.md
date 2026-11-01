@@ -56,6 +56,10 @@ went back to the Academy lesson that teaches them.
 
 - The bias timeframe is fixed one step above the analysis timeframe
   (`higherTimeframe()`), never configurable — the rule is part of the lesson.
+- The break direction is a glyph (`CHoCH ↑ · 22 Kerzen`), because the word is
+  what pushed the distance onto a second line at narrow panel widths; the
+  spelled-out phrase stays in the row's accessible name, and the number never
+  separates from its unit.
 - No expander, no click target, no second chart: four lines of text.
 - The block reads from `computeStructureRead` and `recentLevels`. A second
   kline channel carries the bias timeframe; nothing else is computed twice.
