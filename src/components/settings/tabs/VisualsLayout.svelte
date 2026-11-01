@@ -19,8 +19,87 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
+    import { windowRegistry } from "../../../lib/windows/WindowRegistry.svelte";
+    import { WINDOW_RULE_TYPES, isRuleTarget } from "../../../lib/windows/windowRules";
+    import type { WindowType } from "../../../lib/windows/types";
+    import type { TranslationKey } from "../../../locales/schema";
     import Toggle from "../../shared/Toggle.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
+
+    /** FEAT-0743 — the type the next "Add rule" creates. */
+    let nextRuleType = $state<string>(WINDOW_RULE_TYPES[0] ?? "");
+
+    /**
+     * Every WindowType has a label, although only WINDOW_RULE_TYPES are
+     * offered: the rule list is typed over the full union, and a label lookup
+     * keeps that exhaustive instead of casting a template key.
+     */
+    const TYPE_LABEL_KEYS: Record<WindowType, TranslationKey> = {
+        window: "settings.windowRulesTypes.window",
+        modal: "settings.windowRulesTypes.modal",
+        dialog: "settings.windowRulesTypes.dialog",
+        chart: "settings.windowRulesTypes.chart",
+        news: "settings.windowRulesTypes.news",
+        settings: "settings.windowRulesTypes.settings",
+        chatbox: "settings.windowRulesTypes.chatbox",
+        symbolpicker: "settings.windowRulesTypes.symbolpicker",
+        journal: "settings.windowRulesTypes.journal",
+        guide: "settings.windowRulesTypes.guide",
+        changelog: "settings.windowRulesTypes.changelog",
+        privacy: "settings.windowRulesTypes.privacy",
+        whitepaper: "settings.windowRulesTypes.whitepaper",
+        assistant: "settings.windowRulesTypes.assistant",
+        channel: "settings.windowRulesTypes.channel",
+        academy: "settings.windowRulesTypes.academy",
+        alertpanel: "settings.windowRulesTypes.alertpanel",
+        controlcenter: "settings.windowRulesTypes.controlcenter",
+        iframe: "settings.windowRulesTypes.iframe",
+    };
+
+    /** Types that do not have a rule yet. At most one rule per type. */
+    const unusedRuleTypes = $derived(
+        WINDOW_RULE_TYPES.filter(
+            (type) =>
+                !settingsState.windowRules.some(
+                    (rule) => rule.windowType === type,
+                ),
+        ),
+    );
+
+    // Keep the picker creatable: after a rule is added, or when a stored rule
+    // already covers the selected type, fall back to the next free one.
+    $effect(() => {
+        if (!nextRuleType || !unusedRuleTypes.includes(nextRuleType as WindowType)) {
+            nextRuleType = unusedRuleTypes[0] ?? "";
+        }
+    });
+
+    function addRule() {
+        const type = nextRuleType;
+        if (!type || !isRuleTarget(type as WindowType)) return;
+        if (settingsState.windowRules.some((rule) => rule.windowType === type)) {
+            return;
+        }
+        settingsState.windowRules.push({
+            windowType: type as WindowType,
+            enabled: true,
+        });
+        nextRuleType = unusedRuleTypes[0] ?? "";
+    }
+
+    function removeRule(type: WindowType) {
+        settingsState.windowRules = settingsState.windowRules.filter(
+            (rule) => rule.windowType !== type,
+        );
+    }
+
+    function typeClosesOnBlur(type: WindowType): boolean {
+        return windowRegistry.getConfig(type).flags.closeOnBlur === true;
+    }
+
+    function typeAllowsMaximize(type: WindowType): boolean {
+        return windowRegistry.getConfig(type).flags.allowMaximize !== false;
+    }
 </script>
 
 <section class="settings-section animate-fade-in">
@@ -200,6 +279,199 @@
                 />
             </label>
         </div>
+
+        <!-- Window rules (FEAT-0743). One rule per window type; a rule only
+             applies the next time that window opens. -->
+        <div class="col-span-full border-t border-[var(--border-color)] pt-4">
+            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                {$_("settings.windowRulesTitle")}
+            </h4>
+            <p class="text-[10px] text-[var(--text-secondary)] mb-3">
+                {$_("settings.windowRulesDesc")}
+            </p>
+
+            {#if settingsState.windowRules.length === 0}
+                <p class="text-xs text-[var(--text-secondary)] mb-3">
+                    {$_("settings.windowRulesEmpty")}
+                </p>
+            {/if}
+
+            <div class="flex flex-col gap-3">
+                {#each settingsState.windowRules as rule (rule.windowType)}
+                    <div class="rule-card">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <span class="text-sm font-medium">
+                                {$_(TYPE_LABEL_KEYS[rule.windowType])}
+                            </span>
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
+                                    <span>
+                                        {$_(rule.enabled
+                                            ? `settings.windowRulesEnabled`
+                                            : `settings.windowRulesDisabled`)}
+                                    </span>
+                                    <Toggle
+                                        checked={rule.enabled}
+                                        onchange={(e) =>
+                                            (rule.enabled = (
+                                                e.currentTarget as HTMLInputElement
+                                            ).checked)}
+                                    />
+                                </label>
+                                <button
+                                    type="button"
+                                    class="rule-remove"
+                                    aria-label={$_("settings.windowRulesRemove")}
+                                    title={$_("settings.windowRulesRemove")}
+                                    onclick={() => removeRule(rule.windowType)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-2">
+                            {$_("settings.windowRulesGeometryHint")}
+                        </p>
+
+                        <div class="rule-grid mt-2">
+                            <label class="field-group">
+                                <span>{$_("settings.windowRulesX")}</span>
+                                <input
+                                    type="number"
+                                    class="input-field"
+                                    bind:value={rule.x}
+                                />
+                            </label>
+                            <label class="field-group">
+                                <span>{$_("settings.windowRulesY")}</span>
+                                <input
+                                    type="number"
+                                    class="input-field"
+                                    bind:value={rule.y}
+                                />
+                            </label>
+                            <label class="field-group">
+                                <span>{$_("settings.windowRulesWidth")}</span>
+                                <input
+                                    type="number"
+                                    class="input-field"
+                                    min="1"
+                                    bind:value={rule.width}
+                                />
+                            </label>
+                            <label class="field-group">
+                                <span>{$_("settings.windowRulesHeight")}</span>
+                                <input
+                                    type="number"
+                                    class="input-field"
+                                    min="1"
+                                    bind:value={rule.height}
+                                />
+                            </label>
+                        </div>
+
+                        <div class="rule-grid mt-2">
+                            {#if typeAllowsMaximize(rule.windowType)}
+                                <label class="field-group">
+                                    <span>{$_("settings.windowRulesMaximized")}</span>
+                                    <select
+                                        class="input-field"
+                                        value={rule.isMaximized === undefined
+                                            ? ""
+                                            : rule.isMaximized
+                                              ? "on"
+                                              : "off"}
+                                        onchange={(e) => {
+                                            const value = (
+                                                e.currentTarget as HTMLSelectElement
+                                            ).value;
+                                            if (!value) delete rule.isMaximized;
+                                            else rule.isMaximized = value === "on";
+                                        }}
+                                    >
+                                        <option value="">
+                                            {$_("settings.windowRulesInherit")}
+                                        </option>
+                                        <option value="on">
+                                            {$_("settings.windowRulesMaximizedOn")}
+                                        </option>
+                                        <option value="off">
+                                            {$_("settings.windowRulesMaximizedOff")}
+                                        </option>
+                                    </select>
+                                </label>
+                            {/if}
+
+                            {#if typeClosesOnBlur(rule.windowType)}
+                                <p class="text-[10px] text-[var(--text-secondary)] self-end">
+                                    {$_("settings.windowRulesKeepAboveUnavailable")}
+                                </p>
+                            {:else}
+                                <label class="field-group">
+                                    <span>{$_("settings.windowRulesKeepAbove")}</span>
+                                    <select
+                                        class="input-field"
+                                        value={rule.isKeepAbove === undefined
+                                            ? ""
+                                            : rule.isKeepAbove
+                                              ? "on"
+                                              : "off"}
+                                        onchange={(e) => {
+                                            const value = (
+                                                e.currentTarget as HTMLSelectElement
+                                            ).value;
+                                            if (!value) delete rule.isKeepAbove;
+                                            else rule.isKeepAbove = value === "on";
+                                        }}
+                                    >
+                                        <option value="">
+                                            {$_("settings.windowRulesInherit")}
+                                        </option>
+                                        <option value="on">
+                                            {$_("settings.windowRulesKeepAboveOn")}
+                                        </option>
+                                        <option value="off">
+                                            {$_("settings.windowRulesKeepAboveOff")}
+                                        </option>
+                                    </select>
+                                </label>
+                            {/if}
+                        </div>
+                    </div>
+                {/each}
+            </div>
+
+            <div class="flex items-end gap-2 mt-3">
+                <label class="field-group flex-1">
+                    <span>{$_("settings.windowRulesAdd")}</span>
+                    <select
+                        id="window-rule-add-type"
+                        class="input-field w-full"
+                        bind:value={nextRuleType}
+                        disabled={unusedRuleTypes.length === 0}
+                    >
+                        <option value="">
+                            {$_("settings.windowRulesAddPlaceholder")}
+                        </option>
+                        {#each unusedRuleTypes as type (type)}
+                            <option value={type}>
+                                {$_(TYPE_LABEL_KEYS[type as WindowType])}
+                            </option>
+                        {/each}
+                    </select>
+                </label>
+                <button
+                    type="button"
+                    id="window-rule-add"
+                    class="rule-add"
+                    disabled={!nextRuleType || unusedRuleTypes.length === 0}
+                    onclick={addRule}
+                >
+                    {$_("settings.windowRulesAdd")}
+                </button>
+            </div>
+        </div>
     </SettingsGrid>
 </section>
 
@@ -231,5 +503,48 @@
         font-size: var(--text-xs);
         font-weight: var(--font-semibold);
         color: var(--text-secondary);
+    }
+    /* FEAT-0743 — one rule card. Same surface as .toggle-card, but a
+       container rather than a click target, so it gets no pointer cursor. */
+    .rule-card {
+        padding: var(--space-4);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+    }
+    .rule-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.5rem;
+    }
+    .rule-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+    .rule-remove:hover {
+        color: var(--danger-color);
+        border-color: var(--danger-color);
+    }
+    .rule-add {
+        padding: 0.5rem 0.9rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--accent-color);
+        background: var(--accent-color);
+        color: var(--btn-accent-text);
+        font-size: var(--text-xs);
+        font-weight: var(--font-semibold);
+        cursor: pointer;
+    }
+    .rule-add:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 </style>

@@ -63,7 +63,7 @@ import {
 import { trackAutosaveReads } from "./settings/tracking";
 import { DisplaySettingsStore } from "./settings/display.svelte";
 import { CoreSettingsStore } from "./settings/core.svelte";
-
+import { setWindowRuleSource } from "../lib/windows/windowRuleSource";
 // Domain types and presets live in ./settings/settingsTypes (FEAT-0342);
 // re-exported here so existing importers keep working.
 import type {
@@ -1399,6 +1399,12 @@ export class SettingsManager {
   set focusFollowsMouse(v: DisplaySettingsStore["focusFollowsMouse"]) {
     this.display.focusFollowsMouse = v;
   }
+  get windowRules(): DisplaySettingsStore["windowRules"] {
+    return this.display.windowRules;
+  }
+  set windowRules(v: DisplaySettingsStore["windowRules"]) {
+    this.display.windowRules = v;
+  }
 
   get marketMode(): CoreSettingsStore["marketMode"] {
     return this.core.marketMode;
@@ -2306,6 +2312,11 @@ export class SettingsManager {
 }
 
 export const settingsState = new SettingsManager();
+
+// FEAT-0743: the window layer must not import this store (settings → ui →
+// window implementations → WindowBase is a fatal cycle). Publish a live
+// reader instead, so a rule edit is visible to the next window open.
+setWindowRuleSource(() => settingsState.windowRules);
 
 // BUG-0286: the telemetry gate lives in trackingService, which may not import
 // this store. Hand it a live reader so an opt-out (or a restored/imported

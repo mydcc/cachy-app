@@ -43,6 +43,7 @@ const settingsMock = vi.hoisted(() => ({
     enableDockingCentered: true,
     dockingPosition: "top",
     focusFollowsMouse: false,
+    windowRules: [] as Array<Record<string, unknown>>,
 }));
 vi.mock("../../../stores/settings.svelte", () => ({ settingsState: settingsMock }));
 
@@ -61,6 +62,7 @@ beforeEach(() => {
     settingsMock.enableDockingCentered = true;
     settingsMock.dockingPosition = "top";
     settingsMock.focusFollowsMouse = false;
+    settingsMock.windowRules = [];
     uiMock.showAssistant = false;
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -163,5 +165,67 @@ describe("FEAT-0346 — VisualsLayout writes through to the stores", () => {
         if (!focus) throw new Error("focus-follows toggle not rendered");
         focus.click();
         expect(settingsMock.focusFollowsMouse).toBe(true);
+    });
+});
+
+describe("FEAT-0743 — window rules section", () => {
+    it("adds a rule for the first free type with one click", () => {
+        render();
+
+        const add = host.querySelector<HTMLButtonElement>("#window-rule-add");
+        if (!add) throw new Error("add rule button not rendered");
+        expect(add.disabled).toBe(false);
+        add.click();
+
+        expect(settingsMock.windowRules).toEqual([
+            { windowType: "window", enabled: true },
+        ]);
+    });
+
+    it("offers only window types that have no rule yet", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        const select = host.querySelector<HTMLSelectElement>(
+            "#window-rule-add-type",
+        );
+        if (!select) throw new Error("rule type select not rendered");
+        const values = [...select.options].map((option) => option.value);
+        expect(values).not.toContain("journal");
+        expect(values).toContain("chart");
+    });
+
+    it("removes a rule", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        const remove = [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+            (button) =>
+                button.getAttribute("aria-label") ===
+                lookup("settings.windowRulesRemove"),
+        );
+        if (!remove) throw new Error("remove rule button not rendered");
+        remove.click();
+
+        expect(settingsMock.windowRules).toEqual([]);
+    });
+
+    it("does not offer keep-above for a close-on-blur type", () => {
+        settingsMock.windowRules = [{ windowType: "settings", enabled: true }];
+        render();
+
+        expect(host.textContent).not.toContain(
+            lookup("settings.windowRulesKeepAboveOn"),
+        );
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesKeepAboveUnavailable"),
+        );
+    });
+
+    it("offers keep-above for a normal window type", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        expect(host.textContent).toContain(lookup("settings.windowRulesKeepAboveOn"));
     });
 });

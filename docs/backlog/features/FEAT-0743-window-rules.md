@@ -2,7 +2,7 @@
 id: FEAT-0743
 title: Apply a saved layout rule when a window opens
 type: feature
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0044, FEAT-0742]
+assignee: opencode
+branch: feature/feat-0743-window-rules
 ---
 
 # FEAT-0743 — Apply a saved layout rule when a window opens
@@ -73,7 +75,9 @@ A first, deliberately small rules slice:
       unchanged.
 - [ ] A rule setting `isMaximized` opens the window maximized and ignores its
       x/y/width/height fields.
-- [ ] A rule setting `isKeepAbove` opens the window in the keep-above band.
+- [ ] A rule setting `isKeepAbove` opens the window in the keep-above band;
+      the control is not offered for a close-on-blur target and the open path
+      ignores the flag there.
 - [ ] Rule geometry is clamped to the viewport by the same path as a drag.
 - [ ] Two instances of a multi-instance type receive the same rule on open.
 - [ ] Changing a rule does not move windows that are already open.
@@ -95,23 +99,27 @@ A first, deliberately small rules slice:
 - Rules for modals, dialogs, the symbol picker or minimized dock tiles.
 - Import/export and sharing of rule sets.
 
-## Open questions
+## Decisions
 
-These need a product decision before `ready`:
+These were the open questions; they are settled for this slice:
 
-- Rule geometry in absolute pixels versus viewport fractions. The proposal uses
-  pixels for the first slice; fractions would survive monitor changes better
-  but need a resize policy.
-- Multi-instance types: the acceptance criteria require both instances to
-  receive the same rule, which puts two charts or two news windows at identical
-  coordinates. Accept the overlap, cascade the second instance by a fixed
-  offset, or skip rules for types that carry a per-instance storage key
-  (`customStorageKey`)?
-- Should "Apply now" exist for the focused window, or is next-open-only enough?
-- Should a rule setting `isMaximized` also remember a floating rectangle to
-  restore to, or is the last per-window rectangle good enough?
-- Does the keep-above action need to be hidden when the rule targets a
-  close-on-blur window, matching the header toggle's rule?
+- **Pixels, not viewport fractions.** Geometry stays in absolute CSS pixels.
+  Fractions would survive monitor changes better, but need a resize policy
+  that is its own slice. A rule that no longer fits is clamped on open.
+- **Multi-instance types accept the overlap.** Two charts or two news
+  windows that match the same rule open at the same coordinates. Cascading
+  the second instance would need a per-instance ordinal and reword this
+  item's acceptance criterion; rules for per-instance storage keys are out
+  of scope.
+- **Next open only.** There is no "apply now" action for the focused window.
+  Editing a rule never moves a window that is already open.
+- **The per-window snapshot is the floating rectangle.** An `isMaximized`
+  rule does not carry a second restore rectangle; `restore()` keeps using the
+  geometry the window had before its last maximization, as it does today.
+- **Keep-above is hidden for close-on-blur targets.** The rule UI omits the
+  keep-above control when the selected `windowType` has `closeOnBlur`, the
+  same rule the window header follows. The open path also refuses to lift
+  such a window, so a hand-edited payload cannot create the contradiction.
 
 ## Links
 

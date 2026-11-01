@@ -28,6 +28,8 @@ import { computeSnapGeometry, readShellInsets, isSnapZone } from "./snapping";
 import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
+import { readWindowRules } from "./windowRuleSource";
+import { findWindowRule, windowRulePatch } from "./windowRules";
 
 /**
  * Fallback header height (px) for aspect-ratio geometry when the real header
@@ -514,8 +516,14 @@ export abstract class WindowBase {
         localStorage.setItem(this.storageKey, JSON.stringify(this.persistedSnapshot));
     }
 
-    /** Rehydrate state from storage if available. */
+    /** Rehydrate state from storage if available, then apply a matching rule. */
     private restoreState() {
+        this.restoreSnapshot();
+        this.applyWindowRule();
+    }
+
+    /** Rehydrate state from storage if available. */
+    private restoreSnapshot() {
         if (typeof localStorage === 'undefined' || !this.persistent) return;
         try {
             const saved = localStorage.getItem(this.storageKey);
@@ -556,6 +564,47 @@ export abstract class WindowBase {
             }
         } catch (e) {
             console.error("Failed to restore window state:", e);
+        }
+    }
+
+    /**
+     * FEAT-0743 — applies the enabled rule for this window type once, on
+     * construction: after the registry defaults and the per-window snapshot,
+     * before the frame can paint. It never runs on a live window, so editing
+     * or disabling a rule affects the next open only and never fights a drag.
+     *
+     * Geometry goes through `updateSize`/`updatePosition`, the same clamp path
+     * as a drag, so a rule cannot strand a window off-screen.
+     */
+    private applyWindowRule() {
+        const rule = findWindowRule(readWindowRules(), this.windowType);
+        if (!rule) return;
+        const patch = windowRulePatch(rule, this.closeOnBlur);
+
+        if (patch.isMaximized === true && this.allowMaximize) {
+            this.maximize();
+            // The constructor's placement branch must not overwrite the rule
+            // with stagger/cursor geometry.
+            this.hasRestoredPosition = true;
+            if (patch.isKeepAbove !== undefined) this.isKeepAbove = patch.isKeepAbove;
+            return;
+        }
+
+        if (patch.isMaximized === false) {
+            // The rule wins over a snapshot that says "maximized"; its own
+            // geometry (if any) is applied below.
+            this.isMaximized = false;
+        }
+
+        if (patch.width !== undefined || patch.height !== undefined) {
+            this.updateSize(patch.width ?? this.width, patch.height ?? this.height);
+        }
+        if (patch.x !== undefined || patch.y !== undefined) {
+            this.updatePosition(patch.x ?? this.x, patch.y ?? this.y);
+            this.hasRestoredPosition = true;
+        }
+        if (patch.isKeepAbove !== undefined) {
+            this.isKeepAbove = patch.isKeepAbove;
         }
     }
 
