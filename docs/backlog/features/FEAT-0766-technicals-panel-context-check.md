@@ -29,8 +29,9 @@ moment the decision is made — so it is read once and never opened again.
 
 ## Proposal
 
-A **Kontext** block at the top of the Technicals panel body, switchable like
-every other section through `indicatorSettings.panelSections`:
+A **Kontext** block that closes the Technicals panel body, below the raw
+lists, switchable like every other section through
+`indicatorSettings.panelSections` (the summary stays the first thing read):
 
 ```
 KONTEXT
