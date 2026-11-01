@@ -98,7 +98,9 @@
      */
     function setNumber(rule: WindowRule, key: GeometryKey, raw: string) {
         const trimmed = raw.trim();
-        const value = trimmed === "" ? Number.NaN : Number(trimmed);
+        // audit: safe — window geometry in CSS pixels, not a financial value
+        const value =
+            trimmed === "" ? Number.NaN : Number(trimmed); // audit: safe — CSS pixel geometry
         if (!Number.isFinite(value)) {
             delete rule[key];
             return;
