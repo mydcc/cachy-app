@@ -59,7 +59,7 @@
   import PositionsSidebar from "../components/shared/PositionsSidebar.svelte";
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
-  
+
   import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";

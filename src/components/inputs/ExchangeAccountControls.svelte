@@ -73,7 +73,7 @@ import { Decimal } from "decimal.js";
   import { accountState } from "../../stores/account.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { activeAccountLabel } from "../../stores/settings/activeAccount";
-  
+
   import { paperState } from "../../stores/paperTrading.svelte";
   import { modalState } from "../../stores/modal.svelte";
   import { activeExchange } from "../../services/exchange";

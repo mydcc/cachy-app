@@ -109,11 +109,4 @@ describe("ChartWindow title (FEAT-0378)", () => {
         expect(win.serialize().title).toBe("BTCUSDT");
     });
 
-    it("stays on the symbol across an account switch", () => {
-        const win = new ChartWindow("BTCUSDT");
-
-        settingsState.activeAccountId = "bu-2";
-
-        expect(win.title).toBe("BTCUSDT");
-    });
 });

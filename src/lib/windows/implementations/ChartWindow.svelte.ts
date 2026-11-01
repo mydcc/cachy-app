@@ -34,7 +34,7 @@ import { get } from "svelte/store";
 /**
  * ChartWindow is a specific implementation of WindowBase that renders
  * a financial chart using CandleChartView.
- * 
+ *
  * Features:
  * - Timeframe selection in the header.
  * - Integration with tradeState (syncing symbol selection).
