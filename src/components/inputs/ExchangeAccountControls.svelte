@@ -73,7 +73,7 @@ import { Decimal } from "decimal.js";
   import { accountState } from "../../stores/account.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { activeAccountLabel } from "../../stores/settings/activeAccount";
-  import ActiveAccountChip from "../shared/ActiveAccountChip.svelte";
+  
   import { paperState } from "../../stores/paperTrading.svelte";
   import { modalState } from "../../stores/modal.svelte";
   import { activeExchange } from "../../services/exchange";
@@ -703,17 +703,6 @@ import { Decimal } from "decimal.js";
   }
 </script>
 
-  <!--
-    FEAT-0378: the account these two chips change. The order panel header
-    names it too, but that header can scroll out of view above this row, and
-    the dialogs behind the chips write to the exchange account, not to Cachy.
-  -->
-  <div class="flex w-fit min-w-0 flex-col gap-1">
-    <span class="text-[11px] font-medium text-[var(--text-secondary)]"
-      >{$_("settings.connections.accounts.activeAccount")}</span
-    >
-    <ActiveAccountChip />
-  </div>
 
   <!-- Leverage column. Gated by nothing; see the header comment. -->
   <div class="flex flex-col gap-1 min-w-0">
