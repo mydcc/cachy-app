@@ -319,6 +319,18 @@ describe("FEAT-0766 — the market-context check", () => {
         expect(rowText(view, "context-support")).toContain("—");
     });
 
+    it("closes the panel, leaving the summary first", () => {
+        seedMarket();
+        const view = renderPanel();
+
+        const block = view.querySelector('[data-testid="technicals-context"]')!;
+        const list = block.parentElement!;
+        expect([...list.children].at(-1)).toBe(block);
+        expect(list.firstElementChild?.textContent).toContain(
+            lookup("settings.technicals.summaryAction"),
+        );
+    });
+
     it("disappears when the section is switched off", () => {
         seedMarket();
         indicatorState.panelSections.context = false;

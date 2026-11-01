@@ -350,96 +350,6 @@
         class="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-128 {settingsState.technicalsFullHeight ? 'xl:max-h-none' : ''}"
       >
         <div class="flex flex-col gap-4">
-          <!-- Market-context check (FEAT-0766): the reading order the Academy
-               lesson explains, applied to the current symbol. Every row names
-               its own timeframe, because the steps run on two of them. -->
-          {#if indicatorSettings.panelSections.context}
-            <div class="flex flex-col gap-1" data-testid="technicals-context">
-              <div
-                class="flex justify-between items-baseline text-[10px] uppercase text-[var(--text-secondary)] px-1"
-              >
-                <span>{$_("technicals.context.title")}</span>
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-bias"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.bias")} {biasTimeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{biasValue}</span>
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-structure"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.structure")} {timeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{structureValue}</span>
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-resistance"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.resistance")} {biasTimeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right"
-                  >{nearestResistance
-                    ? TechnicalsPresenter.formatVal(
-                        nearestResistance.price,
-                        indicatorSettings?.precision,
-                      )
-                    : "—"}</span
-                >
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-support"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.support")} {biasTimeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right"
-                  >{nearestSupport
-                    ? TechnicalsPresenter.formatVal(
-                        nearestSupport.price,
-                        indicatorSettings?.precision,
-                      )
-                    : "—"}</span
-                >
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-adx"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.adx")} {timeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{adxValue}</span>
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-chop"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.chop")} {timeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{chopValue}</span>
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-volatility"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.volatility")} {timeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{volatilityValue}</span>
-              </div>
-            </div>
-          {/if}
-
           <!-- DASHBOARD SECTION (Minimalist List) -->
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->
@@ -949,6 +859,98 @@
               {/if}
             </div>
           {/if}
+
+          <!-- Market-context check (FEAT-0766): the reading order the Academy
+               lesson explains, applied to the current symbol. Every row names
+               its own timeframe, because the steps run on two of them. It
+               closes the panel: the summary stays the first thing read. -->
+          {#if indicatorSettings.panelSections.context}
+            <div class="flex flex-col gap-1" data-testid="technicals-context">
+              <div
+                class="flex justify-between items-baseline text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              >
+                <span>{$_("technicals.context.title")}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-bias"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.bias")} {biasTimeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{biasValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-structure"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.structure")} {timeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{structureValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-resistance"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.resistance")} {biasTimeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right"
+                  >{nearestResistance
+                    ? TechnicalsPresenter.formatVal(
+                        nearestResistance.price,
+                        indicatorSettings?.precision,
+                      )
+                    : "—"}</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-support"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.support")} {biasTimeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right"
+                  >{nearestSupport
+                    ? TechnicalsPresenter.formatVal(
+                        nearestSupport.price,
+                        indicatorSettings?.precision,
+                      )
+                    : "—"}</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-adx"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.adx")} {timeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{adxValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-chop"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.chop")} {timeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{chopValue}</span>
+              </div>
+              <div
+                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                data-testid="context-volatility"
+              >
+                <span class="text-[var(--text-secondary)] shrink-0"
+                  >{$_("technicals.context.volatility")} {timeframe}</span
+                >
+                <span class="font-mono text-[var(--text-primary)] text-right">{volatilityValue}</span>
+              </div>
+            </div>
+          {/if}
+
         </div>
       </div>
     {/if}
