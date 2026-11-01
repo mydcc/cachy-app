@@ -171,4 +171,26 @@ describe("FEAT-0767 — the market-structure lesson", () => {
             expect(card.textContent, key).toContain(lookup(`academy.structure.${key}.diagramAlt`));
         }
     });
+
+    it("is the containing block for its absolutely positioned descriptions", () => {
+        const view = renderView();
+
+        /*
+         * Every `diagramAlt` lives in an `sr-only` paragraph, which Tailwind
+         * positions absolutely. The view is the only scroll container on this
+         * tab, so those boxes must resolve against it: with a static root they
+         * resolve against the window's absolutely positioned content wrapper,
+         * escape the clip and stretch the window scroll area — a second
+         * scrollbar and empty space below the last card (#4450). happy-dom
+         * computes no layout, so this pins the class the containing block
+         * comes from rather than the geometry; the geometry was verified in a
+         * browser at 1600x1000.
+         */
+        expect(view.classList.contains("relative")).toBe(true);
+        expect(view.classList.contains("overflow-y-auto")).toBe(true);
+        for (const key of SECTIONS) {
+            const alt = view.querySelector(`#structure-alt-${key}`)!;
+            expect(alt.classList.contains("sr-only"), key).toBe(true);
+        }
+    });
 });
