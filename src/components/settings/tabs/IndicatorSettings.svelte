@@ -72,14 +72,20 @@
                         <span>{$_("settings.technicals.panelConfiguration")}</span>
                         <span class="text-xs font-normal text-[var(--text-secondary)]">{$_("settings.technicals.toggleVisibility")}</span>
                     </h4>
+                    <!-- Toggle order mirrors the panel's render order top to
+                         bottom, so the list reads as a map of the panel. -->
                     <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("technicals.context.title")}</span>
-                            <Toggle bind:checked={indicatorState.panelSections.context} />
-                        </div>
                         <div class="flex justify-between items-center">
                             <span class="text-sm">{$_("settings.technicals.summary")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.summary} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.marketConfluence")}</span>
+                            <Toggle bind:checked={indicatorState.panelSections.confluence} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.tabs.volatility")}</span>
+                            <Toggle bind:checked={indicatorState.panelSections.volatility} />
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-sm">{$_("settings.technicals.oscillatorsTitle")}</span>
@@ -94,16 +100,12 @@
                             <Toggle bind:checked={indicatorState.panelSections.pivots} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.marketConfluence")}</span>
-                            <Toggle bind:checked={indicatorState.panelSections.confluence} />
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.tabs.volatility")}</span>
-                            <Toggle bind:checked={indicatorState.panelSections.volatility} />
-                        </div>
-                        <div class="flex justify-between items-center">
                             <span class="text-sm">{$_("settings.technicals.advancedTitle")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.advanced} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("technicals.context.title")}</span>
+                            <Toggle bind:checked={indicatorState.panelSections.context} />
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-sm">{$_("settings.technicals.signals")}</span>

@@ -29,9 +29,11 @@ moment the decision is made — so it is read once and never opened again.
 
 ## Proposal
 
-A **Kontext** block that closes the Technicals panel body, below the raw
+A **Kontext** block that sits directly above the signal list and below the raw
 lists, switchable like every other section through
-`indicatorSettings.panelSections` (the summary stays the first thing read):
+`indicatorSettings.panelSections` (the summary stays the first thing read).
+The toggle list in the panel configuration follows the same order as the
+panel body, so it reads as a map of the panel:
 
 ```
 KONTEXT
@@ -51,7 +53,7 @@ measurements get a row each so both can carry their taught threshold.
 - The bias timeframe is fixed one step above the analysis timeframe
   (`higherTimeframe()`), never configurable — the rule is part of the lesson.
 - Thresholds sit inline (`16,8 < 25`), so a value carries its own reading.
-- No expander, no click target, no second chart: five lines of text.
+- No expander, no click target, no second chart: seven lines of text.
 - The block reads from `computeStructureRead` and `recentLevels`; the ADX,
   Choppiness, bandwidth and ATR values come from the series the panel already
   has. A second kline channel carries the bias timeframe.
@@ -78,6 +80,9 @@ measurements get a row each so both can carry their taught threshold.
 - [x] A component test pins the row order, the threshold rendering, the
       no-data fallback, the levels coming from the bias timeframe and the
       channel being registered and released.
+- [x] The block renders directly above the signal list, with the summary still
+      the first row of the panel, and the visibility toggles are listed in the
+      panel's render order.
 
 ## Out of scope
 

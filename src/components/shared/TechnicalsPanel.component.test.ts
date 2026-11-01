@@ -319,13 +319,18 @@ describe("FEAT-0766 — the market-context check", () => {
         expect(rowText(view, "context-support")).toContain("—");
     });
 
-    it("closes the panel, leaving the summary first", () => {
+    it("sits directly above the signal list, with the summary still first", () => {
         seedMarket();
         const view = renderPanel();
 
         const block = view.querySelector('[data-testid="technicals-context"]')!;
         const list = block.parentElement!;
-        expect([...list.children].at(-1)).toBe(block);
+        // The block reads the signal list, so it comes first: the heading of the
+        // very next section is the signals title.
+        expect(block.nextElementSibling?.firstElementChild?.textContent?.trim()).toBe(
+            lookup("settings.workspace.signals"),
+        );
+        // The summary keeps the first position, which is why the block left it.
         expect(list.firstElementChild?.textContent).toContain(
             lookup("settings.technicals.summaryAction"),
         );

@@ -784,86 +784,11 @@
             </div>
           {/if}
 
-          <!-- SIGNALS SECTION (Restyled) -->
-          {#if indicatorSettings.panelSections.signals}
-            <div
-              class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
-            >
-              <div
-                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
-              >
-                {$_("settings.workspace.signals")}
-              </div>
-
-              <!-- Market Structure (New) -->
-              {#if data.advanced?.marketStructure}
-                {#if data.advanced.marketStructure.highs.length > 0}
-                  {@const lastHigh = data.advanced.marketStructure.highs[data.advanced.marketStructure.highs.length - 1]}
-                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
-                    <span>{$_("settings.technicals.marketStructureHigh")}</span>
-                    <span class="font-mono">{lastHigh.type} @ {TechnicalsPresenter.formatVal(lastHigh.value, indicatorSettings?.precision)}</span>
-                  </div>
-                {/if}
-                {#if data.advanced.marketStructure.lows.length > 0}
-                  {@const lastLow = data.advanced.marketStructure.lows[data.advanced.marketStructure.lows.length - 1]}
-                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
-                    <span>{$_("settings.technicals.marketStructureLow")}</span>
-                    <span class="font-mono">{lastLow.type} @ {TechnicalsPresenter.formatVal(lastLow.value, indicatorSettings?.precision)}</span>
-                  </div>
-                {/if}
-              {/if}
-
-              {#if data.divergences && data.divergences.length > 0}
-                {#each data.divergences as div}
-                  <div
-                    class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded"
-                  >
-                    <div class="flex justify-between">
-                      <span class="font-medium">{div.indicator} {div.type}</span
-                      >
-                      <span
-                        class="font-bold {TechnicalsPresenter.getDivergenceColor(
-                          div.side,
-                        )}"
-                      >
-                        {translateAction(div.side)}
-                      </span>
-                    </div>
-                    <div
-                      class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5"
-                    >
-                      <span
-                        >{$_("settings.technicals.value")}: {TechnicalsPresenter.formatVal(div.indStart, 1)} ➝ {TechnicalsPresenter.formatVal(
-                          div.indEnd,
-                          1,
-                        )}</span
-                      >
-                      <span
-                        >{$_("settings.technicals.price")}: {TechnicalsPresenter.formatVal(
-                          div.priceStart,
-                          indicatorSettings?.precision,
-                        )} ➝ {TechnicalsPresenter.formatVal(
-                          div.priceEnd,
-                          indicatorSettings?.precision,
-                        )}</span
-                      >
-                    </div>
-                  </div>
-                {/each}
-              {:else if (!data.advanced?.marketStructure?.highs.length && !data.advanced?.marketStructure?.lows.length)}
-                <div
-                  class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
-                >
-                  {$_("settings.technicals.noSignals")}
-                </div>
-              {/if}
-            </div>
-          {/if}
-
           <!-- Market-context check (FEAT-0766): the reading order the Academy
                lesson explains, applied to the current symbol. Every row names
                its own timeframe, because the steps run on two of them. It
-               closes the panel: the summary stays the first thing read. -->
+               sits above the signal list: the signal says what happened, the
+               context says how to read it. -->
           {#if indicatorSettings.panelSections.context}
             <div class="flex flex-col gap-1" data-testid="technicals-context">
               <div
@@ -948,6 +873,82 @@
                 >
                 <span class="font-mono text-[var(--text-primary)] text-right">{volatilityValue}</span>
               </div>
+            </div>
+          {/if}
+
+          <!-- SIGNALS SECTION (Restyled) -->
+          {#if indicatorSettings.panelSections.signals}
+            <div
+              class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
+            >
+              <div
+                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              >
+                {$_("settings.workspace.signals")}
+              </div>
+
+              <!-- Market Structure (New) -->
+              {#if data.advanced?.marketStructure}
+                {#if data.advanced.marketStructure.highs.length > 0}
+                  {@const lastHigh = data.advanced.marketStructure.highs[data.advanced.marketStructure.highs.length - 1]}
+                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                    <span>{$_("settings.technicals.marketStructureHigh")}</span>
+                    <span class="font-mono">{lastHigh.type} @ {TechnicalsPresenter.formatVal(lastHigh.value, indicatorSettings?.precision)}</span>
+                  </div>
+                {/if}
+                {#if data.advanced.marketStructure.lows.length > 0}
+                  {@const lastLow = data.advanced.marketStructure.lows[data.advanced.marketStructure.lows.length - 1]}
+                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                    <span>{$_("settings.technicals.marketStructureLow")}</span>
+                    <span class="font-mono">{lastLow.type} @ {TechnicalsPresenter.formatVal(lastLow.value, indicatorSettings?.precision)}</span>
+                  </div>
+                {/if}
+              {/if}
+
+              {#if data.divergences && data.divergences.length > 0}
+                {#each data.divergences as div}
+                  <div
+                    class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded"
+                  >
+                    <div class="flex justify-between">
+                      <span class="font-medium">{div.indicator} {div.type}</span
+                      >
+                      <span
+                        class="font-bold {TechnicalsPresenter.getDivergenceColor(
+                          div.side,
+                        )}"
+                      >
+                        {translateAction(div.side)}
+                      </span>
+                    </div>
+                    <div
+                      class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5"
+                    >
+                      <span
+                        >{$_("settings.technicals.value")}: {TechnicalsPresenter.formatVal(div.indStart, 1)} ➝ {TechnicalsPresenter.formatVal(
+                          div.indEnd,
+                          1,
+                        )}</span
+                      >
+                      <span
+                        >{$_("settings.technicals.price")}: {TechnicalsPresenter.formatVal(
+                          div.priceStart,
+                          indicatorSettings?.precision,
+                        )} ➝ {TechnicalsPresenter.formatVal(
+                          div.priceEnd,
+                          indicatorSettings?.precision,
+                        )}</span
+                      >
+                    </div>
+                  </div>
+                {/each}
+              {:else if (!data.advanced?.marketStructure?.highs.length && !data.advanced?.marketStructure?.lows.length)}
+                <div
+                  class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
+                >
+                  {$_("settings.technicals.noSignals")}
+                </div>
+              {/if}
             </div>
           {/if}
 
