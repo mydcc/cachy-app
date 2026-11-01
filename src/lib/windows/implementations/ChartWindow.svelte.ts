@@ -24,7 +24,7 @@ import { WindowBase, type HeaderControl, type WindowSerializedState } from "../W
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
-import { activeAccountLabel } from "../../../stores/settings/activeAccount";
+
 import { safeTfToMs } from "../../../utils/timeUtils";
 import CandleChartView from "./CandleChartView.svelte";
 import type { WindowOptions, ContextMenuAction } from "../types";
@@ -34,7 +34,7 @@ import { get } from "svelte/store";
 /**
  * ChartWindow is a specific implementation of WindowBase that renders
  * a financial chart using CandleChartView.
- * 
+ *
  * Features:
  * - Timeframe selection in the header.
  * - Integration with tradeState (syncing symbol selection).
@@ -78,14 +78,13 @@ export class ChartWindow extends WindowBase {
     }
 
     /**
-     * `${symbol} · ${account}` — FEAT-0378. A standalone chart window has no
-     * ancestor chip, so its title is the only place the account can be named.
-     * The getter reads settings state while `WindowFrame` renders `win.title`,
-     * so an account switch updates open windows instead of leaving a stale
-     * name on a surface that can close a position.
+     * FEAT-0378 originally decorated the title with the active account name.
+     * Dropped again: the broker/account name is already visible on the
+     * dashboard's account surfaces, and repeating it in every chart window
+     * title was noise. The getter now just returns the symbol.
      */
     override get title(): string {
-        return `${super.title} · ${activeAccountLabel()}`;
+        return super.title;
     }
 
     override set title(value: string) {

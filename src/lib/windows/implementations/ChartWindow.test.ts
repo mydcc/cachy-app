@@ -97,23 +97,16 @@ describe("ChartWindow title (FEAT-0378)", () => {
         settingsState.apiProvider = "bitunix";
     });
 
-    it("names the active account beside the symbol", () => {
+    it("shows the bare symbol in the title", () => {
         const win = new ChartWindow("BTCUSDT");
 
-        expect(win.title).toBe("BTCUSDT · Main");
+        expect(win.title).toBe("BTCUSDT");
     });
 
-    it("persists the bare symbol, not the decorated title", () => {
+    it("persists the bare symbol", () => {
         const win = new ChartWindow("BTCUSDT");
 
         expect(win.serialize().title).toBe("BTCUSDT");
     });
 
-    it("follows an account switch on an open window", () => {
-        const win = new ChartWindow("BTCUSDT");
-
-        settingsState.activeAccountId = "bu-2";
-
-        expect(win.title).toBe("BTCUSDT · Second");
-    });
 });
