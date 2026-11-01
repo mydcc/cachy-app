@@ -22,6 +22,8 @@
     checked?: boolean;
     disabled?: boolean;
     id?: string;
+    /** Accessible name when the surrounding text is not a stable label. */
+    ariaLabel?: string;
     onchange?: (e: Event) => void;
   }
 
@@ -29,6 +31,7 @@
     checked = $bindable(false),
     disabled = false,
     id = "toggle-" + generateId().slice(0, 8),
+    ariaLabel,
     onchange
   }: Props = $props();
 
@@ -48,6 +51,7 @@
       class="sr-only peer"
       role="switch"
       aria-checked={checked}
+      aria-label={ariaLabel}
     />
     <div class="atr-toggle-track relative w-[36px] h-[12px] peer-focus:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent-color)] rounded-full peer after:content-[''] after:absolute after:top-0 after:left-0 after:border after:rounded-full after:h-[12px] after:w-[24px]"></div>
   </label>

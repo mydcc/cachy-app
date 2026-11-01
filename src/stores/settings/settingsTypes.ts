@@ -22,6 +22,7 @@ import type { ExchangeAccount } from "./accounts";
 import { defaultAccountState } from "./accounts";
 import type { ProviderConfig } from "./aiProviders";
 import type { VisualQuality } from "../../lib/three/quality";
+import type { WindowType } from "../../lib/windows/types";
 
 // Removed MarketDataInterval as it is legacy (WebSockets preferred)
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
@@ -275,6 +276,64 @@ export interface TradeFlowSettings {
 
 /** Control density of the settings window and the trade surfaces (FEAT-0614). */
 export type DensityMode = "compact" | "default" | "wide";
+
+/**
+ * Window types a rule may target (FEAT-0743). A subset of `WindowType`:
+ * modals, dialogs, the symbol picker and the unused generic `window` have no
+ * layout worth restoring. Kept as an `Extract` so a removed `WindowType`
+ * fails the build instead of leaving a dead literal.
+ */
+export type WindowRuleType = Extract<
+  WindowType,
+  | "journal"
+  | "chart"
+  | "academy"
+  | "assistant"
+  | "settings"
+  | "news"
+  | "alertpanel"
+  | "controlcenter"
+  | "channel"
+  | "iframe"
+  | "chatbox"
+  | "guide"
+  | "changelog"
+  | "privacy"
+  | "whitepaper"
+>;
+
+/**
+ * One user-defined window layout rule (FEAT-0743).
+ *
+ * At most one rule per `windowType`. Every action is optional: a rule only
+ * overrides the fields the user chose, and unset fields keep the geometry the
+ * window restored from its own snapshot. Geometry is in CSS pixels and runs
+ * through the same clamp path as a drag, so a rule can never strand a window
+ * off-screen. Class A: stored in this browser, never sent anywhere.
+ */
+export interface WindowRule {
+  /** The single window type this rule matches. */
+  windowType: WindowRuleType;
+  /** A disabled rule keeps its settings but does nothing on open. */
+  enabled: boolean;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  /**
+   * `true` opens the window maximized and makes x/y/width/height irrelevant.
+   * `false` opens a window whose snapshot was maximized as a floating window:
+   * dimensions the rule does not set fall back to the type's registry layout,
+   * because the snapshot rectangle in that case is the maximized one.
+   */
+  isMaximized?: boolean;
+  /**
+   * Overrides the restored keep-above flag. Ignored for close-on-blur window
+   * types, where keeping a window above everything contradicts its own
+   * dismissal rule.
+   */
+  isKeepAbove?: boolean;
+}
 
 export interface Settings {
   apiProvider: "bitunix" | "bitget";
@@ -563,6 +622,11 @@ export interface Settings {
   dockingPosition: "top" | "bottom";
   /** Raise and focus a floating window after a short mouse hover (FEAT-0740). */
   focusFollowsMouse: boolean;
+  /**
+   * User-defined open rules, one per window type (FEAT-0743). Empty means a
+   * window opens exactly where its own snapshot left it.
+   */
+  windowRules: WindowRule[];
   autoTrading: boolean;
   multiAccount: boolean;
 }
@@ -860,4 +924,5 @@ export const defaultSettings: Settings = {
   enableDockingCentered: true,
   dockingPosition: "top",
   focusFollowsMouse: false,
+  windowRules: [],
 };

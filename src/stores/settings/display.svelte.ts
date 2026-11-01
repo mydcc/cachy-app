@@ -49,6 +49,7 @@ import type {
     Settings,
     TradeFlowSettings,
     DensityMode,
+    WindowRule,
 } from "./settingsTypes";
 
 export class DisplaySettingsStore {
@@ -174,4 +175,11 @@ export class DisplaySettingsStore {
   );
   dockingPosition = $state<"top" | "bottom">(defaultSettings.dockingPosition);
   focusFollowsMouse = $state<boolean>(defaultSettings.focusFollowsMouse);
+  /**
+   * FEAT-0743 — one open rule per window type. Cloned from the defaults so a
+   * later in-place edit can never rewrite the shipped default.
+   */
+  windowRules = $state<WindowRule[]>(
+    structuredClone(defaultSettings.windowRules),
+  );
 }

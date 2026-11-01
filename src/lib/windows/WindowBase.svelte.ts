@@ -28,6 +28,13 @@ import { computeSnapGeometry, readShellInsets, isSnapZone } from "./snapping";
 import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
+import { readWindowRules } from "./windowRuleSource";
+import {
+    MAX_RULE_DIMENSION,
+    findWindowRule,
+    windowRulePatch,
+    type WindowRulePatch,
+} from "./windowRules";
 
 /**
  * Fallback header height (px) for aspect-ratio geometry when the real header
@@ -76,18 +83,13 @@ interface PinRestore {
     height: number;
 }
 
-/**
- * A persisted restore rectangle larger than this is not a real layout; it is
- * a corrupt or hand-edited snapshot. The bound keeps a finite-but-absurd size
- * from creating an unusable window before the viewport clamp runs.
- */
-const MAX_RESTORE_DIMENSION = 100_000;
 
 /**
  * Validates a persisted pin-restore rectangle. A zero/negative size would
  * bypass the window's minWidth/minHeight floor, and `Number.isFinite` alone
  * would accept it. The position may be negative; `updatePosition` clamps it
- * to the current viewport at unpin time.
+ * to the current viewport at unpin time. Above `MAX_RULE_DIMENSION` a size is
+ * a corrupt or hand-edited snapshot, not a layout.
  */
 function isPinRestore(value: unknown): value is PinRestore {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -101,8 +103,8 @@ function isPinRestore(value: unknown): value is PinRestore {
         }) &&
         (candidate.width as number) > 0 &&
         (candidate.height as number) > 0 &&
-        (candidate.width as number) <= MAX_RESTORE_DIMENSION &&
-        (candidate.height as number) <= MAX_RESTORE_DIMENSION
+        (candidate.width as number) <= MAX_RULE_DIMENSION &&
+        (candidate.height as number) <= MAX_RULE_DIMENSION
     );
 }
 
@@ -403,6 +405,10 @@ export abstract class WindowBase {
             this.updatePosition(this.x, this.y);
         }
 
+        // FEAT-0743: the rule's position lands after placement, so a rule that
+        // sets only one axis keeps the placed value on the other one.
+        this.applyRulePosition();
+
         // Setup Responsive maximization for mobile
         this.updateResponsiveState();
 
@@ -471,6 +477,19 @@ export abstract class WindowBase {
     }
 
     private hasRestoredPosition = false;
+    /**
+     * FEAT-0743 — the rule patch this window opened with. The size and the
+     * maximized flag land in `applyWindowRule()`; the position is applied only
+     * after the constructor's placement block, so a rule that sets just X does
+     * not pin the window to the top edge.
+     */
+    private pendingRulePatch: WindowRulePatch | null = null;
+    /**
+     * True when an enabled rule matched this window on open. Subclasses that
+     * reposition themselves after `super()` (AlertPanelWindow dockRight) use it
+     * to stand down for this open.
+     */
+    protected hasAppliedWindowRule = false;
 
     private get storageKey() {
         return `cachy_win_${this.customStorageKey || this.id}`;
@@ -514,8 +533,14 @@ export abstract class WindowBase {
         localStorage.setItem(this.storageKey, JSON.stringify(this.persistedSnapshot));
     }
 
-    /** Rehydrate state from storage if available. */
+    /** Rehydrate state from storage if available, then apply a matching rule. */
     private restoreState() {
+        this.restoreSnapshot();
+        this.applyWindowRule();
+    }
+
+    /** Rehydrate state from storage if available. */
+    private restoreSnapshot() {
         if (typeof localStorage === 'undefined' || !this.persistent) return;
         try {
             const saved = localStorage.getItem(this.storageKey);
@@ -557,6 +582,90 @@ export abstract class WindowBase {
         } catch (e) {
             console.error("Failed to restore window state:", e);
         }
+    }
+
+    /**
+     * FEAT-0743 — applies the enabled rule for this window type once, on
+     * construction: after the registry defaults and the per-window snapshot.
+     * It never runs on a live window, so editing or disabling a rule affects
+     * the next open only and never fights a drag.
+     *
+     * Size and the maximized flag land here; the position is deferred to
+     * `applyRulePosition()` (after the constructor's placement block). Every
+     * value still goes through `updateSize`/`updatePosition`, the same clamp
+     * path as a drag.
+     */
+    private applyWindowRule() {
+        const rule = findWindowRule(readWindowRules(), this.windowType);
+        if (!rule) return;
+        this.hasAppliedWindowRule = true;
+        const patch = windowRulePatch(rule, this.closeOnBlur);
+        this.pendingRulePatch = patch;
+
+        if (patch.isMaximized === true && this.allowMaximize) {
+            this.maximize();
+            // The constructor's placement branch must not overwrite the rule
+            // with stagger/cursor geometry.
+            this.hasRestoredPosition = true;
+            if (patch.isKeepAbove !== undefined) this.isKeepAbove = patch.isKeepAbove;
+            return;
+        }
+
+        const hasGeometry =
+            patch.x !== undefined ||
+            patch.y !== undefined ||
+            patch.width !== undefined ||
+            patch.height !== undefined;
+        // Explicit "not maximized", or any geometry, means the user wants a
+        // floating window; geometry must not be dropped just because the
+        // snapshot happened to be maximized.
+        const wantsFloating = patch.isMaximized === false || hasGeometry;
+
+        if (wantsFloating && this.isMaximized) {
+            // A window closed while maximized persists the maximized rect
+            // (0,0,viewport), not a floating rectangle. Drop it so the rule
+            // (or the normal placement below) decides, instead of opening a
+            // screen-sized "floating" window and persisting that as its
+            // geometry on the next save.
+            this.isMaximized = false;
+            const layout = windowRegistry.getConfig(this.windowType).layout;
+            if (patch.width === undefined) this.width = layout.width ?? this.width;
+            if (patch.height === undefined) this.height = layout.height ?? this.height;
+            this.hasRestoredPosition = false;
+        }
+
+        if (patch.width !== undefined || patch.height !== undefined) {
+            const width = patch.width ?? this.width;
+            const height = patch.height ?? this.height;
+            if (typeof window !== "undefined") {
+                // Unlike a drag, a rule is entered, not measured: clamp the
+                // size to the viewport so "no longer fits" never yields a
+                // window larger than the screen. The aspect-ratio branch in
+                // updateSize still rewrites the height for chart/channel.
+                this.updateSize(
+                    Math.min(width, window.innerWidth),
+                    Math.min(height, window.innerHeight),
+                );
+            } else {
+                this.updateSize(width, height);
+            }
+        }
+
+        if (patch.isKeepAbove !== undefined) {
+            this.isKeepAbove = patch.isKeepAbove;
+        }
+    }
+
+    /**
+     * FEAT-0743 — applies the rule's stored position once the constructor has
+     * placed the window. Only the axes the rule set are overwritten, so an
+     * X-only rule keeps the centred/staggered Y instead of pinning it to 0.
+     */
+    private applyRulePosition() {
+        const patch = this.pendingRulePatch;
+        if (!patch || this.isMaximized) return;
+        if (patch.x === undefined && patch.y === undefined) return;
+        this.updatePosition(patch.x ?? this.x, patch.y ?? this.y);
     }
 
     /** Returns data necessary to recreate this window in a new session. */

@@ -121,6 +121,7 @@ describe("declared autosave tracking", () => {
                 "logSettings",
                 "rssPresets",
                 "tradeFlowSettings",
+                "windowRules",
             ].sort(),
         );
     });
