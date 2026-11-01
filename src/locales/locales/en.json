@@ -4389,7 +4389,7 @@
       "title": "Market Structure & Regime",
       "shortTitle": "Structure",
       "openLesson": "Open lesson",
-      "panelHint": "This reading order is applied in the Technicals panel as a context block — bias, structure with its levels, regime and volatility, for the symbol you are looking at.",
+      "panelHint": "This reading order is applied in the Technicals panel as a context block: bias, structure and the levels, for the symbol you are looking at. ADX, Choppiness and volatility stay in their own sections, where their numbers already are.",
       "s1": {
         "title": "The higher timeframe decides first",
         "takeaway": "No trade without looking up: read the higher timeframe first, then trade the lower one.",
@@ -5108,9 +5108,6 @@
       "structure": "Structure",
       "resistance": "Resistance",
       "support": "Support",
-      "adx": "ADX",
-      "chop": "Chop",
-      "volatility": "Volatility",
       "rising": "rising",
       "falling": "falling",
       "flat": "flat",

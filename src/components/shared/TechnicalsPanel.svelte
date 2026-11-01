@@ -77,12 +77,13 @@
   /*
    * Market-context check (FEAT-0766): the reading order the Academy lesson
    * explains, applied to the current symbol. Direction and levels live on the
-   * bias timeframe one step above; structure and regime on the analysis one.
+   * bias timeframe one step above; structure on the analysis one.
+   *
+   * Regime (ADX, Choppiness) and volatility (bandwidth, ATR) are deliberately
+   * absent: the panel already prints those numbers, with their state, in the
+   * sections above. Repeating them here would show one measurement twice and
+   * claim a second one exists.
    */
-  const ADX_TREND_THRESHOLD = 25;
-  /** The band the lesson teaches for Choppiness: above is chop, below is trend. */
-  const CHOP_CHOP_ABOVE = 61.8;
-  const CHOP_TREND_BELOW = 38.2;
   /** The first period of the lesson's EMA trio — the row must not drift from it. */
   const CONTEXT_EMA_PERIOD = 21;
 
@@ -190,27 +191,6 @@
     contextLevels.find((level) => level.side === "resistance") ?? null,
   );
   let nearestSupport = $derived(contextLevels.find((level) => level.side === "support") ?? null);
-
-  let adxValue = $derived.by(() => {
-    const adx = data?.advanced?.adx?.value;
-    if (typeof adx !== "number" || !Number.isFinite(adx)) return "—";
-    const comparator = adx >= ADX_TREND_THRESHOLD ? "≥" : "<";
-    return `${adx.toFixed(1)} ${comparator} ${ADX_TREND_THRESHOLD}`;
-  });
-
-  let chopValue = $derived.by(() => {
-    const chop = data?.advanced?.choppiness?.value;
-    if (typeof chop !== "number" || !Number.isFinite(chop)) return "—";
-    return `${chop.toFixed(1)} (${CHOP_TREND_BELOW}–${CHOP_CHOP_ABOVE})`;
-  });
-
-  let volatilityValue = $derived.by(() => {
-    const bb = data?.volatility?.bb;
-    const atr = data?.volatility?.atr;
-    if (!bb || typeof atr !== "number" || !Number.isFinite(atr)) return "—";
-    const width = TechnicalsPresenter.calculateBollingerBandWidth(bb.upper, bb.lower, bb.middle);
-    return `BW ${width.toFixed(2)} % · ATR ${TechnicalsPresenter.formatVal(atr, 2)}`;
-  });
 
   /*
    * The bias timeframe needs its own candles — the analysis channel does not
@@ -845,33 +825,6 @@
                       )
                     : "—"}</span
                 >
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-adx"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.adx")} {timeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{adxValue}</span>
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-chop"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.chop")} {timeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{chopValue}</span>
-              </div>
-              <div
-                class="flex justify-between items-baseline gap-2 text-xs py-1 px-1 border-b border-[var(--border-color)]"
-                data-testid="context-volatility"
-              >
-                <span class="text-[var(--text-secondary)] shrink-0"
-                  >{$_("technicals.context.volatility")} {timeframe}</span
-                >
-                <span class="font-mono text-[var(--text-primary)] text-right">{volatilityValue}</span>
               </div>
             </div>
           {/if}
