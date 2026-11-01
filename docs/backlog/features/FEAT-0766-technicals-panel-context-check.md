@@ -41,45 +41,45 @@ Bias 4h                EMA 21 fallend · darunter
 Struktur 1h            BOS abwärts · 42 Kerzen
 Widerstand 4h                          76.954
 Unterstützung 4h                       76.208
-ADX 1h                                16,8 < 25
-Chop 1h                       57,8 (38,2–61,8)
-Volatilität 1h       BW 1,3 % · ATR 336,61
 ```
 
 Every row names its own timeframe: direction and levels run on the bias
-timeframe, structure and regime on the analysis one. The two regime
-measurements get a row each so both can carry their taught threshold.
+timeframe, structure on the analysis one.
+
+The block carries only what the panel does not already answer. ADX,
+Choppiness, bandwidth and ATR were rows in the first version, carrying their
+taught thresholds inline — but the panel renders those same four numbers
+above, together with more context than a threshold (ADX with trend and
+DI+/DI-, Choppiness with its state). Two rows for one measurement claimed a
+second measurement existed; the follow-up removed them and the thresholds
+went back to the Academy lesson that teaches them.
 
 - The bias timeframe is fixed one step above the analysis timeframe
   (`higherTimeframe()`), never configurable — the rule is part of the lesson.
-- Thresholds sit inline (`16,8 < 25`), so a value carries its own reading.
-- No expander, no click target, no second chart: seven lines of text.
-- The block reads from `computeStructureRead` and `recentLevels`; the ADX,
-  Choppiness, bandwidth and ATR values come from the series the panel already
-  has. A second kline channel carries the bias timeframe.
+- No expander, no click target, no second chart: four lines of text.
+- The block reads from `computeStructureRead` and `recentLevels`. A second
+  kline channel carries the bias timeframe; nothing else is computed twice.
 
 ## Acceptance criteria
 
 - [x] The block renders only when `indicatorSettings.panelSections.context` is
       true, and the toggle appears in the panel-sections settings like the
       others.
-- [x] Seven rows in the order bias → structure → resistance → support → ADX →
-      choppiness → volatility; every row names its own timeframe.
+- [x] Four rows in the order bias → structure → resistance → support; every
+      row names its own timeframe.
+- [x] No row repeats a value the panel already prints in its own section.
 - [x] The structure row names the last BOS/CHoCH and its distance in candles,
       with a distinct wording for the forming candle and for a single candle;
       the level rows name the nearest swing resistance and support of the bias
       timeframe.
-- [x] ADX carries its trend threshold and Choppiness its 38.2–61.8 band inline;
-      bandwidth and ATR are shown as measured, because they have no taught
-      threshold.
 - [x] No data renders `—`; no connection leaves the block empty without an
       error state.
 - [x] No interaction: no expander, no navigation, no chart.
 - [x] Colors come from CSS variables only.
 - [x] New strings in `de.json` and `en.json`; `schema.d.ts` regenerated.
-- [x] A component test pins the row order, the threshold rendering, the
-      no-data fallback, the levels coming from the bias timeframe and the
-      channel being registered and released.
+- [x] A component test pins the row order, the absence of the duplicated
+      regime rows, the no-data fallback, the levels coming from the bias
+      timeframe and the channel being registered and released.
 - [x] The block renders directly above the signal list, with the summary still
       the first row of the panel, and the visibility toggles are listed in the
       panel's render order.
@@ -90,6 +90,8 @@ measurements get a row each so both can carry their taught threshold.
 - Click-through from a row into the chart.
 - Per-row explanations (that stays the Academy lesson's job, FEAT-0767).
 - Replacing or reordering the existing raw lists in the panel.
+- Per-row thresholds for ADX and Choppiness: those rows were removed again
+  because they duplicated the raw lists. The lesson teaches the thresholds.
 
 ## Links
 

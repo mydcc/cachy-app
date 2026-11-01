@@ -244,7 +244,7 @@ describe("FEAT-0766 — the market-context check", () => {
         delete (marketState.data as Record<string, unknown>)["BTCUSDT"];
     });
 
-    it("reads bias, structure, levels, regime and volatility in that order", () => {
+    it("reads bias, structure and levels in that order", () => {
         seedMarket();
         const view = renderPanel();
 
@@ -261,9 +261,6 @@ describe("FEAT-0766 — the market-context check", () => {
             "context-structure",
             "context-resistance",
             "context-support",
-            "context-adx",
-            "context-chop",
-            "context-volatility",
         ]);
     });
 
@@ -278,13 +275,24 @@ describe("FEAT-0766 — the market-context check", () => {
         );
     });
 
-    it("carries the ADX threshold inline", () => {
+    it("does not repeat the values the panel already prints above", () => {
         seedMarket();
         const view = renderPanel();
 
-        expect(rowText(view, "context-adx")).toBe("ADX 1h 16.8 < 25");
-        expect(rowText(view, "context-chop")).toBe("Chop 1h 57.8 (38.2–61.8)");
-        expect(rowText(view, "context-volatility")).toBe("Volatility 1h BW 2.00 % · ATR 336.61");
+        /*
+         * ADX, Choppiness and volatility are already rendered in their own
+         * sections, with more context than a bare number (trend/state, DI+ and
+         * DI-). A second row here would show one measurement twice and imply a
+         * second one exists — the duplication the context block must not add.
+         */
+        for (const row of ["context-adx", "context-chop", "context-volatility"]) {
+            expect(view.querySelector(`[data-testid="${row}"]`), row).toBeNull();
+        }
+        // The numbers themselves are still on screen, once, where they belong.
+        const panel = view.textContent ?? "";
+        expect(panel).toContain(lookup("settings.technicals.adx"));
+        expect(panel).toContain(lookup("settings.technicals.choppiness"));
+        expect(panel).toContain(lookup("settings.technicals.bbWidth"));
     });
 
     it("takes the levels from the bias timeframe, not the analysis one", () => {
