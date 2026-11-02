@@ -93,11 +93,13 @@ the threshold, cancels it when the pointer leaves, and only snaps on
 `pointerup` (a `pointercancel` never commits). The frame keeps its geometry
 inline, so the saved pinned rectangle is exactly what renders.
 
-Keyboard: a focused window listens for `Alt+ArrowLeft` / `Alt+ArrowRight`;
-`focusin` raises a window when a keyboard user tabs into its header, and typing
-targets keep their native Option/Alt+Arrow behavior. The keydown effect
-registers on `window` only while the window is focused and returns its
-cleanup.
+Keyboard: a focused window listens for `Alt+Shift+ArrowLeft` /
+`Alt+Shift+ArrowRight`; `focusin` raises a window when a keyboard user tabs
+into its header, and typing targets keep their native Option/Alt+Arrow
+behavior. The keydown effect registers on `window` only while the window is
+focused and returns its cleanup. Shift is required because the browser owns
+`Alt+ArrowLeft` / `Alt+ArrowRight` for back/forward, and a page cannot reliably
+cancel that navigation.
 
 Top/bottom are deferred: the shell has no vertical sidebar, but the top bar and
 the minimized dock would need their own collision rules; half-tiling left and

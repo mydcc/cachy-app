@@ -51,7 +51,8 @@ quadrants of that rectangle.
   the edges, with the existing 48 px threshold.
 - Dragging into an edge snaps the half; into a corner snaps the quarter. The
   preview uses the same geometry as the commit.
-- Keyboard, using the existing `Alt+Arrow` gesture:
+- Keyboard, using the existing `Alt+Shift+Arrow` gesture (Shift because the
+  browser owns plain `Alt+ArrowLeft` / `Alt+ArrowRight` for history):
   - from no snap, an arrow selects that half;
   - from a horizontal half, Up/Down refines it to a corner;
   - from a vertical half, Left/Right refines it to a corner;
@@ -70,7 +71,7 @@ quadrants of that rectangle.
       zones.
 - [x] Top/bottom halves and corners use the usable rectangle: sidebars,
       `#wco-titlebar` and a top/bottom dock are not covered.
-- [x] `Alt+Arrow` follows the state machine above; a perpendicular arrow from
+- [x] `Alt+Shift+Arrow` follows the state machine above; a perpendicular arrow from
       a half produces a corner, a second arrow collapses to the half.
 - [x] `pinSide` persists all eight zones; legacy `left`/`right`/`top`/`bottom`
       snapshots load; unpin restores the pre-snap rectangle and re-pin returns
@@ -91,7 +92,7 @@ heights, and `SNAP_ZONES` is the single source for the union and the persisted
 validator.
 
 `detectSnapZone` checks corners before edges at the existing 48 px threshold;
-the drag preview and the committed geometry share one call. `Alt+Arrow` uses
+the drag preview and the committed geometry share one call. `Alt+Shift+Arrow` uses
 `nextSnapZone`: an arrow selects a half from no snap or from a corner, a
 perpendicular arrow refines a half into a corner, and a same-axis arrow
 switches halves. `pinSide` accepts all eight zones, validates persisted values
