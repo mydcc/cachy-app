@@ -212,6 +212,26 @@ export function findWindowRule(
 }
 
 /**
+ * FEAT-0770 — true when `rule` targets one concrete live window: the same
+ * window type, and for a scoped rule the same symbol.
+ *
+ * A type-wide rule matches every instance of its type. That is deliberate:
+ * pressing "Apply now" on that card is an explicit statement about the window
+ * in front of the user, not the automatic precedence `findWindowRule` applies
+ * on open (where a scoped rule wins over the type-wide one).
+ */
+export function ruleTargetsInstance(
+  rule: WindowRule,
+  type: WindowType,
+  symbol?: string,
+): boolean {
+  if (rule.windowType !== type) return false;
+  if (!rule.match) return true;
+  if (rule.match.kind !== "symbol") return false;
+  return rule.match.value === normalizeRuleSymbol(symbol);
+}
+
+/**
  * Validates a stored scope. Returns `undefined` when the rule is type-wide,
  * `null` when the entry cannot be trusted.
  */

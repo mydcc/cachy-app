@@ -23,6 +23,7 @@
 import type { WindowBase } from "./WindowBase.svelte";
 import { Z_LAYERS, WINDOW_STACK_Z_SPAN } from "./zLayers";
 import { isReservedBandWindow } from "./windowBands";
+import { isRuleTarget } from "./windowRules";
 import { WINDOW_SWITCHER_CLASS } from "./windowSwitcher";
 import { ModalWindow } from "./implementations/ModalWindow.svelte";
 import { IframeWindow } from "./implementations/IframeWindow.svelte";
@@ -73,6 +74,16 @@ interface SerializedWindowData {
 class WindowManager {
     /** Reactive list of all currently open window instances. */
     private _windows = $state<WindowBase[]>([]);
+
+    /**
+     * FEAT-0770 — the last window focused that is not the settings window.
+     *
+     * The window-rules editor lives inside the settings window, so by the time
+     * a user presses "Apply now" the focused window *is* the editor. Tracking
+     * the last other one keeps the action meaning "apply to the window I was
+     * working in" instead of "apply to the editor", which matches no rule.
+     */
+    private _lastActiveWindowId = $state<string | null>(null);
     /** Internal counter for global stacking order. Incremented on every focus event. */
     private _nextZIndex = BASE_Z_INDEX;
     /**
@@ -240,6 +251,11 @@ class WindowManager {
                 for (const instance of validInstances) {
                     this.open(instance);
                 }
+
+                // Opening a restored window focuses it, but that is not the
+                // user picking a window to work in. Leaving the target set
+                // would enable "Apply now" on a guess right after a reload.
+                this._lastActiveWindowId = null;
             }
         } catch (e) {
             console.error("Critical failure during window rehydration:", e);
@@ -280,6 +296,15 @@ class WindowManager {
     /** Returns the current list of managed windows. */
     get windows() {
         return this._windows;
+    }
+
+    /**
+     * FEAT-0770 — the window "Apply now" targets, or `null` when that window
+     * has been closed since it was focused.
+     */
+    get lastActiveWindow(): WindowBase | null {
+        const id = this._lastActiveWindowId;
+        return id ? (this._windows.find((w) => w.id === id) ?? null) : null;
     }
 
     /**
@@ -359,6 +384,10 @@ class WindowManager {
                 win.destroy();
             }
             this._windows = this._windows.filter(w => w.id !== id);
+            // FEAT-0770: the apply target is this window. Clearing it here
+            // keeps the stored id truthful instead of relying on the getter's
+            // "not found" fallback for the rest of the session.
+            if (this._lastActiveWindowId === id) this._lastActiveWindowId = null;
             this.saveSession();
         }
     }
@@ -461,34 +490,12 @@ class WindowManager {
     bringToFront(id: string, options: { sweepCloseOnBlur?: boolean } = {}) {
         const win = this._windows.find(w => w.id === id);
         if (win) {
-            // Normalize Z-Indices if we are approaching the safe integer limit
-            // or a reasonably high number to prevent overflow over long sessions.
-            if (this._nextZIndex > MAX_SAFE_Z_INDEX) {
-                this.normalizeZIndices(id);
+            // FEAT-0770: remember the window the user was actually working in.
+            // The editor itself is excluded, see `_lastActiveWindowId`.
+            if (win.windowType !== "settings" && isRuleTarget(win.windowType)) {
+                this._lastActiveWindowId = win.id;
             }
-
-            const ordinal = this._nextZIndex++;
-            if (usesReservedBand(win)) {
-                win.zIndex = Z_LAYERS.modal + (ordinal % MODAL_Z_SPAN);
-            } else if (win.isKeepAbove) {
-                // FEAT-0742: a keep-above window stays above the ordinary
-                // counter and the maximized band, but below a modal. Its own
-                // monotonic ordinal keeps focus order among keep-above windows;
-                // rewrite the band before the ordinal leaves its span.
-                if (this._nextKeepAboveOrdinal >= WINDOW_STACK_Z_SPAN) {
-                    this.normalizeZIndices(id);
-                }
-                win.zIndex =
-                    Z_LAYERS.windowKeepAbove + this._nextKeepAboveOrdinal++;
-            } else {
-                win.zIndex = ordinal;
-            }
-            if (win.isMaximized) {
-                // .window-frame.maximized binds to maximizedZIndex, not
-                // zIndex directly (FEAT-0044) -- refresh it too, or focusing
-                // an already-maximized window would have no visible effect.
-                win.refreshMaximizedZIndex();
-            }
+            this.restack(id);
 
             // Handle focus synchronization.
             // Close transient windows if another window takes focus -- but
@@ -513,6 +520,45 @@ class WindowManager {
                 w.isFocused = (w.id === id);
             });
             win.lastFocusOrder = ++this._nextFocusOrder;
+        }
+    }
+
+    /**
+     * FEAT-0770 — re-assigns `id`'s z-index band without touching focus.
+     *
+     * `bringToFront` combines three jobs: the band, the focus handover and the
+     * close-on-blur sweep. A caller that only changed a band flag on a window
+     * it is *not* focusing needs the first alone — using `bringToFront` would
+     * move focus there and, with the default sweep, close the editor window
+     * that hosts the button.
+     */
+    restack(id: string) {
+        const win = this._windows.find(w => w.id === id);
+        if (!win) return;
+
+        if (this._nextZIndex > MAX_SAFE_Z_INDEX) {
+            this.normalizeZIndices(id);
+        }
+        const ordinal = this._nextZIndex++;
+        if (usesReservedBand(win)) {
+            win.zIndex = Z_LAYERS.modal + (ordinal % MODAL_Z_SPAN);
+        } else if (win.isKeepAbove) {
+            // FEAT-0742: a keep-above window stays above the ordinary counter
+            // and the maximized band, but below a modal. Its own monotonic
+            // ordinal keeps focus order among keep-above windows; rewrite the
+            // band before the ordinal leaves its span.
+            if (this._nextKeepAboveOrdinal >= WINDOW_STACK_Z_SPAN) {
+                this.normalizeZIndices(id);
+            }
+            win.zIndex = Z_LAYERS.windowKeepAbove + this._nextKeepAboveOrdinal++;
+        } else {
+            win.zIndex = ordinal;
+        }
+        if (win.isMaximized) {
+            // .window-frame.maximized binds to maximizedZIndex, not zIndex
+            // directly (FEAT-0044) -- refresh it too, or an already-maximized
+            // window would keep rendering its old band.
+            win.refreshMaximizedZIndex();
         }
     }
 

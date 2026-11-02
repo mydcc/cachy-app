@@ -29,9 +29,11 @@ import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
 import { readWindowRules } from "./windowRuleSource";
+import type { WindowRule } from "../../stores/settings/settingsTypes";
 import {
     MAX_RULE_DIMENSION,
     findWindowRule,
+    ruleTargetsInstance,
     windowRulePatch,
     type WindowRulePatch,
 } from "./windowRules";
@@ -595,6 +597,34 @@ export abstract class WindowBase {
     }
 
     /**
+     * FEAT-0743 — the size half of a rule patch, shared by the open path and
+     * "Apply now" (FEAT-0770).
+     *
+     * A rule is entered, not measured, so it is clamped to the viewport on
+     * both axes. For an aspect-locked type the clamp has to bound the *width*
+     * by the height budget: `updateSize` derives the height from the width and
+     * discards the value passed in, so clamping the height alone would let a
+     * chart grow past the bottom of the screen.
+     */
+    private applyRuleSize(patch: WindowRulePatch) {
+        if (patch.width === undefined && patch.height === undefined) return;
+
+        const width = patch.width ?? this.width;
+        const height = patch.height ?? this.height;
+        if (typeof window === "undefined") {
+            this.updateSize(width, height);
+            return;
+        }
+
+        let boundedWidth = Math.min(width, window.innerWidth);
+        if (this.aspectRatio) {
+            const budget = Math.max(1, window.innerHeight - WINDOW_HEADER_HEIGHT);
+            boundedWidth = Math.min(boundedWidth, budget * this.aspectRatio);
+        }
+        this.updateSize(boundedWidth, Math.min(height, window.innerHeight));
+    }
+
+    /**
      * FEAT-0743 — applies the enabled rule for this window type once, on
      * construction: after the registry defaults and the per-window snapshot.
      * It never runs on a live window, so editing or disabling a rule affects
@@ -651,22 +681,7 @@ export abstract class WindowBase {
             this.hasRestoredPosition = false;
         }
 
-        if (patch.width !== undefined || patch.height !== undefined) {
-            const width = patch.width ?? this.width;
-            const height = patch.height ?? this.height;
-            if (typeof window !== "undefined") {
-                // Unlike a drag, a rule is entered, not measured: clamp the
-                // size to the viewport so "no longer fits" never yields a
-                // window larger than the screen. The aspect-ratio branch in
-                // updateSize still rewrites the height for chart/channel.
-                this.updateSize(
-                    Math.min(width, window.innerWidth),
-                    Math.min(height, window.innerHeight),
-                );
-            } else {
-                this.updateSize(width, height);
-            }
-        }
+        this.applyRuleSize(patch);
 
         if (patch.isKeepAbove !== undefined) {
             this.isKeepAbove = patch.isKeepAbove;
@@ -683,6 +698,100 @@ export abstract class WindowBase {
         if (!patch || this.isMaximized) return;
         if (patch.x === undefined && patch.y === undefined) return;
         this.updatePosition(patch.x ?? this.x, patch.y ?? this.y);
+    }
+
+    /**
+     * FEAT-0770 — applies `rule` to this live window ("Apply now").
+     *
+     * Deliberately the same machinery as the open path: every value goes
+     * through `updateSize`/`updatePosition` and therefore the viewport clamps,
+     * and a "maximized" rule reuses `maximize()` instead of assigning flags
+     * directly. A minimized window is restored when the rule changes its
+     * geometry, and a maximized one is brought back to floating first — a
+     * rule's rectangle must not be applied to a window that cannot show it.
+     *
+     * Unlike the open path this runs on an existing window, so the snapshot is
+     * written immediately: otherwise a reload would drop the applied geometry
+     * while the rule keeps applying on the next open.
+     *
+     * Returns `false` when the rule does not apply at all (another window type,
+     * or "maximized" on a type that cannot maximize).
+     */
+    public applyRuleNow(rule: WindowRule): boolean {
+        // Same predicate the editor's button uses: a disabled rule does
+        // nothing, and a scoped rule only ever touches its own instance. The
+        // editor already checks this, but a second caller must not be able to
+        // bypass it.
+        if (
+            !rule.enabled ||
+            !ruleTargetsInstance(rule, this.windowType, this.symbol)
+        ) {
+            return false;
+        }
+
+        const patch = windowRulePatch(rule, this.closeOnBlur);
+        const hasGeometry =
+            patch.x !== undefined ||
+            patch.y !== undefined ||
+            patch.width !== undefined ||
+            patch.height !== undefined;
+
+        // An empty patch — a freshly added rule, or one whose only action the
+        // target type cannot express — must not write a snapshot of state it
+        // did not change.
+        if (
+            patch.isMaximized === undefined &&
+            !hasGeometry &&
+            patch.isKeepAbove === undefined
+        ) {
+            return true;
+        }
+
+        if (patch.isMaximized === true) {
+            if (!this.allowMaximize) return false;
+            if (this.isMinimized) this.restore();
+            if (!this.isMaximized) this.maximize();
+            if (patch.isKeepAbove !== undefined) {
+                this.isKeepAbove = patch.isKeepAbove;
+            }
+            this.saveState();
+            return true;
+        }
+
+        // Only a rule that asks for floating geometry (or explicitly declines
+        // maximize) may pull a window out of its minimized/maximized state.
+        // The restore path is what a user would use, and it keeps the stored
+        // `last*` rectangle consistent with the header controls.
+        //
+        // A minimized window only comes back when the rule changes its
+        // geometry (an invisible window cannot show it) or when it is also
+        // maximized and has to be un-maximized first. A rule that merely says
+        // "not maximized" leaves a window that is not maximized alone.
+        if (patch.isMaximized === false || hasGeometry) {
+            if (this.isMinimized && (hasGeometry || this.isMaximized)) {
+                this.restore();
+            }
+            if (this.isMaximized) this.restore();
+        }
+
+        // A pinned window would otherwise keep showing the pin affordance
+        // while sitting on the rule's rectangle, and the next unpin would
+        // silently restore the pre-pin geometry over it.
+        if (hasGeometry) this.detachPin();
+
+        this.applyRuleSize(patch);
+        // Any geometry change re-clamps the anchor, not only an explicit
+        // x/y: growing a window that sits near an edge would otherwise leave
+        // far less than the 38 % updatePosition guarantees on screen.
+        if (hasGeometry) {
+            this.updatePosition(patch.x ?? this.x, patch.y ?? this.y);
+        }
+        if (patch.isKeepAbove !== undefined) {
+            this.isKeepAbove = patch.isKeepAbove;
+        }
+
+        this.saveState();
+        return true;
     }
 
     /** Returns data necessary to recreate this window in a new session. */
