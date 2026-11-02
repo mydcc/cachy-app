@@ -2,7 +2,7 @@
 id: FEAT-0772
 title: Prove the Apply-now button reacts to a newly focused window
 type: feature
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0770]
+assignee: opencode
+branch: test/feat-0772-apply-now-reactivity
 size: S
 estimate: 2
 ---
