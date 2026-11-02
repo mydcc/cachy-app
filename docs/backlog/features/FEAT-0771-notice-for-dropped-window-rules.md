@@ -2,7 +2,7 @@
 id: FEAT-0771
 title: Tell the user when stored window rules are dropped on load
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -94,3 +94,24 @@ implementation PR, not to this item.
 - `src/components/settings/tabs/VisualsLayout.svelte` — the Window rules section
 - `docs/backlog/features/FEAT-0743-window-rules.md` — the rules slice
 - PR #4463 — the trim that created the silent loss
+
+## State
+
+Implemented on `feature/feat-0771-rule-drop-notice`.
+
+The chain is `inspectWindowRules` (report) → `WINDOW_RULE_DROP_WIRE_KEY` in
+`persistenceSchema.ts` → the manager's `LoadTarget.set` → the leaf store
+`src/lib/windows/windowRuleDrops.svelte.ts` → the notice in
+`VisualsLayout.svelte`. The leaf imports nothing from the settings store, so
+the window layer keeps its one-way dependency.
+
+Two deliberate refinements to this item, both visible in the code:
+
+- **The report is transient, not just the dismissal.** After the surviving
+  rules are saved there is nothing left to report on the next start, so a
+  persisted flag would only add a schema row and suppress a later, different
+  trim. The acceptance criterion "dismissing persists across reloads" holds in
+  effect: a reload has nothing to show.
+- **Only a removed *type* is reported.** The sanitiser also rejects malformed
+  entries, but those were never rules the picker could have produced; naming
+  them would blame the user for a hand-edited payload.
