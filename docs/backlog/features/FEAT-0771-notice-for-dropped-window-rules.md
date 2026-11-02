@@ -2,7 +2,7 @@
 id: FEAT-0771
 title: Tell the user when stored window rules are dropped on load
 type: feature
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: A
 adr: none
 depends_on: [FEAT-0743]
+assignee: opencode
+branch: feature/feat-0771-rule-drop-notice
 size: S
 estimate: 2
 ---
