@@ -68,8 +68,6 @@
         news: "settings.windowRulesTypes.news",
         alertpanel: "settings.windowRulesTypes.alertpanel",
         controlcenter: "settings.windowRulesTypes.controlcenter",
-        channel: "settings.windowRulesTypes.channel",
-        iframe: "settings.windowRulesTypes.iframe",
         chatbox: "settings.windowRulesTypes.chatbox",
     };
 

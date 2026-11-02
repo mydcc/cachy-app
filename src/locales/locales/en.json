@@ -1706,10 +1706,8 @@
       "journal": "Journal",
       "academy": "Academy",
       "assistant": "Assistant",
-      "channel": "Channel",
       "alertpanel": "Alert panel",
-      "controlcenter": "Control center",
-      "iframe": "Embedded page"
+      "controlcenter": "Control center"
     },
     "stalePriceBadge": "Show stale price with badge",
     "stalePriceBadgeDesc": "When no price source is live, keep showing the last-known price with an unmissable STALE badge. Off means the PnL cell honestly shows unpriced instead.",

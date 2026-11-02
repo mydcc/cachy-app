@@ -221,7 +221,7 @@ describe("FEAT-0743 — window rules section", () => {
         expect(values).toContain("chart");
     });
 
-    it("does not list document readers in the type picker", () => {
+    it("does not list readers or content surfaces in the type picker", () => {
         render();
 
         const select = host.querySelector<HTMLSelectElement>(
@@ -230,13 +230,15 @@ describe("FEAT-0743 — window rules section", () => {
         if (!select) throw new Error("rule type select not rendered");
         const values = [...select.options].map((option) => option.value);
 
-        for (const reader of [
+        for (const unsupported of [
             "guide",
             "changelog",
             "privacy",
             "whitepaper",
+            "iframe",
+            "channel",
         ]) {
-            expect(values, reader).not.toContain(reader);
+            expect(values, unsupported).not.toContain(unsupported);
         }
         expect(values).toContain("chart");
     });

@@ -60,8 +60,8 @@ A first, deliberately small rules slice:
   rather than measured. A maximized rule wins over the x/y/width/height fields.
 - A rule that sets geometry (or says "not maximized") opens the window
   floating even when its snapshot was maximized; dimensions the rule does not
-  set fall back to the type's registry layout. Aspect-locked types (`chart`,
-  `channel`) size from the width, so the editor hides the height field there.
+  set fall back to the type's registry layout. Aspect-locked types (`chart`)
+  size from the width, so the editor hides the height field there.
 - Editing or disabling a rule affects the next open, not windows that are
   already open. There is no continuous "tiling window manager" enforcement, so
   a rule never fights a live drag. The rule's geometry becomes the window's

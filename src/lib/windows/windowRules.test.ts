@@ -82,6 +82,20 @@ describe("FEAT-0743 — rule matching", () => {
         }
     });
 
+    it("does not offer rules for content surfaces with no user-facing identity", () => {
+        // `iframe` article readers share the `news_article` snapshot key and
+        // `channel` ids are developer-supplied. A type-wide rule would cover
+        // every article or every 3D surface under an internal label.
+        for (const type of ["iframe", "channel"] as const) {
+            expect(isRuleTarget(type), type).toBe(false);
+            expect(WINDOW_RULE_TYPES).not.toContain(type);
+            expect(
+                sanitizeWindowRule({ windowType: type, enabled: true, x: 10 }),
+                type,
+            ).toBeNull();
+        }
+    });
+
     it("preselects a type that a real window is constructed with", () => {
         expect(WINDOW_RULE_TYPES[0]).toBe("journal");
     });

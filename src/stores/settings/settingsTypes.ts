@@ -293,8 +293,6 @@ export type WindowRuleType = Extract<
   | "news"
   | "alertpanel"
   | "controlcenter"
-  | "channel"
-  | "iframe"
   | "chatbox"
 >;
 

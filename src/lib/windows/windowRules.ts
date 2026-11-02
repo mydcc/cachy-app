@@ -47,6 +47,14 @@ import type {
  * handle, no maximize button, centred by default and full-screen on mobile.
  * A geometry rule for them would either be ignored or fight that layout, and
  * they are not surfaces a user arranges a workspace around.
+ *
+ * `iframe` and `channel` are excluded for a different reason: the picker can
+ * only name a *type*, and neither type has an identity a user recognises.
+ * Article readers are `iframe` windows with a generated id and the shared
+ * `news_article` snapshot key, so one rule would silently cover every article;
+ * channel windows are 16:9 content surfaces opened by a specific button, whose
+ * ids are developer-supplied. "Embedded page" and "Channel" are internal
+ * labels, not something a user would pick out of a layout menu.
  */
 export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "journal",
@@ -57,8 +65,6 @@ export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "news",
   "alertpanel",
   "controlcenter",
-  "channel",
-  "iframe",
   "chatbox",
 ]);
 
