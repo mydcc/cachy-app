@@ -51,6 +51,27 @@ vi.mock("../../../stores/settings.svelte", () => ({ settingsState: settingsMock 
 const uiMock = vi.hoisted(() => ({ showAssistant: false, toggleAssistant: vi.fn() }));
 vi.mock("../../../stores/ui.svelte", () => ({ uiState: uiMock }));
 
+/**
+ * FEAT-0770 — the apply target comes from the window manager, whose real
+ * singleton would need a live window graph. The editor only reads
+ * `lastActiveWindow`, so the mock is the whole contract.
+ */
+const windowManagerMock = vi.hoisted(() => ({
+    lastActiveWindow: null as null | {
+        id: string;
+        windowType: string;
+        symbol: string;
+        isKeepAbove?: boolean;
+        closeOnBlur?: boolean;
+        allowMaximize?: boolean;
+        applyRuleNow: (rule: unknown) => boolean;
+    },
+    restack: vi.fn(),
+}));
+vi.mock("../../../lib/windows/WindowManager.svelte", () => ({
+    windowManager: windowManagerMock,
+}));
+
 import { WINDOW_RULE_TYPES } from "../../../lib/windows/windowRules";
 import VisualsLayout from "./VisualsLayout.svelte";
 
@@ -67,6 +88,8 @@ beforeEach(() => {
     settingsMock.windowRules = [];
     settingsMock.favoriteSymbols = ["BTCUSDT", "ETHUSDT"];
     uiMock.showAssistant = false;
+    windowManagerMock.lastActiveWindow = null;
+    windowManagerMock.restack.mockClear();
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -556,5 +579,321 @@ describe("FEAT-0769 — per-instance chart rules", () => {
             host.querySelector("#window-rule-chart-BTCUSDT-symbol"),
         ).not.toBeNull();
         expect(host.querySelector("#window-rule-journal-symbol")).toBeNull();
+    });
+});
+
+describe("FEAT-0770 — Apply now", () => {
+    it("is disabled with a reason while no other window has been focused", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesApplyNoTarget"),
+        );
+    });
+
+    it("is disabled when the remembered window has another type", () => {
+        windowManagerMock.lastActiveWindow = {
+            id: "chart-target",
+            windowType: "chart",
+            symbol: "BTCUSDT",
+            applyRuleNow: vi.fn(() => true),
+        };
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesApplyNoMatch"),
+        );
+    });
+
+    it("applies the rule to the remembered window", () => {
+        const applyRuleNow = vi.fn(() => true);
+        windowManagerMock.lastActiveWindow = {
+            id: "apply-target",
+            windowType: "journal",
+            symbol: "",
+            applyRuleNow,
+        };
+        settingsMock.windowRules = [
+            { windowType: "journal", enabled: true, x: 120, y: 90 },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+        expect(apply.getAttribute("aria-disabled")).not.toBe("true");
+
+        apply.click();
+
+        expect(applyRuleNow).toHaveBeenCalledTimes(1);
+        expect(applyRuleNow.mock.calls[0][0]).toMatchObject({
+            windowType: "journal",
+            x: 120,
+            y: 90,
+        });
+    });
+
+    it("requires the scoped symbol to match the remembered window", () => {
+        windowManagerMock.lastActiveWindow = {
+            id: "chart-target",
+            windowType: "chart",
+            symbol: "ETHUSDT",
+            applyRuleNow: vi.fn(() => true),
+        };
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-chart-BTCUSDT-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+    });
+});
+
+describe("FEAT-0770 — refusals the button must report", () => {
+    it("refuses to apply a disabled rule and says why", () => {
+        windowManagerMock.lastActiveWindow = {
+            id: "apply-target",
+            windowType: "journal",
+            symbol: "",
+            applyRuleNow: vi.fn(() => true),
+        };
+        settingsMock.windowRules = [
+            { windowType: "journal", enabled: false, x: 120 },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesApplyEnableFirst"),
+        );
+    });
+
+    it("refuses a maximize rule for a type that cannot maximize", () => {
+        windowManagerMock.lastActiveWindow = {
+            id: "alert-target",
+            windowType: "alertpanel",
+            symbol: "",
+            allowMaximize: false,
+            applyRuleNow: vi.fn(() => true),
+        };
+        settingsMock.windowRules = [
+            { windowType: "alertpanel", enabled: true, isMaximized: true },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-alertpanel-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesApplyNoMaximize"),
+        );
+    });
+
+    it("points the disabled button at its reason", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+
+        const describedBy = apply.getAttribute("aria-describedby");
+        expect(describedBy).toBe("window-rule-journal-apply-reason");
+        expect(host.querySelector(`#${describedBy}`)?.textContent).toContain(
+            lookup("settings.windowRulesApplyNoTarget"),
+        );
+        // The name has to distinguish the cards, like the remove/enable ones.
+        expect(apply.getAttribute("aria-label")).toContain(
+            lookup("settings.windowRulesTypes.journal"),
+        );
+    });
+});
+
+describe("FEAT-0770 — keep-above re-stacking", () => {
+    it("re-bands the window when applying actually changed the flag", () => {
+        const target = {
+            id: "restack-target",
+            windowType: "journal",
+            symbol: "",
+            isKeepAbove: false,
+            applyRuleNow: vi.fn(() => {
+                target.isKeepAbove = true;
+                return true;
+            }),
+        };
+        windowManagerMock.lastActiveWindow = target;
+        settingsMock.windowRules = [
+            { windowType: "journal", enabled: true, isKeepAbove: true },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+        apply.click();
+
+        // The flag alone never moves a window between bands (FEAT-0742).
+        expect(windowManagerMock.restack).toHaveBeenCalledWith("restack-target");
+    });
+
+    it("re-bands the window when the rule turns keep-above off", () => {
+        const target = {
+            id: "restack-target",
+            windowType: "journal",
+            symbol: "",
+            isKeepAbove: true,
+            applyRuleNow: vi.fn(() => {
+                target.isKeepAbove = false;
+                return true;
+            }),
+        };
+        windowManagerMock.lastActiveWindow = target;
+        settingsMock.windowRules = [
+            { windowType: "journal", enabled: true, isKeepAbove: false },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+        apply.click();
+
+        expect(windowManagerMock.restack).toHaveBeenCalledWith("restack-target");
+    });
+
+    it("does not re-stack when the band did not change", () => {
+        windowManagerMock.lastActiveWindow = {
+            id: "restack-target",
+            windowType: "journal",
+            symbol: "",
+            isKeepAbove: false,
+            applyRuleNow: vi.fn(() => true),
+        };
+        settingsMock.windowRules = [
+            { windowType: "journal", enabled: true, isKeepAbove: false },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+        apply.click();
+
+        expect(windowManagerMock.restack).not.toHaveBeenCalled();
+    });
+});
+
+describe("FEAT-0770 — the button cannot be bypassed", () => {
+    it("does nothing when a disabled-looking button is clicked anyway", () => {
+        const applyRuleNow = vi.fn(() => true);
+        windowManagerMock.lastActiveWindow = {
+            id: "chart-target",
+            windowType: "chart",
+            symbol: "ETHUSDT",
+            applyRuleNow,
+        };
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+                x: 100,
+            },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-chart-BTCUSDT-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+
+        apply.click();
+
+        expect(applyRuleNow).not.toHaveBeenCalled();
+    });
+
+    it("refuses a rule that has nothing to apply and says why", () => {
+        windowManagerMock.lastActiveWindow = {
+            id: "apply-target",
+            windowType: "journal",
+            symbol: "",
+            applyRuleNow: vi.fn(() => true),
+        };
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesApplyNothing"),
+        );
+    });
+
+    it("shows the window's refusal when it rejects an otherwise valid rule", () => {
+        windowManagerMock.lastActiveWindow = {
+            id: "refusing-target",
+            windowType: "journal",
+            symbol: "",
+            applyRuleNow: vi.fn(() => false),
+        };
+        settingsMock.windowRules = [
+            { windowType: "journal", enabled: true, x: 120 },
+        ];
+        render();
+
+        const apply = host.querySelector<HTMLButtonElement>(
+            "#window-rule-journal-apply",
+        );
+        if (!apply) throw new Error("apply button not rendered");
+        expect(apply.getAttribute("aria-disabled")).not.toBe("true");
+
+        apply.click();
+        flushSync();
+
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesApplyRefused"),
+        );
+        expect(windowManagerMock.restack).not.toHaveBeenCalled();
     });
 });

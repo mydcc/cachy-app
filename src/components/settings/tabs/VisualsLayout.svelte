@@ -26,8 +26,11 @@
         hasSymbolRule,
         normalizeRuleSymbol,
         ruleKey,
+        ruleTargetsInstance,
         supportsSymbolScope,
+        windowRulePatch,
     } from "../../../lib/windows/windowRules";
+    import { windowManager } from "../../../lib/windows/WindowManager.svelte";
     import type { WindowRule, WindowRuleType } from "../../../stores/settings/settingsTypes";
     import type { TranslationKey } from "../../../locales/schema";
     import Toggle from "../../shared/Toggle.svelte";
@@ -232,6 +235,83 @@
         rule[key] = value;
     }
 
+    /**
+     * FEAT-0770 — the window "Apply now" would move. The manager tracks the
+     * last focused window that is not this settings window, because the editor
+     * itself is focused the moment the button is pressed.
+     */
+    const ruleTarget = $derived(windowManager.lastActiveWindow);
+
+    /** FEAT-0770 — the transient refusal after a press that the window rejected. */
+    let applyRefusal = $state<{ key: string; message: TranslationKey } | null>(
+        null,
+    );
+
+    /**
+     * Why "Apply now" cannot act on this rule right now, or `null` when it can.
+     *
+     * One predicate feeds both the button state and the reason it renders, so
+     * "enabled" and "explained" cannot disagree — and the refusal the window
+     * itself can return is part of the same decision instead of a silent
+     * no-op click.
+     */
+    function applyNowRefusal(rule: WindowRule): TranslationKey | null {
+        const target = ruleTarget;
+        // A disabled rule keeps its settings but does nothing; applying it
+        // behind the toggle's back would contradict the card.
+        if (!rule.enabled) return "settings.windowRulesApplyEnableFirst";
+        if (!target) return "settings.windowRulesApplyNoTarget";
+        if (!ruleTargetsInstance(rule, target.windowType, target.symbol)) {
+            return "settings.windowRulesApplyNoMatch";
+        }
+        if (rule.isMaximized === true && target.allowMaximize === false) {
+            return "settings.windowRulesApplyNoMaximize";
+        }
+        // The same patch the window builds: a rule whose fields are all
+        // "inherit" has nothing to apply, and an enabled button that does
+        // nothing is worse than an explained one.
+        const patch = windowRulePatch(rule, target.closeOnBlur === true);
+        if (
+            patch.isMaximized === undefined &&
+            patch.isKeepAbove === undefined &&
+            patch.x === undefined &&
+            patch.y === undefined &&
+            patch.width === undefined &&
+            patch.height === undefined
+        ) {
+            return "settings.windowRulesApplyNothing";
+        }
+        return null;
+    }
+
+    function canApplyNow(rule: WindowRule): boolean {
+        return applyNowRefusal(rule) === null;
+    }
+
+    function applyNow(rule: WindowRule) {
+        const target = ruleTarget;
+        if (!target || applyNowRefusal(rule) !== null) return;
+
+        const wasKeepAbove = target.isKeepAbove;
+        if (!target.applyRuleNow(rule)) {
+            applyRefusal = {
+                key: ruleKey(rule),
+                message: "settings.windowRulesApplyRefused",
+            };
+            return;
+        }
+        applyRefusal = null;
+
+        // FEAT-0742: the flag alone never moves a window between bands, and
+        // `bringToFront` would move focus to the target (and could sweep this
+        // editor window), so ask for a band-only re-stack instead. Only a real
+        // change needs it — keying off the rule field would pop the window for
+        // a "keep above: off" rule on a window that was already ordinary.
+        if (target.isKeepAbove !== wasKeepAbove) {
+            windowManager.restack(target.id);
+        }
+    }
+
     function typeClosesOnBlur(type: WindowRuleType): boolean {
         return windowRegistry.getConfig(type).flags.closeOnBlur === true;
     }
@@ -429,9 +509,10 @@
             </label>
         </div>
 
-        <!-- Window rules (FEAT-0743, scopes in FEAT-0769). One rule per window
-             type and scope: a chart may hold a type-wide rule plus one per
-             symbol. A rule only applies the next time that window opens. -->
+        <!-- Window rules (FEAT-0743, scopes in FEAT-0769, apply-now in FEAT-0770).
+             One rule per window type and scope: a chart may hold a type-wide
+             rule plus one per symbol. A rule applies on the next open, and
+             only "Apply now" touches a window that is already open. -->
         <div class="col-span-full border-t border-[var(--border-color)] pt-4">
             <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
                 {$_("settings.windowRulesTitle")}
@@ -451,6 +532,11 @@
                      scoped rule changes its key and would remount the card,
                      dropping focus and swallowing a click on a sibling. -->
                 {#each settingsState.windowRules as rule (rule)}
+                    {@const applyReason =
+                        applyNowRefusal(rule) ??
+                        (applyRefusal?.key === ruleKey(rule)
+                            ? applyRefusal.message
+                            : null)}
                     <fieldset class="rule-card">
                         <legend class="sr-only">
                             {ruleHeading(rule)}
@@ -694,6 +780,37 @@
                                 </label>
                             {/if}
                         </div>
+
+                        <!-- FEAT-0770 — explicit application to the window the
+                             user was working in. Nothing moves while a field is
+                             edited; only this button acts on a live window. -->
+                        <div class="flex items-center gap-2 flex-wrap mt-2">
+                            <!-- FEAT-0611 escape: inline action inside a rule card; the button primitive does not fit this row. -->
+                            <button
+                                type="button"
+                                id={`${ruleDomId(rule)}-apply`}
+                                class="rule-add"
+                                aria-disabled={!canApplyNow(rule)}
+                                aria-describedby={applyReason
+                                    ? `${ruleDomId(rule)}-apply-reason`
+                                    : undefined}
+                                aria-label={`${$_(
+                                    "settings.windowRulesApplyNow",
+                                )}: ${ruleHeading(rule)}`}
+                                onclick={() => applyNow(rule)}
+                            >
+                                {$_("settings.windowRulesApplyNow")}
+                            </button>
+                            {#if applyReason}
+                                <span
+                                    id={`${ruleDomId(rule)}-apply-reason`}
+                                    aria-live="polite"
+                                    class="text-[10px] text-[var(--text-secondary)]"
+                                >
+                                    {$_(applyReason)}
+                                </span>
+                            {/if}
+                        </div>
                     </fieldset>
                 {/each}
             </div>
@@ -868,10 +985,11 @@
         font-weight: var(--font-semibold);
         cursor: pointer;
     }
-    .rule-add:hover:not(:disabled) {
+    .rule-add:hover:not(:disabled):not([aria-disabled="true"]) {
         filter: brightness(1.06);
     }
-    .rule-add:disabled {
+    .rule-add:disabled,
+    .rule-add[aria-disabled="true"] {
         opacity: 0.5;
         cursor: not-allowed;
     }

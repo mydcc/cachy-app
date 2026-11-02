@@ -44,6 +44,17 @@ function openTestWindow() {
     return win;
 }
 
+function openTypedWindow(windowType: "chart" | "settings" | "modal") {
+    const win = new TestWindow({
+        id: `manager-target-${nextTestId++}`,
+        windowType,
+    });
+    win.allowMultipleInstances = true;
+    windowManager.open(win);
+    openedIds.push(win.id);
+    return win;
+}
+
 afterEach(() => {
     while (openedIds.length) {
         windowManager.close(openedIds.pop()!);
@@ -852,5 +863,88 @@ describe("BUG-0711 — a chart window's timeframe is persisted on change", () =>
         );
 
         storage.mockRestore();
+    });
+});
+
+describe("FEAT-0770 — apply-now target", () => {
+    it("remembers the most recently focused window, not the first one", () => {
+        const first = openTypedWindow("chart");
+        const second = openTypedWindow("chart");
+
+        windowManager.bringToFront(first.id);
+        windowManager.bringToFront(second.id);
+
+        expect(windowManager.lastActiveWindow).toBe(second);
+
+        windowManager.bringToFront(first.id);
+        expect(windowManager.lastActiveWindow).toBe(first);
+    });
+
+    it("ignores the settings window", () => {
+        const chart = openTypedWindow("chart");
+        windowManager.bringToFront(chart.id);
+
+        // Open the editor while the chart still exists: focusing it must not
+        // make the editor itself the target of an "Apply now".
+        const settings = openTypedWindow("settings");
+        expect(windowManager.isOpen(settings.id)).toBe(true);
+
+        expect(windowManager.lastActiveWindow).toBe(chart);
+    });
+
+    it("stays null until a non-settings window has been focused", () => {
+        const settings = openTypedWindow("settings");
+
+        windowManager.bringToFront(settings.id);
+
+        expect(windowManager.lastActiveWindow).toBeNull();
+    });
+
+    it("returns null once the remembered window is closed", () => {
+        const chart = openTypedWindow("chart");
+        windowManager.bringToFront(chart.id);
+
+        windowManager.close(chart.id);
+        openedIds.splice(openedIds.indexOf(chart.id), 1);
+
+        expect(windowManager.lastActiveWindow).toBeNull();
+    });
+});
+
+describe("FEAT-0770 — re-stacking and the apply target", () => {
+    it("moves a window between bands without moving focus", () => {
+        const chart = openTypedWindow("chart");
+        const other = openTypedWindow("chart");
+        windowManager.bringToFront(other.id);
+
+        chart.isKeepAbove = true;
+        windowManager.restack(chart.id);
+
+        expect(chart.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.windowKeepAbove);
+        // A re-stack must not steal focus: the button lives in another window.
+        expect(chart.isFocused).toBe(false);
+        expect(other.isFocused).toBe(true);
+
+        chart.isKeepAbove = false;
+        windowManager.restack(chart.id);
+
+        expect(chart.zIndex).toBeLessThan(Z_LAYERS.windowKeepAbove);
+    });
+
+    it("ignores a modal when remembering the apply target", () => {
+        const chart = openTypedWindow("chart");
+        const modal = openTypedWindow("modal");
+
+        windowManager.bringToFront(chart.id);
+        windowManager.bringToFront(modal.id);
+
+        // A modal is not a rule target; it must not displace the window the
+        // user was working in, or cancelling it would leave the action dead.
+        expect(windowManager.lastActiveWindow).toBe(chart);
+
+        windowManager.close(modal.id);
+        openedIds.splice(openedIds.indexOf(modal.id), 1);
+
+        expect(windowManager.lastActiveWindow).toBe(chart);
     });
 });

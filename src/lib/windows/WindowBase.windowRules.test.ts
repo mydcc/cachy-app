@@ -47,7 +47,13 @@ const VIEWPORT_HEIGHT = 900;
 
 let nextId = 0;
 
-type RuleWindowType = "journal" | "chart" | "news" | "settings" | "alertpanel";
+type RuleWindowType =
+    | "journal"
+    | "chart"
+    | "news"
+    | "settings"
+    | "alertpanel"
+    | "academy";
 
 function makeWindow(windowType: RuleWindowType = "journal") {
     return new TestWindow({ windowType, id: `rule-test-${nextId++}` });
@@ -460,5 +466,247 @@ describe("FEAT-0769 — per-instance rules on open", () => {
         });
 
         expect({ x: win.x, y: win.y }).toEqual({ x: 15, y: 25 });
+    });
+});
+
+describe("FEAT-0770 — Apply now on a live window", () => {
+    const liveWindow = (id: string) =>
+        new TestWindow({ windowType: "journal", id });
+
+    it("moves and resizes an open window through the clamp path", () => {
+        const win = liveWindow("apply-live-geometry");
+
+        expect(
+            win.applyRuleNow({
+                windowType: "journal",
+                enabled: true,
+                x: 200,
+                y: 150,
+                width: 500,
+                height: 400,
+            }),
+        ).toBe(true);
+
+        expect({ x: win.x, y: win.y, width: win.width, height: win.height }).toEqual({
+            x: 200,
+            y: 150,
+            width: 500,
+            height: 400,
+        });
+    });
+
+    it("never grows a window past the viewport", () => {
+        // `journal` opts into applyViewportClamp, which would cap the size even
+        // without the guard under test. Turn it off so only the rule clamp can
+        // answer, otherwise this test is green on the broken code.
+        const win = new TestWindow({
+            windowType: "academy",
+            id: "apply-live-clamp",
+        });
+        win.clampToViewport = false;
+
+        win.applyRuleNow({
+            windowType: "academy",
+            enabled: true,
+            width: VIEWPORT_WIDTH * 4,
+            height: VIEWPORT_HEIGHT * 4,
+        });
+
+        expect(win.width).toBe(VIEWPORT_WIDTH);
+        expect(win.height).toBe(VIEWPORT_HEIGHT);
+    });
+
+    it("keeps an aspect-locked window inside the viewport height", () => {
+        // updateSize derives the height from the width for chart windows and
+        // discards the value passed in, so a clamped height alone does not
+        // bound the rendered window.
+        Object.defineProperty(window, "innerHeight", {
+            value: 400,
+            writable: true,
+            configurable: true,
+        });
+        const win = new TestWindow({
+            windowType: "chart",
+            id: "apply-live-aspect",
+        });
+
+        win.applyRuleNow({
+            windowType: "chart",
+            enabled: true,
+            width: VIEWPORT_WIDTH,
+            height: 400,
+        });
+
+        expect(win.height).toBeLessThanOrEqual(400);
+        expect(win.width).toBeLessThanOrEqual(VIEWPORT_WIDTH);
+    });
+
+    it("leaves a window alone when the rule has nothing to apply yet", () => {
+        // A freshly added rule is `{ windowType, enabled }`: pressing Apply now
+        // on that card must not un-maximize the window or rewrite its snapshot.
+        localStorage.setItem(
+            "cachy_win_apply-live-empty",
+            JSON.stringify({ x: 10, y: 20, width: 400, height: 300 }),
+        );
+        const win = liveWindow("apply-live-empty");
+        win.maximize();
+        const stored = localStorage.getItem("cachy_win_apply-live-empty");
+        const before = {
+            x: win.x,
+            y: win.y,
+            width: win.width,
+            height: win.height,
+            isMaximized: win.isMaximized,
+        };
+
+        expect(win.applyRuleNow({ windowType: "journal", enabled: true })).toBe(
+            true,
+        );
+
+        expect({
+            x: win.x,
+            y: win.y,
+            width: win.width,
+            height: win.height,
+            isMaximized: win.isMaximized,
+        }).toEqual(before);
+        expect(localStorage.getItem("cachy_win_apply-live-empty")).toBe(stored);
+    });
+
+    it("re-clamps the anchor when the rule only changes the size", () => {
+        // Growing a window that sits near the right edge must not leave less
+        // than the 38 % visibility updatePosition guarantees.
+        const win = liveWindow("apply-live-size-only");
+        win.x = 1000;
+        win.width = 400;
+        win.height = 300;
+
+        win.applyRuleNow({
+            windowType: "journal",
+            enabled: true,
+            width: VIEWPORT_WIDTH,
+        });
+
+        const visible =
+            Math.min(VIEWPORT_WIDTH, win.x + win.width) - Math.max(0, win.x);
+        expect(visible).toBeGreaterThanOrEqual(win.width * 0.38);
+    });
+
+    it("leaves an already unmaximized window minimized when the rule only declines maximize", () => {
+        const win = liveWindow("apply-live-minimized-keep");
+        win.isMinimized = true;
+
+        win.applyRuleNow({
+            windowType: "journal",
+            enabled: true,
+            isMaximized: false,
+        });
+
+        // The rule asked that the window not be maximized; it already was not.
+        expect(win.isMinimized).toBe(true);
+    });
+
+    it("leaves the fields the rule does not set alone", () => {
+        localStorage.setItem(
+            "cachy_win_apply-live-partial",
+            JSON.stringify({ x: 10, y: 20, width: 400, height: 300 }),
+        );
+        const win = liveWindow("apply-live-partial");
+
+        win.applyRuleNow({ windowType: "journal", enabled: true, x: 250 });
+
+        expect({ x: win.x, y: win.y, width: win.width, height: win.height }).toEqual({
+            x: 250,
+            y: 20,
+            width: 400,
+            height: 300,
+        });
+    });
+
+    it("maximizes, and a later rule brings the window back to floating", () => {
+        const win = liveWindow("apply-live-maximize");
+
+        win.applyRuleNow({ windowType: "journal", enabled: true, isMaximized: true });
+        expect(win.isMaximized).toBe(true);
+        expect({ width: win.width, height: win.height }).toEqual({
+            width: VIEWPORT_WIDTH,
+            height: VIEWPORT_HEIGHT,
+        });
+
+        win.applyRuleNow({
+            windowType: "journal",
+            enabled: true,
+            isMaximized: false,
+            width: 600,
+            height: 420,
+        });
+
+        expect(win.isMaximized).toBe(false);
+        expect({ width: win.width, height: win.height }).toEqual({
+            width: 600,
+            height: 420,
+        });
+    });
+
+    it("sets and clears the keep-above flag", () => {
+        const win = liveWindow("apply-live-keepabowe");
+
+        win.applyRuleNow({ windowType: "journal", enabled: true, isKeepAbove: true });
+        expect(win.isKeepAbove).toBe(true);
+
+        win.applyRuleNow({ windowType: "journal", enabled: true, isKeepAbove: false });
+        expect(win.isKeepAbove).toBe(false);
+    });
+
+    it("never lifts a close-on-blur window above everything", () => {
+        const win = liveWindow("apply-live-closeonblur");
+        win.closeOnBlur = true;
+
+        win.applyRuleNow({ windowType: "journal", enabled: true, isKeepAbove: true });
+
+        expect(win.isKeepAbove).toBe(false);
+    });
+
+    it("refuses a rule for another window type and moves nothing", () => {
+        const win = liveWindow("apply-live-wrong-type");
+        const before = { x: win.x, y: win.y };
+
+        expect(
+            win.applyRuleNow({ windowType: "chart", enabled: true, x: 400, y: 400 }),
+        ).toBe(false);
+        expect({ x: win.x, y: win.y }).toEqual(before);
+    });
+
+    it("writes the applied geometry to the snapshot immediately", () => {
+        const win = liveWindow("apply-live-snapshot");
+
+        win.applyRuleNow({
+            windowType: "journal",
+            enabled: true,
+            x: 210,
+            y: 160,
+            width: 520,
+            height: 360,
+        });
+
+        const saved = JSON.parse(
+            localStorage.getItem("cachy_win_apply-live-snapshot") ?? "{}",
+        );
+        expect({
+            x: saved.x,
+            y: saved.y,
+            width: saved.width,
+            height: saved.height,
+        }).toEqual({ x: 210, y: 160, width: 520, height: 360 });
+    });
+
+    it("brings a minimized window back before applying", () => {
+        const win = liveWindow("apply-live-minimized");
+        win.isMinimized = true;
+
+        win.applyRuleNow({ windowType: "journal", enabled: true, x: 220, y: 170 });
+
+        expect(win.isMinimized).toBe(false);
+        expect({ x: win.x, y: win.y }).toEqual({ x: 220, y: 170 });
     });
 });

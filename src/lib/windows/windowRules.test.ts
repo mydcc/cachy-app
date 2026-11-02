@@ -23,6 +23,7 @@ import {
     isRuleTarget,
     normalizeRuleSymbol,
     ruleKey,
+    ruleTargetsInstance,
     sanitizeWindowRule,
     sanitizeWindowRules,
     supportsSymbolScope,
@@ -400,5 +401,25 @@ describe("FEAT-0769 — rule identity helpers", () => {
         for (const type of WINDOW_RULE_TYPES.filter((entry) => entry !== "chart")) {
             expect(supportsSymbolScope(type), type).toBe(false);
         }
+    });
+});
+
+describe("FEAT-0770 — apply-now targeting", () => {
+    it("matches a type-wide rule against any instance of its type", () => {
+        const rules = chartRule(undefined);
+
+        expect(ruleTargetsInstance(rules, "chart", "BTCUSDT")).toBe(true);
+        expect(ruleTargetsInstance(rules, "chart", "")).toBe(true);
+        expect(ruleTargetsInstance(rules, "journal", "")).toBe(false);
+    });
+
+    it("requires the window to carry the scoped symbol", () => {
+        const rules = chartRule("BTCUSDT");
+
+        expect(ruleTargetsInstance(rules, "chart", "BTCUSDT")).toBe(true);
+        // Canonicalised like the match itself, so "btc" is the same chart.
+        expect(ruleTargetsInstance(rules, "chart", "btc")).toBe(true);
+        expect(ruleTargetsInstance(rules, "chart", "ETHUSDT")).toBe(false);
+        expect(ruleTargetsInstance(rules, "chart", undefined)).toBe(false);
     });
 });
