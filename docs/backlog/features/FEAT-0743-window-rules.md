@@ -88,8 +88,8 @@ A first, deliberately small rules slice:
 - [x] A rule setting `isMaximized` opens the window maximized and ignores its
       x/y/width/height fields.
 - [x] A rule setting `isKeepAbove` opens the window in the keep-above band;
-      the control is not offered for a close-on-blur target and the open path
-      ignores the flag there.
+      for a close-on-blur target the flag is not applied (`windowRulePatch`
+      drops it), so a hand-edited payload cannot contradict the window.
 - [x] Rule geometry is clamped to the viewport by the same path as a drag.
 - [x] Two instances of a multi-instance type receive the same rule on open.
       (Amended by FEAT-0769: two charts with different scoped rules each get
@@ -127,9 +127,8 @@ These were the open questions; they are settled for this slice:
 - **Pixels, not viewport fractions.** Geometry stays in absolute CSS pixels.
   Fractions would survive monitor changes better, but need a resize policy
   that is its own slice. A rule that no longer fits is clamped on open.
-- **Multi-instance types accept the overlap.** Two charts — or two news
-  windows when news could still carry a rule — that match the same rule open
-  at the same coordinates. Cascading
+- **Multi-instance types accept the overlap.** Two charts that match the same
+  rule open at the same coordinates. Cascading
   the second instance would need a per-instance ordinal and reword this
   item's acceptance criterion; rules for per-instance storage keys are out
   of scope. Charts gained a symbol scope in FEAT-0769 (`match`) — a different

@@ -733,33 +733,33 @@
                             {/if}
 
                             <label class="field-group">
-                                    <span>{$_("settings.windowRulesKeepAbove")}</span>
-                                    <select
-                                        id={`${ruleDomId(rule)}-keepabove`}
-                                        class="input-field"
-                                        value={rule.isKeepAbove === undefined
-                                            ? ""
-                                            : rule.isKeepAbove
-                                              ? "on"
-                                              : "off"}
-                                        onchange={(e) => {
-                                            const value = (
-                                                e.currentTarget as HTMLSelectElement
-                                            ).value;
-                                            if (!value) delete rule.isKeepAbove;
-                                            else rule.isKeepAbove = value === "on";
-                                        }}
-                                    >
-                                        <option value="">
-                                            {$_("settings.windowRulesInherit")}
-                                        </option>
-                                        <option value="on">
-                                            {$_("settings.windowRulesKeepAboveOn")}
-                                        </option>
-                                        <option value="off">
-                                            {$_("settings.windowRulesKeepAboveOff")}
-                                        </option>
-                                    </select>
+                                <span>{$_("settings.windowRulesKeepAbove")}</span>
+                                <select
+                                    id={`${ruleDomId(rule)}-keepabove`}
+                                    class="input-field"
+                                    value={rule.isKeepAbove === undefined
+                                        ? ""
+                                        : rule.isKeepAbove
+                                          ? "on"
+                                          : "off"}
+                                    onchange={(e) => {
+                                        const value = (
+                                            e.currentTarget as HTMLSelectElement
+                                        ).value;
+                                        if (!value) delete rule.isKeepAbove;
+                                        else rule.isKeepAbove = value === "on";
+                                    }}
+                                >
+                                    <option value="">
+                                        {$_("settings.windowRulesInherit")}
+                                    </option>
+                                    <option value="on">
+                                        {$_("settings.windowRulesKeepAboveOn")}
+                                    </option>
+                                    <option value="off">
+                                        {$_("settings.windowRulesKeepAboveOff")}
+                                    </option>
+                                </select>
                             </label>
                         </div>
 

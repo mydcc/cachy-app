@@ -1579,16 +1579,16 @@ describe("FEAT-0738 — tiling regressions", () => {
         // back/forward gesture. The page must not consume either key, so the
         // app shortcut needs Shift as well.
         for (const key of ["ArrowLeft", "ArrowRight"]) {
-            window.dispatchEvent(
-                new KeyboardEvent("keydown", {
-                    key,
-                    altKey: true,
-                    bubbles: true,
-                    cancelable: true,
-                }),
-            );
+            const event = new KeyboardEvent("keydown", {
+                key,
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            });
+            window.dispatchEvent(event);
             flushSync();
             expect(win.isPinned, key).toBe(false);
+            expect(event.defaultPrevented, key).toBe(false);
         }
 
         const input = document.createElement("input");

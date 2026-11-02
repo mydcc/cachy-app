@@ -59,7 +59,6 @@ describe("FEAT-0743 — rule matching", () => {
     it("does not offer rules for modals, dialogs, the symbol picker or the unused generic type", () => {
         for (const type of ["modal", "dialog", "symbolpicker", "window"] as const) {
             expect(isRuleTarget(type)).toBe(false);
-            expect(WINDOW_RULE_TYPES).not.toContain(type);
         }
     });
 

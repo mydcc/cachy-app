@@ -252,6 +252,9 @@ describe("FEAT-0743 — rule application on open", () => {
 
         const win = makeWindow("academy");
 
+        // The title's premise: academy does not opt into the drag clamp, so
+        // the only thing that can produce the viewport bound is applyRuleSize.
+        expect(win.clampToViewport).toBe(false);
         expect(win.width).toBe(VIEWPORT_WIDTH);
         expect(win.height).toBe(VIEWPORT_HEIGHT);
     });

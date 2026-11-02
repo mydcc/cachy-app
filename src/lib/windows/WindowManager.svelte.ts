@@ -76,12 +76,13 @@ class WindowManager {
     private _windows = $state<WindowBase[]>([]);
 
     /**
-     * FEAT-0770 — the last window focused that is not the settings window.
+     * FEAT-0770 — the last focused window that can carry a rule.
      *
-     * The window-rules editor lives inside the settings window, so by the time
-     * a user presses "Apply now" the focused window *is* the editor. Tracking
-     * the last other one keeps the action meaning "apply to the window I was
-     * working in" instead of "apply to the editor", which matches no rule.
+     * `isRuleTarget` decides that, which excludes the settings editor and the
+     * reader/content types. The editor matters most: it hosts the rules UI, so
+     * by the time a user presses "Apply now" the focused window *is* the
+     * editor. Tracking the last other one keeps the action meaning "apply to
+     * the window I was working in" instead of "apply to the editor".
      */
     private _lastActiveWindowId = $state<string | null>(null);
     /** Internal counter for global stacking order. Incremented on every focus event. */
