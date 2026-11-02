@@ -59,7 +59,45 @@ describe("FEAT-0743 — rule matching", () => {
     it("does not offer rules for modals, dialogs, the symbol picker or the unused generic type", () => {
         for (const type of ["modal", "dialog", "symbolpicker", "window"] as const) {
             expect(isRuleTarget(type)).toBe(false);
-            expect(WINDOW_RULE_TYPES).not.toContain(type);
+        }
+    });
+
+    it("does not offer rules for document readers", () => {
+        // Readers are navigation destinations: no resize handle, no visible
+        // maximize control, centred, full-screen on mobile. They are not
+        // surfaces a user arranges a workspace around.
+        for (const type of [
+            "guide",
+            "changelog",
+            "privacy",
+            "whitepaper",
+        ] as const) {
+            expect(isRuleTarget(type), type).toBe(false);
+            expect(
+                sanitizeWindowRule({ windowType: type, enabled: true, x: 10 }),
+                type,
+            ).toBeNull();
+        }
+    });
+
+    it("does not offer rules for the settings editor itself", () => {
+        expect(isRuleTarget("settings")).toBe(false);
+        expect(
+            sanitizeWindowRule({ windowType: "settings", enabled: true, x: 10 }),
+        ).toBeNull();
+    });
+
+    it("does not offer rules for content surfaces with no user-facing identity", () => {
+        // `news` is the market-news reader; `iframe` article readers share the
+        // `news_article` snapshot key; `channel` ids are developer-supplied.
+        // A type-wide rule would cover every article or 3D surface under an
+        // internal label.
+        for (const type of ["iframe", "channel", "news"] as const) {
+            expect(isRuleTarget(type), type).toBe(false);
+            expect(
+                sanitizeWindowRule({ windowType: type, enabled: true, x: 10 }),
+                type,
+            ).toBeNull();
         }
     });
 

@@ -60,8 +60,8 @@ A first, deliberately small rules slice:
   rather than measured. A maximized rule wins over the x/y/width/height fields.
 - A rule that sets geometry (or says "not maximized") opens the window
   floating even when its snapshot was maximized; dimensions the rule does not
-  set fall back to the type's registry layout. Aspect-locked types (`chart`,
-  `channel`) size from the width, so the editor hides the height field there.
+  set fall back to the type's registry layout. Aspect-locked types (`chart`)
+  size from the width, so the editor hides the height field there.
 - Editing or disabling a rule affects the next open, not windows that are
   already open. There is no continuous "tiling window manager" enforcement, so
   a rule never fights a live drag. The rule's geometry becomes the window's
@@ -88,8 +88,8 @@ A first, deliberately small rules slice:
 - [x] A rule setting `isMaximized` opens the window maximized and ignores its
       x/y/width/height fields.
 - [x] A rule setting `isKeepAbove` opens the window in the keep-above band;
-      the control is not offered for a close-on-blur target and the open path
-      ignores the flag there.
+      for a close-on-blur target the flag is not applied (`windowRulePatch`
+      drops it), so a hand-edited payload cannot contradict the window.
 - [x] Rule geometry is clamped to the viewport by the same path as a drag.
 - [x] Two instances of a multi-instance type receive the same rule on open.
       (Amended by FEAT-0769: two charts with different scoped rules each get
@@ -111,10 +111,10 @@ A first, deliberately small rules slice:
   desktop/screen, fullscreen and window-type overrides.
 - Rules that follow a window across monitors.
 - Per-instance rules for `news` and `iframe`: **charts are covered by
-  FEAT-0769**. These stay deferred because neither type has a per-instance
-  identity a rule could name — `news` is a singleton, and article readers are
-  `iframe` windows with a generated id and one shared `news_article` snapshot
-  key.
+  FEAT-0769**. These are no longer rule targets at all (the reader/content
+  surfaces left the list); when they were, neither had a per-instance identity
+  a rule could name — `news` is a singleton, and article readers are `iframe`
+  windows with a generated id and one shared `news_article` snapshot key.
 - Applying a rule to already-open windows when it is edited.
 - Continuous enforcement on focus, move, resize or viewport change.
 - Rules for modals, dialogs, the symbol picker or minimized dock tiles.
@@ -127,8 +127,8 @@ These were the open questions; they are settled for this slice:
 - **Pixels, not viewport fractions.** Geometry stays in absolute CSS pixels.
   Fractions would survive monitor changes better, but need a resize policy
   that is its own slice. A rule that no longer fits is clamped on open.
-- **Multi-instance types accept the overlap.** Two charts or two news
-  windows that match the same rule open at the same coordinates. Cascading
+- **Multi-instance types accept the overlap.** Two charts that match the same
+  rule open at the same coordinates. Cascading
   the second instance would need a per-instance ordinal and reword this
   item's acceptance criterion; rules for per-instance storage keys are out
   of scope. Charts gained a symbol scope in FEAT-0769 (`match`) — a different
@@ -143,10 +143,11 @@ These were the open questions; they are settled for this slice:
   the rule does not set with the type's registry layout and runs normal
   placement. `restore()` after a live maximize still uses the geometry the
   window had before that maximize.
-- **Keep-above is hidden for close-on-blur targets.** The rule UI omits the
-  keep-above control when the selected `windowType` has `closeOnBlur`, the
-  same rule the window header follows. The open path also refuses to lift
-  such a window, so a hand-edited payload cannot create the contradiction.
+- **Keep-above is refused for close-on-blur targets.** No rule target is
+  close-on-blur today (`settings` has left the list), so the editor always
+  offers the control. The model guard stays: `windowRulePatch` drops the flag
+  for a future close-on-blur target, and the open path refuses to lift such a
+  window, so a hand-edited payload cannot create the contradiction.
 
 ## Links
 

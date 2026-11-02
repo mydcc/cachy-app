@@ -241,11 +241,14 @@
      * window; `handleFocusIn` raises it when a child is focused, and typing
      * targets keep their native Option/Alt+Arrow behaviour.
      *
-     * A perpendicular arrow refines a half into a corner; an arrow on a
-     * corner collapses it back to the half on that axis (FEAT-0738).
+     * Alt alone is not enough: on Windows and Linux, Alt+ArrowLeft/Right is
+     * the browser's back/forward gesture and is not reliably cancelable from a
+     * page, so the app modifier is Alt+Shift. A perpendicular arrow refines a half into a
+     * corner; an arrow on a corner collapses it back to the half on that axis
+     * (FEAT-0738).
      */
     function handleFrameKeydown(e: KeyboardEvent) {
-        if (!e.altKey) return;
+        if (!e.altKey || !e.shiftKey) return;
         const direction: SnapDirection | null =
             e.key === "ArrowLeft"
                 ? "left"
@@ -913,7 +916,7 @@
 <div
     bind:this={frameEl}
     class={extraClasses}
-    aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown"
+    aria-keyshortcuts="Alt+Shift+ArrowLeft Alt+Shift+ArrowRight Alt+Shift+ArrowUp Alt+Shift+ArrowDown"
     data-window-id={win.id}
     tabindex="-1"
     onfocusin={handleFocusIn}

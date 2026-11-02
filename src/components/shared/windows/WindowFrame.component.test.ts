@@ -446,10 +446,10 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
         const frame = host!.querySelector<HTMLElement>(".window-frame");
         expect(frame).not.toBeNull();
         expect(frame!.getAttribute("aria-keyshortcuts")).toContain(
-            "Alt+ArrowRight",
+            "Alt+Shift+ArrowRight",
         );
         expect(frame!.getAttribute("aria-keyshortcuts")).toContain(
-            "Alt+ArrowUp",
+            "Alt+Shift+ArrowUp",
         );
         expect(
             frame!
@@ -457,10 +457,10 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
                 .split(/\s+/)
                 .sort(),
         ).toEqual([
-            "Alt+ArrowDown",
-            "Alt+ArrowLeft",
-            "Alt+ArrowRight",
-            "Alt+ArrowUp",
+            "Alt+Shift+ArrowDown",
+            "Alt+Shift+ArrowLeft",
+            "Alt+Shift+ArrowRight",
+            "Alt+Shift+ArrowUp",
         ]);
 
         win.isFocused = true;
@@ -469,6 +469,7 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowRight",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -483,6 +484,7 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowUp",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -497,6 +499,7 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowUp",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -508,6 +511,7 @@ describe("FEAT-0616 — magnetic edge snapping", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowLeft",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -1556,7 +1560,7 @@ describe("FEAT-0738 — tiling regressions", () => {
         expect(frame.classList.contains(`pinned-${zone}`)).toBe(false);
     });
 
-    it("ignores an arrow without Alt and an Alt+Arrow from a typing target", () => {
+    it("leaves plain arrows, browser Alt+Arrows and typing targets alone", () => {
         const { win } = mountFrame();
         win.isFocused = true;
         flushSync();
@@ -1571,12 +1575,29 @@ describe("FEAT-0738 — tiling regressions", () => {
         flushSync();
         expect(win.isPinned).toBe(false);
 
+        // On Windows and Linux Alt+ArrowLeft/Right is the browser's
+        // back/forward gesture. The page must not consume either key, so the
+        // app shortcut needs Shift as well.
+        for (const key of ["ArrowLeft", "ArrowRight"]) {
+            const event = new KeyboardEvent("keydown", {
+                key,
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            });
+            window.dispatchEvent(event);
+            flushSync();
+            expect(win.isPinned, key).toBe(false);
+            expect(event.defaultPrevented, key).toBe(false);
+        }
+
         const input = document.createElement("input");
         host!.appendChild(input);
         input.dispatchEvent(
             new KeyboardEvent("keydown", {
                 key: "ArrowRight",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -1594,6 +1615,7 @@ describe("FEAT-0738 — tiling regressions", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowRight",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -1607,6 +1629,7 @@ describe("FEAT-0738 — tiling regressions", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowRight",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -1625,6 +1648,7 @@ describe("FEAT-0738 — tiling regressions", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowLeft",
                 altKey: true,
+                shiftKey: true,
                 bubbles: true,
                 cancelable: true,
             }),
@@ -1636,6 +1660,7 @@ describe("FEAT-0738 — tiling regressions", () => {
             new KeyboardEvent("keydown", {
                 key: "ArrowUp",
                 altKey: true,
+                shiftKey: true,
                 repeat: true,
                 bubbles: true,
                 cancelable: true,

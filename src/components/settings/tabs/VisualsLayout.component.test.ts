@@ -221,6 +221,30 @@ describe("FEAT-0743 — window rules section", () => {
         expect(values).toContain("chart");
     });
 
+    it("does not list readers or content surfaces in the type picker", () => {
+        render();
+
+        const select = host.querySelector<HTMLSelectElement>(
+            "#window-rule-add-type",
+        );
+        if (!select) throw new Error("rule type select not rendered");
+        const values = [...select.options].map((option) => option.value);
+
+        for (const unsupported of [
+            "guide",
+            "changelog",
+            "privacy",
+            "whitepaper",
+            "iframe",
+            "channel",
+            "settings",
+            "news",
+        ]) {
+            expect(values, unsupported).not.toContain(unsupported);
+        }
+        expect(values).toContain("chart");
+    });
+
     it("removes a rule", () => {
         settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
         render();
@@ -235,18 +259,6 @@ describe("FEAT-0743 — window rules section", () => {
         remove.click();
 
         expect(settingsMock.windowRules).toEqual([]);
-    });
-
-    it("does not offer keep-above for a close-on-blur type", () => {
-        settingsMock.windowRules = [{ windowType: "settings", enabled: true }];
-        render();
-
-        expect(host.textContent).not.toContain(
-            lookup("settings.windowRulesKeepAboveOn"),
-        );
-        expect(host.textContent).toContain(
-            lookup("settings.windowRulesKeepAboveUnavailable"),
-        );
     });
 
     it("offers keep-above for a normal window type", () => {

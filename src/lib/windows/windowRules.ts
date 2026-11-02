@@ -41,23 +41,35 @@ import type {
  * centre-fixed surfaces with no layout worth restoring. `window` is excluded
  * too — it is the base class's default type, but no implementation is ever
  * constructed with it, so a rule there could never match.
+ *
+ * The reader class (`guide`, `changelog`, `privacy`, `whitepaper`) is also
+ * excluded. They are navigation destinations with no resize handle and no
+ * visible maximize control, centred by default and full-screen on mobile —
+ * not surfaces a user arranges a workspace around.
+ *
+ * `settings` is excluded too: it hosts this editor and dismisses itself on
+ * blur. A rule could still place, resize or maximize it through the same
+ * programmatic path as any window, but the editor is not a workspace the user
+ * is arranging, and keep-above is meaningless for a window that closes on
+ * blur. `news` is the market-news reader: a content surface opened from the
+ * dashboard, not a tool whose place in the workspace a rule should fix.
+ *
+ * `iframe` and `channel` are excluded for a different reason: the picker can
+ * only name a *type*, and neither type has an identity a user recognises.
+ * Article readers are `iframe` windows with a generated id and the shared
+ * `news_article` snapshot key, so one rule would silently cover every article;
+ * channel windows are 16:9 content surfaces opened by a specific button, whose
+ * ids are developer-supplied. "Embedded page" and "Channel" are internal
+ * labels, not something a user would pick out of a layout menu.
  */
 export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "journal",
   "chart",
   "academy",
   "assistant",
-  "settings",
-  "news",
   "alertpanel",
   "controlcenter",
-  "channel",
-  "iframe",
   "chatbox",
-  "guide",
-  "changelog",
-  "privacy",
-  "whitepaper",
 ]);
 
 /**
@@ -91,11 +103,10 @@ export function isRuleTarget(type: WindowType): type is WindowRuleType {
  * Window types whose rules may be narrowed to a single instance (FEAT-0769).
  *
  * Only `chart`: its instances are told apart by the symbol they were
- * constructed with, which is also the identity a trader thinks in. The other
- * multi-instance types have no per-instance identity a rule could name: `news`
- * is the singleton market-news window, article readers are `iframe` windows
- * with a generated id and one shared `news_article` snapshot key, and
- * `channel` ids are developer-supplied.
+ * constructed with, which is also the identity a trader thinks in. The
+ * remaining rule targets are either single-instance or have no per-instance
+ * identity a user could name — the types that carried an instance key a user
+ * cannot read (`iframe`, `channel`) are not rule targets at all.
  */
 export const SYMBOL_SCOPED_RULE_TYPES: readonly WindowRuleType[] =
   Object.freeze(["chart"]);

@@ -42,7 +42,8 @@ rule without a scope keeps today's meaning (every instance of its type).
   multi-instance types have no per-instance identity a rule could name: `news`
   is the singleton market-news window, article readers are `iframe` windows with
   a generated id and one shared `news_article` snapshot key, and `channel` ids
-  are developer-supplied.
+  are developer-supplied. (`news`, `iframe` and `channel` have since left the
+  rule-target list entirely; the chart scope is the only one left.)
 - **Identity is the opened symbol.** `WindowBase` captures the constructor
   symbol before `restoreState()` can rewrite `symbol` from a snapshot, so a
   stale or hand-edited snapshot cannot select a different rule.

@@ -64,17 +64,9 @@
         chart: "settings.windowRulesTypes.chart",
         academy: "settings.windowRulesTypes.academy",
         assistant: "settings.windowRulesTypes.assistant",
-        settings: "settings.windowRulesTypes.settings",
-        news: "settings.windowRulesTypes.news",
         alertpanel: "settings.windowRulesTypes.alertpanel",
         controlcenter: "settings.windowRulesTypes.controlcenter",
-        channel: "settings.windowRulesTypes.channel",
-        iframe: "settings.windowRulesTypes.iframe",
         chatbox: "settings.windowRulesTypes.chatbox",
-        guide: "settings.windowRulesTypes.guide",
-        changelog: "settings.windowRulesTypes.changelog",
-        privacy: "settings.windowRulesTypes.privacy",
-        whitepaper: "settings.windowRulesTypes.whitepaper",
     };
 
     const availableTypes = $derived(availableRuleTypes(settingsState.windowRules));
@@ -310,10 +302,6 @@
         if (target.isKeepAbove !== wasKeepAbove) {
             windowManager.restack(target.id);
         }
-    }
-
-    function typeClosesOnBlur(type: WindowRuleType): boolean {
-        return windowRegistry.getConfig(type).flags.closeOnBlur === true;
     }
 
     function typeAllowsMaximize(type: WindowRuleType): boolean {
@@ -744,41 +732,35 @@
                                 </label>
                             {/if}
 
-                            {#if typeClosesOnBlur(rule.windowType)}
-                                <p class="text-[10px] text-[var(--text-secondary)] self-end">
-                                    {$_("settings.windowRulesKeepAboveUnavailable")}
-                                </p>
-                            {:else}
-                                <label class="field-group">
-                                    <span>{$_("settings.windowRulesKeepAbove")}</span>
-                                    <select
-                                        id={`${ruleDomId(rule)}-keepabove`}
-                                        class="input-field"
-                                        value={rule.isKeepAbove === undefined
-                                            ? ""
-                                            : rule.isKeepAbove
-                                              ? "on"
-                                              : "off"}
-                                        onchange={(e) => {
-                                            const value = (
-                                                e.currentTarget as HTMLSelectElement
-                                            ).value;
-                                            if (!value) delete rule.isKeepAbove;
-                                            else rule.isKeepAbove = value === "on";
-                                        }}
-                                    >
-                                        <option value="">
-                                            {$_("settings.windowRulesInherit")}
-                                        </option>
-                                        <option value="on">
-                                            {$_("settings.windowRulesKeepAboveOn")}
-                                        </option>
-                                        <option value="off">
-                                            {$_("settings.windowRulesKeepAboveOff")}
-                                        </option>
-                                    </select>
-                                </label>
-                            {/if}
+                            <label class="field-group">
+                                <span>{$_("settings.windowRulesKeepAbove")}</span>
+                                <select
+                                    id={`${ruleDomId(rule)}-keepabove`}
+                                    class="input-field"
+                                    value={rule.isKeepAbove === undefined
+                                        ? ""
+                                        : rule.isKeepAbove
+                                          ? "on"
+                                          : "off"}
+                                    onchange={(e) => {
+                                        const value = (
+                                            e.currentTarget as HTMLSelectElement
+                                        ).value;
+                                        if (!value) delete rule.isKeepAbove;
+                                        else rule.isKeepAbove = value === "on";
+                                    }}
+                                >
+                                    <option value="">
+                                        {$_("settings.windowRulesInherit")}
+                                    </option>
+                                    <option value="on">
+                                        {$_("settings.windowRulesKeepAboveOn")}
+                                    </option>
+                                    <option value="off">
+                                        {$_("settings.windowRulesKeepAboveOff")}
+                                    </option>
+                                </select>
+                            </label>
                         </div>
 
                         <!-- FEAT-0770 — explicit application to the window the
