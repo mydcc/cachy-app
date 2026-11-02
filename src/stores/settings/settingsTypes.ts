@@ -289,7 +289,6 @@ export type WindowRuleType = Extract<
   | "chart"
   | "academy"
   | "assistant"
-  | "news"
   | "alertpanel"
   | "controlcenter"
   | "chatbox"

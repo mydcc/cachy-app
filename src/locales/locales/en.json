@@ -1700,7 +1700,6 @@
     "windowRulesApplyRefused": "This rule cannot be applied to that window.",
     "windowRulesTypes": {
       "chart": "Chart",
-      "news": "News",
       "chatbox": "Chat",
       "journal": "Journal",
       "academy": "Academy",

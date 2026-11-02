@@ -87,7 +87,7 @@ describe("FEAT-0743 — rule matching", () => {
         // `iframe` article readers share the `news_article` snapshot key and
         // `channel` ids are developer-supplied. A type-wide rule would cover
         // every article or every 3D surface under an internal label.
-        for (const type of ["iframe", "channel"] as const) {
+        for (const type of ["iframe", "channel", "news"] as const) {
             expect(isRuleTarget(type), type).toBe(false);
             expect(WINDOW_RULE_TYPES).not.toContain(type);
             expect(

@@ -111,10 +111,10 @@ A first, deliberately small rules slice:
   desktop/screen, fullscreen and window-type overrides.
 - Rules that follow a window across monitors.
 - Per-instance rules for `news` and `iframe`: **charts are covered by
-  FEAT-0769**. These stay deferred because neither type has a per-instance
-  identity a rule could name — `news` is a singleton, and article readers are
-  `iframe` windows with a generated id and one shared `news_article` snapshot
-  key.
+  FEAT-0769**. These are no longer rule targets at all (the reader/content
+  surfaces left the list); when they were, neither had a per-instance identity
+  a rule could name — `news` is a singleton, and article readers are `iframe`
+  windows with a generated id and one shared `news_article` snapshot key.
 - Applying a rule to already-open windows when it is edited.
 - Continuous enforcement on focus, move, resize or viewport change.
 - Rules for modals, dialogs, the symbol picker or minimized dock tiles.

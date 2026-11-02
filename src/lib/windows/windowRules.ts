@@ -50,7 +50,9 @@ import type {
  *
  * `settings` is excluded too: it is the editor that owns this list, it closes
  * on blur and has no resize handle, so a rule would only ever move it. Its
- * close-on-blur nature also makes keep-above meaningless there.
+ * close-on-blur nature also makes keep-above meaningless there. `news` is the
+ * market-news reader: a content surface opened from the dashboard, not a tool
+ * whose place in the workspace a rule should fix.
  *
  * `iframe` and `channel` are excluded for a different reason: the picker can
  * only name a *type*, and neither type has an identity a user recognises.
@@ -65,7 +67,6 @@ export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "chart",
   "academy",
   "assistant",
-  "news",
   "alertpanel",
   "controlcenter",
   "chatbox",
@@ -102,11 +103,10 @@ export function isRuleTarget(type: WindowType): type is WindowRuleType {
  * Window types whose rules may be narrowed to a single instance (FEAT-0769).
  *
  * Only `chart`: its instances are told apart by the symbol they were
- * constructed with, which is also the identity a trader thinks in. The other
- * multi-instance types have no per-instance identity a rule could name: `news`
- * is the singleton market-news window, article readers are `iframe` windows
- * with a generated id and one shared `news_article` snapshot key, and
- * `channel` ids are developer-supplied.
+ * constructed with, which is also the identity a trader thinks in. The
+ * remaining rule targets are either single-instance or have no per-instance
+ * identity a user could name — the types that did (`iframe`, `channel`) are
+ * not rule targets at all.
  */
 export const SYMBOL_SCOPED_RULE_TYPES: readonly WindowRuleType[] =
   Object.freeze(["chart"]);

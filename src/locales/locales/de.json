@@ -1701,7 +1701,6 @@
     "windowRulesApplyRefused": "Diese Regel lässt sich auf dieses Fenster nicht anwenden.",
     "windowRulesTypes": {
       "chart": "Chart",
-      "news": "News",
       "chatbox": "Chat",
       "journal": "Journal",
       "academy": "Academy",
