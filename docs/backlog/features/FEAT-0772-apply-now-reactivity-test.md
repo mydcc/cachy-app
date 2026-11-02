@@ -2,7 +2,7 @@
 id: FEAT-0772
 title: Prove the Apply-now button reacts to a newly focused window
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -98,3 +98,19 @@ manager is the subject.
 - `src/lib/windows/WindowManager.svelte.ts` — `lastActiveWindow`,
   `bringToFront`, the rehydration clear
 - `docs/backlog/features/FEAT-0770-apply-a-window-rule-now.md` — the known gap
+
+## State
+
+Implemented on `test/feat-0772-apply-now-reactivity`:
+`src/components/settings/tabs/VisualsLayout.applyNow.component.test.ts`. The
+file keeps the settings, i18n and ui mocks and drops only the manager mock, so
+the two component suites split cleanly: the older one pins the rule editor's
+writes, this one pins the live-target link.
+
+The red-on-break probe was run: replacing `const ruleTarget = $derived(...)`
+with a captured `const ruleTarget = windowManager.lastActiveWindow` turns the
+three transition cases red and leaves the initial-state case green. The mount
+path also needed a rule with an applicable field (`x`), because an enabled rule
+with nothing to apply is refused earlier by its own "nothing to apply" reason —
+the first draft of this test asserted the wrong refusal and failed for that
+reason, not for the target link.
