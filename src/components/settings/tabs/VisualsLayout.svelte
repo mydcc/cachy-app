@@ -71,10 +71,6 @@
         channel: "settings.windowRulesTypes.channel",
         iframe: "settings.windowRulesTypes.iframe",
         chatbox: "settings.windowRulesTypes.chatbox",
-        guide: "settings.windowRulesTypes.guide",
-        changelog: "settings.windowRulesTypes.changelog",
-        privacy: "settings.windowRulesTypes.privacy",
-        whitepaper: "settings.windowRulesTypes.whitepaper",
     };
 
     const availableTypes = $derived(availableRuleTypes(settingsState.windowRules));

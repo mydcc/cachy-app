@@ -63,6 +63,25 @@ describe("FEAT-0743 — rule matching", () => {
         }
     });
 
+    it("does not offer rules for document readers", () => {
+        // Reader windows have no resize handle, no maximize button and a
+        // centred, mobile-fullscreen layout. A geometry rule would either be
+        // ignored or fight that layout, so they are not workspace surfaces.
+        for (const type of [
+            "guide",
+            "changelog",
+            "privacy",
+            "whitepaper",
+        ] as const) {
+            expect(isRuleTarget(type), type).toBe(false);
+            expect(WINDOW_RULE_TYPES).not.toContain(type);
+            expect(
+                sanitizeWindowRule({ windowType: type, enabled: true, x: 10 }),
+                type,
+            ).toBeNull();
+        }
+    });
+
     it("preselects a type that a real window is constructed with", () => {
         expect(WINDOW_RULE_TYPES[0]).toBe("journal");
     });

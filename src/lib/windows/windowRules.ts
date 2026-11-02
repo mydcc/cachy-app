@@ -41,6 +41,12 @@ import type {
  * centre-fixed surfaces with no layout worth restoring. `window` is excluded
  * too — it is the base class's default type, but no implementation is ever
  * constructed with it, so a rule there could never match.
+ *
+ * The reader class (`guide`, `changelog`, `privacy`, `whitepaper`) is also
+ * excluded. They are navigation destinations with a fixed size: no resize
+ * handle, no maximize button, centred by default and full-screen on mobile.
+ * A geometry rule for them would either be ignored or fight that layout, and
+ * they are not surfaces a user arranges a workspace around.
  */
 export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "journal",
@@ -54,10 +60,6 @@ export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "channel",
   "iframe",
   "chatbox",
-  "guide",
-  "changelog",
-  "privacy",
-  "whitepaper",
 ]);
 
 /**

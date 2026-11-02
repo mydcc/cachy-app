@@ -221,6 +221,26 @@ describe("FEAT-0743 — window rules section", () => {
         expect(values).toContain("chart");
     });
 
+    it("does not list document readers in the type picker", () => {
+        render();
+
+        const select = host.querySelector<HTMLSelectElement>(
+            "#window-rule-add-type",
+        );
+        if (!select) throw new Error("rule type select not rendered");
+        const values = [...select.options].map((option) => option.value);
+
+        for (const reader of [
+            "guide",
+            "changelog",
+            "privacy",
+            "whitepaper",
+        ]) {
+            expect(values, reader).not.toContain(reader);
+        }
+        expect(values).toContain("chart");
+    });
+
     it("removes a rule", () => {
         settingsMock.windowRules = [{ windowType: "journal", enabled: true }];
         render();

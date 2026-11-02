@@ -296,10 +296,6 @@ export type WindowRuleType = Extract<
   | "channel"
   | "iframe"
   | "chatbox"
-  | "guide"
-  | "changelog"
-  | "privacy"
-  | "whitepaper"
 >;
 
 /**
