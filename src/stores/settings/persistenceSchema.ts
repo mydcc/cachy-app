@@ -55,7 +55,7 @@ import type {
     TradeFlowSettings,
 } from "./settingsTypes";
 import { MAX_FAVORITE_SYMBOLS } from "./settingsTypes";
-import { sanitizeWindowRules } from "../../lib/windows/windowRules";
+import { inspectWindowRules } from "../../lib/windows/windowRules";
 
 /** How `toJSON()` serializes one key. */
 export type SaveMode = "direct" | "snapshot" | "spread" | "custom";
@@ -362,6 +362,14 @@ export interface LoadTarget {
 export const MARKET_MODE_WIRE_KEY = "_marketMode";
 
 /**
+ * FEAT-0771 — a wire key, like `MARKET_MODE_WIRE_KEY`: the load path reports
+ * the window types whose stored rules it had to discard, and the manager
+ * routes them into the window layer's drop notice instead of writing a
+ * Settings field that does not exist.
+ */
+export const WINDOW_RULE_DROP_WIRE_KEY = "_windowRuleDrops";
+
+/**
  * Custom save values. Everything else is `direct` (scalar read, keeps the
  * autosave `$effect` tracking the field), `snapshot` (`$state.snapshot` for
  * arrays/objects) or `spread` (`aiAllowedActions`).
@@ -523,12 +531,20 @@ export function loadCustomValue(
         case "density":
             target.set("density", resolveDensity(merged.density));
             return;
-        case "windowRules":
+        case "windowRules": {
             // Hand-edited payloads are the only way a bad rule reaches here:
             // keep the first valid rule per type *and scope* and drop the rest
             // instead of letting a malformed entry break every later open.
-            target.set("windowRules", sanitizeWindowRules(merged.windowRules));
+            const report = inspectWindowRules(merged.windowRules);
+            target.set("windowRules", report.rules);
+            // FEAT-0771: a rule the user set for a type that has since left
+            // the list is gone from storage on the next save. Say so once —
+            // after that save there is nothing left to report.
+            if (report.droppedTypes.length > 0) {
+                target.set(WINDOW_RULE_DROP_WIRE_KEY, report.droppedTypes);
+            }
             return;
+        }
         case "sidebarWidth":
             target.set("sidebarWidth", resolveSidebarWidth(merged.sidebarWidth));
             return;

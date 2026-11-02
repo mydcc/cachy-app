@@ -27,6 +27,7 @@ import {
     loadCustomValue,
     loadSchemaEntries,
     MARKET_MODE_WIRE_KEY,
+    WINDOW_RULE_DROP_WIRE_KEY,
     mergeBurnChannels,
     mergeFeeRates,
     mergeGalaxySettings,
@@ -619,5 +620,33 @@ describe("persistence schema mergers", () => {
         } finally {
             consoleError.mockRestore();
         }
+    });
+});
+
+describe("FEAT-0771 — the window-rule drop wire key", () => {
+    it("emits the dropped types when the load discarded a stored rule", () => {
+        const target = loadTarget();
+        const merged = {
+            windowRules: [{ windowType: "guide", enabled: true }],
+        } as unknown as Settings;
+        const defaults = { windowRules: [] } as unknown as Settings;
+
+        loadCustomValue("windowRules", target, merged, defaults, undefined);
+
+        expect(target.values[WINDOW_RULE_DROP_WIRE_KEY]).toEqual(["guide"]);
+        // The surviving list is still the normal Settings field.
+        expect(target.values.windowRules).toEqual([]);
+    });
+
+    it("stays silent when every stored rule still applies", () => {
+        const target = loadTarget();
+        const merged = {
+            windowRules: [{ windowType: "journal", enabled: true }],
+        } as unknown as Settings;
+        const defaults = { windowRules: [] } as unknown as Settings;
+
+        loadCustomValue("windowRules", target, merged, defaults, undefined);
+
+        expect(target.values).not.toHaveProperty(WINDOW_RULE_DROP_WIRE_KEY);
     });
 });

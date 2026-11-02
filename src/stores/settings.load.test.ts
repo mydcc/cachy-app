@@ -27,7 +27,11 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsManager } from "./settings.svelte";
-import { MARKET_MODE_WIRE_KEY } from "./settings/persistenceSchema";
+import { MARKET_MODE_WIRE_KEY, WINDOW_RULE_DROP_WIRE_KEY } from "./settings/persistenceSchema";
+import {
+    dismissDroppedWindowRuleTypes,
+    windowRuleDrops,
+} from "../lib/windows/windowRuleDrops.svelte";
 import { cryptoService } from "../services/cryptoService";
 import { VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 
@@ -677,6 +681,45 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
     // The wire key must not materialize as an own property: the getter
     // would never read it, and the mode would reset on every reload.
     expect(MARKET_MODE_WIRE_KEY in settings).toBe(false);
+    settings.destroy();
+  });
+
+  it("routes a discarded window rule into the drop notice, not onto the manager", () => {
+    // FEAT-0771 — the notice is fed through the load path's wire key. Writing
+    // `_windowRuleDrops` onto the manager instead would pass a value check
+    // here while the editor showed nothing.
+    dismissDroppedWindowRuleTypes();
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        windowRules: [
+          { windowType: "guide", enabled: true },
+          { windowType: "journal", enabled: true, x: 40 },
+        ],
+      }),
+    );
+
+    const settings = new SettingsManager();
+
+    expect(settings.windowRules).toEqual([
+      { windowType: "journal", enabled: true, x: 40 },
+    ]);
+    expect(windowRuleDrops.types).toEqual(["guide"]);
+    expect(WINDOW_RULE_DROP_WIRE_KEY in settings).toBe(false);
+    settings.destroy();
+    dismissDroppedWindowRuleTypes();
+  });
+
+  it("leaves the drop notice empty when every stored rule still applies", () => {
+    dismissDroppedWindowRuleTypes();
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ windowRules: [{ windowType: "journal", enabled: true }] }),
+    );
+
+    const settings = new SettingsManager();
+
+    expect(windowRuleDrops.types).toEqual([]);
     settings.destroy();
   });
 });

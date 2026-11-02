@@ -25,6 +25,7 @@ import {
     ruleKey,
     ruleTargetsInstance,
     sanitizeWindowRule,
+    inspectWindowRules,
     sanitizeWindowRules,
     supportsSymbolScope,
     windowRulePatch,
@@ -459,5 +460,51 @@ describe("FEAT-0770 — apply-now targeting", () => {
         expect(ruleTargetsInstance(rules, "chart", "btc")).toBe(true);
         expect(ruleTargetsInstance(rules, "chart", "ETHUSDT")).toBe(false);
         expect(ruleTargetsInstance(rules, "chart", undefined)).toBe(false);
+    });
+});
+
+describe("FEAT-0771 — the load sanitizer reports what it dropped", () => {
+    it("reports the window types whose rules the list no longer allows", () => {
+        const report = inspectWindowRules([
+            { windowType: "journal", enabled: true, x: 10 },
+            { windowType: "guide", enabled: true },
+            { windowType: "news", enabled: true },
+            { windowType: "guide", enabled: false },
+        ]);
+
+        expect(report.rules).toEqual([
+            { windowType: "journal", enabled: true, x: 10 },
+        ]);
+        // Unique and in first-seen order: the notice names a type once.
+        expect(report.droppedTypes).toEqual(["guide", "news"]);
+    });
+
+    it("reports nothing when every stored rule is still a target", () => {
+        const report = inspectWindowRules([{ windowType: "chart", enabled: true }]);
+
+        expect(report.droppedTypes).toEqual([]);
+        expect(report.rules).toHaveLength(1);
+    });
+
+    it("does not blame the user for a malformed entry", () => {
+        // A bad scope or a non-object is corruption, not a rule the picker
+        // could have produced, so it stays out of the notice.
+        const report = inspectWindowRules([
+            { windowType: "journal", enabled: true, match: { kind: "bogus" } },
+            "nonsense",
+            null,
+        ]);
+
+        expect(report.droppedTypes).toEqual([]);
+        expect(report.rules).toEqual([]);
+    });
+
+    it("keeps sanitizeWindowRules as the list-only entry point", () => {
+        expect(
+            sanitizeWindowRules([
+                { windowType: "guide", enabled: true },
+                { windowType: "journal", enabled: true },
+            ]),
+        ).toEqual([{ windowType: "journal", enabled: true }]);
     });
 });

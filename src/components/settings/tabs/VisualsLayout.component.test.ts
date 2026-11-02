@@ -32,9 +32,23 @@ function lookup(key: string): string {
         .reduce<unknown>((acc, part) => (acc as Record<string, unknown>)?.[part], en) as string;
 }
 
+/** Same `{name}` substitution the production store performs. */
+function translate(key: string, vars?: Record<string, unknown>): string {
+    const raw = lookup(key) ?? key;
+    if (!vars) return raw;
+    return Object.entries(vars).reduce(
+        (text, [name, value]) => text.split(`{${name}}`).join(String(value)),
+        raw,
+    );
+}
+
 vi.mock("../../../locales/i18n", async () => {
     const { readable } = await import("svelte/store");
-    return { _: readable((key: string) => lookup(key) ?? key), locale: readable("en"), setLocale: vi.fn() };
+    return {
+        _: readable((key: string, vars?: Record<string, unknown>) => translate(key, vars)),
+        locale: readable("en"),
+        setLocale: vi.fn(),
+    };
 });
 
 const settingsMock = vi.hoisted(() => ({
@@ -73,6 +87,10 @@ vi.mock("../../../lib/windows/WindowManager.svelte", () => ({
 }));
 
 import { WINDOW_RULE_TYPES } from "../../../lib/windows/windowRules";
+import {
+    dismissDroppedWindowRuleTypes,
+    noteDroppedWindowRuleTypes,
+} from "../../../lib/windows/windowRuleDrops.svelte";
 import VisualsLayout from "./VisualsLayout.svelte";
 
 let host: HTMLElement;
@@ -90,6 +108,7 @@ beforeEach(() => {
     uiMock.showAssistant = false;
     windowManagerMock.lastActiveWindow = null;
     windowManagerMock.restack.mockClear();
+    dismissDroppedWindowRuleTypes();
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -907,5 +926,53 @@ describe("FEAT-0770 — the button cannot be bypassed", () => {
             lookup("settings.windowRulesApplyRefused"),
         );
         expect(windowManagerMock.restack).not.toHaveBeenCalled();
+    });
+});
+
+describe("FEAT-0771 — the notice for discarded rules", () => {
+    it("names the count and the window types the last load discarded", () => {
+        noteDroppedWindowRuleTypes(["guide", "news"]);
+
+        render();
+
+        expect(host.textContent).toContain("guide, news");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesDroppedOther")
+                .replace("{count}", "2")
+                .replace("{types}", "guide, news"),
+        );
+    });
+
+    it("uses the singular for one discarded rule", () => {
+        noteDroppedWindowRuleTypes(["settings"]);
+
+        render();
+
+        expect(host.textContent).toContain("settings");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesDroppedOne")
+                .replace("{types}", "settings"),
+        );
+    });
+
+    it("renders nothing when the load discarded no rule", () => {
+        render();
+
+        expect(host.textContent).not.toContain(
+            lookup("settings.windowRulesDroppedDismiss"),
+        );
+    });
+
+    it("stays gone after the user dismisses it", () => {
+        noteDroppedWindowRuleTypes(["iframe"]);
+        render();
+
+        buttonContaining(lookup("settings.windowRulesDroppedDismiss")).click();
+        flushSync();
+
+        expect(host.textContent).not.toContain("iframe");
+        expect(host.textContent).not.toContain(
+            lookup("settings.windowRulesDroppedDismiss"),
+        );
     });
 });

@@ -31,6 +31,10 @@
         windowRulePatch,
     } from "../../../lib/windows/windowRules";
     import { windowManager } from "../../../lib/windows/WindowManager.svelte";
+    import {
+        dismissDroppedWindowRuleTypes,
+        windowRuleDrops,
+    } from "../../../lib/windows/windowRuleDrops.svelte";
     import type { WindowRule, WindowRuleType } from "../../../stores/settings/settingsTypes";
     import type { TranslationKey } from "../../../locales/schema";
     import Toggle from "../../shared/Toggle.svelte";
@@ -233,6 +237,24 @@
      * itself is focused the moment the button is pressed.
      */
     const ruleTarget = $derived(windowManager.lastActiveWindow);
+
+    /**
+     * FEAT-0771 — rules the load path had to discard because their window
+     * types left the target list. The report is transient: once the surviving
+     * rules are saved, the next start has nothing left to report.
+     */
+    const droppedRuleTypes = $derived(windowRuleDrops.types);
+
+    const droppedRuleNotice = $derived.by(() => {
+        const count = droppedRuleTypes.length;
+        if (count === 0) return "";
+        return $_(
+            count === 1
+                ? "settings.windowRulesDroppedOne"
+                : "settings.windowRulesDroppedOther",
+            { count, types: droppedRuleTypes.join(", ") },
+        );
+    });
 
     /** FEAT-0770 — the transient refusal after a press that the window rejected. */
     let applyRefusal = $state<{ key: string; message: TranslationKey } | null>(
@@ -508,6 +530,24 @@
             <p class="text-[10px] text-[var(--text-secondary)] mb-3">
                 {$_("settings.windowRulesDesc")}
             </p>
+
+            {#if droppedRuleTypes.length > 0}
+                <div
+                    class="flex items-start gap-2 mb-3 rounded border border-[var(--border-color)] px-2 py-1.5"
+                    role="status"
+                >
+                    <p class="flex-1 text-[10px] text-[var(--text-secondary)]">
+                        {droppedRuleNotice}
+                    </p>
+                    <button
+                        type="button"
+                        class="text-[10px] text-[var(--text-secondary)] underline hover:text-[var(--text-primary)]"
+                        onclick={dismissDroppedWindowRuleTypes}
+                    >
+                        {$_("settings.windowRulesDroppedDismiss")}
+                    </button>
+                </div>
+            {/if}
 
             {#if settingsState.windowRules.length === 0}
                 <p class="text-xs text-[var(--text-secondary)] mb-3">

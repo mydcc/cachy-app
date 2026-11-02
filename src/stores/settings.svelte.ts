@@ -55,12 +55,14 @@ import {
     loadSchemaEntries,
     MARKET_MODE_WIRE_KEY,
     PERSISTENCE_SCHEMA,
+    WINDOW_RULE_DROP_WIRE_KEY,
     readSerializedField,
     type FieldSchema,
     type LoadTarget,
     type SaveSource,
 } from "./settings/persistenceSchema";
 import { trackAutosaveReads } from "./settings/tracking";
+import { noteDroppedWindowRuleTypes } from "../lib/windows/windowRuleDrops.svelte";
 import { DisplaySettingsStore } from "./settings/display.svelte";
 import { CoreSettingsStore } from "./settings/core.svelte";
 import { setWindowRuleSource } from "../lib/windows/windowRuleSource";
@@ -2140,6 +2142,13 @@ export class SettingsManager {
         // the setter).
         if (key === MARKET_MODE_WIRE_KEY) {
           this.core.marketMode = value as MarketMode;
+          return;
+        }
+        // FEAT-0771 — the window types whose stored rules the sanitiser
+        // discarded. A notice, not a setting: the window layer owns it, and
+        // writing the key onto the manager would leak it into every snapshot.
+        if (key === WINDOW_RULE_DROP_WIRE_KEY) {
+          noteDroppedWindowRuleTypes(value as string[]);
           return;
         }
         (this as unknown as Record<string, unknown>)[key] = value;

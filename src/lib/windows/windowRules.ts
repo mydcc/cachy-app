@@ -314,24 +314,56 @@ export function sanitizeWindowRule(value: unknown): WindowRule | null {
   return rule;
 }
 
+/** What the load sanitizer kept, and which window types it had to discard. */
+export interface WindowRuleInspection {
+  rules: WindowRule[];
+  /**
+   * Stored `windowType` values the target list no longer accepts, unique and
+   * in first-seen order. Only a *type* is reported: an entry rejected for its
+   * shape was never a rule the picker could have produced, and naming it would
+   * blame the user for a hand-edited payload.
+   */
+  droppedTypes: string[];
+}
+
 /**
- * Load-path sanitizer. Keeps one rule per window type *and scope*, preferring
- * an enabled entry over a disabled duplicate so a stale copy cannot silently
- * disable the instance. Order follows the first appearance of each key.
+ * Load-path sanitizer with a report. Keeps one rule per window type *and
+ * scope*, preferring an enabled entry over a disabled duplicate so a stale
+ * copy cannot silently disable the instance. Order follows the first
+ * appearance of each key.
  */
-export function sanitizeWindowRules(value: unknown): WindowRule[] {
-  if (!Array.isArray(value)) return [];
+export function inspectWindowRules(value: unknown): WindowRuleInspection {
+  if (!Array.isArray(value)) return { rules: [], droppedTypes: [] };
   const byKey = new Map<string, WindowRule>();
+  const droppedTypes: string[] = [];
   for (const entry of value) {
     const rule = sanitizeWindowRule(entry);
-    if (!rule) continue;
+    if (!rule) {
+      const rawType =
+        entry && typeof entry === "object" && !Array.isArray(entry)
+          ? (entry as Record<string, unknown>).windowType
+          : undefined;
+      if (
+        typeof rawType === "string" &&
+        !isRuleTarget(rawType as WindowType) &&
+        !droppedTypes.includes(rawType)
+      ) {
+        droppedTypes.push(rawType);
+      }
+      continue;
+    }
     const key = ruleKey(rule);
     const existing = byKey.get(key);
     if (!existing || (!existing.enabled && rule.enabled)) {
       byKey.set(key, rule);
     }
   }
-  return [...byKey.values()];
+  return { rules: [...byKey.values()], droppedTypes };
+}
+
+/** The surviving rules, without the report. */
+export function sanitizeWindowRules(value: unknown): WindowRule[] {
+  return inspectWindowRules(value).rules;
 }
 
 const isFiniteNumber = (value: unknown): value is number =>
