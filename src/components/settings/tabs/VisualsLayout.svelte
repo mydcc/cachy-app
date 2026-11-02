@@ -539,6 +539,7 @@
                     <p class="flex-1 text-[10px] text-[var(--text-secondary)]">
                         {droppedRuleNotice}
                     </p>
+                    <!-- FEAT-0611 escape: one-line dismiss on a transient notice; the button primitive does not fit this row. -->
                     <button
                         type="button"
                         class="text-[10px] text-[var(--text-secondary)] underline hover:text-[var(--text-primary)]"
