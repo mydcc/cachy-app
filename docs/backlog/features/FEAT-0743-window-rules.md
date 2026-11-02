@@ -127,8 +127,9 @@ These were the open questions; they are settled for this slice:
 - **Pixels, not viewport fractions.** Geometry stays in absolute CSS pixels.
   Fractions would survive monitor changes better, but need a resize policy
   that is its own slice. A rule that no longer fits is clamped on open.
-- **Multi-instance types accept the overlap.** Two charts or two news
-  windows that match the same rule open at the same coordinates. Cascading
+- **Multi-instance types accept the overlap.** Two charts — or two news
+  windows when news could still carry a rule — that match the same rule open
+  at the same coordinates. Cascading
   the second instance would need a per-instance ordinal and reword this
   item's acceptance criterion; rules for per-instance storage keys are out
   of scope. Charts gained a symbol scope in FEAT-0769 (`match`) — a different
@@ -143,11 +144,11 @@ These were the open questions; they are settled for this slice:
   the rule does not set with the type's registry layout and runs normal
   placement. `restore()` after a live maximize still uses the geometry the
   window had before that maximize.
-- **Keep-above is hidden for close-on-blur targets.** The rule UI omits the
-  keep-above control when the selected `windowType` has `closeOnBlur`, and the
-  open path refuses to lift such a window, so a hand-edited payload cannot
-  create the contradiction. No rule target is close-on-blur today (`settings`
-  has left the list), but the guard stays for a future type.
+- **Keep-above is refused for close-on-blur targets.** No rule target is
+  close-on-blur today (`settings` has left the list), so the editor always
+  offers the control. The model guard stays: `windowRulePatch` drops the flag
+  for a future close-on-blur target, and the open path refuses to lift such a
+  window, so a hand-edited payload cannot create the contradiction.
 
 ## Links
 

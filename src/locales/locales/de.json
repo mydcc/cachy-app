@@ -1678,7 +1678,6 @@
     "windowRulesKeepAbove": "Im Vordergrund halten",
     "windowRulesKeepAboveOn": "Über anderen Fenstern halten",
     "windowRulesKeepAboveOff": "Nicht im Vordergrund halten",
-    "windowRulesKeepAboveUnavailable": "Nicht verfügbar: Dieses Fenster schließt beim Fokusverlust.",
     "windowRulesEnableToggle": "Regel aktivieren",
     "windowRulesAspectHint": "Dieser Fenstertyp hat ein festes Seitenverhältnis; die Höhe folgt der Breite.",
     "windowRulesRemove": "Regel entfernen",

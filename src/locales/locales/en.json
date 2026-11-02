@@ -1677,7 +1677,6 @@
     "windowRulesKeepAbove": "Keep above",
     "windowRulesKeepAboveOn": "Keep above other windows",
     "windowRulesKeepAboveOff": "Do not keep above",
-    "windowRulesKeepAboveUnavailable": "Not offered: this window closes on blur.",
     "windowRulesEnableToggle": "Enable rule",
     "windowRulesAspectHint": "This window type keeps a fixed aspect ratio; its height follows the width.",
     "windowRulesRemove": "Remove rule",

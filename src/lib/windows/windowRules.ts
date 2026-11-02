@@ -43,16 +43,16 @@ import type {
  * constructed with it, so a rule there could never match.
  *
  * The reader class (`guide`, `changelog`, `privacy`, `whitepaper`) is also
- * excluded. They are navigation destinations with a fixed size: no resize
- * handle, no maximize button, centred by default and full-screen on mobile.
- * A geometry rule for them would either be ignored or fight that layout, and
- * they are not surfaces a user arranges a workspace around.
+ * excluded. They are navigation destinations with no resize handle and no
+ * visible maximize control, centred by default and full-screen on mobile —
+ * not surfaces a user arranges a workspace around.
  *
- * `settings` is excluded too: it is the editor that owns this list, it closes
- * on blur and has no resize handle, so a rule would only ever move it. Its
- * close-on-blur nature also makes keep-above meaningless there. `news` is the
- * market-news reader: a content surface opened from the dashboard, not a tool
- * whose place in the workspace a rule should fix.
+ * `settings` is excluded too: it hosts this editor and dismisses itself on
+ * blur. A rule could still place, resize or maximize it through the same
+ * programmatic path as any window, but the editor is not a workspace the user
+ * is arranging, and keep-above is meaningless for a window that closes on
+ * blur. `news` is the market-news reader: a content surface opened from the
+ * dashboard, not a tool whose place in the workspace a rule should fix.
  *
  * `iframe` and `channel` are excluded for a different reason: the picker can
  * only name a *type*, and neither type has an identity a user recognises.
@@ -105,8 +105,8 @@ export function isRuleTarget(type: WindowType): type is WindowRuleType {
  * Only `chart`: its instances are told apart by the symbol they were
  * constructed with, which is also the identity a trader thinks in. The
  * remaining rule targets are either single-instance or have no per-instance
- * identity a user could name — the types that did (`iframe`, `channel`) are
- * not rule targets at all.
+ * identity a user could name — the types that carried an instance key a user
+ * cannot read (`iframe`, `channel`) are not rule targets at all.
  */
 export const SYMBOL_SCOPED_RULE_TYPES: readonly WindowRuleType[] =
   Object.freeze(["chart"]);

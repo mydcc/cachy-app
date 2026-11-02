@@ -50,7 +50,6 @@ let nextId = 0;
 type RuleWindowType =
     | "journal"
     | "chart"
-    | "news"
     | "alertpanel"
     | "academy";
 
@@ -208,8 +207,10 @@ describe("FEAT-0743 — rule application on open", () => {
     });
 
     it("refuses keep-above for a close-on-blur target", () => {
-        // No rule type is close-on-blur today, but the guard lives in
-        // WindowBase for any future type that joins the list.
+        // No rule type is close-on-blur today. WindowBase passes its
+        // closeOnBlur into `windowRulePatch`, which drops the flag; the
+        // journal window here is the synthetic close-on-blur shape that
+        // keeps that guard exercised for a future type.
         setRule({ windowType: "journal", enabled: true, isKeepAbove: true });
         const win = new TestWindow({
             windowType: "journal",
@@ -243,13 +244,13 @@ describe("FEAT-0743 — rule application on open", () => {
 
     it("clamps a rule size to the viewport even for types that do not opt in", () => {
         setRule({
-            windowType: "news",
+            windowType: "academy",
             enabled: true,
             width: 5000,
             height: 4000,
         });
 
-        const win = makeWindow("news");
+        const win = makeWindow("academy");
 
         expect(win.width).toBe(VIEWPORT_WIDTH);
         expect(win.height).toBe(VIEWPORT_HEIGHT);
@@ -665,6 +666,8 @@ describe("FEAT-0770 — Apply now on a live window", () => {
     });
 
     it("never lifts a close-on-blur window above everything", () => {
+        // Same synthetic shape as the open-path test: no rule target is
+        // close-on-blur today, but the apply path must keep the guard.
         const win = liveWindow("apply-live-closeonblur");
         win.closeOnBlur = true;
 

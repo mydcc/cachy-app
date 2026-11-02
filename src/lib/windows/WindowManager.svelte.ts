@@ -491,8 +491,8 @@ class WindowManager {
         const win = this._windows.find(w => w.id === id);
         if (win) {
             // FEAT-0770: remember the window the user was actually working in.
-            // The editor itself is excluded, see `_lastActiveWindowId`.
-            if (win.windowType !== "settings" && isRuleTarget(win.windowType)) {
+            // The editor is excluded by WINDOW_RULE_TYPES itself.
+            if (isRuleTarget(win.windowType)) {
                 this._lastActiveWindowId = win.id;
             }
             this.restack(id);

@@ -304,10 +304,6 @@
         }
     }
 
-    function typeClosesOnBlur(type: WindowRuleType): boolean {
-        return windowRegistry.getConfig(type).flags.closeOnBlur === true;
-    }
-
     function typeAllowsMaximize(type: WindowRuleType): boolean {
         return windowRegistry.getConfig(type).flags.allowMaximize !== false;
     }
@@ -736,12 +732,7 @@
                                 </label>
                             {/if}
 
-                            {#if typeClosesOnBlur(rule.windowType)}
-                                <p class="text-[10px] text-[var(--text-secondary)] self-end">
-                                    {$_("settings.windowRulesKeepAboveUnavailable")}
-                                </p>
-                            {:else}
-                                <label class="field-group">
+                            <label class="field-group">
                                     <span>{$_("settings.windowRulesKeepAbove")}</span>
                                     <select
                                         id={`${ruleDomId(rule)}-keepabove`}
@@ -769,8 +760,7 @@
                                             {$_("settings.windowRulesKeepAboveOff")}
                                         </option>
                                     </select>
-                                </label>
-                            {/if}
+                            </label>
                         </div>
 
                         <!-- FEAT-0770 — explicit application to the window the

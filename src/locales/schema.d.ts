@@ -1482,7 +1482,6 @@ export type TranslationKey =
   | "settings.windowRulesKeepAbove"
   | "settings.windowRulesKeepAboveOn"
   | "settings.windowRulesKeepAboveOff"
-  | "settings.windowRulesKeepAboveUnavailable"
   | "settings.windowRulesEnableToggle"
   | "settings.windowRulesAspectHint"
   | "settings.windowRulesRemove"
