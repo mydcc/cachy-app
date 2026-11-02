@@ -1,6 +1,6 @@
 # ADR-0006: Every overlay goes through the window manager, and there is one stacking authority
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-10-28, per the state recorded below)
 - **Date:** 2026-08-04
 - **Deciders:** pheinze82
 
