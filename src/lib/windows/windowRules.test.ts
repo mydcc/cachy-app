@@ -19,9 +19,13 @@ import { describe, expect, it } from "vitest";
 import {
     WINDOW_RULE_TYPES,
     findWindowRule,
+    hasSymbolRule,
     isRuleTarget,
+    normalizeRuleSymbol,
+    ruleKey,
     sanitizeWindowRule,
     sanitizeWindowRules,
+    supportsSymbolScope,
     windowRulePatch,
 } from "./windowRules";
 import { PERSISTENCE_SCHEMA, loadCustomValue } from "../../stores/settings/persistenceSchema";
@@ -162,5 +166,239 @@ describe("FEAT-0743 — open patch", () => {
     it("treats a cleared or hand-edited null field as absent", () => {
         const cleared = rule({ x: null, width: null } as unknown as Partial<WindowRule>);
         expect(windowRulePatch(cleared, false)).toEqual({});
+    });
+});
+
+/**
+ * FEAT-0769 — a chart rule may be narrowed to one symbol, and the instance a
+ * rule is matched against is the symbol the window was opened with.
+ */
+const chartRule = (
+    symbol: string | undefined,
+    overrides: Partial<WindowRule> = {},
+): WindowRule => ({
+    windowType: "chart",
+    enabled: true,
+    ...(symbol ? { match: { kind: "symbol" as const, value: symbol } } : {}),
+    ...overrides,
+});
+
+describe("FEAT-0769 — per-instance matching", () => {
+    it("applies the symbol rule to its own chart and the type rule to the others", () => {
+        const rules = [
+            chartRule(undefined, { x: 10 }),
+            chartRule("BTCUSDT", { x: 400 }),
+        ];
+
+        expect(findWindowRule(rules, "chart", { symbol: "BTCUSDT" })?.x).toBe(400);
+        expect(findWindowRule(rules, "chart", { symbol: "ETHUSDT" })?.x).toBe(10);
+    });
+
+    it("falls back to the type rule when no symbol rule applies", () => {
+        expect(
+            findWindowRule([chartRule("BTCUSDT", { x: 400 })], "chart", {
+                symbol: "ETHUSDT",
+            }),
+        ).toBeUndefined();
+    });
+
+    it("ignores a scoped rule when the window has no symbol", () => {
+        expect(
+            findWindowRule([chartRule("BTCUSDT")], "chart"),
+        ).toBeUndefined();
+    });
+
+    it("lets a disabled symbol rule fall back to the type rule", () => {
+        const rules = [
+            chartRule("BTCUSDT", { enabled: false, x: 400 }),
+            chartRule("ETHUSDT", { x: 500 }),
+            chartRule(undefined, { x: 10 }),
+        ];
+
+        // Ordering is load-bearing: a first-enabled-wins lookup would answer
+        // 500 here, so this only passes when the scope is actually honoured.
+        expect(findWindowRule(rules, "chart", { symbol: "BTCUSDT" })?.x).toBe(10);
+        expect(findWindowRule(rules, "chart", { symbol: "ETHUSDT" })?.x).toBe(500);
+    });
+
+    it("matches the symbol regardless of the case it was typed in", () => {
+        const rules = [chartRule("BTCUSDT", { x: 400 })];
+
+        expect(
+            findWindowRule(rules, "chart", { symbol: " btcusdt " })?.x,
+        ).toBe(400);
+        // First-enabled-wins would hand the BTC rule to every chart.
+        expect(
+            findWindowRule(rules, "chart", { symbol: "ETHUSDT" }),
+        ).toBeUndefined();
+    });
+
+    it("canonicalises the match side, so a short form reaches its chart", () => {
+        // Charts are constructed as "BTCUSDT"; a rule opened for "btc" must
+        // still select it, or it is stored and never applied.
+        expect(
+            findWindowRule([chartRule("BTCUSDT", { x: 400 })], "chart", {
+                symbol: "btc",
+            })?.x,
+        ).toBe(400);
+    });
+
+    it("never applies a chart rule to another window type", () => {
+        expect(
+            findWindowRule([chartRule("BTCUSDT")], "journal", {
+                symbol: "BTCUSDT",
+            }),
+        ).toBeUndefined();
+    });
+});
+
+describe("FEAT-0769 — scope validation on the load path", () => {
+    it("keeps a well-formed scope and normalises it", () => {
+        expect(
+            sanitizeWindowRule({
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: " btcusdt " },
+            })?.match,
+        ).toEqual({ kind: "symbol", value: "BTCUSDT" });
+    });
+
+    it("rejects the whole rule when a scope sits on a type that cannot have one", () => {
+        // Dropping only the scope would silently widen the rule to every
+        // journal window, which is worse than losing it.
+        expect(
+            sanitizeWindowRule({
+                windowType: "journal",
+                enabled: true,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            }),
+        ).toBeNull();
+    });
+
+    it("rejects an unusable symbol instead of storing it", () => {
+        for (const match of [
+            { kind: "symbol", value: "" },
+            { kind: "symbol", value: "B" },
+            { kind: "symbol", value: "BTC USDT" },
+            { kind: "symbol", value: 42 },
+            { kind: "url", value: "BTCUSDT" },
+            {},
+            "BTCUSDT",
+        ]) {
+            expect(
+                sanitizeWindowRule({ windowType: "chart", enabled: true, match }),
+                JSON.stringify(match),
+            ).toBeNull();
+        }
+    });
+
+    it("rejects an over-long symbol and keeps a punctuation form", () => {
+        expect(
+            sanitizeWindowRule({
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "A".repeat(31) },
+            }),
+        ).toBeNull();
+        expect(
+            sanitizeWindowRule({
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "btc.usdt" },
+            })?.match,
+        ).toEqual({ kind: "symbol", value: "BTC.USDT" });
+    });
+
+    it("stores the canonical form the exchange layer would use", () => {
+        // Without this the editor would accept "BTC", show it, and store a
+        // rule that can never match a chart.
+        expect(normalizeRuleSymbol("BTC")).toBe("BTCUSDT");
+        expect(normalizeRuleSymbol(" btcusdt.p ")).toBe("BTCUSDT");
+        expect(normalizeRuleSymbol("BTC-USDT")).toBe("BTCUSDT");
+        expect(normalizeRuleSymbol(undefined)).toBe("");
+        expect(normalizeRuleSymbol(42 as unknown as string)).toBe("");
+        expect(
+            sanitizeWindowRule({
+                windowType: "chart",
+                enabled: true,
+                match: { kind: "symbol", value: "btc" },
+            })?.match,
+        ).toEqual({ kind: "symbol", value: "BTCUSDT" });
+    });
+
+    it("still accepts rules stored before scopes existed", () => {
+        expect(
+            sanitizeWindowRule({ windowType: "chart", enabled: true, x: 5 }),
+        ).toEqual({ windowType: "chart", enabled: true, x: 5 });
+    });
+
+    it("keeps a type-wide and a symbol rule side by side", () => {
+        const sanitized = sanitizeWindowRules([
+            { windowType: "chart", enabled: true, x: 10 },
+            {
+                windowType: "chart",
+                enabled: true,
+                x: 400,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ]);
+
+        expect(sanitized).toHaveLength(2);
+        expect(sanitized.map((entry) => entry.x)).toEqual([10, 400]);
+    });
+
+    it("coalesces duplicates of the same scope, casing included", () => {
+        const sanitized = sanitizeWindowRules([
+            {
+                windowType: "chart",
+                enabled: false,
+                x: 1,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+            {
+                windowType: "chart",
+                enabled: true,
+                x: 2,
+                match: { kind: "symbol", value: "btcusdt" },
+            },
+        ]);
+
+        expect(sanitized).toHaveLength(1);
+        expect(sanitized[0]).toMatchObject({
+            enabled: true,
+            x: 2,
+            match: { kind: "symbol", value: "BTCUSDT" },
+        });
+    });
+});
+
+describe("FEAT-0769 — rule identity helpers", () => {
+    it("gives the type rule and each symbol rule their own key", () => {
+        const generic = chartRule(undefined);
+        const btc = chartRule("BTCUSDT");
+
+        expect(ruleKey(generic)).toBe("chart|");
+        expect(ruleKey(btc)).toBe("chart|symbol:BTCUSDT");
+        expect(ruleKey(generic)).not.toBe(ruleKey(btc));
+    });
+
+    it("reports a taken symbol but ignores the rule being renamed", () => {
+        const rules = [chartRule("BTCUSDT"), chartRule("ETHUSDT")];
+
+        expect(hasSymbolRule(rules, "chart", "btcusdt")).toBe(true);
+        expect(
+            hasSymbolRule(rules, "chart", "BTCUSDT", ruleKey(chartRule("BTCUSDT"))),
+        ).toBe(false);
+        expect(hasSymbolRule(rules, "chart", "SOLUSDT")).toBe(false);
+        expect(hasSymbolRule(rules, "chart", "")).toBe(false);
+        // A symbol is only unique within its own window type.
+        expect(hasSymbolRule(rules, "journal", "BTCUSDT")).toBe(false);
+    });
+
+    it("only offers a scope for chart windows", () => {
+        expect(supportsSymbolScope("chart")).toBe(true);
+        for (const type of WINDOW_RULE_TYPES.filter((entry) => entry !== "chart")) {
+            expect(supportsSymbolScope(type), type).toBe(false);
+        }
     });
 });

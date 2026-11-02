@@ -303,17 +303,42 @@ export type WindowRuleType = Extract<
 >;
 
 /**
- * One user-defined window layout rule (FEAT-0743).
+ * The instance a rule is narrowed to (FEAT-0769). A rule without a `match`
+ * applies to every instance of its window type.
  *
- * At most one rule per `windowType`. Every action is optional: a rule only
- * overrides the fields the user chose, and unset fields keep the geometry the
- * window restored from its own snapshot. Geometry is in CSS pixels and runs
- * through the same clamp path as a drag, so a rule can never strand a window
- * off-screen. Class A: stored in this browser, never sent anywhere.
+ * `symbol` is the only kind in this slice, and only chart windows carry one.
+ * The discriminator is what keeps "instance" open-ended: a future URL or
+ * channel key extends this union without touching `WindowRule` itself.
+ */
+export type WindowRuleMatch = {
+  kind: "symbol";
+  /**
+   * Canonical form, normalised the way the exchange layer normalises symbols,
+   * so "btcusdt" and "BTC" both reach the chart they were written for.
+   */
+  value: string;
+};
+
+/**
+ * One user-defined window layout rule (FEAT-0743, per-instance scoping in
+ * FEAT-0769).
+ *
+ * At most one rule per `windowType` *and scope*: a type may have one rule for
+ * all its instances plus one rule per matched instance. Every action is
+ * optional: a rule only overrides the fields the user chose, and unset fields
+ * keep the geometry the window restored from its own snapshot. Geometry is in
+ * CSS pixels and runs through the same clamp path as a drag, so a rule can
+ * never strand a window off-screen. Class A: stored in this browser, never
+ * sent anywhere.
  */
 export interface WindowRule {
   /** The single window type this rule matches. */
   windowType: WindowRuleType;
+  /**
+   * Narrows the rule to one instance of the type. Absent means every instance,
+   * and a scoped rule wins over an unscoped one for the instance it matches.
+   */
+  match?: WindowRuleMatch;
   /** A disabled rule keeps its settings but does nothing on open. */
   enabled: boolean;
   x?: number;

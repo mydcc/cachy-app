@@ -68,7 +68,8 @@ A first, deliberately small rules slice:
   snapshot on its next save, so removing the rule later leaves the window where
   the rule put it.
 - UI: a **Window rules** section under Visuals with a type chosen when adding
-  (one rule per type), an enabled switch, numeric geometry fields (height only
+  (one type-wide rule per type; FEAT-0769 adds one per chart symbol), an
+  enabled switch, numeric geometry fields (height only
   where the type has no fixed aspect ratio), maximized/keep-above selects, and
   a remove action. Empty list means today's behaviour.
 - New DE/EN strings and the generated locale schema.
@@ -78,7 +79,9 @@ A first, deliberately small rules slice:
 - [x] `windowRules` defaults to an empty list and persists through the existing
       settings schema.
 - [x] A rule can be added, edited, disabled and removed in Visuals; a second
-      rule for the same `windowType` is refused.
+      rule for the same `windowType` is refused. (Amended by FEAT-0769: `chart`
+      may additionally hold one rule per symbol, so "one rule per type" means
+      one *type-wide* rule plus one per scoped symbol.)
 - [x] A matching enabled rule applies its position/size when that window type
       next opens; a disabled rule and an empty list leave the restored geometry
       unchanged.
@@ -89,6 +92,8 @@ A first, deliberately small rules slice:
       ignores the flag there.
 - [x] Rule geometry is clamped to the viewport by the same path as a drag.
 - [x] Two instances of a multi-instance type receive the same rule on open.
+      (Amended by FEAT-0769: two charts with different scoped rules each get
+      their own.)
 - [x] Changing a rule does not move windows that are already open.
 - [x] Component/model tests cover matching, precedence, maximize, keep-above,
       clamping, disabled/empty rules, multi-instance types and settings
@@ -97,12 +102,19 @@ A first, deliberately small rules slice:
 
 ## Out of scope
 
-- Matching by title, symbol, URL, role or regular expression.
-- Multiple rules per type, priority ordering or conflict resolution.
+- Matching by title, URL, role or regular expression. (Symbol matching for
+  `chart` shipped in FEAT-0769.)
+- More than one rule per type and scope, priority ordering or conflict
+  resolution. FEAT-0769 added the *scope* axis for `chart`; two type-wide rules
+  for the same `windowType` remain impossible.
 - Opacity, shading, focus policy, shortcuts, skip-taskbar/pager/switcher,
   desktop/screen, fullscreen and window-type overrides.
-- Per-instance rules for charts/news, and rules that follow a window across
-  monitors.
+- Rules that follow a window across monitors.
+- Per-instance rules for `news` and `iframe`: **charts are covered by
+  FEAT-0769**. These stay deferred because neither type has a per-instance
+  identity a rule could name — `news` is a singleton, and article readers are
+  `iframe` windows with a generated id and one shared `news_article` snapshot
+  key.
 - Applying a rule to already-open windows when it is edited.
 - Continuous enforcement on focus, move, resize or viewport change.
 - Rules for modals, dialogs, the symbol picker or minimized dock tiles.
@@ -119,7 +131,9 @@ These were the open questions; they are settled for this slice:
   windows that match the same rule open at the same coordinates. Cascading
   the second instance would need a per-instance ordinal and reword this
   item's acceptance criterion; rules for per-instance storage keys are out
-  of scope.
+  of scope. Charts gained a symbol scope in FEAT-0769 (`match`) — a different
+  axis than an ordinal: two symbols are two deliberate rules, not one rule
+  applied twice.
 - **Next open only.** There is no "apply now" action for the focused window.
   Editing a rule never moves a window that is already open.
 - **The snapshot is the floating rectangle only when the window was closed

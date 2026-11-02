@@ -20,7 +20,14 @@
     import { settingsState } from "../../../stores/settings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import { windowRegistry } from "../../../lib/windows/WindowRegistry.svelte";
-    import { WINDOW_RULE_TYPES, isRuleTarget } from "../../../lib/windows/windowRules";
+    import {
+        RULE_SYMBOL_PATTERN,
+        WINDOW_RULE_TYPES,
+        hasSymbolRule,
+        normalizeRuleSymbol,
+        ruleKey,
+        supportsSymbolScope,
+    } from "../../../lib/windows/windowRules";
     import type { WindowRule, WindowRuleType } from "../../../stores/settings/settingsTypes";
     import type { TranslationKey } from "../../../locales/schema";
     import Toggle from "../../shared/Toggle.svelte";
@@ -28,15 +35,25 @@
 
     type GeometryKey = "x" | "y" | "width" | "height";
 
+    /**
+     * The types the picker offers. A type drops out as soon as it has a rule,
+     * except the symbol-scoped ones: a chart may hold one type-wide rule plus
+     * one per symbol, so it has to stay addable.
+     */
+    function availableRuleTypes(rules: readonly WindowRule[]): WindowRuleType[] {
+        return WINDOW_RULE_TYPES.filter(
+            (type) =>
+                supportsSymbolScope(type) ||
+                !rules.some((rule) => rule.windowType === type),
+        );
+    }
+
     /** FEAT-0743 — the type the next "Add rule" creates. */
     let nextRuleType = $state<WindowRuleType | "">(
-        WINDOW_RULE_TYPES.find(
-            (type) =>
-                !settingsState.windowRules.some(
-                    (rule) => rule.windowType === type,
-                ),
-        ) ?? "",
+        availableRuleTypes(settingsState.windowRules)[0] ?? "",
     );
+    /** FEAT-0769 — the symbol the next chart rule is scoped to ("" = all). */
+    let nextRuleSymbol = $state("");
 
     /** Labels for every type a rule can target (the selectable set). */
     const TYPE_LABEL_KEYS: Record<WindowRuleType, TranslationKey> = {
@@ -57,37 +74,144 @@
         whitepaper: "settings.windowRulesTypes.whitepaper",
     };
 
-    /** Types that do not have a rule yet. At most one rule per type. */
-    const unusedRuleTypes = $derived(
-        WINDOW_RULE_TYPES.filter(
-            (type) =>
-                !settingsState.windowRules.some(
-                    (rule) => rule.windowType === type,
-                ),
-        ),
-    );
+    const availableTypes = $derived(availableRuleTypes(settingsState.windowRules));
 
     function syncNextRuleType() {
-        if (!nextRuleType || !unusedRuleTypes.includes(nextRuleType)) {
-            nextRuleType = unusedRuleTypes[0] ?? "";
+        if (!nextRuleType || !availableTypes.includes(nextRuleType)) {
+            nextRuleType = availableTypes[0] ?? "";
         }
+        if (nextRuleType !== "chart") nextRuleSymbol = "";
     }
+
+    /**
+     * The rule "Add" would append, or `null` when the draft is not usable. Both
+     * the button's disabled state and `addRule()` read this, so the two cannot
+     * disagree about whether a click does something.
+     */
+    function draftRule(): WindowRule | null {
+        if (!nextRuleType) return null;
+        const symbol =
+            nextRuleType === "chart" ? normalizeRuleSymbol(nextRuleSymbol) : "";
+        if (symbol && !RULE_SYMBOL_PATTERN.test(symbol)) return null;
+        return symbol
+            ? {
+                  windowType: nextRuleType,
+                  match: { kind: "symbol", value: symbol },
+                  enabled: true,
+              }
+            : { windowType: nextRuleType, enabled: true };
+    }
+
+    const draftSymbol = $derived(normalizeRuleSymbol(nextRuleSymbol));
+    const isSymbolDraft = $derived(
+        nextRuleType === "chart" && draftSymbol !== "",
+    );
+    const draftSymbolInvalid = $derived(
+        isSymbolDraft && !RULE_SYMBOL_PATTERN.test(draftSymbol),
+    );
+    const draftSymbolTaken = $derived(
+        isSymbolDraft &&
+            hasSymbolRule(settingsState.windowRules, "chart", draftSymbol),
+    );
+    /**
+     * A type-wide chart rule already covers every chart, so a second one would
+     * collide on the dedupe key. `canAddRule` is false in that state; this is
+     * the reason the button is disabled, so the UI is not silently dead.
+     */
+    const draftTypeWideTaken = $derived(
+        nextRuleType === "chart" &&
+            !isSymbolDraft &&
+            settingsState.windowRules.some(
+                (rule) => rule.windowType === "chart" && !rule.match,
+            ),
+    );
+    const draftRefusal = $derived(
+        draftSymbolTaken || draftTypeWideTaken || draftSymbolInvalid,
+    );
+    const canAddRule = $derived.by(() => {
+        const draft = draftRule();
+        if (!draft) return false;
+        const key = ruleKey(draft);
+        return !settingsState.windowRules.some(
+            (rule) => ruleKey(rule) === key,
+        );
+    });
 
     function addRule() {
-        const type = nextRuleType;
-        if (!type || !isRuleTarget(type)) return;
-        if (settingsState.windowRules.some((rule) => rule.windowType === type)) {
+        const draft = draftRule();
+        if (!draft) return;
+        if (
+            settingsState.windowRules.some(
+                (rule) => ruleKey(rule) === ruleKey(draft),
+            )
+        ) {
             return;
         }
-        settingsState.windowRules.push({ windowType: type, enabled: true });
+        settingsState.windowRules.push(draft);
+        nextRuleSymbol = "";
         syncNextRuleType();
     }
 
-    function removeRule(type: WindowRuleType) {
+    function removeRule(rule: WindowRule) {
+        const key = ruleKey(rule);
         settingsState.windowRules = settingsState.windowRules.filter(
-            (rule) => rule.windowType !== type,
+            (entry) => ruleKey(entry) !== key,
         );
         syncNextRuleType();
+    }
+
+    /**
+     * DOM id stem for a rule: the type, plus the symbol for a scoped rule. Two
+     * chart rules would otherwise share every input id in the card.
+     */
+    function ruleDomId(rule: WindowRule): string {
+        const stem = `window-rule-${rule.windowType}`;
+        return rule.match ? `${stem}-${rule.match.value}` : stem;
+    }
+
+    /**
+     * Why the card refused the last rename, or `null`. Without it the field
+     * would snap back with no explanation, which reads as a broken input.
+     */
+    let symbolRefusal = $state<{
+        key: string;
+        message: TranslationKey;
+    } | null>(null);
+
+    /**
+     * Re-scopes a chart rule to another symbol (FEAT-0769). Refused values snap
+     * the field back instead of being stored, so the card never shows a symbol
+     * the rule does not carry — and the reason is rendered next to the field
+     * instead of the revert happening silently.
+     */
+    function renameSymbol(rule: WindowRule, input: HTMLInputElement) {
+        if (rule.match?.kind !== "symbol") return;
+        const next = normalizeRuleSymbol(input.value);
+        if (next === rule.match.value) {
+            // A case- or suffix-only edit canonicalises to the stored value;
+            // the field has to show the form the rule actually holds.
+            input.value = rule.match.value;
+            symbolRefusal = null;
+            return;
+        }
+        const taken = hasSymbolRule(
+            settingsState.windowRules,
+            rule.windowType,
+            next,
+            ruleKey(rule),
+        );
+        if (!RULE_SYMBOL_PATTERN.test(next) || taken) {
+            input.value = rule.match.value;
+            symbolRefusal = {
+                key: ruleKey(rule),
+                message: taken
+                    ? "settings.windowRulesDuplicateSymbol"
+                    : "settings.windowRulesSymbolInvalid",
+            };
+            return;
+        }
+        symbolRefusal = null;
+        rule.match.value = next;
     }
 
     /**
@@ -118,6 +242,12 @@
 
     function typeHasFixedAspect(type: WindowRuleType): boolean {
         return windowRegistry.getConfig(type).layout.aspectRatio != null;
+    }
+
+    /** The card's subtitle: the type label plus the instance it is scoped to. */
+    function ruleHeading(rule: WindowRule): string {
+        const label = $_(TYPE_LABEL_KEYS[rule.windowType]);
+        return rule.match ? `${label} · ${rule.match.value}` : label;
     }
 </script>
 
@@ -299,8 +429,9 @@
             </label>
         </div>
 
-        <!-- Window rules (FEAT-0743). One rule per window type; a rule only
-             applies the next time that window opens. -->
+        <!-- Window rules (FEAT-0743, scopes in FEAT-0769). One rule per window
+             type and scope: a chart may hold a type-wide rule plus one per
+             symbol. A rule only applies the next time that window opens. -->
         <div class="col-span-full border-t border-[var(--border-color)] pt-4">
             <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
                 {$_("settings.windowRulesTitle")}
@@ -316,14 +447,17 @@
             {/if}
 
             <div class="flex flex-col gap-3">
-                {#each settingsState.windowRules as rule (rule.windowType)}
+                <!-- Keyed by object identity, not by `ruleKey`: renaming a
+                     scoped rule changes its key and would remount the card,
+                     dropping focus and swallowing a click on a sibling. -->
+                {#each settingsState.windowRules as rule (rule)}
                     <fieldset class="rule-card">
                         <legend class="sr-only">
-                            {$_(TYPE_LABEL_KEYS[rule.windowType])}
+                            {ruleHeading(rule)}
                         </legend>
                         <div class="flex items-center justify-between gap-3 flex-wrap">
                             <span class="text-sm font-medium">
-                                {$_(TYPE_LABEL_KEYS[rule.windowType])}
+                                {ruleHeading(rule)}
                             </span>
                             <div class="flex items-center gap-3">
                                 <span
@@ -337,10 +471,10 @@
                                     )}
                                 </span>
                                 <Toggle
-                                    id={`window-rule-${rule.windowType}-enabled`}
+                                    id={`${ruleDomId(rule)}-enabled`}
                                     ariaLabel={`${$_(
                                         "settings.windowRulesEnableToggle",
-                                    )}: ${$_(TYPE_LABEL_KEYS[rule.windowType])}`}
+                                    )}: ${ruleHeading(rule)}`}
                                     checked={rule.enabled}
                                     onchange={(e) =>
                                         (rule.enabled = (
@@ -350,20 +484,61 @@
                                 <!-- FEAT-0611 escape: icon-only destructive action inside a rule card; the button primitive has no icon-only danger variant. -->
                                 <button
                                     type="button"
-                                    id={`window-rule-${rule.windowType}-remove`}
+                                    id={`${ruleDomId(rule)}-remove`}
                                     class="rule-remove"
                                     aria-label={`${$_(
                                         "settings.windowRulesRemove",
-                                    )}: ${$_(TYPE_LABEL_KEYS[rule.windowType])}`}
+                                    )}: ${ruleHeading(rule)}`}
                                     title={`${$_(
                                         "settings.windowRulesRemove",
-                                    )}: ${$_(TYPE_LABEL_KEYS[rule.windowType])}`}
-                                    onclick={() => removeRule(rule.windowType)}
+                                    )}: ${ruleHeading(rule)}`}
+                                    onclick={() => removeRule(rule)}
                                 >
                                     ✕
                                 </button>
                             </div>
                         </div>
+
+                        {#if supportsSymbolScope(rule.windowType)}
+                            {#if rule.match?.kind === "symbol"}
+                                <label class="field-group mt-2">
+                                    <span>{$_("settings.windowRulesSymbol")}</span>
+                                    <input
+                                        id={`${ruleDomId(rule)}-symbol`}
+                                        type="text"
+                                        class="input-field"
+                                        list="window-rule-symbol-options"
+                                        value={rule.match.value}
+                                        aria-invalid={symbolRefusal?.key ===
+                                            ruleKey(rule)}
+                                        aria-describedby={symbolRefusal?.key ===
+                                        ruleKey(rule)
+                                            ? `${ruleDomId(rule)}-symbol-error`
+                                            : undefined}
+                                        onchange={(e) =>
+                                            renameSymbol(
+                                                rule,
+                                                e.currentTarget as HTMLInputElement,
+                                            )}
+                                    />
+                                    {#if symbolRefusal?.key === ruleKey(rule)}
+                                        <p
+                                            id={`${ruleDomId(rule)}-symbol-error`}
+                                            role="status"
+                                            aria-live="polite"
+                                            class="text-[10px] text-[var(--danger-color)]"
+                                        >
+                                            {$_(symbolRefusal.message)}
+                                        </p>
+                                    {/if}
+                                </label>
+                            {:else}
+                                <p class="text-[10px] text-[var(--text-secondary)] mt-2">
+                                    {$_("settings.windowRulesScope")}:
+                                    {$_("settings.windowRulesScopeAll")}
+                                </p>
+                            {/if}
+                        {/if}
 
                         <p class="text-[10px] text-[var(--text-secondary)] mt-2">
                             {$_("settings.windowRulesGeometryHint")}
@@ -378,7 +553,7 @@
                             <label class="field-group">
                                 <span>{$_("settings.windowRulesX")}</span>
                                 <input
-                                    id={`window-rule-${rule.windowType}-x`}
+                                    id={`${ruleDomId(rule)}-x`}
                                     type="number"
                                     step="1"
                                     class="input-field"
@@ -395,7 +570,7 @@
                             <label class="field-group">
                                 <span>{$_("settings.windowRulesY")}</span>
                                 <input
-                                    id={`window-rule-${rule.windowType}-y`}
+                                    id={`${ruleDomId(rule)}-y`}
                                     type="number"
                                     step="1"
                                     class="input-field"
@@ -412,7 +587,7 @@
                             <label class="field-group">
                                 <span>{$_("settings.windowRulesWidth")}</span>
                                 <input
-                                    id={`window-rule-${rule.windowType}-width`}
+                                    id={`${ruleDomId(rule)}-width`}
                                     type="number"
                                     min="1"
                                     step="1"
@@ -431,7 +606,7 @@
                                 <label class="field-group">
                                     <span>{$_("settings.windowRulesHeight")}</span>
                                     <input
-                                        id={`window-rule-${rule.windowType}-height`}
+                                        id={`${ruleDomId(rule)}-height`}
                                         type="number"
                                         min="1"
                                         step="1"
@@ -455,7 +630,7 @@
                                 <label class="field-group">
                                     <span>{$_("settings.windowRulesMaximized")}</span>
                                     <select
-                                        id={`window-rule-${rule.windowType}-maximized`}
+                                        id={`${ruleDomId(rule)}-maximized`}
                                         class="input-field"
                                         value={rule.isMaximized === undefined
                                             ? ""
@@ -491,7 +666,7 @@
                                 <label class="field-group">
                                     <span>{$_("settings.windowRulesKeepAbove")}</span>
                                     <select
-                                        id={`window-rule-${rule.windowType}-keepabove`}
+                                        id={`${ruleDomId(rule)}-keepabove`}
                                         class="input-field"
                                         value={rule.isKeepAbove === undefined
                                             ? ""
@@ -523,33 +698,95 @@
                 {/each}
             </div>
 
-            <div class="flex items-end gap-2 mt-3">
+            <div class="flex items-end gap-2 mt-3 flex-wrap">
                 <label class="field-group flex-1">
                     <span>{$_("settings.windowRulesAddType")}</span>
                     <select
                         id="window-rule-add-type"
                         class="input-field w-full"
                         bind:value={nextRuleType}
-                        disabled={unusedRuleTypes.length === 0}
+                        disabled={availableTypes.length === 0}
                     >
-                        {#each unusedRuleTypes as type (type)}
+                        {#each availableTypes as type (type)}
                             <option value={type}>
                                 {$_(TYPE_LABEL_KEYS[type])}
                             </option>
                         {/each}
                     </select>
                 </label>
+                {#if nextRuleType === "chart"}
+                    <label class="field-group flex-1">
+                        <span>{$_("settings.windowRulesSymbol")}</span>
+                        <input
+                            id="window-rule-add-symbol"
+                            type="text"
+                            class="input-field w-full"
+                            list="window-rule-symbol-options"
+                            placeholder={$_(
+                                "settings.windowRulesSymbolPlaceholder",
+                            )}
+                            autocomplete="off"
+                            aria-invalid={draftRefusal}
+                            aria-describedby={draftRefusal
+                                ? "window-rule-add-symbol-hint window-rule-add-symbol-error"
+                                : "window-rule-add-symbol-hint"}
+                            bind:value={nextRuleSymbol}
+                        />
+                    </label>
+                {/if}
                 <!-- FEAT-0611 escape: primary action that must sit inline with the type picker; the button primitive does not fit this row. -->
                 <button
                     type="button"
                     id="window-rule-add"
                     class="rule-add"
-                    disabled={!nextRuleType || unusedRuleTypes.length === 0}
+                    disabled={!canAddRule}
                     onclick={addRule}
                 >
                     {$_("settings.windowRulesAdd")}
                 </button>
             </div>
+
+            {#if nextRuleType === "chart"}
+                <p
+                    id="window-rule-add-symbol-hint"
+                    class="text-[10px] text-[var(--text-secondary)] mt-1"
+                >
+                    {$_("settings.windowRulesSymbolHint")}
+                </p>
+                {#if draftSymbolTaken}
+                    <p
+                        id="window-rule-add-symbol-error"
+                        role="alert"
+                        class="text-[10px] text-[var(--danger-color)] mt-1"
+                    >
+                        {$_("settings.windowRulesDuplicateSymbol")}
+                    </p>
+                {:else if draftSymbolInvalid}
+                    <p
+                        id="window-rule-add-symbol-error"
+                        role="alert"
+                        class="text-[10px] text-[var(--danger-color)] mt-1"
+                    >
+                        {$_("settings.windowRulesSymbolInvalid")}
+                    </p>
+                {:else if draftTypeWideTaken}
+                    <p
+                        id="window-rule-add-symbol-error"
+                        role="alert"
+                        class="text-[10px] text-[var(--danger-color)] mt-1"
+                    >
+                        {$_("settings.windowRulesTypeWideExists")}
+                    </p>
+                {/if}
+            {/if}
+
+            <!-- Suggestions, not a restriction: a rule may name a symbol that is
+                 not (or no longer) a favourite. -->
+            <datalist id="window-rule-symbol-options">
+                {#each settingsState.favoriteSymbols as symbol (symbol)}
+                    <option value={symbol}></option>
+                {/each}
+            </datalist>
         </div>
     </SettingsGrid>
 </section>

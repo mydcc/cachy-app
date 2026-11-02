@@ -58,6 +58,24 @@ function setRule(rule: WindowRule | null) {
     if (rule) activeRules.push(rule);
 }
 
+function setRules(rules: WindowRule[]) {
+    activeRules.length = 0;
+    activeRules.push(...rules);
+}
+
+/** A chart rule scoped to one symbol (FEAT-0769). */
+function symbolRule(
+    value: string,
+    geometry: Partial<WindowRule> = {},
+): WindowRule {
+    return {
+        windowType: "chart",
+        match: { kind: "symbol", value },
+        enabled: true,
+        ...geometry,
+    };
+}
+
 beforeEach(() => {
     localStorage.clear();
     activeRules.length = 0;
@@ -339,5 +357,108 @@ describe("FEAT-0743 — rule application on open", () => {
         setRule({ windowType: "journal", enabled: true, x: 800, y: 700 });
 
         expect({ x: win.x, y: win.y }).toEqual({ x: 100, y: 100 });
+    });
+});
+
+describe("FEAT-0769 — per-instance rules on open", () => {
+    it("prefers the rule for the chart's own symbol over the general chart rule", () => {
+        setRules([
+            { windowType: "chart", enabled: true, x: 100, y: 100 },
+            symbolRule("BTCUSDT", { x: 400, y: 300, width: 640 }),
+        ]);
+
+        const btc = new TestWindow({
+            windowType: "chart",
+            id: "rule-scoped-btc",
+            symbol: "BTCUSDT",
+        });
+        const eth = new TestWindow({
+            windowType: "chart",
+            id: "rule-scoped-eth",
+            symbol: "ETHUSDT",
+        });
+
+        expect({ x: btc.x, y: btc.y, width: btc.width }).toEqual({
+            x: 400,
+            y: 300,
+            width: 640,
+        });
+        expect({ x: eth.x, y: eth.y }).toEqual({ x: 100, y: 100 });
+    });
+
+    it("applies a symbol rule even when no general chart rule exists", () => {
+        localStorage.setItem(
+            "cachy_win_rule-only-symbol-other",
+            JSON.stringify({ x: 31, y: 41 }),
+        );
+        setRule(symbolRule("BTCUSDT", { x: 220, y: 180 }));
+
+        const win = new TestWindow({
+            windowType: "chart",
+            id: "rule-only-symbol",
+            symbol: "BTCUSDT",
+        });
+        // Without the scope, the only chart rule would land on every chart.
+        const other = new TestWindow({
+            windowType: "chart",
+            id: "rule-only-symbol-other",
+            symbol: "ETHUSDT",
+        });
+
+        expect({ x: win.x, y: win.y }).toEqual({ x: 220, y: 180 });
+        expect({ x: other.x, y: other.y }).toEqual({ x: 31, y: 41 });
+    });
+
+    it("survives a non-string symbol from a hand-edited snapshot", () => {
+        // The symbol reaches matching straight from the constructor option, and
+        // a restored session can carry anything. It must not throw.
+        setRule(symbolRule("BTCUSDT", { x: 400, y: 300 }));
+
+        const win = new TestWindow({
+            windowType: "chart",
+            id: "rule-bad-symbol",
+            symbol: 42 as unknown as string,
+        });
+
+        expect(Number.isFinite(win.x)).toBe(true);
+        expect(Number.isFinite(win.y)).toBe(true);
+    });
+
+    it("leaves a chart whose symbol has no rule at its snapshot", () => {
+        localStorage.setItem(
+            "cachy_win_rule-foreign-symbol",
+            JSON.stringify({ x: 15, y: 25, width: 620 }),
+        );
+        setRule(symbolRule("BTCUSDT", { x: 400, y: 300, width: 700 }));
+
+        const win = new TestWindow({
+            windowType: "chart",
+            id: "rule-foreign-symbol",
+            symbol: "ETHUSDT",
+        });
+
+        expect({ x: win.x, y: win.y, width: win.width }).toEqual({
+            x: 15,
+            y: 25,
+            width: 620,
+        });
+    });
+
+    it("matches the symbol the window was opened with, not one a snapshot restores", () => {
+        // The snapshot carries a symbol nobody asked for; the rule is chosen
+        // from the constructor argument, so this must stay ETH's snapshot.
+        localStorage.setItem(
+            "cachy_win_rule-snapshot-symbol",
+            JSON.stringify({ x: 15, y: 25, symbol: "BTCUSDT" }),
+        );
+        setRule(symbolRule("BTCUSDT", { x: 400, y: 300 }));
+
+        const win = new TestWindow({
+            windowType: "chart",
+            id: "rule-snapshot-symbol",
+            symbol: "ETHUSDT",
+        });
+
+        expect({ x: win.x, y: win.y }).toEqual({ x: 15, y: 25 });
     });
 });
