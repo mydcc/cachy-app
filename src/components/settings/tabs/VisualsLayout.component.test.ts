@@ -237,6 +237,7 @@ describe("FEAT-0743 — window rules section", () => {
             "whitepaper",
             "iframe",
             "channel",
+            "settings",
         ]) {
             expect(values, unsupported).not.toContain(unsupported);
         }
@@ -257,18 +258,6 @@ describe("FEAT-0743 — window rules section", () => {
         remove.click();
 
         expect(settingsMock.windowRules).toEqual([]);
-    });
-
-    it("does not offer keep-above for a close-on-blur type", () => {
-        settingsMock.windowRules = [{ windowType: "settings", enabled: true }];
-        render();
-
-        expect(host.textContent).not.toContain(
-            lookup("settings.windowRulesKeepAboveOn"),
-        );
-        expect(host.textContent).toContain(
-            lookup("settings.windowRulesKeepAboveUnavailable"),
-        );
     });
 
     it("offers keep-above for a normal window type", () => {

@@ -1702,7 +1702,6 @@
     "windowRulesTypes": {
       "chart": "Chart",
       "news": "News",
-      "settings": "Einstellungen",
       "chatbox": "Chat",
       "journal": "Journal",
       "academy": "Academy",

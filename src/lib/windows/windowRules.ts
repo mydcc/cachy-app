@@ -48,6 +48,10 @@ import type {
  * A geometry rule for them would either be ignored or fight that layout, and
  * they are not surfaces a user arranges a workspace around.
  *
+ * `settings` is excluded too: it is the editor that owns this list, it closes
+ * on blur and has no resize handle, so a rule would only ever move it. Its
+ * close-on-blur nature also makes keep-above meaningless there.
+ *
  * `iframe` and `channel` are excluded for a different reason: the picker can
  * only name a *type*, and neither type has an identity a user recognises.
  * Article readers are `iframe` windows with a generated id and the shared
@@ -61,7 +65,6 @@ export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "chart",
   "academy",
   "assistant",
-  "settings",
   "news",
   "alertpanel",
   "controlcenter",

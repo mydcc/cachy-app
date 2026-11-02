@@ -144,9 +144,10 @@ These were the open questions; they are settled for this slice:
   placement. `restore()` after a live maximize still uses the geometry the
   window had before that maximize.
 - **Keep-above is hidden for close-on-blur targets.** The rule UI omits the
-  keep-above control when the selected `windowType` has `closeOnBlur`, the
-  same rule the window header follows. The open path also refuses to lift
-  such a window, so a hand-edited payload cannot create the contradiction.
+  keep-above control when the selected `windowType` has `closeOnBlur`, and the
+  open path refuses to lift such a window, so a hand-edited payload cannot
+  create the contradiction. No rule target is close-on-blur today (`settings`
+  has left the list), but the guard stays for a future type.
 
 ## Links
 

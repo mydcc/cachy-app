@@ -51,7 +51,6 @@ type RuleWindowType =
     | "journal"
     | "chart"
     | "news"
-    | "settings"
     | "alertpanel"
     | "academy";
 
@@ -209,9 +208,16 @@ describe("FEAT-0743 — rule application on open", () => {
     });
 
     it("refuses keep-above for a close-on-blur target", () => {
-        setRule({ windowType: "settings", enabled: true, isKeepAbove: true });
+        // No rule type is close-on-blur today, but the guard lives in
+        // WindowBase for any future type that joins the list.
+        setRule({ windowType: "journal", enabled: true, isKeepAbove: true });
+        const win = new TestWindow({
+            windowType: "journal",
+            id: `rule-test-close-on-blur-${nextId++}`,
+            closeOnBlur: true,
+        });
 
-        expect(makeWindow("settings").isKeepAbove).toBe(false);
+        expect(win.isKeepAbove).toBe(false);
     });
 
     it("clamps rule geometry through the drag path", () => {

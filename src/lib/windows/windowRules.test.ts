@@ -72,6 +72,7 @@ describe("FEAT-0743 — rule matching", () => {
             "changelog",
             "privacy",
             "whitepaper",
+            "settings",
         ] as const) {
             expect(isRuleTarget(type), type).toBe(false);
             expect(WINDOW_RULE_TYPES).not.toContain(type);

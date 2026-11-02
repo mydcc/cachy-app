@@ -64,7 +64,6 @@
         chart: "settings.windowRulesTypes.chart",
         academy: "settings.windowRulesTypes.academy",
         assistant: "settings.windowRulesTypes.assistant",
-        settings: "settings.windowRulesTypes.settings",
         news: "settings.windowRulesTypes.news",
         alertpanel: "settings.windowRulesTypes.alertpanel",
         controlcenter: "settings.windowRulesTypes.controlcenter",
