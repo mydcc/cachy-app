@@ -52,7 +52,8 @@ export interface ExplanationContext {
   readonly symbol: string;
   readonly timeframe: string;
   readonly indicatorId: string;
-  readonly field: PriceField;
+  /** The price the engine computed over; `null` means the indicator's own default. */
+  readonly field: PriceField | null;
   readonly params: Readonly<Record<string, ParamValue>>;
   /** ISO timestamp of the values, so a later screenshot is not mistaken for now. */
   readonly generatedAt: string;
@@ -73,7 +74,7 @@ export const EXPLANATION_CONTEXT_FIELDS = [
 export interface ExplanationInput {
   entry: CatalogueEntry;
   params: Readonly<Record<string, ParamValue>>;
-  field: PriceField;
+  field: PriceField | undefined;
   symbol: string;
   timeframe: string;
   series: LessonSeries;
@@ -94,7 +95,7 @@ export function buildExplanationContext(
     symbol: input.symbol,
     timeframe: input.timeframe,
     indicatorId: input.entry.id,
-    field: input.field,
+    field: input.field ?? null,
     params: { ...input.params },
     generatedAt: input.generatedAt,
     lines: input.series.lines.map((line) => ({

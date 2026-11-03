@@ -55,6 +55,8 @@
     import { markdown } from "../../actions/markdown";
     import "katex/dist/katex.min.css";
     import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
+    import LiveExplanation from "./LiveExplanation.svelte";
+    import type { LessonSeries } from "../../lib/academy/indicatorLessonSeries";
     import SelectDropdown from "./SelectDropdown.svelte";
 
     interface Props {
@@ -179,6 +181,15 @@
     function selectLesson(id: string) {
         selectedId = id;
     }
+
+    /*
+     * FEAT-0678 — what the chart below actually drew. The live explanation
+     * reads this object instead of computing the series a second time, so the
+     * values a provider is asked about are the values on screen.
+     */
+    let chartReadout = $state<{ series: LessonSeries; timeframe: string } | null>(
+        null,
+    );
 </script>
 
 <div class="flex flex-col @md:flex-row h-full gap-4 min-h-0 min-w-0">
@@ -357,6 +368,20 @@
                     entry={current}
                     params={lessonParameters.values}
                     field={lessonParameters.field}
+                    onreadout={(readout) => (chartReadout = readout)}
+                />
+                <!--
+                  FEAT-0678 — the plain reading, next to the picture. Tied to
+                  `showLiveChart` because without a chart there are no values to
+                  explain: the public SEO route renders the lessons and no
+                  control, not a disabled one that implies a missing feature.
+                -->
+                <LiveExplanation
+                    entry={current}
+                    params={lessonParameters.values}
+                    field={lessonParameters.field}
+                    timeframe={chartReadout?.timeframe ?? ""}
+                    series={chartReadout?.series ?? null}
                 />
             {/if}
 

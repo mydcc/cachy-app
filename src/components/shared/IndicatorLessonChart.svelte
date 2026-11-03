@@ -138,6 +138,14 @@
          * Omitted, the chart computes `entry` as before.
          */
         series?: LessonSeries;
+        /**
+         * The series this chart actually drew, with the timeframe it drew it on
+         * (FEAT-0678). A sibling that asks a provider about "these values" reads
+         * exactly what is on screen instead of computing a second time.
+         */
+        onreadout?: (
+            readout: { series: LessonSeries; timeframe: string } | null,
+        ) => void;
     }
 
     let {
@@ -150,6 +158,7 @@
         markers,
         priceLines,
         series,
+        onreadout,
     }: Props = $props();
 
     /**
@@ -327,6 +336,17 @@
     let computed = $derived<LessonSeries>(
         series ?? computeLessonSeries(entry, candles, timeframe, params, field),
     );
+
+    /*
+     * FEAT-0678 — hand the drawn series upward. The live-explanation control
+     * asks a provider about "the values on screen", so it has to read this
+     * object rather than recompute: two computations of the same indicator can
+     * disagree by a candle and the reader would never know which one the answer
+     * describes. Registers no listener, so there is nothing to clean up.
+     */
+    $effect(() => {
+        onreadout?.({ series: computed, timeframe });
+    });
 
     /**
      * Which pane a declared output is drawn in.

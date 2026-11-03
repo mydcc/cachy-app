@@ -17,6 +17,7 @@ import type { StreamUsage } from "../lib/ai/streamAdapters";
 import {
   resolveChatTarget,
   streamCompletion,
+  describeTarget,
   ProviderRequestError,
   type ChatMessage,
   type CompletionResult,
@@ -652,6 +653,15 @@ class AiManager {
       },
       sessionId: this.sessionId,
     };
+  }
+
+  /**
+   * Which provider would answer right now, and whether it is configured
+   * (FEAT-0678). The Academy renders this before the control is pressed, so the
+   * recipient of the request is named before any request exists (ADR-0011).
+   */
+  providerStatus(): { ready: boolean; label: string } {
+    return describeTarget(this.resolveInput());
   }
 
   /**

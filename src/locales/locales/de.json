@@ -4369,6 +4369,16 @@
     "fileNotFound": "Markdown Datei nicht gefunden: {path}"
   },
   "academy": {
+    "liveExplain": {
+      "heading": "Live-Deutung",
+      "hint": "Lass dir sagen, was genau diese Werte gerade bedeuten. Die Anfrage geht an den Anbieter aus den Einstellungen.",
+      "noProvider": "Kein KI-Anbieter eingerichtet. Hinterlege einen unter Einstellungen \u2192 KI, um eine Live-Deutung zu bekommen.",
+      "ask": "Mit {provider} erkl\u00e4ren",
+      "askDisabled": "Erkl\u00e4ren",
+      "streaming": "Der Anbieter antwortet\u2026",
+      "frozen": "Gelesen um {time} \u00b7 {symbol} \u00b7 {timeframe}",
+      "failed": "Der Anbieter konnte nicht antworten:"
+    },
     "title": "Trading Akademie",
     "structure": {
       "title": "Marktstruktur & Regime",
