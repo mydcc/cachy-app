@@ -19,6 +19,8 @@ import {
   streamCompletion,
   ProviderRequestError,
   type ChatMessage,
+  type CompletionResult,
+  type ResolveChatInput,
 } from "../lib/ai/completion";
 import {
   isRetryableProviderStatus,
@@ -319,49 +321,15 @@ class AiManager {
         appLocale,
       });
 
-      const legacy = {
-        openai: {
-          apiKey: settings.openaiApiKey,
-          model: settings.openaiModel,
-          baseUrl: settings.openaiBaseUrl,
-        },
-        anthropic: {
-          apiKey: settings.anthropicApiKey,
-          model: settings.anthropicModel,
-          baseUrl: settings.anthropicBaseUrl,
-        },
-        gemini: {
-          apiKey: settings.geminiApiKey,
-          model: settings.geminiModel,
-          baseUrl: settings.geminiBaseUrl,
-        },
-        openrouter: {
-          apiKey: settings.openrouterApiKey,
-          model: settings.openrouterModel,
-          baseUrl: settings.openrouterBaseUrl,
-        },
-        ollama: {
-          apiKey: "",
-          model: settings.ollamaModel,
-          baseUrl: settings.ollamaBaseUrl,
-        },
-      };
-
-      // ADR-0019: credentials are Class A, so browser-direct is the default and
-      // the server relay is an explicit opt-in for providers that block
-      // cross-origin requests. Nothing transits Cachy infrastructure unless the
-      // user turned the relay on.
+      // ADR-0019: credentials are Class A, so browser-direct is the default
+      // and the server relay is an explicit opt-in for providers that block
+      // cross-origin requests. Nothing transits Cachy infrastructure unless
+      // the user turned the relay on.
       //
       // FEAT-0678: target resolution and the transport live in
       // `lib/ai/completion.ts`, because the Academy needs the same path. What
       // stays here is the transcript.
-      const target = resolveChatTarget({
-        userProviders: settings.userProviders,
-        activeProviderId: settings.activeProviderId,
-        aiProvider: settings.aiProvider,
-        legacy,
-        sessionId: this.sessionId,
-      });
+      const target = resolveChatTarget(this.resolveInput());
 
       const systemPrompt = target.flavor === "anthropic-messages"
         ? JSON.stringify(promptParts)
@@ -643,6 +611,70 @@ class AiManager {
         this.errorStatus = e.status;
       }
     }
+  }
+
+  /**
+   * The provider-registry input, assembled once. Both callers resolve their
+   * target from this, so a new settings key reaches them at the same time.
+   */
+  private resolveInput(): ResolveChatInput {
+    const settings = settingsState;
+    return {
+      userProviders: settings.userProviders,
+      activeProviderId: settings.activeProviderId,
+      aiProvider: settings.aiProvider,
+      legacy: {
+        openai: {
+          apiKey: settings.openaiApiKey,
+          model: settings.openaiModel,
+          baseUrl: settings.openaiBaseUrl,
+        },
+        anthropic: {
+          apiKey: settings.anthropicApiKey,
+          model: settings.anthropicModel,
+          baseUrl: settings.anthropicBaseUrl,
+        },
+        gemini: {
+          apiKey: settings.geminiApiKey,
+          model: settings.geminiModel,
+          baseUrl: settings.geminiBaseUrl,
+        },
+        openrouter: {
+          apiKey: settings.openrouterApiKey,
+          model: settings.openrouterModel,
+          baseUrl: settings.openrouterBaseUrl,
+        },
+        ollama: {
+          apiKey: "",
+          model: settings.ollamaModel,
+          baseUrl: settings.ollamaBaseUrl,
+        },
+      },
+      sessionId: this.sessionId,
+    };
+  }
+
+  /**
+   * One question, one streamed answer, no transcript (FEAT-0678).
+   *
+   * The Academy asks here instead of `sendMessage`, because a lesson is not a
+   * chat turn: nothing is appended to `messages`, nothing is persisted, and no
+   * trade action is parsed out of the answer. Without tools in the request the
+   * model cannot even ask to change the form.
+   *
+   * Throws every failure unchanged, including an abort, so the caller can tell
+   * "cancelled" (silent) from "broken" (shown).
+   */
+  async askOnce(
+    messages: readonly ChatMessage[],
+    options: { onDelta?: (content: string) => void; signal?: AbortSignal } = {},
+  ): Promise<CompletionResult> {
+    const target = resolveChatTarget(this.resolveInput());
+    return streamCompletion(target, {
+      messages,
+      onDelta: options.onDelta,
+      signal: options.signal,
+    });
   }
 
   private async gatherContext(): Promise<AiContext> {
