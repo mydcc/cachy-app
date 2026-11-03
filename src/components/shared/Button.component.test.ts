@@ -36,6 +36,7 @@ vi.mock("../../services/trackingService", () => ({
 }));
 
 import { trackCustomEvent } from "../../services/trackingService";
+import { contrastRatio, parseColorToRgb } from "../../lib/themeColors";
 import Button from "./Button.svelte";
 
 const THEMES = readFileSync("src/themes.css", "utf8");
@@ -178,10 +179,44 @@ describe("FEAT-0610 — variants, sizes and events", () => {
             const background = getComputedStyle(el).backgroundColor;
             expect(background, variant).not.toBe("rgba(0, 0, 0, 0)");
             expect(background, variant).toBe(expected);
+
+            // BUG-0759: the label is the half that had no token of its own, so
+            // it is the half that went unread. Assert it against the text
+            // token, not only against the fill.
+            const textProbe = document.createElement("div");
+            textProbe.style.color = `var(--btn-${variant}-text)`;
+            document.body.appendChild(textProbe);
+            const expectedInk = getComputedStyle(textProbe).color;
+            textProbe.remove();
+
+            expect(getComputedStyle(el).color, variant).toBe(expectedInk);
+
             colours.set(variant, background);
         }
 
         expect(new Set(colours.values()).size).toBe(5);
+    });
+
+    it("paints the warning label readable on the warning fill", () => {
+        // BUG-0759: in the default theme the old fallback (--text-primary)
+        // happened to equal the right ink, so only a theme whose fill is light
+        // can tell the two apart. meteorite was the worst at 1.02:1.
+        document.documentElement.className = "theme-meteorite";
+        try {
+            render({ variant: "warning" });
+
+            const el = button();
+            const fill = parseColorToRgb(getComputedStyle(el).backgroundColor);
+            const label = parseColorToRgb(getComputedStyle(el).color);
+            expect(fill, "warning fill").not.toBeNull();
+            expect(label, "warning label").not.toBeNull();
+            expect(
+                contrastRatio(fill as [number, number, number], label as [number, number, number]),
+                "warning label on the warning fill",
+            ).toBeGreaterThanOrEqual(4.5);
+        } finally {
+            document.documentElement.className = "";
+        }
     });
 
     it("keeps the text variants transparent and the outline variant bordered", () => {

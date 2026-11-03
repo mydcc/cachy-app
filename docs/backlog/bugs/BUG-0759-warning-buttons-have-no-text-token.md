@@ -11,6 +11,7 @@ area: ui
 data_class: none
 adr: none
 depends_on: [BUG-0728]
+shipped: 1.6.0
 ---
 
 # BUG-0759 — Warning buttons have no text token and fall back to unreadable body text
@@ -18,25 +19,26 @@ depends_on: [BUG-0728]
 ## Symptom
 
 `Button variant="warning"` renders the body text colour on a yellow or orange
-fill. In dark themes that is light text on a light fill (1.02–1.64:1 measured),
-in light themes dark text on a dark orange fill (1.98–2.42:1). The buttons
-appear in Settings → Data maintenance, where they start destructive resets, so
-the least readable label in the app sits on the action that erases data.
+fill. In dark themes that is light text on a light fill (1.01–2.14:1 measured);
+in the four light themes it is dark text on a dark amber fill (1.17–2.42:1). The
+buttons appear in Settings → Data maintenance, where they run the journal
+repairs — `repair`, `repairMfeMae`, `repairSymbols` — so the least readable
+label in the app sits on the actions that rewrite stored journal fields.
 
 ## Evidence
 
 **Demonstrated** by resolving the pair per theme block the way the cascade
 does, with the resolver introduced in BUG-0728.
 
-`src/themes.css:2850` (`.btn-base.btn-warning`):
+`.btn-base.btn-warning` in `src/themes.css`:
 
 ```css
 background-color: var(--btn-warning-bg);
 color: var(--text-on-warning, var(--text-primary));
 ```
 
-`--text-on-warning` is referenced three times in the file and declared **zero**
-times, so every theme resolves the fallback. `--btn-warning-bg` is the one
+Before this fix `--text-on-warning` was referenced three times in the file and
+declared **zero** times, so every theme resolved the fallback. `--btn-warning-bg` is the one
 `--btn-*` background that is not re-declared per theme either; it follows
 `--warning-color`, whose value ranges from `#ffff00` (matrix) to `#953800`
 (light) across the palettes.
@@ -58,8 +60,9 @@ Measured pairs (`--text-primary` on `--warning-color`):
   warning fill and took its label from `--bg-primary`. That token is a
   `radial-gradient` in `meteorite`, `steel`, `insight` and `ever`, so the
   declaration is invalid at computed-value time and the label inherits the
-  header text colour — 1.02–1.10:1, the same four themes as the table above. In
-  the other 27 themes it passed by coincidence (4.68–19.56:1).
+  header text colour — 1.02–1.10:1 in those four pastel themes (only
+  `meteorite` is also in the table above). In the other 24 CSS scopes it passed
+  by coincidence (4.68–19.56:1).
 - `src/components/settings/HotkeySettings.svelte:197` (conflict toast) pairs the
   warning fill with a hardcoded `text-black`, which is 2.84:1 on the `#953800`
   fills — and a hardcoded colour besides.
@@ -94,9 +97,12 @@ so the hole was wider than the primitive.
    description paragraph switches with the card's fill instead of hardcoding
    `--text-secondary`.
 4. `src/themes.buttonContrast.test.ts` adds `warning` to the role list, pins the
-   six fills from the table, and pins the `opacity: 0.9` hover by compositing
-   both the fill and the label over `--bg-secondary` — measured worst case
-   4.71:1 (`solarized-dark`).
+   six fills from the table, pins the hover by reading the opacity out of
+   `.btn-base.btn-warning:hover` and compositing fill and label over
+   `--bg-primary` (the row surface in `DataMaintenance`, including every
+   gradient stop in the four gradient themes) — measured worst case 4.74:1
+   (`solarized-dark`) — and guards the wiring, so a consumer reverted to
+   `--bg-primary`, `--text-secondary` or `text-black` fails with its name.
 
 ## Acceptance criteria
 
@@ -106,7 +112,8 @@ so the hole was wider than the primitive.
 - [x] The six measured pairs from the table above are pinned by the test
 - [x] The additional labels (paper-mode badge, conflict toast, paper-mode card
       paragraph) clear 4.5:1 in the themes that previously failed
-- [x] The `0.9` hover composite clears 4.5:1 in every theme
+- [x] The hover composite, at the opacity the CSS declares, clears 4.5:1 on
+      every backdrop a warning button sits on
 
 ## Out of scope
 
@@ -118,8 +125,9 @@ so the hole was wider than the primitive.
 
 ## What shipped
 
-Shipped in `1.6.0` — `--text-on-warning` plus `--btn-warning-text`, the six
-consumer rules, and the extended contrast gate.
+Ships with `1.6.0` — `--text-on-warning` plus `--btn-warning-text`, the six
+consumer rules, the wiring guard and the extended contrast gate. The concrete
+beta is recorded by the release PR.
 
 ## Links
 
