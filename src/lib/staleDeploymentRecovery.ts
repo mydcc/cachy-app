@@ -67,11 +67,17 @@ export function isStaleChunkError(error: unknown): boolean {
   );
 }
 
-/** Returns true when this call initiated (or had already scheduled) the reload. */
+/**
+ * Returns false when the browser refused the navigation; true when a reload
+ * was initiated or the one-shot guard had already handled it.
+ */
 export function scheduleStaleReload(): boolean {
   if (reloadScheduled) return true;
   try {
     if (sessionStorage.getItem(STALE_RELOAD_FLAG) !== null) {
+      // Never cleared: one recovery per tab. A second deployment in the same
+      // long-lived tab is deliberately not recovered; the loop guard wins over
+      // coverage.
       reloadScheduled = true;
       return true;
     }
@@ -81,28 +87,49 @@ export function scheduleStaleReload(): boolean {
     // on the in-memory flag so recovery still happens exactly once per page.
   }
   reloadScheduled = true;
-  location.reload();
+  try {
+    location.reload();
+  } catch (error) {
+    // A blocked navigation must not disarm the recovery for the rest of the
+    // page: reset both guards so the next stale chunk tries again.
+    reloadScheduled = false;
+    try {
+      sessionStorage.removeItem(STALE_RELOAD_FLAG);
+    } catch {
+      // sessionStorage unavailable: the in-memory flag is already reset.
+    }
+    console.error("Stale-deployment reload failed", error);
+    return false;
+  }
   return true;
 }
 
 /**
- * Routes a failed lazy import. A stale chunk schedules the one-shot reload;
- * anything else is logged and retried on the next trigger. The callbacks are
- * injectable so the decision can be tested without timers or a browser.
+ * Routes a failed lazy import. A stale chunk takes the guarded reload path
+ * (at most one reload per tab; later stale chunks in that tab are not
+ * reloaded). Anything else is logged; the caller retries only when its
+ * trigger fires again. The callbacks are injectable so the decision can be
+ * tested without timers or a browser.
  */
 export function handleLazyLoadFailure(
   label: string,
   error: unknown,
   options: {
-    reload?: () => void;
+    reload?: () => boolean | void;
     log?: (message: string, error: unknown) => void;
   } = {},
-): "reload" | "log" {
+): "reload" | "reload-failed" | "log" {
+  const log =
+    options.log ?? ((message: string, error: unknown) => console.error(message, error));
   if (isStaleChunkError(error)) {
-    (options.reload ?? scheduleStaleReload)();
+    const started = (options.reload ?? scheduleStaleReload)();
+    if (started === false) {
+      log(`Failed to load ${label}: reload blocked`, error);
+      return "reload-failed";
+    }
     return "reload";
   }
-  (options.log ?? console.error)(`Failed to load ${label}`, error);
+  log(`Failed to load ${label}`, error);
   return "log";
 }
 

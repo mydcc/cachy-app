@@ -44,8 +44,9 @@ import { afterNavigate } from "$app/navigation";
   // statically imported here — each pulls the ~0.5 MB three-vendor chunk.
   // Each component is loaded via dynamic import only when its effect is
   // enabled/triggered. A failed import goes through handleLazyLoadFailure:
-  // a stale deployment reloads once, everything else is logged and retried
-  // on the next trigger.
+  // a stale chunk triggers at most one guarded reload per tab (later stale
+  // deployments in that tab are not recovered), while anything else is logged
+  // and retried only when the trigger fires again.
   import { _ } from "../locales/i18n";
   import { effectsState } from "../stores/effects.svelte";
 
@@ -129,8 +130,9 @@ import { afterNavigate } from "$app/navigation";
 
   // FEAT-0257 follow-up: FXOverlay has no settings toggle — it is event-driven
   // (projectile/smash/duck). Events queue in effectsState until FXOverlay
-  // consumes them, so nothing is lost while the chunk loads; if the import
-  // fails, the next event retries it.
+  // consumes them, so nothing is lost while the chunk loads; a non-stale
+  // failure is retried on the next event, a stale chunk takes the reload path
+  // above.
   $effect(() => {
     const hasDuckEvents =
       settingsState.showDuck && effectsState.duckEvents.length > 0;
