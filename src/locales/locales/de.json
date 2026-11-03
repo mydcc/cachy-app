@@ -3809,13 +3809,9 @@
       "title": "Reset bestätigen",
       "message": "Journal löschen?"
     },
-    "deletePreset": {
-      "title": "Preset löschen",
-      "message": "Wirklich löschen?"
-    },
     "import": {
       "title": "Import",
-      "message": "{count} Trades importieren?"
+      "message": "{count, plural, one {# Trade importieren?} other {# Trades importieren?}}"
     },
     "adjustMargin": {
       "title": "Positions-Margin anpassen",
