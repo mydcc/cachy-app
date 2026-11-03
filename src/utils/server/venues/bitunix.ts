@@ -145,7 +145,17 @@ async function cancelBitunixOrder(envelope: PresignedEnvelope, venueBody: string
     // call — surface a rejected order (e.g. already filled) as an error
     // instead of a silent success.
     const failure = res.data?.failureList?.[0];
-    if (failure) throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+    if (failure) {
+      // Keep the venue's business code on the error so the order route's
+      // failure log can name the rejection without the trade body (BUG-0779).
+      // No `.status`: the client contract stays 500 for a per-order refusal.
+      const error = new Error(
+        failure.errorMsg || `Cancel failed: ${failure.errorCode}`,
+      ) as ExchangeError;
+      error.venueCode = String(failure.errorCode ?? "CANCEL_FAILED");
+      error.venueHttpStatus = response.status;
+      throw error;
+    }
 
     return res.data;
 }

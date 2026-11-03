@@ -35,10 +35,10 @@ vi.stubGlobal("fetch", fetchMock);
 const getClientAddress = () => "127.0.0.1";
 
 /** The envelope `exchangeSignedFetch` would send for a Bitunix cancel. */
-async function cancelOrderRequest() {
+async function cancelOrderRequest(orderId = "42") {
   return signedEnvelopeRequest(
     "/api/orders?action=cancel-order",
-    { exchange: "bitunix", type: "cancel-order", symbol: "BTCUSDT", orderId: "42" },
+    { exchange: "bitunix", type: "cancel-order", symbol: "BTCUSDT", orderId },
     {},
     "bitunix",
   );
@@ -125,12 +125,12 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
         text: async () =>
           JSON.stringify({
             code: 0,
-            data: { successList: [], failureList: [{ orderId: "42", errorMsg: "Order status error", errorCode: 10013 }] },
+            data: { successList: [], failureList: [{ orderId: "ord-sentinel-7f3", errorMsg: "Order status error", errorCode: 10013 }] },
             msg: "Success",
           }),
       });
 
-      const { request, url } = await cancelOrderRequest();
+      const { request, url } = await cancelOrderRequest("ord-sentinel-7f3");
       const response = await POST({
         request,
         url,
@@ -138,20 +138,29 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
       } as unknown as Parameters<typeof POST>[0]);
 
       expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.error).toBe("Order status error");
 
-      const call = logSpy.mock.calls.find(([message]) =>
+      const calls = logSpy.mock.calls.filter(([message]) =>
         String(message).includes("[API] Order failed"),
       );
-      expect(call).toBeDefined();
-      const context = call![1] as Record<string, unknown>;
+      expect(calls).toHaveLength(1);
+      const [message, context] = calls[0] as [string, Record<string, unknown>];
 
-      // The request body carried symbol and order id; neither may reach the
-      // log event, and the upstream error text stays out for the same reason.
+      expect(message).toBe("[API] Order failed: cancel-order");
+      // The log keeps the failure diagnosable — Cachy code, venue code, error
+      // class — while carrying no request body or upstream message.
+      expect(context).toStrictEqual({
+        code: "10013",
+        venueCode: "10013",
+        name: "Error",
+        exchange: "bitunix",
+      });
       expect(context).not.toHaveProperty("body");
       expect(context).not.toHaveProperty("error");
       const serialized = JSON.stringify(context);
       expect(serialized).not.toContain("BTCUSDT");
-      expect(serialized).not.toContain("42");
+      expect(serialized).not.toContain("ord-sentinel-7f3");
     } finally {
       logSpy.mockRestore();
     }
