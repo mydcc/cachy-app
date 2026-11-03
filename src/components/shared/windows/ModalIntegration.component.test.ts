@@ -40,28 +40,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
-import { message } from "../../../tests/helpers/i18nMessages";
+import { translate } from "../../../tests/helpers/i18nMessages";
 
-
-/** `$(key, { values })`: the headings carry a placeholder. */
-function t(key: string, values?: Record<string, unknown>): string {
-    const template = message(key);
-    if (!values) return template;
-    return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
-        name in values ? String(values[name]) : whole,
-    );
-}
-
+/** The headings carry a placeholder; the harness fails on a missing value. */
 vi.mock("../../../locales/i18n", async () => {
-    const { readable } = await import("svelte/store");
-    return {
-        _: readable(
-            (key: string, options?: { values?: Record<string, unknown> }) =>
-                t(key, options?.values),
-        ),
-        locale: readable("en"),
-        setLocale: vi.fn(),
-    };
+    const { i18nModule } = await import("../../../tests/helpers/i18nMessages");
+    return i18nModule();
 });
 
 import WindowContainer from "./WindowContainer.svelte";
@@ -211,7 +195,7 @@ describe("BUG-0671 — a real modal through the real window manager", () => {
         expect(dialogFrame.textContent).toContain("Second");
         expect(
             buttonsIn(dialogFrame).map((button) => button.textContent?.trim()),
-        ).toContain(t("settings.confirmations.dialog.confirm"));
+        ).toContain(translate("settings.confirmations.dialog.confirm"));
 
         // The backdrop belongs to the dialog, above the pane it dims.
         const backdrop = host.querySelector<HTMLElement>(".window-backdrop");
@@ -227,7 +211,7 @@ describe("BUG-0671 — a real modal through the real window manager", () => {
         const confirmButton = buttonsIn(frameOf(dialog.id)).find(
             (candidate) =>
                 candidate.textContent?.trim() ===
-                t("settings.confirmations.dialog.confirm"),
+                translate("settings.confirmations.dialog.confirm"),
         );
         if (!confirmButton) {
             throw new Error("the dialog rendered no confirm button");

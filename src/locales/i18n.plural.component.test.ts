@@ -21,6 +21,9 @@
  * `Import {count} trades?` rendered "Import 1 trades?". The copy is an ICU
  * plural now, and this pins both categories in both languages through the real
  * dictionary — the mocked component tests cannot see a formatting change.
+ *
+ * Runs in the `components` project for the DOM and the i18n setup its
+ * `updateEffectiveLocale` needs; it mounts nothing.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,7 +31,6 @@ import { get } from "svelte/store";
 import { locale as svelteLocale } from "svelte-i18n";
 
 import { _, i18nReady, setLocale, updateEffectiveLocale } from "./i18n";
-import { settingsState } from "../stores/settings.svelte";
 
 async function useLocale(value: "en" | "de"): Promise<void> {
     setLocale(value);
@@ -40,12 +42,10 @@ async function useLocale(value: "en" | "de"): Promise<void> {
 
 beforeEach(async () => {
     await i18nReady;
-    settingsState.forceEnglishTechnicalTerms = false;
     await useLocale("en");
 });
 
 afterEach(async () => {
-    settingsState.forceEnglishTechnicalTerms = false;
     await useLocale("en");
 });
 

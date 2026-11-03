@@ -34,7 +34,6 @@ import { flushSync, mount, unmount } from "svelte";
 
 import { message } from "../../tests/helpers/i18nMessages";
 
-
 vi.mock("../../locales/i18n", async () => {
     const { i18nModule } = await import("../../tests/helpers/i18nMessages");
     return i18nModule();

@@ -29,29 +29,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
-import en from "../../../locales/locales/en.json";
+import { message } from "../../../tests/helpers/i18nMessages";
 
-/** Resolve a key against the shipped English dictionary, failing on a typo. */
-function lookup(key: string): string {
-    const value = key
-        .split(".")
-        .reduce<unknown>(
-            (acc, part) => (acc as Record<string, unknown>)?.[part],
-            en,
-        );
-    if (typeof value !== "string") {
-        throw new Error(`missing i18n key: ${key}`);
-    }
-    return value;
-}
+/** English copy for a key, failing on a typo. */
+const lookup = message;
 
 vi.mock("../../../locales/i18n", async () => {
-    const { readable } = await import("svelte/store");
-    return {
-        _: readable((key: string) => lookup(key) ?? key),
-        locale: readable("en"),
-        setLocale: vi.fn(),
-    };
+    const { i18nModule } = await import("../../../tests/helpers/i18nMessages");
+    return i18nModule();
 });
 
 import JournalSyncButton from "./JournalSyncButton.svelte";

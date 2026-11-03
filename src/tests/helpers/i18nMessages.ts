@@ -53,14 +53,47 @@ export function message(key: string): string {
 }
 
 /**
+ * `en.json` copy with simple `{name}` placeholders substituted. A missing
+ * value throws rather than rendering `{name}`: the real store ignores a flat
+ * object, and a test that reproduces that silence is the failure mode this
+ * harness exists to catch. ICU messages (`, plural,`) are returned untouched —
+ * assert those through the real store instead
+ * (`src/locales/i18n.plural.component.test.ts`).
+ */
+export function translate(
+    key: string,
+    values?: Record<string, unknown>,
+): string {
+    return translateFrom(key, en, values);
+}
+
+export function translateFrom(
+    key: string,
+    dictionary: Dictionary = en,
+    values?: Record<string, unknown>,
+): string {
+    const template = messageFrom(key, dictionary);
+    if (!values) return template;
+    return template.replace(/\{([A-Za-z0-9_]+)\}/g, (whole, name: string) => {
+        if (!(name in values)) {
+            throw new Error(`${key}: no value for {${name}}`);
+        }
+        return String(values[name]);
+    });
+}
+
+/**
  * The shape a `vi.mock("…/locales/i18n", …)` factory returns. Only the three
- * exports the mounted window stack reads are provided. `getDictionary` is
- * sampled per translation, so a test that swaps its dictionary sees the new
- * copy on the next call.
+ * exports the mounted window stack reads are provided, in the svelte-i18n
+ * signature `(key, { values })`. `getDictionary` is sampled per translation,
+ * so a test that swaps its dictionary sees the new copy on the next call.
  */
 export function i18nModule(getDictionary: () => Dictionary = () => en) {
     return {
-        _: readable((key: string) => messageFrom(key, getDictionary())),
+        _: readable(
+            (key: string, options?: { values?: Record<string, unknown> }) =>
+                translateFrom(key, getDictionary(), options?.values),
+        ),
         locale: readable("en"),
         setLocale: vi.fn(),
     };

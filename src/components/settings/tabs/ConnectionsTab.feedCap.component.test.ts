@@ -28,36 +28,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
-import { message } from "../../../tests/helpers/i18nMessages";
-
+import { translate } from "../../../tests/helpers/i18nMessages";
 
 /**
- * The real `$(key, { values })` substitutes `{name}` and refuses a message
- * whose placeholders it cannot fill. A mock that left `{max}` in place would
- * make an assertion about the copy vacuous — and would hide a message that
- * names a different variable than the component passes.
+ * The harness interpolates `{name}` and throws when a placeholder has no
+ * value: a mock that left `{max}` in place would make an assertion about the
+ * copy vacuous, and would hide a message that names a different variable than
+ * the component passes.
  */
-function t(key: string, values?: Record<string, unknown>): string {
-    const template = message(key);
-    if (!values) return template;
-    return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
-        if (!(name in values)) {
-            throw new Error(`${key}: no value for {${name}}`);
-        }
-        return String(values[name]);
-    });
-}
-
 vi.mock("../../../locales/i18n", async () => {
-    const { readable } = await import("svelte/store");
-    return {
-        _: readable(
-            (key: string, options?: { values?: Record<string, unknown> }) =>
-                t(key, options?.values),
-        ),
-        locale: readable("en"),
-        setLocale: vi.fn(),
-    };
+    const { i18nModule } = await import("../../../tests/helpers/i18nMessages");
+    return i18nModule();
 });
 
 import ConnectionsTab from "./ConnectionsTab.svelte";
@@ -82,7 +63,7 @@ function render(): void {
 
 /** The add control, anchored on its full label rather than a substring. */
 function addButton(): HTMLButtonElement {
-    const label = `+ ${t("settings.connections.addFeed")}`;
+    const label = `+ ${translate("settings.connections.addFeed")}`;
     const button = Array.from(
         host.querySelectorAll<HTMLButtonElement>("button"),
     ).find(
@@ -122,7 +103,7 @@ describe("BUG-0713 — the feed cap is on the surface, not only in the handler",
         expect(bodyText()).toContain("1 / 5");
         expect(addButton().getAttribute("aria-disabled")).toBeNull();
         expect(bodyText()).not.toContain(
-            t("settings.connections.feedLimitReached", { max: 5 }),
+            translate("settings.connections.feedLimitReached", { max: 5 }),
         );
     });
 
@@ -131,7 +112,7 @@ describe("BUG-0713 — the feed cap is on the surface, not only in the handler",
         render();
 
         const button = addButton();
-        const hint = t("settings.connections.feedLimitReached", { max: 5 });
+        const hint = translate("settings.connections.feedLimitReached", { max: 5 });
 
         // Visible without hover, and the accessible name carries both the
         // action and the reason: replacing the name with the reason alone
@@ -140,7 +121,7 @@ describe("BUG-0713 — the feed cap is on the surface, not only in the handler",
         expect(bodyText()).toContain("5 / 5");
         expect(button.getAttribute("aria-disabled")).toBe("true");
         expect(button.getAttribute("aria-label")).toBe(
-            `${t("settings.connections.addFeed")} — ${hint}`,
+            `${translate("settings.connections.addFeed")} — ${hint}`,
         );
 
         // `aria-disabled`, not native `disabled`: the reason has to be

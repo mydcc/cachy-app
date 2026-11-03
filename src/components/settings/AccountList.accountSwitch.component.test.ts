@@ -144,8 +144,6 @@ function buttonLabelled(label: string): HTMLButtonElement {
     return button;
 }
 
-/** The copy a user reads, so a wording change is not a false red. */
-
 beforeEach(() => {
     locale.current = "en";
     localStorage.clear();
