@@ -27,10 +27,11 @@
     import { attachContextRecovery } from "../../lib/three/webgl";
     import { browser } from "$app/env";
 
-    let { layer = "tiles" as const, zIndex = 40 } = $props<{
+    interface Props {
         layer?: "tiles" | "windows" | "modals";
         zIndex?: number;
-    }>();
+    }
+    let { layer = "tiles" as const, zIndex = 40 }: Props = $props();
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
