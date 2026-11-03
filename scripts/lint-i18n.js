@@ -50,6 +50,7 @@ import { fileURLToPath } from 'url';
 import {
     findDialogKeyLiterals,
     findInterpolationViolations,
+    TRANSLATION_KEY,
 } from './lib/i18n-key-usage.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -84,7 +85,6 @@ const HAS_LETTER = /[A-Za-zÄÖÜäöüß]/;
 // A real word, not a fragment left over between two `{…}` expressions
 // (units like "x", "px", "MB", or punctuation like "—", "(%").
 const HAS_WORD = /[A-Za-zÄÖÜäöüß]{3,}/;
-const TRANSLATION_KEY = /^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/;
 // Quoted single/double-string literals inside an expression.
 const LITERAL = /(["'])((?:(?!\1).)*)\1/g;
 
@@ -158,16 +158,23 @@ function add(rule, filePath, line, value, context) {
  * service-layer idiom; the rules module recognises that alias too.
  */
 function checkInterpolation(content, filePath) {
+    const lines = content.split('\n');
     for (const found of findInterpolationViolations(content)) {
+        if (hasIgnore(lines, found.line - 1)) continue;
         interpolationViolations.push({
             file: rel(filePath),
             line: found.line,
             context: found.context,
         });
     }
+}
 
-    // `modalState.show` renders copy, so a key there is literal text on screen
-    // (BUG-0761). This is the rule that would have caught it mechanically.
+/**
+ * `modalState.show` renders copy, so a key in either copy argument is literal
+ * text on screen (BUG-0761). This is the rule that would have caught it
+ * mechanically instead of by review.
+ */
+function checkDialogKeys(content, filePath) {
     const lines = content.split('\n');
     for (const found of findDialogKeyLiterals(content)) {
         if (hasIgnore(lines, found.line - 1)) continue;
@@ -352,6 +359,7 @@ function scanFile(filePath) {
     const lines = content.split('\n');
     ignoredLines = computeIgnoredLines(lines);
     checkInterpolation(content, filePath);
+    checkDialogKeys(content, filePath);
 
     if (filePath.endsWith('.svelte')) {
         const { lines: markupLines, inCode } = toMarkupLines(content);
@@ -386,7 +394,7 @@ if (violations.length > 0) {
         (acc[v.rule] ??= []).push(v);
         return acc;
     }, {});
-    console.error(`❌ Found ${violations.length} hardcoded UI string(s):\n`);
+    console.error(`❌ Found ${violations.length} hardcoded UI string(s) or raw dialog key(s):\n`);
     for (const [rule, list] of Object.entries(byRule)) {
         console.error(`  [${rule}] ${list.length}`);
         for (const v of list) {

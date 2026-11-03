@@ -20,21 +20,23 @@ import { describe, expect, it } from "vitest";
 import {
     findDialogKeyLiterals,
     findInterpolationViolations,
+    TRANSLATION_KEY,
     translationCallees,
 } from "./i18n-key-usage.mjs";
 
 describe("translationCallees", () => {
-    it("knows the component store and the service accessor", () => {
-        expect(translationCallees("")).toEqual(["\\$_", "get\\(_\\)"]);
+    it("picks up an alias captured from get(_)", () => {
+        expect(translationCallees("let t = get(_);")).toContain("t");
+        expect(translationCallees("const other = get(otherStore);")).not.toContain(
+            "other",
+        );
     });
 
-    it("picks up an alias captured from get(_)", () => {
-        const source = [
-            "const t = get(_);",
-            "let other = get(otherStore);",
-        ].join("\n");
-        expect(translationCallees(source)).toContain("t");
-        expect(translationCallees(source)).not.toContain("other");
+    it("recognises the const, let and var forms", () => {
+        for (const keyword of ["const", "let", "var"]) {
+            const source = `${keyword} tr = get(_);`;
+            expect(translationCallees(source)).toContain("tr");
+        }
     });
 });
 
@@ -47,11 +49,17 @@ describe("findInterpolationViolations", () => {
         expect(found[0].line).toBe(1);
     });
 
-    it("accepts the values wrapper", () => {
+    it("accepts the values wrapper and its shorthand", () => {
         expect(
             findInterpolationViolations(
                 '$_("positionsList.confirmClose", { values: { symbol } })',
             ),
+        ).toEqual([]);
+        expect(
+            findInterpolationViolations('t("a.b", { values })'),
+        ).toEqual([]);
+        expect(
+            findInterpolationViolations('t("a.b", { values, extra: 1 })'),
         ).toEqual([]);
     });
 
@@ -77,23 +85,50 @@ describe("findInterpolationViolations", () => {
         expect(findInterpolationViolations('$_(`dash.${x}`)')).toEqual([]);
     });
 
-    it("ignores an unrelated two-argument call", () => {
+    it("does not fire inside a longer identifier", () => {
+        // The alias has to be bound, otherwise `t(` is not a callee at all and
+        // these assertions would hold even without the left boundary.
+        const withAlias = (body) => `const t = get(_);\n${body}`;
+
         expect(
-            findInterpolationViolations("format(value, { locale })"),
+            findInterpolationViolations(
+                withAlias("csv.parseCSVContent(text, { parse: 1 })"),
+            ),
         ).toEqual([]);
+        expect(
+            findInterpolationViolations(
+                withAlias("buildDirectRequest(streamFlavor, {})"),
+            ),
+        ).toEqual([]);
+        expect(
+            findInterpolationViolations(withAlias("pendingActions.set(id, {})")),
+        ).toEqual([]);
+
+        // Control: the alias itself must still fire, so the boundary is not
+        // swallowing every call.
+        expect(
+            findInterpolationViolations(withAlias('t("a.b", { a })')),
+        ).toHaveLength(1);
     });
 
-    it("does not fire inside a longer identifier", () => {
-        // `…t(` at the end of a method name is not the translation alias.
+    it("reports every match, not just the first", () => {
+        const source = [
+            '$_(providers[0].label, { a })',
+            '$_(providers[1].label, { b })',
+        ].join("\n");
+        expect(findInterpolationViolations(source).map((v) => v.line)).toEqual([
+            1, 2,
+        ]);
+    });
+});
+
+describe("TRANSLATION_KEY", () => {
+    it("accepts underscore segments", () => {
         expect(
-            findInterpolationViolations("csv.parseCSVContent(text, { parse: 1 })"),
-        ).toEqual([]);
-        expect(
-            findInterpolationViolations("buildDirectRequest(streamFlavor, {})"),
-        ).toEqual([]);
-        expect(
-            findInterpolationViolations("pendingActions.set(id, {})"),
-        ).toEqual([]);
+            TRANSLATION_KEY.test(
+                "dashboard.alerts.templates.name.golden_cross_volume",
+            ),
+        ).toBe(true);
     });
 });
 
@@ -107,11 +142,25 @@ describe("findDialogKeyLiterals", () => {
         expect(found[0].line).toBe(1);
     });
 
-    it("flags single quotes too", () => {
+    it("flags a raw key in the message argument too", () => {
         const found = findDialogKeyLiterals(
-            "modalState.show('modals.savePreset.title', 'Enter name:', 'prompt')",
+            'modalState.show("Delete journal?", "modals.clearJournal.message", "confirm")',
         );
         expect(found).toHaveLength(1);
+        expect(found[0].value).toBe("modals.clearJournal.message");
+    });
+
+    it("flags underscore keys and template literals", () => {
+        expect(
+            findDialogKeyLiterals(
+                'modalState.show("dashboard.alerts.templates.name.golden_cross_volume", "m", "alert")',
+            ),
+        ).toHaveLength(1);
+        expect(
+            findDialogKeyLiterals(
+                "modalState.show(`modals.clearJournal.title`, `Delete?`, `confirm`)",
+            ),
+        ).toHaveLength(1);
     });
 
     it("accepts translated copy", () => {
@@ -128,9 +177,24 @@ describe("findDialogKeyLiterals", () => {
                 'modalState.show("Delete journal?", "All entries are removed.", "confirm")',
             ),
         ).toEqual([]);
+        expect(
+            findDialogKeyLiterals(
+                'modalState.show("example.com", "v1.2.3", "report.csv")',
+            ),
+        ).toEqual([]);
     });
 
-    it("reports the line of the call, not of the file", () => {
+    it("does not split on a comma inside the copy", () => {
+        const source = [
+            'modalState.show("Delete journal?", "This removes it, permanently.", "confirm");',
+            'modalState.show("modals.clearJournal.title", "Copy", "confirm");',
+        ].join("\n");
+        const found = findDialogKeyLiterals(source);
+        expect(found).toHaveLength(1);
+        expect(found[0].line).toBe(2);
+    });
+
+    it("reports the line of the key, not the line of the call", () => {
         const source = [
             "function clearJournal() {",
             "    const confirmed = await modalState.show(",
@@ -140,6 +204,8 @@ describe("findDialogKeyLiterals", () => {
             "    );",
             "}",
         ].join("\n");
-        expect(findDialogKeyLiterals(source)[0].line).toBe(2);
+        expect(findDialogKeyLiterals(source).map((v) => v.line)).toEqual([
+            3, 4,
+        ]);
     });
 });

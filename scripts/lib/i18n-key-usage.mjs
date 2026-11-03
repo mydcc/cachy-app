@@ -24,11 +24,19 @@
  * - services translate through `const t = get(_)`, so `t("key", { count })`
  *   escaped the interpolation guard and rendered a literal `{count}`;
  * - `modalState.show("modals.…", …)` takes copy, not keys — a raw key there is
- *   rendered literally (BUG-0761), so a key-shaped first argument is a defect.
+ *   rendered literally (BUG-0761), so a key-shaped argument is a defect.
  */
 
-/** `modals.clearJournal.title` — segments never contain spaces or capitals first. */
-export const TRANSLATION_KEY = /^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/;
+/** `modals.clearJournal.title` — underscore segments are real keys too. */
+export const TRANSLATION_KEY = /^[a-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$/;
+
+/** Dotted copy that is a hostname, a version or a filename, not a key. */
+const NOT_A_KEY = /\.(?:com|org|net|io|dev|app|ts|tsx|js|mjs|cjs|json|csv|md|html|css|scss|svelte|svg|png|jpe?g|webp|pdf|txt)$/i;
+const SEMVER = /^v?\d+(\.\d+)+$/i;
+
+function looksLikeKey(value) {
+    return TRANSLATION_KEY.test(value) && !NOT_A_KEY.test(value) && !SEMVER.test(value);
+}
 
 /** A string literal, a template literal, or a bare (optionally cast) identifier. */
 const FIRST_ARGUMENT =
@@ -60,6 +68,9 @@ export function translationCallees(content) {
 /**
  * Calls that pass interpolation values outside the `values` wrapper, which
  * svelte-i18n ignores — the user sees the raw `{placeholder}`.
+ *
+ * `values` is read by destructuring, so the shorthand `{ values }` is correct
+ * and must not be reported; only a bare sibling key (`{ count }`) is.
  */
 export function findInterpolationViolations(content) {
     const call = new RegExp(
@@ -69,26 +80,111 @@ export function findInterpolationViolations(content) {
     const violations = [];
     for (const match of content.matchAll(call)) {
         const after = content.slice(match.index + match[0].length);
-        if (/^\s*values\s*:/.test(after)) continue;
+        if (/^\s*values\s*[,}:]/.test(after)) continue;
         if (/^\s*\}/.test(after)) continue;
         violations.push(violation(content, match.index));
     }
     return violations;
 }
 
+const DIALOG_CALL = /\bmodalState\.show\s*\(/g;
+
 /**
- * `modalState.show(...)` first arguments that are translation keys instead of
- * copy. A translated call (`t("…")`, `$_(…)`) is not a literal and passes.
+ * `modalState.show(...)` arguments that are translation keys instead of copy.
+ * The dialog renders `title` and `message`; both are checked. A translated
+ * argument (`t("…")`, `$_(…)`) is not a literal and passes.
  */
 export function findDialogKeyLiterals(content) {
-    const call = /\bmodalState\.show\(\s*(?:"([^"]*)"|'([^']*)')/g;
     const violations = [];
-    for (const match of content.matchAll(call)) {
-        const value = (match[1] ?? match[2] ?? "").trim();
-        if (!TRANSLATION_KEY.test(value)) continue;
-        violations.push({ ...violation(content, match.index), value });
+    for (const match of content.matchAll(DIALOG_CALL)) {
+        const openIndex = match.index + match[0].length - 1;
+        const args = callArguments(content, openIndex);
+        for (const arg of args.slice(0, 2)) {
+            const literal = stringLiteral(arg.text);
+            if (literal === null) continue;
+            const value = literal.trim();
+            if (!looksLikeKey(value)) continue;
+            violations.push({
+                ...violation(content, arg.start + leadingWhitespace(arg.text)),
+                value,
+            });
+        }
     }
     return violations;
+}
+
+/**
+ * The arguments of the call whose `(` sits at `openIndex`. Tracks quotes and
+ * bracket depth, so `", "` inside a string or a nested call does not split.
+ */
+function callArguments(content, openIndex) {
+    const args = [];
+    let depth = 1;
+    let start = openIndex + 1;
+    let index = openIndex + 1;
+    let quote = null;
+
+    while (index < content.length) {
+        const char = content[index];
+
+        if (quote) {
+            if (char === "\\") {
+                index += 2;
+                continue;
+            }
+            if (char === quote) quote = null;
+            index++;
+            continue;
+        }
+
+        if (char === '"' || char === "'" || char === "`") {
+            quote = char;
+            index++;
+            continue;
+        }
+
+        if (char === "(" || char === "[" || char === "{") {
+            depth++;
+            index++;
+            continue;
+        }
+
+        if (char === ")" || char === "]" || char === "}") {
+            depth--;
+            if (depth === 0) {
+                args.push({ text: content.slice(start, index), start });
+                return args;
+            }
+            index++;
+            continue;
+        }
+
+        if (char === "," && depth === 1) {
+            args.push({ text: content.slice(start, index), start });
+            start = index + 1;
+        }
+
+        index++;
+    }
+
+    // Unterminated call: keep what we have rather than throwing.
+    args.push({ text: content.slice(start), start });
+    return args;
+}
+
+/** The value of a single string or template literal, or `null`. */
+function stringLiteral(argument) {
+    const text = argument.trim();
+    const match =
+        /^(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`)$/s.exec(
+            text,
+        );
+    if (!match) return null;
+    return match[1] ?? match[2] ?? match[3];
+}
+
+function leadingWhitespace(value) {
+    return value.length - value.trimStart().length;
 }
 
 function violation(content, index) {
