@@ -43,7 +43,6 @@ describe('News Service Cache Memory', () => {
                 headers: new Headers({ 'x-api-key': 'test-key' }),
                 json: async () => ({
                     source: 'newsapi',
-                    apiKey: 'test-key',
                     params: { q: `test-${i}` }
                 })
             };

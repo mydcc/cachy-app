@@ -237,6 +237,7 @@ export const newsService = {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
+                  // BUG-0776: the proxy rejects body credentials.
                   "x-api-key": cryptoPanicApiKey,
                 },
                 body: JSON.stringify({
@@ -294,6 +295,7 @@ export const newsService = {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
+                  // BUG-0776: the proxy rejects body credentials.
                   "x-api-key": newsApiKey,
                 },
                 body: JSON.stringify({

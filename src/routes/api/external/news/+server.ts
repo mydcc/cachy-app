@@ -48,19 +48,35 @@ const MAX_CACHE_SIZE = 50;
  * isolation without keeping the key itself.
  *
  * CodeQL `js/insufficient-password-hash` fires on this HMAC because it treats
- * the API key as a password. It is a false positive: nothing is stored, the
- * digest is a per-process cache namespace with a lifetime measured in
- * minutes, and the query's threat model — an attacker who stole a hash
- * database and brute-forces it offline — has no target. A slow KDF would add
- * tens of milliseconds to every news request for no security gain. The
- * dismissal has to happen in the repository's Security tab; source-level
- * `// codeql[...]` markers are not honoured by GitHub code scanning (see the
- * same note in `src/utils/server/bitunix.ts`).
+ * the API key as a password. It is a false positive: nothing durable is
+ * stored — the digest is an in-memory cache namespace whose entries expire
+ * after `CACHE_TTL` (60 minutes), and the HMAC key never leaves this process.
+ * The query's threat model — an attacker who stole a hash database and
+ * brute-forces it offline — has no target. A slow KDF would add tens of
+ * milliseconds to every news request for no security gain. The alert is
+ * dismissed in the repository's Security tab; source-level `// codeql[...]`
+ * markers are not honoured by GitHub code scanning (see the same note in
+ * `src/utils/server/bitunix.ts`).
  */
-const CACHE_KEY_SALT = crypto.randomBytes(32);
+const CACHE_NAMESPACE_KEY = crypto.randomBytes(32);
 
 function hashApiKey(apiKey: string): string {
-  return crypto.createHmac("sha256", CACHE_KEY_SALT).update(apiKey).digest("hex");
+  return crypto.createHmac("sha256", CACHE_NAMESPACE_KEY).update(apiKey).digest("hex");
+}
+
+/**
+ * Removes the raw and the URL-encoded form of the key from a message. The
+ * CryptoPanic path carries the key in the query string, so transport errors
+ * can echo the encoded form.
+ */
+function redactKey(text: string, key: string): string {
+  if (!key || key.length <= 4) return text;
+  let redacted = text.split(key).join("***");
+  const encoded = encodeURIComponent(key);
+  if (encoded !== key && encoded.length > 4) {
+    redacted = redacted.split(encoded).join("***");
+  }
+  return redacted;
 }
 
 function setCache(key: string, data: unknown) {
@@ -81,18 +97,24 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
   let apiKey = "";
 
   try {
-    const body = await request.json();
-    const { source, params, plan } = body;
-
     // News credentials travel in one header only (BUG-0776). The shared
     // `extractApiCredentials` helper also accepts `x-api-secret`,
     // `x-api-passphrase` and body fallbacks — credentials this route never
-    // needs and ADR-0013 forbids outside the exchange routes.
+    // needs and ADR-0013 forbids on any proxy route.
     if (request.headers.has("x-api-secret") || request.headers.has("x-api-passphrase")) {
       return json({ error: "Unsupported credential header" }, { status: 400 });
     }
 
-    apiKey = request.headers.get("x-api-key") ?? "";
+    const body = await request.json();
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+      return json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { source, params, plan } = body;
+    if ("apiKey" in body || "apiSecret" in body || "passphrase" in body) {
+      return json({ error: "Unsupported credential field" }, { status: 400 });
+    }
+
+    apiKey = (request.headers.get("x-api-key") ?? "").trim();
 
     if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 400 });
@@ -185,9 +207,7 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
             throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
           } catch (e) {
             let msg = e instanceof Error ? e.message : String(e);
-            if (apiKey && apiKey.length > 4) {
-              msg = msg.split(apiKey).join("***");
-            }
+            msg = redactKey(msg, apiKey);
             const is429 = msg.includes("429");
             msg = sanitizeErrorMessage(msg);
 
@@ -239,16 +259,17 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
 
   } catch (err) {
     let errorMsg = err instanceof Error ? err.message : String(err);
-    if (apiKey && apiKey.length > 4) {
-      errorMsg = errorMsg.split(apiKey).join("***");
-    }
+    errorMsg = redactKey(errorMsg, apiKey);
     const isQuotaError = errorMsg.includes("429") || errorMsg.includes("quota");
     errorMsg = sanitizeErrorMessage(errorMsg);
 
     // Safe logging: Don't log full URL if it has keys
     console.error(`[NewsProxy] Error processing request for ${request.url}:`, errorMsg);
 
-    if (err instanceof Error && err.cause) console.error("[NewsProxy] Cause:", err.cause);
+    if (err instanceof Error && err.cause) {
+      const cause = err.cause instanceof Error ? err.cause.message : String(err.cause);
+      console.error("[NewsProxy] Cause:", redactKey(cause, apiKey));
+    }
 
     if (isQuotaError) {
       const staleCache = _newsCache.get(cacheKey);

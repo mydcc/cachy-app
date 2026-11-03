@@ -57,7 +57,6 @@ describe('News Service Security', () => {
             headers: new Headers({ 'x-api-key': validKey }),
             json: async () => ({
                 source: 'newsapi',
-                apiKey: validKey,
                 params: params
             }),
             url: 'http://localhost/api/news'
@@ -72,7 +71,6 @@ describe('News Service Security', () => {
             headers: new Headers({ 'x-api-key': invalidKey }),
             json: async () => ({
                 source: 'newsapi',
-                apiKey: invalidKey, // Different key
                 params: params
             }),
             url: 'http://localhost/api/news'
@@ -101,7 +99,7 @@ describe('News Service Security', () => {
         for (let i = 0; i < 10; i++) {
             const requestMock = {
                 headers: new Headers({ 'x-api-key': apiKey }),
-                json: async () => ({ source: 'newsapi', apiKey, params: { q: `query-${i}` } }),
+                json: async () => ({ source: 'newsapi', params: { q: `query-${i}` } }),
                 url: 'http://localhost/api/news'
             } as unknown as Request;
             const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
@@ -110,7 +108,7 @@ describe('News Service Security', () => {
 
         const requestMock = {
             headers: new Headers({ 'x-api-key': apiKey }),
-            json: async () => ({ source: 'newsapi', apiKey, params: { q: 'query-final' } }),
+            json: async () => ({ source: 'newsapi', params: { q: 'query-final' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
         const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
@@ -133,7 +131,7 @@ describe('News Service Security', () => {
             const apiKey = `rotated-key-${i}`;
             const requestMock = {
                 headers: new Headers({ 'x-api-key': apiKey }),
-                json: async () => ({ source: 'newsapi', apiKey, params: { q: `rotated-${i}` } }),
+                json: async () => ({ source: 'newsapi', params: { q: `rotated-${i}` } }),
                 url: 'http://localhost/api/news'
             } as unknown as Request;
             const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
@@ -142,7 +140,7 @@ describe('News Service Security', () => {
 
         const requestMock = {
             headers: new Headers({ 'x-api-key': 'rotated-final' }),
-            json: async () => ({ source: 'newsapi', apiKey: 'rotated-final', params: { q: 'rotated-final' } }),
+            json: async () => ({ source: 'newsapi', params: { q: 'rotated-final' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
         const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
@@ -160,7 +158,7 @@ describe('News Service Security', () => {
         const apiKey = 'news-error-key';
         const requestMock = {
             headers: new Headers({ 'x-api-key': apiKey }),
-            json: async () => ({ source: 'cryptopanic', apiKey, params: { q: 'bitcoin' } }),
+            json: async () => ({ source: 'cryptopanic', params: { q: 'bitcoin' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
 
@@ -181,7 +179,7 @@ describe('News Service Security', () => {
 
         const requestMock = {
             headers: new Headers({ 'x-api-key': apiKey }),
-            json: async () => ({ source: 'cryptopanic', apiKey, params: { q: 'bitcoin' } }),
+            json: async () => ({ source: 'cryptopanic', params: { q: 'bitcoin' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
 
@@ -208,7 +206,7 @@ describe('News Service Security', () => {
             const apiKey = `token-key-${i}`;
             const requestMock = {
                 headers: new Headers({ 'x-api-key': apiKey, 'x-app-access-token': token }),
-                json: async () => ({ source: 'newsapi', apiKey, params: { q: `token-${i}` } }),
+                json: async () => ({ source: 'newsapi', params: { q: `token-${i}` } }),
                 url: 'http://localhost/api/news'
             } as unknown as Request;
             const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress: () => `10.2.0.${i}` } as unknown as Parameters<typeof POST>[0]);
@@ -217,7 +215,7 @@ describe('News Service Security', () => {
 
         const requestMock = {
             headers: new Headers({ 'x-api-key': 'token-final', 'x-app-access-token': token }),
-            json: async () => ({ source: 'newsapi', apiKey: 'token-final', params: { q: 'token-final' } }),
+            json: async () => ({ source: 'newsapi', params: { q: 'token-final' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
         const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress: () => '10.2.0.99' } as unknown as Parameters<typeof POST>[0]);
@@ -225,29 +223,99 @@ describe('News Service Security', () => {
     });
 
     it('rejects a raw secret header instead of using it as the API key (BUG-0776)', async () => {
+        const fetchMock = vi.fn();
         const requestMock = {
             headers: new Headers({ 'x-api-secret': 'raw-secret-only' }),
             json: async () => ({ source: 'newsapi', params: { q: 'bitcoin' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
 
-        const res = await POST({ request: requestMock, fetch: vi.fn(), getClientAddress } as unknown as Parameters<typeof POST>[0]);
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
 
         expect(res.status).toBe(400);
         expect((await res.json()).error).toContain('Unsupported credential header');
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a passphrase header (BUG-0776)', async () => {
+        const fetchMock = vi.fn();
+        const requestMock = {
+            headers: new Headers({ 'x-api-passphrase': 'secret' }),
+            json: async () => ({ source: 'newsapi', params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toContain('Unsupported credential header');
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a secret header even when a valid key is present (BUG-0776)', async () => {
+        const fetchMock = vi.fn();
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': 'valid-key', 'x-api-secret': 'secret' }),
+            json: async () => ({ source: 'newsapi', params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toContain('Unsupported credential header');
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it('rejects an apiKey supplied only in the body (BUG-0776)', async () => {
+        const fetchMock = vi.fn();
         const requestMock = {
             headers: new Headers(),
             json: async () => ({ source: 'newsapi', apiKey: 'body-only-key', params: { q: 'bitcoin' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
 
-        const res = await POST({ request: requestMock, fetch: vi.fn(), getClientAddress } as unknown as Parameters<typeof POST>[0]);
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
 
         expect(res.status).toBe(400);
-        expect((await res.json()).error).toContain('Missing API Key');
+        expect((await res.json()).error).toContain('Unsupported credential field');
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a body secret even with a valid header (BUG-0776)', async () => {
+        const fetchMock = vi.fn();
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': 'valid-key' }),
+            json: async () => ({ source: 'newsapi', apiSecret: 'body-secret', params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toContain('Unsupported credential field');
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('serves a repeated request from the cache (BUG-0776)', async () => {
+        const apiKey = 'cache-hit-key';
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ status: "ok", articles: [] }),
+            text: async () => "",
+        });
+        const makeRequest = () => ({
+            headers: new Headers({ 'x-api-key': apiKey }),
+            json: async () => ({ source: 'newsapi', params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request);
+
+        const first = await POST({ request: makeRequest(), fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+        const second = await POST({ request: makeRequest(), fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(200);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
     it('keeps the raw API key out of the cache map key (BUG-0776)', async () => {
@@ -266,6 +334,37 @@ describe('News Service Security', () => {
         const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
 
         expect(res.status).toBe(200);
+        expect(_newsCache.size).toBe(1);
         expect([..._newsCache.keys()].some((key) => key.includes(apiKey))).toBe(false);
+    });
+
+    it('redacts the raw and encoded key from upstream error logs (BUG-0776)', async () => {
+        const apiKey = 'secret-key&value';
+        const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const warnLog = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const cause = new Error(`request failed for auth_token=${encodeURIComponent(apiKey)}`);
+        const fetchMock = vi.fn().mockRejectedValue(
+            new Error(`upstream echo ${apiKey} ${encodeURIComponent(apiKey)}`, { cause }),
+        );
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': apiKey }),
+            json: async () => ({ source: 'newsapi', params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        try {
+            const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+            expect(res.status).toBe(500);
+
+            const logged = [...errorLog.mock.calls, ...warnLog.mock.calls]
+                .flat()
+                .map((value) => String(value))
+                .join(" ");
+            expect(logged).not.toContain(apiKey);
+            expect(logged).not.toContain(encodeURIComponent(apiKey));
+        } finally {
+            errorLog.mockRestore();
+            warnLog.mockRestore();
+        }
     });
 });

@@ -114,4 +114,26 @@ describe('NewsService Limits', () => {
 
         expect(dbService.getAll).toHaveBeenCalledWith('news', 50);
     });
+
+    it('sends the news key in x-api-key, not in the body (BUG-0776)', async () => {
+        const mockResponse = {
+            ok: true,
+            text: async () => JSON.stringify({ results: [] }),
+            json: async () => ({ results: [] })
+        };
+        vi.mocked(global.fetch).mockResolvedValue(mockResponse as unknown as Response);
+
+        await newsService.fetchNews('BTC');
+
+        const newsCall = vi.mocked(global.fetch).mock.calls.find(([url]) =>
+            String(url).includes('/api/external/news'),
+        );
+        expect(newsCall).toBeDefined();
+        const [, init] = newsCall!;
+        const headers = new Headers(init?.headers);
+        expect(headers.get('x-api-key')).toBe('test');
+        const body = JSON.parse(String(init?.body));
+        expect(body).not.toHaveProperty('apiKey');
+        expect(body).not.toHaveProperty('apiSecret');
+    });
 });
