@@ -208,7 +208,15 @@ export function safeDecimal(value: string | number | Decimal | null | undefined)
 /**
  * Formats a number for API payloads, ensuring no scientific notation (e.g. 1e-7) is used.
  * Uses high precision (20 decimals) and trims trailing zeros.
+ *
+ * The overloads keep the caller's nullability: a required value never comes
+ * back as `string | undefined` (BUG-0777 review).
  */
+export function formatApiNum(val: string | number | Decimal): string;
+export function formatApiNum(val: undefined | null): undefined;
+export function formatApiNum(
+  val: string | number | undefined | null | Decimal,
+): string | undefined;
 export function formatApiNum(
   val: string | number | undefined | null | Decimal,
 ): string | undefined {

@@ -300,10 +300,11 @@ export function createTpSlService(ports: TpSlPorts): TpSlService {
      */
     async function modifyTpSlOrder(params: ModifyTpSlParams) {
         const wire: Record<string, unknown> = { orderId: params.orderId };
-        // BUG-0777: the chart drag hands over `Decimal.toString()`, which
-        // switches to exponential notation below 1e-6 (`1e-7`). The venue
-        // rejects that, so every leg goes through the same serializer the
-        // create paths use.
+        // BUG-0777: both callers can hand over exponential notation — the
+        // chart drag uses `Decimal.toString()`, the edit modal `String(number)`
+        // from a `type="number"` input. Below 1e-6 that is `1e-7`, which the
+        // venue rejects (see `placeOrder.ts`). Every leg goes through the same
+        // serializer the other TP/SL write paths use.
         if (params.planType === "PROFIT") {
             wire.tpPrice = formatApiNum(params.triggerPrice);
             wire.tpStopType = params.stopType ?? "MARK_PRICE";

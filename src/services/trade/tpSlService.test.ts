@@ -140,24 +140,50 @@ describe("createTpSlService — write ports", () => {
         expect(intent.payload.params.triggerPrice).toBeUndefined();
     });
 
-    // A chart drag hands over `Decimal.toString()`; below 1e-6 that is
-    // "1e-7", which the venue rejects (BUG-0777).
-    it("serialises a chart-dragged sub-micro price without scientific notation", async () => {
-        const chartPrice = new Decimal("0.0000001").toString();
-        expect(chartPrice).toBe("1e-7");
+    // Both callers can hand over exponential notation: the chart drag uses
+    // `Decimal.toString()`, the edit modal `String(number)` from a
+    // `type="number"` input. Below 1e-6 that is "1e-7", which the venue
+    // rejects (documented in placeOrder.ts) (BUG-0777).
+    it.each([
+        ["PROFIT", "tpPrice", "tpQty", "0.00000001"],
+        ["LOSS", "slPrice", "slQty", "0.001"],
+    ] as const)(
+        "serialises a sub-micro price and quantity for %s",
+        async (planType, priceField, qtyField, entryPrice) => {
+            const chartPrice = new Decimal("0.0000001").toString();
+            const chartQty = new Decimal("0.0000001").toString();
+            expect(chartPrice).toBe("1e-7");
+            expect(chartQty).toBe("1e-7");
 
+            await svc.modifyTpSlOrder({
+                orderId: "1",
+                symbol: "SOLUSDT",
+                planType,
+                triggerPrice: chartPrice,
+                qty: chartQty,
+                context: { side: "long", entryPrice: new Decimal(entryPrice) },
+            });
+
+            const [intent] = gatedRequest.mock.calls[0];
+            const params = intent.payload.params as Record<string, unknown>;
+            expect(params[priceField]).toBe("0.0000001");
+            expect(params[qtyField]).toBe("0.0000001");
+            expect(JSON.stringify(params)).not.toContain("1e-7");
+        },
+    );
+
+    // The serializer also normalises trailing zeros, as the other write paths
+    // do; the test pins that this is intentional, not an accident.
+    it("normalises trailing zeros on a modify", async () => {
         await svc.modifyTpSlOrder({
             orderId: "1",
-            symbol: "SOLUSDT",
+            symbol: "BTCUSDT",
             planType: "LOSS",
-            triggerPrice: chartPrice,
-            qty: "1000000",
+            triggerPrice: "49000.00",
         });
 
         const [intent] = gatedRequest.mock.calls[0];
-        expect(intent.payload.params.slPrice).toBe("0.0000001");
-        expect(intent.payload.params.slQty).toBe("1000000");
-        expect(JSON.stringify(intent.payload.params)).not.toContain("1e-7");
+        expect(intent.payload.params.slPrice).toBe("49000");
     });
 
     // Each leg has to land in the slot the gate checks, or the gate is
