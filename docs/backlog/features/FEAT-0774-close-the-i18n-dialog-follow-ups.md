@@ -2,7 +2,7 @@
 id: FEAT-0774
 title: Close the i18n dialog follow-ups from the BUG-0761 review
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 created: "2026-11-03"
@@ -11,7 +11,6 @@ area: tooling
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
 branch: refactor/i18n-dialog-followups
 size: S
 ---
@@ -66,7 +65,7 @@ reproduced here:
       both languages
 - [x] `scripts/lint-i18n.js` reports `t("key", { flat })` after
       `const t = get(_)`, `get(_)("key", { flat })`, and a key-shaped literal
-      as the first `modalState.show(...)` argument; a unit test covers those
+      in either `modalState.show(...)` copy argument; a unit test covers those
       shapes plus the false-positive cases (identifiers ending in `t`)
 - [x] `modals.deletePreset.*` is gone from both dictionaries and from
       `src/locales/schema.d.ts`
