@@ -165,7 +165,8 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
         await settle();
 
         const submitBtn = host.querySelector<HTMLButtonElement>("button.submit-btn");
-        expect(submitBtn?.disabled).toBe(true);
+        expect(submitBtn).toBeTruthy();
+        expect(submitBtn!.disabled).toBe(true);
         expect(host.textContent).toContain(lookup("orderEntry.errors.metadataLoading"));
         expect(fetchTradingPairInfoMock).toHaveBeenCalledWith("BTCUSDT");
     });
@@ -186,7 +187,8 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
         await settle();
 
         const submitBtn = host.querySelector<HTMLButtonElement>("button.submit-btn");
-        expect(submitBtn?.disabled).toBe(true);
+        expect(submitBtn).toBeTruthy();
+        expect(submitBtn!.disabled).toBe(true);
         expect(host.textContent).toContain(lookup("orderEntry.errors.tradingUnavailable"));
     });
 
@@ -206,7 +208,8 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
         await settle();
 
         const submitBtn = host.querySelector<HTMLButtonElement>("button.submit-btn");
-        expect(submitBtn?.disabled).toBe(true);
+        expect(submitBtn).toBeTruthy();
+        expect(submitBtn!.disabled).toBe(true);
         expect(host.textContent).toContain(lookup("orderEntry.errors.tradingUnavailable"));
         expect(host.textContent).toContain(lookup("dashboard.symbolInfo.apiNotSupported"));
     });
@@ -227,7 +230,8 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
         await settle();
 
         const submitBtn = host.querySelector<HTMLButtonElement>("button.submit-btn");
-        expect(submitBtn?.disabled).toBe(true);
+        expect(submitBtn).toBeTruthy();
+        expect(submitBtn!.disabled).toBe(true);
         expect(host.textContent).toContain("0.05");
     });
 
@@ -247,7 +251,8 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
         await settle();
 
         const submitBtn = host.querySelector<HTMLButtonElement>("button.submit-btn");
-        expect(submitBtn?.disabled).toBe(true);
+        expect(submitBtn).toBeTruthy();
+        expect(submitBtn!.disabled).toBe(true);
         expect(host.textContent).toContain("0.01");
     });
 
@@ -267,7 +272,8 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
         await settle();
 
         const submitBtn = host.querySelector<HTMLButtonElement>("button.submit-btn");
-        expect(submitBtn?.disabled).toBe(false);
+        expect(submitBtn).toBeTruthy();
+        expect(submitBtn!.disabled).toBe(false);
     });
 
     it("only renders Market and Limit order types (Trigger is omitted)", async () => {
@@ -287,7 +293,8 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
         await settle();
 
         const marketBtn = host.querySelectorAll<HTMLButtonElement>("button.type-btn")[0];
-        expect(marketBtn?.disabled).toBe(false);
+        expect(marketBtn).toBeTruthy();
+        expect(marketBtn!.disabled).toBe(false);
 
         marketBtn.click();
         await settle();

@@ -103,7 +103,8 @@ describe("FEAT-0346 — SummaryResults renders the values it was given", () => {
         const oncopy = vi.fn();
         render({ oncopy });
 
-        byId("copy-btn")?.click();
+        expect(byId("copy-btn")).toBeTruthy();
+        byId("copy-btn")!.click();
 
         expect(writeText).toHaveBeenCalledWith("1.234");
         expect(oncopy).toHaveBeenCalledTimes(1);
@@ -113,7 +114,8 @@ describe("FEAT-0346 — SummaryResults renders the values it was given", () => {
         const ontogglelock = vi.fn();
         render({ ontogglelock });
 
-        byId("lock-position-size-btn")?.click();
+        expect(byId("lock-position-size-btn")).toBeTruthy();
+        byId("lock-position-size-btn")!.click();
 
         expect(ontogglelock).toHaveBeenCalledTimes(1);
         // The prop is the single source of truth: without a re-render the

@@ -61,7 +61,9 @@ describe("FEAT-0346 — SettingsButton opens Settings", () => {
         component = mount(SettingsButton, { target: host }) as never;
         flushSync();
 
-        host.querySelector("button")?.click();
+        const button = host.querySelector("button");
+        expect(button).toBeTruthy();
+        button!.click();
 
         expect(uiMock.toggleSettingsModal).toHaveBeenCalledWith(true);
     });
