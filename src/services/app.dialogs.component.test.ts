@@ -25,32 +25,26 @@
  *
  * The store, the dialog and the window frame are real here — the assertion is
  * about what reaches the screen, not about which arguments were passed. Only
- * the dictionary is stood in, so the expected sentences are readable in the
- * test.
+ * the dictionary is stood in, and its translator is swappable, so the German
+ * case proves the copy comes from the dictionaries rather than from a literal
+ * that happens to match English.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
 import en from "../locales/locales/en.json";
+import de from "../locales/locales/de.json";
 
-function message(key: string): string {
-    const value = key
-        .split(".")
-        .reduce<unknown>(
-            (acc, part) => (acc as Record<string, unknown>)?.[part],
-            en,
-        );
-    if (typeof value !== "string") {
-        throw new Error(`missing i18n key: ${key}`);
-    }
-    return value;
-}
+/** Replaced after the imports; `vi.hoisted` cannot close over `message`. */
+const translator = vi.hoisted(() => ({
+    translate: (key: string): string => key,
+}));
 
 vi.mock("../locales/i18n", async () => {
     const { readable } = await import("svelte/store");
     return {
-        _: readable((key: string) => message(key)),
+        _: readable((key: string) => translator.translate(key)),
         locale: readable("en"),
         setLocale: vi.fn(),
     };
@@ -60,8 +54,24 @@ import WindowContainer from "../components/shared/windows/WindowContainer.svelte
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { app } from "./app";
 
-let host: HTMLDivElement;
+type Dictionary = Record<string, unknown>;
+
+function message(key: string, dictionary: Dictionary = en): string {
+    const value = key
+        .split(".")
+        .reduce<unknown>(
+            (acc, part) => (acc as Dictionary | undefined)?.[part],
+            dictionary,
+        );
+    if (typeof value !== "string") {
+        throw new Error(`missing i18n key: ${key}`);
+    }
+    return value;
+}
+
+let host: HTMLDivElement | null = null;
 let container: ReturnType<typeof mount> | null = null;
+let pending: Promise<unknown> | null = null;
 
 function render(): void {
     host = document.createElement("div");
@@ -75,9 +85,9 @@ function dialogFrame(): HTMLElement {
         (win) => win.windowType === "dialog",
     );
     if (!dialog) throw new Error("the dialog did not open");
-    const frame = host.querySelector<HTMLElement>(
-        `[data-window-id="${dialog.id}"]`,
-    );
+    const frame =
+        host?.querySelector<HTMLElement>(`[data-window-id="${dialog.id}"]`) ??
+        null;
     if (!frame) throw new Error("the dialog rendered no frame");
     return frame;
 }
@@ -98,25 +108,40 @@ function dialogBody(): string {
 
 beforeEach(() => {
     localStorage.clear();
+    // WindowManager rehydrates from sessionStorage and persists on every open;
+    // dialogs are excluded today, but the isolation should not rest on that.
+    sessionStorage.clear();
+    translator.translate = (key) => message(key);
 });
 
-afterEach(() => {
+afterEach(async () => {
     if (container) unmount(container);
     container = null;
     flushSync();
     for (const win of [...windowManager.windows]) windowManager.close(win.id);
     flushSync();
     host?.remove();
+    host = null;
     expect(
         windowManager.windows,
         "the window manager still holds windows after teardown",
     ).toHaveLength(0);
+    if (pending) {
+        // Closing an unanswered dialog must settle its promise (BUG-0422);
+        // a test that never answers must not leak a hanging call site. The
+        // services are `async`, so settlement is all the caller can observe.
+        await expect(
+            pending,
+            "the unanswered dialog promise must settle on teardown",
+        ).resolves.toBeUndefined();
+        pending = null;
+    }
 });
 
 describe("BUG-0761 — service dialogs show sentences, not translation keys", () => {
     it("titles and explains the journal reset in the active language", () => {
         render();
-        void app.clearJournal();
+        pending = app.clearJournal();
         flushSync();
 
         expect(dialogTitle()).toBe(message("modals.clearJournal.title"));
@@ -125,10 +150,20 @@ describe("BUG-0761 — service dialogs show sentences, not translation keys", ()
 
     it("prompts for the preset name in the active language", () => {
         render();
-        void app.savePreset();
+        pending = app.savePreset();
         flushSync();
 
         expect(dialogTitle()).toBe(message("modals.savePreset.title"));
         expect(dialogBody()).toBe(message("modals.savePreset.prompt"));
+    });
+
+    it("reads the copy from the dictionary, not from a matching literal", () => {
+        translator.translate = (key) => message(key, de);
+        render();
+        pending = app.clearJournal();
+        flushSync();
+
+        expect(dialogTitle()).toBe(message("modals.clearJournal.title", de));
+        expect(dialogBody()).toBe(message("modals.clearJournal.message", de));
     });
 });
