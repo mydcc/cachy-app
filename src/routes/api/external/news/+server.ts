@@ -44,11 +44,15 @@ const MAX_CACHE_SIZE = 50;
 
 /**
  * The cache outlives the request by up to an hour, so the map key must not
- * carry the raw credential (BUG-0776). SHA-256 keeps the per-key isolation
- * without keeping the key itself.
+ * carry the raw credential (BUG-0776). A keyed hash keeps the per-key
+ * isolation without keeping the key itself. The salt is per process: the map
+ * is in-memory, so the namespace only has to be stable until restart — and a
+ * plain SHA-256 of a credential is a password-hash pattern CodeQL rejects.
  */
+const CACHE_KEY_SALT = crypto.randomBytes(32);
+
 function hashApiKey(apiKey: string): string {
-  return crypto.createHash("sha256").update(apiKey).digest("hex");
+  return crypto.createHmac("sha256", CACHE_KEY_SALT).update(apiKey).digest("hex");
 }
 
 function setCache(key: string, data: unknown) {

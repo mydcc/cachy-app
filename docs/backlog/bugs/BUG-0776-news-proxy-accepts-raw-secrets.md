@@ -59,7 +59,10 @@ proxies started from the same request shape. The cache key then reused the raw
   `x-api-secret`/`x-api-passphrase` is answered with `400 Unsupported
   credential header`; a body-only `apiKey` is answered with `400 Missing API
   Key`.
-- Hash the key with SHA-256 before it becomes part of `cacheKey`.
+- Hash the key with a per-process keyed hash (HMAC-SHA256) before it becomes
+  part of `cacheKey`. The cache is in-memory, so the salt only has to be
+  stable until restart; a plain SHA-256 of a credential is the password-hash
+  pattern CodeQL rejects.
 - Send `x-api-key` from `src/services/newsService.ts` instead of putting the
   key in the JSON body.
 
