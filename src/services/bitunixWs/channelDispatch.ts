@@ -60,6 +60,22 @@ function withKlineTime(data: unknown, ts: number | undefined, timeframe: string)
   return raw;
 }
 
+/**
+ * A dropped kline is otherwise indistinguishable from "no push arrived", so a
+ * renamed timestamp field would silently stall the chart. One warning per
+ * minute, the same pattern messageParser uses for rejected frames: a broken or
+ * hostile feed cannot flood the log (BUG-0741).
+ */
+let lastKlineDropWarn = 0;
+const KLINE_DROP_WARN_INTERVAL_MS = 60_000;
+
+function warnDroppedKline(symbol: string, timeframe: string): void {
+  const now = Date.now();
+  if (now - lastKlineDropWarn < KLINE_DROP_WARN_INTERVAL_MS) return;
+  lastKlineDropWarn = now;
+  logger.warn("network", "[WebSocket] Dropped a kline without a usable timestamp", { symbol, timeframe });
+}
+
 // Native intervals Bitunix streams over WebSocket. Synthetic timeframes
 // (2m, 3m, 9m, ...) are derived from these by bitunixWs.resolveTimeframe —
 // the same list must be used here to fan pushes back out to them.
@@ -142,10 +158,12 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
   if (parsed.type === "fast_kline") {
     const { symbol, timeframe, data, ts } = parsed;
     const kline = mdaService.normalizeKlines([withKlineTime(data, ts, timeframe)], 'bitunix');
-    if (kline && kline.length > 0) {
-      marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
-      fanOutToSyntheticSubscribers(context, symbol, timeframe, kline[kline.length - 1]);
+    if (kline.length === 0) {
+      warnDroppedKline(symbol, timeframe);
+      return;
     }
+    marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
+    fanOutToSyntheticSubscribers(context, symbol, timeframe, kline[kline.length - 1]);
     return;
   }
   if (parsed.type === "validated") {
@@ -211,7 +229,9 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
         }
       }
       const kline = mdaService.normalizeKlines([withKlineTime((validatedMessage as Record<string, unknown>).data, typeof (validatedMessage as Record<string, unknown>).ts === "number" ? (validatedMessage as Record<string, unknown>).ts as number : undefined, timeframe)], 'bitunix');
-      if (kline && kline.length > 0) {
+      if (kline.length === 0) {
+        warnDroppedKline(symbol, timeframe);
+      } else {
         marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
         // Only market-price klines feed synthetic charts; mark_kline_1day is
         // a mark-price stream with no synthetic derivatives.
