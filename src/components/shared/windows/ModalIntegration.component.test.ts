@@ -40,20 +40,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
-import en from "../../../locales/locales/en.json";
+import { message } from "../../../tests/helpers/i18nMessages";
 
-function message(key: string): string {
-    const value = key
-        .split(".")
-        .reduce<unknown>(
-            (acc, part) => (acc as Record<string, unknown>)?.[part],
-            en,
-        );
-    if (typeof value !== "string") {
-        throw new Error(`missing i18n key: ${key}`);
-    }
-    return value;
-}
 
 /** `$(key, { values })`: the headings carry a placeholder. */
 function t(key: string, values?: Record<string, unknown>): string {

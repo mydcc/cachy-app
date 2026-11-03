@@ -35,39 +35,21 @@ import { flushSync, mount, unmount } from "svelte";
 
 import en from "../locales/locales/en.json";
 import de from "../locales/locales/de.json";
+import { message, messageFrom } from "../tests/helpers/i18nMessages";
 
-/** Replaced after the imports; `vi.hoisted` cannot close over `message`. */
-const translator = vi.hoisted(() => ({
-    translate: (key: string): string => key,
+/** Swapped per test; the module samples it on every translation. */
+const dictionary = vi.hoisted(() => ({
+    current: {} as Record<string, unknown>,
 }));
 
 vi.mock("../locales/i18n", async () => {
-    const { readable } = await import("svelte/store");
-    return {
-        _: readable((key: string) => translator.translate(key)),
-        locale: readable("en"),
-        setLocale: vi.fn(),
-    };
+    const { i18nModule } = await import("../tests/helpers/i18nMessages");
+    return i18nModule(() => dictionary.current);
 });
 
 import WindowContainer from "../components/shared/windows/WindowContainer.svelte";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { app } from "./app";
-
-type Dictionary = Record<string, unknown>;
-
-function message(key: string, dictionary: Dictionary = en): string {
-    const value = key
-        .split(".")
-        .reduce<unknown>(
-            (acc, part) => (acc as Dictionary | undefined)?.[part],
-            dictionary,
-        );
-    if (typeof value !== "string") {
-        throw new Error(`missing i18n key: ${key}`);
-    }
-    return value;
-}
 
 let host: HTMLDivElement | null = null;
 let container: ReturnType<typeof mount> | null = null;
@@ -111,7 +93,7 @@ beforeEach(() => {
     // WindowManager rehydrates from sessionStorage and persists on every open;
     // dialogs are excluded today, but the isolation should not rest on that.
     sessionStorage.clear();
-    translator.translate = (key) => message(key);
+    dictionary.current = en;
 });
 
 afterEach(async () => {
@@ -158,12 +140,16 @@ describe("BUG-0761 — service dialogs show sentences, not translation keys", ()
     });
 
     it("reads the copy from the dictionary, not from a matching literal", () => {
-        translator.translate = (key) => message(key, de);
+        dictionary.current = de;
         render();
         pending = app.clearJournal();
         flushSync();
 
-        expect(dialogTitle()).toBe(message("modals.clearJournal.title", de));
-        expect(dialogBody()).toBe(message("modals.clearJournal.message", de));
+        expect(dialogTitle()).toBe(
+            messageFrom("modals.clearJournal.title", de),
+        );
+        expect(dialogBody()).toBe(
+            messageFrom("modals.clearJournal.message", de),
+        );
     });
 });
