@@ -85,7 +85,10 @@ call.
 
 ## Links
 
-- `scripts/lint-i18n.js` — `checkInterpolation`, the first-argument alternation
+- `scripts/lib/i18n-key-usage.mjs` — `findInterpolationViolations`, the rule
+  `checkInterpolation` now delegates to
+- `scripts/lint-i18n.js` — the scan that applies it, and the `i18n-ignore`
+  escape hatch
 - `.github/workflows/audit.yml` — the job that runs it
 - `src/components/settings/tabs/VisualsLayout.svelte` — the call PR #4469
   shipped with a flat options object
@@ -99,15 +102,22 @@ describes the key at all. The regex only finds the call (`callee(`), and the
 arguments come from `callArguments` — the balanced, quote-aware splitter that
 already existed for the `modalState.show` rule — so the key can be a literal, a
 template, an identifier, a member access, a nested call or a ternary without the
-rule listing any of those shapes. The second argument decides: it must start
-with `{`, and `values` (or an empty object) is fine, anything else is a
-violation reported at the line of the `$_(`.
+rule listing any of those shapes. The second argument decides, and only when it
+is an object literal: `values` (shorthand included) and an empty `{}` are fine,
+any other first key is reported at the line of the `$_(`. A second argument that
+is not an object literal is not inspected — `t("key", options)` stays silent, as
+it did before.
 
-`FIRST_ARGUMENT` is gone; it had no other reader. The tests grew from 17 to 22:
-the conditional key with and without the `values` wrapper, a comma and a `)`
-inside a string, a nested call in the key argument, a conditional key with no
-object argument, and the literal shapes that must stay checked.
+`FIRST_ARGUMENT` is gone; it had no other reader. The tests grew from 17 to 25:
+the conditional key flat and with `values` or `{}`, a comma, a `)` and a nested
+object inside the key argument, a nested call, a conditional key with no object
+argument, the same conditional through an alias and through inline `get(_)`, and
+the literal shapes — string, template and bare identifier — that must stay
+checked.
+
+Two comment shapes stay blind, and the rule's doc comment says so: a comma in a
+comment between the arguments truncates the split, and a comment directly before
+`values` makes a correct call look wrong. Neither occurs in the tree.
 
 The optional real-translation component test was left out on purpose, as the
-Decisions allow: it verifies the dictionary load, not this rule, and belongs to
-its own item.
+Decisions allow: it verifies the dictionary load, not this rule.

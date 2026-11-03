@@ -65,13 +65,21 @@ export function translationCallees(content) {
  * Calls that pass interpolation values outside the `values` wrapper, which
  * svelte-i18n ignores — the user sees the raw `{placeholder}`.
  *
- * `values` is read by destructuring, so the shorthand `{ values }` is correct
- * and must not be reported; only a bare sibling key (`{ count }`) is.
+ * The rule is deliberately coarse: it splits the call into its arguments and
+ * inspects the second one only when that argument is an object literal. Inside
+ * the literal `values` and an empty `{}` are correct; any other first key is
+ * reported — `count` as much as `locale`, `default` or a spread, because the
+ * rule does not know which of them the runtime wants.
  *
  * The key may be picked by a condition (`count === 1 ? "…One" : "…Other"`),
- * which no first-argument pattern can describe. The call is therefore split
- * into its arguments and only the second one is judged, so every key shape is
- * covered without listing them.
+ * which no first-argument pattern can describe. Splitting the arguments covers
+ * every key shape — literal, template, identifier, member access, nested call,
+ * conditional — without listing them.
+ *
+ * Known limitation: `callArguments` tracks quotes and bracket depth, not
+ * comments. A comma inside a comment between the arguments ends the split
+ * early and the call goes unreported, and a comment directly before `values`
+ * makes a correct call look like a violation. Neither shape occurs today.
  */
 export function findInterpolationViolations(content) {
     const call = new RegExp(

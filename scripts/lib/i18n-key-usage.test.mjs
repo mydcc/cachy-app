@@ -100,17 +100,25 @@ describe("findInterpolationViolations", () => {
         expect(found[0].line).toBe(2);
     });
 
-    it("accepts a conditional key with the values wrapper", () => {
+    it("accepts a conditional key with a correct options object", () => {
         expect(
             findInterpolationViolations(
                 '$_(count === 1 ? "a.one" : "a.other", { values: { count } })',
             ),
         ).toEqual([]);
+        expect(
+            findInterpolationViolations('$_(flag ? "a.one" : "a.other", {})'),
+        ).toEqual([]);
     });
 
-    it("does not split on a comma or a parenthesis inside an argument", () => {
+    it("reports the call when the key holds a comma, a parenthesis or a nested object", () => {
         expect(
             findInterpolationViolations('$_(flag ? "a), b" : `c, d)`, { count })'),
+        ).toHaveLength(1);
+        expect(
+            findInterpolationViolations(
+                '$_(flag ? { a: 1, c: 2 } : { b: 3 }, { count })',
+            ),
         ).toHaveLength(1);
         expect(
             findInterpolationViolations(
@@ -130,7 +138,36 @@ describe("findInterpolationViolations", () => {
         ).toEqual([]);
     });
 
-    it("keeps the literal shapes checked", () => {
+    it("flags a conditional key through a service alias", () => {
+        const source = [
+            "const t = get(_);",
+            'const text = t(count === 1 ? "a.one" : "a.other", { count });',
+        ].join("\n");
+        const found = findInterpolationViolations(source);
+        expect(found).toHaveLength(1);
+        expect(found[0].line).toBe(2);
+    });
+
+    it("flags a conditional key through the inline service form", () => {
+        expect(
+            findInterpolationViolations(
+                'get(_)(count === 1 ? "a.one" : "a.other", { count })',
+            ),
+        ).toHaveLength(1);
+    });
+
+    it("keeps a bare identifier key checked", () => {
+        expect(
+            findInterpolationViolations("$_(translationKey, { count })"),
+        ).toHaveLength(1);
+        expect(
+            findInterpolationViolations(
+                "$_(translationKey, { values: { count } })",
+            ),
+        ).toEqual([]);
+    });
+
+    it("keeps a template-literal key checked", () => {
         expect(
             findInterpolationViolations('$_(`dash.${x}`, { a })'),
         ).toHaveLength(1);
