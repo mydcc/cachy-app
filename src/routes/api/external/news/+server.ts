@@ -45,9 +45,17 @@ const MAX_CACHE_SIZE = 50;
 /**
  * The cache outlives the request by up to an hour, so the map key must not
  * carry the raw credential (BUG-0776). A keyed hash keeps the per-key
- * isolation without keeping the key itself. The salt is per process: the map
- * is in-memory, so the namespace only has to be stable until restart — and a
- * plain SHA-256 of a credential is a password-hash pattern CodeQL rejects.
+ * isolation without keeping the key itself.
+ *
+ * CodeQL `js/insufficient-password-hash` fires on this HMAC because it treats
+ * the API key as a password. It is a false positive: nothing is stored, the
+ * digest is a per-process cache namespace with a lifetime measured in
+ * minutes, and the query's threat model — an attacker who stole a hash
+ * database and brute-forces it offline — has no target. A slow KDF would add
+ * tens of milliseconds to every news request for no security gain. The
+ * dismissal has to happen in the repository's Security tab; source-level
+ * `// codeql[...]` markers are not honoured by GitHub code scanning (see the
+ * same note in `src/utils/server/bitunix.ts`).
  */
 const CACHE_KEY_SALT = crypto.randomBytes(32);
 
