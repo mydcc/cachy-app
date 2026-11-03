@@ -38,7 +38,9 @@
  *
  * Escape hatch: add `i18n-ignore` on the same line (or the line above) for a
  * deliberate exception, or extend scripts/i18n-lint.config.json for recurring
- * proper nouns / technical identifiers.
+ * proper nouns / technical identifiers. A call split over several lines is
+ * reported at its `$_(` line, so the marker belongs there or on the line
+ * above it — not next to the offending argument.
  *
  * Usage: node scripts/lint-i18n.js
  */
