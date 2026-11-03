@@ -285,9 +285,12 @@ export const app = {
   },
 
   async clearJournal() {
+    // BUG-0761: the dialog renders what it is given, so the service has to
+    // translate — like every component call site does.
+    const t = get(_);
     const confirmed = await modalState.show(
-      "modals.clearJournal.title",
-      "modals.clearJournal.message",
+      t("modals.clearJournal.title"),
+      t("modals.clearJournal.message"),
       "confirm",
     );
     if (confirmed) {
@@ -320,9 +323,11 @@ export const app = {
 
   savePreset: async () => {
     if (!browser) return;
+    // BUG-0761: same contract as clearJournal's confirmation — copy, not keys.
+    const t = get(_);
     const name = await modalState.show(
-      "modals.savePreset.title",
-      "modals.savePreset.prompt",
+      t("modals.savePreset.title"),
+      t("modals.savePreset.prompt"),
       "prompt",
     );
     if (typeof name === "string" && name) {
