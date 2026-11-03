@@ -2,7 +2,10 @@
 id: FEAT-0773
 title: Catch a conditional key in the i18n interpolation guard
 type: feature
-status: ready
+status: done
+assignee: opencode
+branch: fix/feat-0773-i18n-conditional-key
+shipped: unreleased
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -49,18 +52,18 @@ call.
 
 ## Acceptance criteria
 
-- [ ] A call with a conditional key and a flat options object is reported
+- [x] A call with a conditional key and a flat options object is reported
       (`$_(flag ? "a" : "b", { count })`).
-- [ ] The same call with `{ values: { count } }` is not reported.
-- [ ] The shapes that pass today — string literal, template literal, bare
+- [x] The same call with `{ values: { count } }` is not reported.
+- [x] The shapes that pass today — string literal, template literal, bare
       identifier — keep passing unchanged.
-- [ ] Nested parentheses, and string literals containing `)` or `,` inside the
+- [x] Nested parentheses, and string literals containing `)` or `,` inside the
       arguments, do not confuse the scan.
-- [ ] A call with a single argument (no interpolation) is never reported.
-- [ ] The reported line number points at the `$_(` call, not at the file.
-- [ ] A test covers the three shapes and the nested-paren case, in the style
+- [x] A call with a single argument (no interpolation) is never reported.
+- [x] The reported line number points at the `$_(` call, not at the file.
+- [x] A test covers the three shapes and the nested-paren case, in the style
       the script's checks are tested today.
-- [ ] `node scripts/lint-i18n.js` stays green on `develop`, and the check runs
+- [x] `node scripts/lint-i18n.js` stays green on `develop`, and the check runs
       in the same CI job as before.
 
 ## Decisions
@@ -88,3 +91,23 @@ call.
   shipped with a flat options object
 - `src/components/alerts/tabs/ManageTab.component.test.ts` — a mock that models
   the real `values` shape
+
+## What shipped
+
+`findInterpolationViolations` in `scripts/lib/i18n-key-usage.mjs` no longer
+describes the key at all. The regex only finds the call (`callee(`), and the
+arguments come from `callArguments` — the balanced, quote-aware splitter that
+already existed for the `modalState.show` rule — so the key can be a literal, a
+template, an identifier, a member access, a nested call or a ternary without the
+rule listing any of those shapes. The second argument decides: it must start
+with `{`, and `values` (or an empty object) is fine, anything else is a
+violation reported at the line of the `$_(`.
+
+`FIRST_ARGUMENT` is gone; it had no other reader. The tests grew from 17 to 22:
+the conditional key with and without the `values` wrapper, a comma and a `)`
+inside a string, a nested call in the key argument, a conditional key with no
+object argument, and the literal shapes that must stay checked.
+
+The optional real-translation component test was left out on purpose, as the
+Decisions allow: it verifies the dictionary load, not this rule, and belongs to
+its own item.

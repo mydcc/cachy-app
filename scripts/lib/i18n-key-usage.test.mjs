@@ -85,6 +85,60 @@ describe("findInterpolationViolations", () => {
         expect(findInterpolationViolations('$_(`dash.${x}`)')).toEqual([]);
     });
 
+    it("flags a conditional key with a flat options object", () => {
+        const source = [
+            "function droppedNotice(count) {",
+            "    return $_(",
+            '        count === 1 ? "settings.one" : "settings.other",',
+            "        { count, types },",
+            "    );",
+            "}",
+        ].join("\n");
+        const found = findInterpolationViolations(source);
+        expect(found).toHaveLength(1);
+        // The line of the `$_(` call, not of the condition inside it.
+        expect(found[0].line).toBe(2);
+    });
+
+    it("accepts a conditional key with the values wrapper", () => {
+        expect(
+            findInterpolationViolations(
+                '$_(count === 1 ? "a.one" : "a.other", { values: { count } })',
+            ),
+        ).toEqual([]);
+    });
+
+    it("does not split on a comma or a parenthesis inside an argument", () => {
+        expect(
+            findInterpolationViolations('$_(flag ? "a), b" : `c, d)`, { count })'),
+        ).toHaveLength(1);
+        expect(
+            findInterpolationViolations(
+                '$_(flag ? pick("a, b") : pick("c)"), { values: { count } })',
+            ),
+        ).toEqual([]);
+    });
+
+    it("never reports a conditional key without an object argument", () => {
+        expect(
+            findInterpolationViolations('$_(flag ? "a.one" : "a.other")'),
+        ).toEqual([]);
+        expect(
+            findInterpolationViolations(
+                '$_(flag ? "a.one" : "a.other", options)',
+            ),
+        ).toEqual([]);
+    });
+
+    it("keeps the literal shapes checked", () => {
+        expect(
+            findInterpolationViolations('$_(`dash.${x}`, { a })'),
+        ).toHaveLength(1);
+        expect(
+            findInterpolationViolations('$_(`dash.${x}`, { values: { a } })'),
+        ).toEqual([]);
+    });
+
     it("does not fire inside a longer identifier", () => {
         // The alias has to be bound, otherwise `t(` is not a callee at all and
         // these assertions would hold even without the left boundary.

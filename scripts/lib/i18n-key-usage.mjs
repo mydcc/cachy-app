@@ -38,10 +38,6 @@ function looksLikeKey(value) {
     return TRANSLATION_KEY.test(value) && !NOT_A_KEY.test(value) && !SEMVER.test(value);
 }
 
-/** A string literal, a template literal, or a bare (optionally cast) identifier. */
-const FIRST_ARGUMENT =
-    "(?:\"[^\"]*\"|'[^']*'|`[^`]*`|[\\w.[\\]]+(?:\\s+as\\s+[\\w.]+)?)";
-
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -71,15 +67,25 @@ export function translationCallees(content) {
  *
  * `values` is read by destructuring, so the shorthand `{ values }` is correct
  * and must not be reported; only a bare sibling key (`{ count }`) is.
+ *
+ * The key may be picked by a condition (`count === 1 ? "…One" : "…Other"`),
+ * which no first-argument pattern can describe. The call is therefore split
+ * into its arguments and only the second one is judged, so every key shape is
+ * covered without listing them.
  */
 export function findInterpolationViolations(content) {
     const call = new RegExp(
-        `(?<![\\w$.])(?:${translationCallees(content).join("|")})\\(\\s*${FIRST_ARGUMENT}\\s*,\\s*\\{`,
+        `(?<![\\w$.])(?:${translationCallees(content).join("|")})\\(`,
         "g",
     );
     const violations = [];
     for (const match of content.matchAll(call)) {
-        const after = content.slice(match.index + match[0].length);
+        const openIndex = match.index + match[0].length - 1;
+        const args = callArguments(content, openIndex);
+        if (args.length < 2) continue;
+        const options = args[1].text.trimStart();
+        if (!options.startsWith("{")) continue;
+        const after = options.slice(1);
         if (/^\s*values\s*[,}:]/.test(after)) continue;
         if (/^\s*\}/.test(after)) continue;
         violations.push(violation(content, match.index));
