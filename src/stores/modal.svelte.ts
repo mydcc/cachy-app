@@ -25,6 +25,12 @@ import { DialogWindow } from "../lib/windows/implementations/DialogWindow.svelte
 import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerWindow.svelte";
 
 class ModalManager {
+  /**
+   * Opens a promise dialog. `title` and `message` are **copy, not i18n keys**:
+   * the dialog renders them as given (BUG-0761). Translating here instead
+   * would re-run every component call site that already passes translated
+   * text.
+   */
   show(
     title: string,
     message: string,

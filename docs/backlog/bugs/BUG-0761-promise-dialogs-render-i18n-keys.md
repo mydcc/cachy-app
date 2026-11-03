@@ -2,7 +2,7 @@
 id: BUG-0761
 title: Promise dialogs receive i18n keys and render them as literal text
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 created: "2026-10-31"
@@ -61,6 +61,16 @@ translates nothing, so its two dialogs ship keys.
    that option is rejected rather than left open.
 2. A regression test that mounts a `DialogWindow` through `modalState` and
    asserts the rendered title is not a `modals.*` key would have caught this.
+
+## Acceptance criteria
+
+- [x] `app.clearJournal` and `app.savePreset` translate before they call
+      `modalState.show`, like every component call site does
+- [x] `modalState.show` documents the contract: copy, not i18n keys
+- [x] A component test opens both dialogs through the real
+      `modalState`/`DialogWindow`/`WindowContainer` stack and asserts the
+      rendered title and message are the dictionary sentences; it failed
+      before the fix with the literal `modals.savePreset.title`
 
 ## Out of scope
 
