@@ -26,10 +26,11 @@ import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerW
 
 class ModalManager {
   /**
-   * Opens a promise dialog. `title` and `message` are **copy, not i18n keys**:
-   * the dialog renders them as given (BUG-0761). Translating here instead
-   * would re-run every component call site that already passes translated
-   * text.
+   * Opens a promise dialog. `title` and `message` are **copy, not i18n keys**
+   * (BUG-0761): the title is rendered as text and the message as sanitized
+   * HTML, so `<br>` is allowed. Translating here would double-translate the
+   * copy every caller already passes. The strings are frozen at open time —
+   * a locale switch while the dialog is open does not re-render them.
    */
   show(
     title: string,

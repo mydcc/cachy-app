@@ -54,11 +54,12 @@ translates nothing, so its two dialogs ship keys.
 
 ## Fix
 
-1. Translate at the two call sites (`$_("modals.clearJournal.title")`, …) to
-   match the components, and write the convention into `modalState.show`'s doc
-   comment: it receives copy, not keys. Making `show` translate instead would
-   re-run every component call site that already passes translated text, so
-   that option is rejected rather than left open.
+1. Translate at the two call sites (`get(_)("modals.clearJournal.title")`, …
+   — `$_` is component-only) to match the components, and write the
+   convention into `modalState.show`'s doc comment: it receives copy, not
+   keys. Making `show` translate instead would re-run every component call
+   site that already passes translated text, so that option is rejected
+   rather than left open.
 2. A regression test that mounts a `DialogWindow` through `modalState` and
    asserts the rendered title is not a `modals.*` key would have caught this.
 
@@ -70,7 +71,9 @@ translates nothing, so its two dialogs ship keys.
 - [x] A component test opens both dialogs through the real
       `modalState`/`DialogWindow`/`WindowContainer` stack and asserts the
       rendered title and message are the dictionary sentences; it failed
-      before the fix with the literal `modals.savePreset.title`
+      before the fix with the literals `modals.clearJournal.title` and
+      `modals.savePreset.title`. A third case swaps the dictionary to German,
+      so copy coming from a hardcoded English literal fails too.
 
 ## Out of scope
 
