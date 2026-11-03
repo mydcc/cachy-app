@@ -391,13 +391,20 @@ export async function streamCompletion(
       });
       if (!directRes.ok) {
         const err = await directRes.json().catch(() => ({}));
-        throw new Error(providerFailureMessage(directRes.status, err));
+        // A reachable server that refuses is not a connection failure: keep
+        // the status typed, exactly as the direct branch does, so the caller
+        // can branch on it instead of parsing the text.
+        throw new ProviderRequestError(
+          providerFailureMessage(directRes.status, err),
+          directRes.status,
+        );
       }
       res = directRes;
     } catch (err) {
       // Direct browser fetch failed — fail closed! ADR-0011 forbids falling
       // back to the server proxy in local mode.
       if (isAbortError(err)) throw err;
+      if (err instanceof ProviderRequestError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(
         `Ollama connection failed: ${msg}. Please ensure Ollama is running locally at ${targetUrl} and CORS is configured (OLLAMA_ORIGINS="*").`,

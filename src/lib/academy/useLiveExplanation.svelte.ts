@@ -73,22 +73,26 @@ export class LiveExplanationState {
         const controller = new AbortController();
         this.#controller = controller;
 
-        this.status = "streaming";
-        this.text = "";
-        this.error = null;
-
-        const context = buildExplanationContext({
-            entry: request.entry,
-            params: request.params,
-            field: request.field,
-            symbol: request.symbol,
-            timeframe: request.timeframe,
-            series: request.series,
-            generatedAt: new Date().toISOString(),
-        });
-        this.at = context.generatedAt;
-
         try {
+            // The build sits inside the try: a throw here must become an error
+            // state, not leave the control frozen at "streaming" with no way
+            // back. JS is single-threaded, so the mutations below cannot be
+            // observed between the abort and themselves.
+            const context = buildExplanationContext({
+                entry: request.entry,
+                params: request.params,
+                field: request.field,
+                symbol: request.symbol,
+                timeframe: request.timeframe,
+                series: request.series,
+                generatedAt: new Date().toISOString(),
+            });
+            this.at = context.generatedAt;
+
+            this.status = "streaming";
+            this.text = "";
+            this.error = null;
+
             await aiState.askOnce(
                 buildExplanationMessages(context, request.locale),
                 {

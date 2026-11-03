@@ -379,6 +379,12 @@ class AiManager {
         },
       });
 
+      // The answer arrived, so whatever a retry said on the way is no longer
+      // the state. Cleared here rather than in `onDelta`: an empty stream emits
+      // no delta, and the stale "HTTP 5xx" would outlive the success.
+      this.error = null;
+      this.errorStatus = null;
+
       const streamUsage = result.usage;
       const fullContent = result.content;
 

@@ -80,18 +80,29 @@ describe("aiState.askOnce (FEAT-0678)", () => {
   it("streams the answer to the caller and leaves the transcript alone", async () => {
     vi.mocked(appFetch).mockResolvedValue(streamResponse("RSI is 61.2 and rising."));
     const seen: string[] = [];
+    // AC 10's observability half: a request neither logs nor signals anything,
+    // so a console spy that stays empty proves no telemetry path rides along
+    // with the egress.
+    const silenced = (["log", "warn", "error"] as const).map((level) =>
+      vi.spyOn(console, level).mockImplementation(() => undefined),
+    );
+    try {
+      const result = await aiState.askOnce(messages, {
+        onDelta: (content) => seen.push(content),
+      });
 
-    const result = await aiState.askOnce(messages, {
-      onDelta: (content) => seen.push(content),
-    });
+      expect(result.content).toBe("RSI is 61.2 and rising.");
+      expect(seen.at(-1)).toBe("RSI is 61.2 and rising.");
 
-    expect(result.content).toBe("RSI is 61.2 and rising.");
-    expect(seen.at(-1)).toBe("RSI is 61.2 and rising.");
-
-    // No chat turn happened: no messages, no persisted history, no streaming flag.
-    expect(aiState.messages).toEqual([]);
-    expect(localStorage.getItem(CHAT_KEY)).toBeNull();
-    expect(aiState.isStreaming).toBe(false);
+      // No chat turn happened: no messages, no persisted history, no streaming flag.
+      expect(aiState.messages).toEqual([]);
+      expect(localStorage.getItem(CHAT_KEY)).toBeNull();
+      expect(aiState.isStreaming).toBe(false);
+    } finally {
+      const quiet = silenced.every((spy) => spy.mock.calls.length === 0);
+      for (const spy of silenced) spy.mockRestore();
+      expect(quiet, "a request must write nothing to the console").toBe(true);
+    }
   });
 
   it("sends exactly the messages it was given", async () => {
@@ -119,6 +130,28 @@ describe("aiState.askOnce (FEAT-0678)", () => {
     await expect(aiState.askOnce(messages)).rejects.toThrow(
       /Ollama connection failed/,
     );
+    expect(appFetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps a reachable local provider's refusal typed and statused", async () => {
+    settingsState.aiProvider = "ollama";
+    settingsState.ollamaModel = "llama3.3";
+    settingsState.ollamaBaseUrl = "http://localhost:11434";
+    // Reachable, answering, and refusing: this is not a connection failure, so
+    // the error must carry the status instead of the "Ollama connection
+    // failed" wrapper, which is what the chat box branches on.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: "nope" }), { status: 404 }),
+      ),
+    );
+
+    await expect(aiState.askOnce(messages)).rejects.toMatchObject({
+      name: "ProviderRequestError",
+      status: 404,
+      message: "HTTP 404: nope",
+    });
     expect(appFetch).not.toHaveBeenCalled();
   });
 

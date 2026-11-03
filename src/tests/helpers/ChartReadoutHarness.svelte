@@ -34,17 +34,26 @@
         entry: CatalogueEntry;
         params?: Readonly<Record<string, ParamValue>>;
         field?: PriceField;
+        /** Controlled timeframe, so a test can drive a change through the chart. */
+        initialTimeframe?: string;
     }
 
-    let { entry, params = {}, field }: Props = $props();
+    let { entry, params = {}, field, initialTimeframe = "1h" }: Props = $props();
 
     let readout = $state<{ series: LessonSeries; timeframe: string } | null>(null);
+    let timeframe = $state(initialTimeframe);
+
+    /** Lets a test move the timeframe the way the lesson view does. */
+    export function setTimeframe(next: string): void {
+        timeframe = next;
+    }
 </script>
 
 <IndicatorLessonChart
     {entry}
     {params}
     {field}
+    {timeframe}
     onreadout={(next) => {
         readoutSpy.calls += 1;
         readoutSpy.last = next;

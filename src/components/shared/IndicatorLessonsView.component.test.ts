@@ -55,6 +55,21 @@ vi.mock("../../locales/i18n", async () => {
     };
 });
 
+const aiMocks = vi.hoisted(() => ({
+    askOnce: vi.fn(),
+    providerStatus: vi.fn(),
+}));
+
+// The view mounts the live-explanation control, which reads the provider
+// status on mount. Mocked so the control sees a ready provider — a request
+// would then be observable if the view made one — without loading the store.
+vi.mock("../../stores/ai.svelte", () => ({
+    aiState: {
+        askOnce: aiMocks.askOnce,
+        providerStatus: aiMocks.providerStatus,
+    },
+}));
+
 vi.mock("./ChartPatternsView.svelte", async () => ({
     default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
 }));
@@ -78,6 +93,9 @@ let component: Record<string, unknown> | null = null;
 
 beforeEach(() => {
     localStorage.clear();
+    aiMocks.askOnce.mockReset();
+    aiMocks.providerStatus.mockReset();
+    aiMocks.providerStatus.mockReturnValue({ ready: true, label: "Gemini" });
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -437,6 +455,37 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         expect(card.textContent).toContain("21");
         expect(card.textContent).not.toContain("Your setting");
         expect(card.textContent).not.toContain("Default");
+    });
+
+    it("teaches in full with no provider configured, and asks nothing while walking the lessons", () => {
+        // AC 8's open half: with no provider configured the Academy renders and
+        // teaches in full — and opening lesson after lesson must not create a
+        // request. Each row is opened and its own lesson text located, so a
+        // blank detail pane fails here rather than only the request assertion.
+        // The chart stub keeps the Series unset, so the control cannot be armed;
+        // the control's press path is pinned in LiveExplanation.component.test.ts.
+        aiMocks.providerStatus.mockReturnValue({ ready: false, label: "Gemini" });
+        const view = renderIndicatorsTab();
+
+        for (const entry of INDICATOR_CATALOGUE) {
+            const name = lookup(`dashboard.alerts.indicators.name.${entry.id}`);
+            const row = lessonRows(view).find(
+                (candidate) => candidate.textContent?.trim() === name,
+            );
+            if (!row) throw new Error(`no sidebar row for ${entry.id}`);
+            row.click();
+            flushSync();
+
+            expect(view.textContent, `${entry.id} lesson text`).toContain(
+                lookup(`academy.indicators.${entry.id}.whatItMeasures`),
+            );
+            expect(
+                aiMocks.askOnce,
+                `${entry.id} must not ask`,
+            ).not.toHaveBeenCalled();
+        }
+
+        expect(aiMocks.askOnce).not.toHaveBeenCalled();
     });
 });
 

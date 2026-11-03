@@ -32,7 +32,6 @@
 -->
 
 <script lang="ts">
-    import { get } from "svelte/store";
     import { _, locale } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import { aiState } from "../../stores/ai.svelte";
@@ -57,7 +56,9 @@
 
     /** Reactive to Settings: the label must change when the provider does. */
     const provider = $derived(aiState.providerStatus());
-    const currentLocale = $derived(get(locale) === "de" ? "de" : "en");
+    // `$locale` auto-subscribes to the store; `get(locale)` would read it once
+    // at mount and freeze the lesson in its mount-time language.
+    const currentLocale = $derived($locale === "de" ? "de" : "en");
 
     const canAsk = $derived(
         provider.ready && series !== null && live.status !== "streaming",

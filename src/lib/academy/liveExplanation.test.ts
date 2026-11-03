@@ -164,4 +164,19 @@ describe("Academy explanation payload (FEAT-0678)", () => {
 
     expect(first).toEqual(second);
   });
+
+  it("strips backtick runs from untrusted strings so the JSON fence holds", () => {
+    // BUG-0473's mitigation, applied to this payload: a ``` run inside a
+    // symbol would end the ```json fence and let the data pose as an
+    // instruction line (`### END DATA`). After the strip the only fence
+    // delimiters are the two we wrote ourselves.
+    const messages = buildExplanationMessages(
+      context({ symbol: "BTC```USDT```" }),
+      "en",
+    );
+
+    expect((messages[0].content.match(/```/g) ?? []).length).toBe(2);
+    expect(messages[0].content).toContain("BTC'''USDT'''");
+    expect(messages[1].content).not.toMatch(/```/);
+  });
 });

@@ -108,4 +108,40 @@ describe("IndicatorLessonChart readout (FEAT-0678)", () => {
 
     unmount(instance);
   });
+
+  it("reports once per actual change, not once per render", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+
+    const instance = mount(ChartReadoutHarness, {
+      target: host,
+      props: { entry: catalogueEntry("rsi"), initialTimeframe: "1h" },
+    }) as unknown as { setTimeframe(next: string): void };
+    flushSync();
+
+    expect(readoutSpy.calls).toBe(1);
+    expect(readoutSpy.last?.timeframe).toBe("1h");
+
+    instance.setTimeframe("4h");
+    flushSync();
+
+    expect(readoutSpy.calls, "a new timeframe is a new report").toBe(2);
+    expect(readoutSpy.last?.timeframe).toBe("4h");
+    expect(host.querySelector("[data-testid='chart-readout']")?.textContent).toBe("4h");
+
+    // The same value again is not a change: the chart's reported-guard compares
+    // what it reported, so nothing is emitted for an unchanged draw.
+    instance.setTimeframe("4h");
+    flushSync();
+
+    expect(readoutSpy.calls, "an equal timeframe must not re-report").toBe(2);
+
+    instance.setTimeframe("1h");
+    flushSync();
+
+    expect(readoutSpy.calls).toBe(3);
+    expect(readoutSpy.last?.timeframe).toBe("1h");
+
+    unmount(instance as never);
+  });
 });

@@ -44,7 +44,10 @@ function lookup(key: string): string {
 }
 
 vi.mock("../../locales/i18n", async () => {
-    const { readable } = await import("svelte/store");
+    const { readable, writable } = await import("svelte/store");
+    // Writable so a test can switch the language of an already mounted control:
+    // it must ask in the language it is *in*, not the one it mounted in.
+    const localeStore = writable("en");
     const translate = (key: string, vars?: { values?: Record<string, unknown> }) => {
         const template = lookup(key) ?? key;
         if (!vars?.values) return template;
@@ -54,7 +57,7 @@ vi.mock("../../locales/i18n", async () => {
     };
     return {
         _: readable(translate),
-        locale: readable("en"),
+        locale: localeStore,
         setLocale: vi.fn(),
     };
 });
@@ -71,11 +74,18 @@ vi.mock("../../stores/ai.svelte", () => ({
     },
 }));
 
-vi.mock("../../stores/trade.svelte", () => ({
-    tradeState: { symbol: "BTCUSDT" },
-}));
+vi.mock("../../stores/trade.svelte", async () => {
+    // A rune, not a literal: the reset `$effect` observes the symbol, and only
+    // a reactive store makes a symbol switch observable in this suite.
+    const { lessonTradeState } = await import(
+        "../../tests/helpers/lessonTradeState.mock.svelte"
+    );
+    return { tradeState: lessonTradeState };
+});
 
 import LiveExplanation from "./LiveExplanation.svelte";
+import { locale } from "../../locales/i18n";
+import { lessonTradeState } from "../../tests/helpers/lessonTradeState.mock.svelte";
 
 const entry = {
     id: "rsi",
@@ -112,6 +122,7 @@ describe("LiveExplanation (FEAT-0678)", () => {
         mocks.askOnce.mockReset();
         mocks.providerStatus.mockReset();
         mocks.providerStatus.mockReturnValue({ ready: true, label: "Gemini" });
+        locale.set("en");
         document.body.innerHTML = "";
     });
 
@@ -179,6 +190,105 @@ describe("LiveExplanation (FEAT-0678)", () => {
         flushSync();
 
         expect(host.textContent).toContain("HTTP 401: bad key");
+
+        unmount(instance);
+    });
+
+    it("asks in the language the control is in when the button is pressed", async () => {
+        mocks.askOnce.mockResolvedValue({
+            content: "RSI is 61.2 and rising.",
+            usage: {},
+            toolCallBuffer: "",
+        });
+        const { host, instance } = mountControl();
+
+        button(host).click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        flushSync();
+
+        const first = mocks.askOnce.mock.calls[0]?.[0] as Array<{ content: string }>;
+        expect(first[0].content).toContain("Answer in English");
+
+        // The learner switches the app language while the lesson stays open.
+        locale.set("de");
+        flushSync();
+
+        button(host).click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        flushSync();
+
+        const second = mocks.askOnce.mock.calls[1]?.[0] as Array<{ content: string }>;
+        expect(second[0].content).toContain("Answer in German");
+
+        unmount(instance);
+    });
+
+    it("sends the lesson payload and nothing beside it", async () => {
+        mocks.askOnce.mockResolvedValue({
+            content: "RSI is 61.2 and rising.",
+            usage: {},
+            toolCallBuffer: "",
+        });
+        const { host, instance } = mountControl();
+
+        button(host).click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        flushSync();
+
+        expect(mocks.askOnce).toHaveBeenCalledTimes(1);
+        const [messages, options] = mocks.askOnce.mock.calls[0] as [
+            Array<{ role: string; content: string }>,
+            Record<string, unknown>,
+        ];
+
+        // A lesson is not a chat turn: no action schema, abortable, two messages.
+        expect(options).not.toHaveProperty("tools");
+        expect(options.signal).toBeInstanceOf(AbortSignal);
+        expect(messages).toHaveLength(2);
+        expect(messages[0].content).toContain("UNTRUSTED");
+        expect(messages[0].content).toContain('"symbol": "BTCUSDT"');
+        expect(messages[1].content).toContain("BTCUSDT");
+        // Class A fields the chat context carries, absent here by construction.
+        for (const forbidden of [
+            "portfolioStats",
+            "openPositions",
+            "recentHistory",
+            "tradeSetup",
+            "accountSize",
+        ]) {
+            expect(messages[0].content).not.toContain(forbidden);
+        }
+
+        unmount(instance);
+    });
+
+    it("resets the answer when the symbol changes, and asks afresh on the next press", async () => {
+        mocks.askOnce.mockImplementation(async (_messages, options) => {
+            options.onDelta("RSI is 61.2 and rising.");
+            return { content: "RSI is 61.2 and rising.", usage: {}, toolCallBuffer: "" };
+        });
+        const { host, instance } = mountControl();
+
+        button(host).click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        flushSync();
+        expect(host.textContent).toContain("RSI is 61.2 and rising.");
+        expect(mocks.askOnce).toHaveBeenCalledTimes(1);
+
+        // A different symbol invalidates the frozen paragraph: it must not read
+        // like a statement about the new one. And the switch must not ask.
+        lessonTradeState.symbol = "ETHUSDT";
+        flushSync();
+
+        expect(host.textContent).not.toContain("RSI is 61.2 and rising.");
+        expect(mocks.askOnce).toHaveBeenCalledTimes(1);
+
+        button(host).click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        flushSync();
+
+        const second = mocks.askOnce.mock.calls[1]?.[0] as Array<{ content: string }>;
+        expect(second[0].content).toContain('"symbol": "ETHUSDT"');
 
         unmount(instance);
     });

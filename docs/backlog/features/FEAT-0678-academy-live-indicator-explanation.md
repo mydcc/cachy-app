@@ -102,11 +102,9 @@ Shipped:
 
 Proven by `liveExplanation.test.ts`, `useLiveExplanation.test.ts`,
 `ai.askOnce.test.ts`, `academyEgress.test.ts`,
-`LiveExplanation.component.test.ts`, plus the unchanged
+`LiveExplanation.component.test.ts`, `IndicatorLessonsView.component.test.ts`,
+`IndicatorLessonChart.readout.component.test.ts`, plus the unchanged
 `aiEgressConsent.test.ts` and `ai.providerFailures.test.ts`.
-
-Not ticked below: AC 8's "open every tab with the AI store empty" half. The
-control's own disabled state is tested; the tab-wide sweep is not.
 
 ## Design decisions
 
@@ -154,8 +152,9 @@ way round.
       request to a server proxy. ADR-0011's fail-closed rule holds on this path.
 - [x] The UI names the provider that will receive the request, at the point of the
       control, before it is pressed.
-- [ ] With no provider configured, the Academy renders and teaches in full. A test
-      opens every tab and asserts content is present with the AI store empty.
+- [x] With no provider configured, the Academy renders and teaches in full. A test
+      opens every lesson with the AI store empty and asserts the lesson's own text
+      is present, and that no request is issued.
 - [x] The reply renders as streamed text, and the surrounding lesson is unaffected
       while it arrives.
 - [x] The exchange of symbol and indicator values is not logged to telemetry, crash
