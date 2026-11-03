@@ -2,7 +2,7 @@
 id: BUG-0759
 title: Warning buttons have no text token and fall back to unreadable body text
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 created: "2026-10-31"
@@ -28,7 +28,7 @@ the least readable label in the app sits on the action that erases data.
 **Demonstrated** by resolving the pair per theme block the way the cascade
 does, with the resolver introduced in BUG-0728.
 
-`src/themes.css:2843` (`.btn-base.btn-warning`):
+`src/themes.css:2850` (`.btn-base.btn-warning`):
 
 ```css
 background-color: var(--btn-warning-bg);
@@ -52,37 +52,77 @@ Measured pairs (`--text-primary` on `--warning-color`):
 | `.theme-github-light` | `#953800` | 1.98:1 |
 | `.theme-light` | `#953800` | 2.42:1 |
 
+**Three more consumers had the same hole**, found while fixing it:
+
+- `src/components/layout/Header.svelte:91` (`.paper-mode-badge`) paints the
+  warning fill and took its label from `--bg-primary`. That token is a
+  `radial-gradient` in `meteorite`, `steel`, `insight` and `ever`, so the
+  declaration is invalid at computed-value time and the label inherits the
+  header text colour — 1.02–1.10:1, the same four themes as the table above. In
+  the other 27 themes it passed by coincidence (4.68–19.56:1).
+- `src/components/settings/HotkeySettings.svelte:197` (conflict toast) pairs the
+  warning fill with a hardcoded `text-black`, which is 2.84:1 on the `#953800`
+  fills — and a hardcoded colour besides.
+- `src/components/settings/PaperTradingSettings.svelte:124` sits inside
+  `.bg-warning-paired` and set its own `--text-secondary` on the paragraph, so
+  the container's `!important` ink never reached it (1.00–2.61:1).
+
+`.badge-warning` has no consumer today; it is fixed with the rest so the next
+one does not inherit the bug.
+
 ## Cause
 
 The primitive's warning variant reused the old `--text-on-warning` name, but no
 theme ever declared it. BUG-0728's gate covers `--btn-*-bg` / `--btn-*-text`
 pairs; warning is the one filled role without a text token, which is why it fell
-outside that gate instead of failing it.
+outside that gate instead of failing it. The three component sites above read
+the same missing token, or worked around it with `--bg-primary` / `text-black`,
+so the hole was wider than the primitive.
 
 ## Fix
 
-1. Add `--btn-warning-text` (per theme where the fill differs in lightness) and
-   read it in `.btn-base.btn-warning` and the two `--text-on-warning` rules in
-   `src/themes.css`.
-2. Move the fourth consumer with it: `.status-indicator.warning` in
-   `src/components/shared/CalculationDashboard.svelte:387` falls back to
-   `--bg-primary`, which is light on the light themes and dark on the dark
-   ones, so it inherits exactly the defect this item describes.
-3. Extend `src/themes.buttonContrast.test.ts` to include `warning` once the
-   token exists, so the pair is gated like the other four roles.
+1. `--text-on-warning` is declared in the shared `:root` block as
+   `var(--blue-950)` (dark ink), and overridden to `var(--blue-100)` in the four
+   themes whose warning fill is dark (`light`, `solarized-light`, `ayu-light`,
+   `github-light`). No single ink clears both a `#ffff00` and a `#953800` fill.
+2. `--btn-warning-text: var(--text-on-warning)` is declared once at `:root`,
+   next to `--btn-warning-bg` and for the same re-substitution reason.
+3. Consumers: `.btn-base.btn-warning` reads `--btn-warning-text`;
+   `.bg-warning-paired`, `.badge-warning`, `.status-indicator.warning`
+   (`CalculationDashboard.svelte`), `.paper-mode-badge` (`Header.svelte`) and
+   the `HotkeySettings` toast read `--text-on-warning`. The paper-trading card's
+   description paragraph switches with the card's fill instead of hardcoding
+   `--text-secondary`.
+4. `src/themes.buttonContrast.test.ts` adds `warning` to the role list, pins the
+   six fills from the table, and pins the `opacity: 0.9` hover by compositing
+   both the fill and the label over `--bg-secondary` — measured worst case
+   4.71:1 (`solarized-dark`).
 
 ## Acceptance criteria
 
-- [ ] `.btn-base.btn-warning` and `.status-indicator.warning` read
-      `--btn-warning-text`, and no rule references `--text-on-warning`
-- [ ] `warning` is in the gate's role list and every theme's pair clears 4.5:1
-- [ ] The four measured pairs from the table above are pinned by the test
+- [x] `.btn-base.btn-warning` reads `--btn-warning-text`; the other warning-fill
+      labels read `--text-on-warning`, and no rule uses a fallback for it
+- [x] `warning` is in the gate's role list and every theme's pair clears 4.5:1
+- [x] The six measured pairs from the table above are pinned by the test
+- [x] The additional labels (paper-mode badge, conflict toast, paper-mode card
+      paragraph) clear 4.5:1 in the themes that previously failed
+- [x] The `0.9` hover composite clears 4.5:1 in every theme
 
 ## Out of scope
 
 - Changing `--warning-color` or any palette value.
+- Hover for the other four roles, which swap a hover token instead of lowering
+  opacity (BUG-0760).
+- The four pastel themes paint "warning" as `#ffe0ee`. Contrast is fixed here;
+  whether that is a sensible warning colour is a palette question.
+
+## What shipped
+
+Shipped in `1.6.0` — `--text-on-warning` plus `--btn-warning-text`, the six
+consumer rules, and the extended contrast gate.
 
 ## Links
 
 - BUG-0728 — the gate and the four pairs it covers
+- BUG-0760 — hover and mixed button pairs outside the gate
 - `src/themes.buttonContrast.test.ts`

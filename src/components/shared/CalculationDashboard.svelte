@@ -384,7 +384,7 @@
 
     .status-indicator.warning {
         background: var(--warning-color);
-        color: var(--text-on-warning, var(--bg-primary));
+        color: var(--text-on-warning);
     }
 
     .status-indicator.critical {
