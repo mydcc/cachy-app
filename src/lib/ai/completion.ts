@@ -367,6 +367,7 @@ export async function streamCompletion(
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(
         `Direct request to "${target.label}" failed: ${message}. If the provider blocks browser requests (CORS), enable "Allow server relay" in Settings → AI.`,
+        { cause: err },
       );
     }
   }
@@ -400,6 +401,7 @@ export async function streamCompletion(
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(
         `Ollama connection failed: ${msg}. Please ensure Ollama is running locally at ${targetUrl} and CORS is configured (OLLAMA_ORIGINS="*").`,
+        { cause: err },
       );
     }
   }

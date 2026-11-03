@@ -190,6 +190,16 @@
     let chartReadout = $state<{ series: LessonSeries; timeframe: string } | null>(
         null,
     );
+
+    /**
+     * A stable function, not an inline arrow: the chart's effect reads
+     * `onreadout`, so a fresh identity on every render would re-run it.
+     */
+    function handleChartReadout(
+        readout: { series: LessonSeries; timeframe: string } | null,
+    ) {
+        chartReadout = readout;
+    }
 </script>
 
 <div class="flex flex-col @md:flex-row h-full gap-4 min-h-0 min-w-0">
@@ -368,7 +378,7 @@
                     entry={current}
                     params={lessonParameters.values}
                     field={lessonParameters.field}
-                    onreadout={(readout) => (chartReadout = readout)}
+                    onreadout={handleChartReadout}
                 />
                 <!--
                   FEAT-0678 — the plain reading, next to the picture. Tied to

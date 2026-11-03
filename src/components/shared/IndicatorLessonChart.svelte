@@ -342,10 +342,20 @@
      * asks a provider about "the values on screen", so it has to read this
      * object rather than recompute: two computations of the same indicator can
      * disagree by a candle and the reader would never know which one the answer
-     * describes. Registers no listener, so there is nothing to clean up.
+     * describes.
+     *
+     * The `reported` comparison keeps the callback to one emission per actual
+     * change: `computed` is a `$derived`, so without it a re-render upstream
+     * would hand the parent the same series as a new object and re-render it
+     * again for nothing.
      */
+    let reported: { series: LessonSeries; timeframe: string } | null = null;
     $effect(() => {
-        onreadout?.({ series: computed, timeframe });
+        if (reported?.series === computed && reported?.timeframe === timeframe) {
+            return;
+        }
+        reported = { series: computed, timeframe };
+        onreadout?.(reported);
     });
 
     /**

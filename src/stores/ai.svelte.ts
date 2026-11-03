@@ -61,7 +61,6 @@ import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import { parseAiValue, generateId } from "../utils/utils";
 import { effectiveRiskPercentage } from "../lib/risk";
 import { logger } from "../services/logger";
-import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
 import { app, MAX_TAKE_PROFIT_TARGETS } from "../services/app";
