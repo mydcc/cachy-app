@@ -52,6 +52,7 @@ const settingsMock = vi.hoisted(() => ({
     focusFollowsMouse: false,
     windowRules: [] as Array<Record<string, unknown>>,
     favoriteSymbols: ["BTCUSDT", "ETHUSDT"],
+    density: "default",
 }));
 vi.mock("../../../stores/settings.svelte", () => ({ settingsState: settingsMock }));
 
@@ -67,14 +68,13 @@ import VisualsLayout from "./VisualsLayout.svelte";
  * one of these, so a plain object would test a shape production never sees.
  */
 class TestWindow extends WindowBase {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    get component(): any {
+    get component() {
         return null;
     }
 }
 
 let host: HTMLElement;
-let component: Record<string, unknown> | null = null;
+let component: ReturnType<typeof mount> | null = null;
 let opened: string[] = [];
 let nextId = 0;
 
@@ -90,13 +90,13 @@ beforeEach(() => {
 afterEach(() => {
     for (const id of opened) windowManager.close(id);
     opened = [];
-    if (component) unmount(component as never);
+    if (component) unmount(component);
     component = null;
     host.remove();
 });
 
 function render() {
-    component = mount(VisualsLayout, { target: host }) as never;
+    component = mount(VisualsLayout, { target: host });
     flushSync();
 }
 
@@ -104,7 +104,7 @@ function openWindow(windowType: "journal" | "chart", symbol?: string): TestWindo
     const win = new TestWindow({
         windowType,
         id: `feat0772-${windowType}-${nextId++}`,
-        ...(symbol ? { symbol } : {}),
+        symbol,
     });
     windowManager.open(win);
     opened.push(win.id);
@@ -118,30 +118,33 @@ function applyButton(type: string): HTMLButtonElement {
     return el;
 }
 
-/** The reason span is rendered only while the action is refused. */
-function reasonId(type: string): string {
-    return `window-rule-${type}-apply-reason`;
+/** The referenced reason must exist and carry the expected refusal. */
+function expectReason(apply: HTMLButtonElement, key: string): void {
+    const id = apply.getAttribute("aria-describedby");
+    if (!id) throw new Error("apply button has no reason reference");
+    expect(host.querySelector(`#${id}`)?.textContent ?? "").toContain(
+        lookup(key),
+    );
 }
 
+/*
+ * Every rule below carries one appliable field (`x`). Without it the editor
+ * refuses the action with its own "nothing to apply" reason as soon as a
+ * target exists, and the assertion would be about that earlier refusal rather
+ * than about the target link this file exists to pin.
+ */
 describe("FEAT-0772 — Apply now follows a window focused after mount", () => {
     it("starts disabled with the no-target reason", () => {
-        // A rule with no field to apply is refused on its own ("nothing to
-        // apply"); the geometry keeps the subject the target link.
         settingsMock.windowRules = [{ windowType: "journal", enabled: true, x: 120 }];
         render();
 
         const apply = applyButton("journal");
 
         expect(apply.getAttribute("aria-disabled")).toBe("true");
-        expect(apply.getAttribute("aria-describedby")).toBe(reasonId("journal"));
-        expect(host.textContent).toContain(
-            lookup("settings.windowRulesApplyNoTarget"),
-        );
+        expectReason(apply, "settings.windowRulesApplyNoTarget");
     });
 
     it("enables the action when a matching window opens after the editor rendered", () => {
-        // A rule with no field to apply is refused on its own ("nothing to
-        // apply"); the geometry keeps the subject the target link.
         settingsMock.windowRules = [{ windowType: "journal", enabled: true, x: 120 }];
         render();
         expect(applyButton("journal").getAttribute("aria-disabled")).toBe("true");
@@ -149,38 +152,63 @@ describe("FEAT-0772 — Apply now follows a window focused after mount", () => {
         openWindow("journal");
 
         const apply = applyButton("journal");
-        expect(apply.getAttribute("aria-disabled")).not.toBe("true");
-        // No reason is rendered at all while the action is usable.
-        expect(apply.getAttribute("aria-describedby")).toBeNull();
-        expect(host.textContent).not.toContain(
-            lookup("settings.windowRulesApplyNoTarget"),
-        );
+        expect(apply.getAttribute("aria-disabled")).toBe("false");
+        // No reason element at all while the action is usable.
+        expect(host.querySelector('[id$="-apply-reason"]')).toBeNull();
     });
 
     it("switches to the no-match reason when another type takes focus", () => {
-        // A rule with no field to apply is refused on its own ("nothing to
-        // apply"); the geometry keeps the subject the target link.
         settingsMock.windowRules = [{ windowType: "journal", enabled: true, x: 120 }];
         render();
         openWindow("journal");
-        expect(applyButton("journal").getAttribute("aria-disabled")).not.toBe("true");
+        expect(applyButton("journal").getAttribute("aria-disabled")).toBe("false");
 
         openWindow("chart", "BTCUSDT");
 
         const apply = applyButton("journal");
         expect(apply.getAttribute("aria-disabled")).toBe("true");
-        expect(host.textContent).toContain(
-            lookup("settings.windowRulesApplyNoMatch"),
+        expectReason(apply, "settings.windowRulesApplyNoMatch");
+    });
+
+    it("leaves a symbol-scoped chart rule disabled for another symbol", () => {
+        settingsMock.windowRules = [
+            {
+                windowType: "chart",
+                enabled: true,
+                x: 120,
+                match: { kind: "symbol", value: "BTCUSDT" },
+            },
+        ];
+        render();
+        expect(applyButton("chart-BTCUSDT").getAttribute("aria-disabled")).toBe(
+            "true",
         );
+
+        openWindow("chart", "ETHUSDT");
+
+        const apply = applyButton("chart-BTCUSDT");
+        expect(apply.getAttribute("aria-disabled")).toBe("true");
+        expectReason(apply, "settings.windowRulesApplyNoMatch");
+    });
+
+    it("re-enables when focus returns to the matching window without a new open", () => {
+        settingsMock.windowRules = [{ windowType: "journal", enabled: true, x: 120 }];
+        render();
+        const journal = openWindow("journal");
+        openWindow("chart", "BTCUSDT");
+        expect(applyButton("journal").getAttribute("aria-disabled")).toBe("true");
+
+        windowManager.bringToFront(journal.id);
+        flushSync();
+
+        expect(applyButton("journal").getAttribute("aria-disabled")).toBe("false");
     });
 
     it("goes back to disabled with the no-target reason when the matching window closes", () => {
-        // A rule with no field to apply is refused on its own ("nothing to
-        // apply"); the geometry keeps the subject the target link.
         settingsMock.windowRules = [{ windowType: "journal", enabled: true, x: 120 }];
         render();
         const win = openWindow("journal");
-        expect(applyButton("journal").getAttribute("aria-disabled")).not.toBe("true");
+        expect(applyButton("journal").getAttribute("aria-disabled")).toBe("false");
 
         windowManager.close(win.id);
         opened = opened.filter((id) => id !== win.id);
@@ -188,9 +216,6 @@ describe("FEAT-0772 — Apply now follows a window focused after mount", () => {
 
         const apply = applyButton("journal");
         expect(apply.getAttribute("aria-disabled")).toBe("true");
-        expect(apply.getAttribute("aria-describedby")).toBe(reasonId("journal"));
-        expect(host.textContent).toContain(
-            lookup("settings.windowRulesApplyNoTarget"),
-        );
+        expectReason(apply, "settings.windowRulesApplyNoTarget");
     });
 });

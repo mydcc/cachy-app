@@ -47,21 +47,22 @@ closes the matching one and asserts the action returns to disabled.
 
 ## Acceptance criteria
 
-- [ ] A component test mounts the Window rules section against the real
-      `windowManager`; only the settings and i18n modules stay mocked.
-- [ ] With no other window focused, the action is disabled and names the
+- [x] A component test mounts the Window rules section against the real
+      `windowManager`; the settings, i18n and ui modules stay mocked (as in the
+      sibling test), the manager does not.
+- [x] With no other window focused, the action is disabled and names the
       "no target window" reason.
-- [ ] Opening a matching window through the manager's normal open path — after
+- [x] Opening a matching window through the manager's normal open path — after
       the editor is mounted — flips the action to enabled without a remount.
-- [ ] Focusing a window that does not match the rule (another type, or a chart
+- [x] Focusing a window that does not match the rule (another type, or a chart
       with a different symbol scope) keeps it disabled and swaps the reason.
-- [ ] Closing the matching window returns the action to disabled.
-- [ ] The test fails when the reactive link is broken. Proof required: make the
+- [x] Closing the matching window returns the action to disabled.
+- [x] The test fails when the reactive link is broken. Proof required: make the
       manager's getter return a captured value instead of reading its reactive
       field, watch the new test go red, then revert.
-- [ ] The existing mocked component test stays as the fast path; this is an
+- [x] The existing mocked component test stays as the fast path; this is an
       addition, not a rewrite.
-- [ ] It runs in the `components` project with no new global setup, no new fake
+- [x] It runs in the `components` project with no new global setup, no new fake
       timers and no `resolve.conditions` change.
 
 ## Decisions
@@ -114,3 +115,15 @@ path also needed a rule with an applicable field (`x`), because an enabled rule
 with nothing to apply is refused earlier by its own "nothing to apply" reason —
 the first draft of this test asserted the wrong refusal and failed for that
 reason, not for the target link.
+
+Review follow-up on the implementation:
+
+- The manager-side variant of the break was checked too: making
+  `_lastActiveWindowId` a plain field instead of `$state` turns the same three
+  transition cases red.
+- `aria-describedby` is now resolved to the element and the element's text
+  asserted, instead of comparing the attribute to a copied id template; a
+  dangling reference no longer passes.
+- The "different symbol scope" half of the criterion is covered by its own
+  case (a chart rule scoped to BTCUSDT against an ETHUSDT window), plus the
+  focus-returns-without-a-new-open transition.
