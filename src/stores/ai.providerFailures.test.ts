@@ -120,6 +120,22 @@ describe("AI provider failures while sending", () => {
     expect(aiState.errorStatus).toBeNull();
   });
 
+  it("clears the retry notice when the retry answers with an empty stream", async () => {
+    const fetchMock = vi.mocked(appFetch);
+    fetchMock
+      .mockResolvedValueOnce(errorResponse(503, { error: "Service Unavailable" }))
+      .mockResolvedValueOnce(streamResponse(""));
+
+    await aiState.sendMessage("analyse the market");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // A 200 with no delta still ended the fault. `onDelta` never runs for an
+    // empty stream, so the clear cannot live there — the notice would outlive
+    // the answer it describes.
+    expect(aiState.error).toBeNull();
+    expect(aiState.errorStatus).toBeNull();
+  });
+
   it("names the last server fault when every attempt fails", async () => {
     const fetchMock = vi.mocked(appFetch);
     // A fresh Response per attempt: a Response body can only be read once.

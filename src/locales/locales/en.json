@@ -4429,6 +4429,16 @@
     "fileNotFound": "Markdown file not found: {path}"
   },
   "academy": {
+    "liveExplain": {
+      "heading": "Live reading",
+      "hint": "Ask what these exact values say right now. The request goes to the provider configured in Settings.",
+      "noProvider": "No AI provider is configured. Add one under Settings \u2192 AI to get a live reading.",
+      "ask": "Explain with {provider}",
+      "askDisabled": "Explain",
+      "streaming": "The provider is answering\u2026",
+      "frozen": "Read at {time} \u00b7 {symbol} \u00b7 {timeframe}",
+      "failed": "The provider could not answer:"
+    },
     "title": "Trading Academy",
     "structure": {
       "title": "Market Structure & Regime",

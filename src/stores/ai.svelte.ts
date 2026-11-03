@@ -13,26 +13,21 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
+import type { StreamUsage } from "../lib/ai/streamAdapters";
 import {
-  BUILTIN_ENTRY_IDS,
-  flavorOf,
-  isBuiltinEntryId,
-  modelProviderForFlavor,
-  resolveActiveProvider,
-  type AiApiFlavor,
-} from "./settings/aiProviders";
+  resolveChatTarget,
+  streamCompletion,
+  describeTarget,
+  ProviderRequestError,
+  type ChatMessage,
+  type CompletionResult,
+  type ResolveChatInput,
+} from "../lib/ai/completion";
 import {
-  parseStreamChunk,
-  appendToolCallFragment,
-  type StreamUsage,
-} from "../lib/ai/streamAdapters";
-import { buildDirectRequest } from "../lib/ai/directRequest";
-import { isOpenCodeUrl } from "../lib/ai/opencodeTarget";
-import {
-  isSessionId,
-  newSessionId,
-  SESSION_ID_HEADER,
-} from "../lib/ai/sessionId";
+  isRetryableProviderStatus,
+  providerFailureMessage,
+} from "../lib/ai/completion";
+import { isSessionId, newSessionId } from "../lib/ai/sessionId";
 import { peekCachedModel } from "../services/aiModelsService";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { stripMarkdownLinks } from "../lib/ai/prompts/contextFormatter";
@@ -66,7 +61,6 @@ import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import { parseAiValue, generateId } from "../utils/utils";
 import { effectiveRiskPercentage } from "../lib/risk";
 import { logger } from "../services/logger";
-import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
 import { app, MAX_TAKE_PROFIT_TARGETS } from "../services/app";
@@ -135,14 +129,6 @@ export interface PendingAction {
 const LOCAL_STORAGE_KEY = "cachy_ai_history";
 const MAX_MESSAGES = 50;
 
-/** Server route per wire format. Built-ins keep their own route. */
-const ROUTE_BY_FLAVOR: Record<AiApiFlavor, string> = {
-  "openai-chat": "/api/ai/openai",
-  "openai-responses": "/api/ai/openai-responses",
-  "anthropic-messages": "/api/ai/anthropic",
-  "google-generate": "/api/ai/gemini",
-};
-
 /** Estimated USD cost from token counts and a per-1M-token price, if known. */
 function estimateCostUsd(
   usage: StreamUsage,
@@ -185,58 +171,12 @@ export function toRecentTradeEntry(t: JournalEntry): RecentTradeEntry {
     };
 }
 
-/**
- * Provider answers a retry cannot improve: a rejected key (401), a billing
- * problem (402), a missing permission or region block (403). Retrying those
- * spends quota and buries the real message under two more failures, so they
- * leave the send loop on the first answer.
+/*
+ * The provider-failure vocabulary lives in `lib/ai/completion.ts` now that two
+ * consumers share the transport. Re-exported here because this module's public
+ * surface (and its tests) has always named them.
  */
-export function isRetryableProviderStatus(status: number): boolean {
-    return status === 429 || status >= 500;
-}
-
-/**
- * How much of a provider's own wording reaches the UI. A broken or hostile
- * provider can answer with megabytes; the message is escaped, but it should
- * still not decide how large the error box gets (BUG-0694).
- */
-const MAX_PROVIDER_DETAIL = 300;
-
-/**
- * The message shown for a provider answer. The status is part of it on purpose:
- * it is what the console shows, and matching the two is how a reader gets from
- * "the chat says no" to "which request failed". The detail is collapsed to one
- * line and capped, because it is provider-controlled text.
- */
-export function providerFailureMessage(status: number, body: unknown): string {
-    const record = (body ?? {}) as { error?: unknown; message?: unknown };
-    const nested =
-        record.error && typeof record.error === "object"
-            ? (record.error as { message?: unknown }).message
-            : undefined;
-    const raw =
-        (typeof nested === "string" && nested) ||
-        (typeof record.error === "string" && record.error) ||
-        (typeof record.message === "string" && record.message) ||
-        "no details in the response";
-    const detail = raw.replace(/\s+/g, " ").trim();
-    const capped =
-        detail.length > MAX_PROVIDER_DETAIL
-            ? `${detail.slice(0, MAX_PROVIDER_DETAIL)}…`
-            : detail;
-    return `HTTP ${status}: ${capped}`;
-}
-
-/** Thrown for a provider answer the send loop must not retry. */
-export class ProviderRequestError extends Error {
-    readonly status: number;
-
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = "ProviderRequestError";
-        this.status = status;
-    }
-}
+export { isRetryableProviderStatus, providerFailureMessage, ProviderRequestError };
 
 class AiManager {
   messages = $state<AiMessage[]>([]);
@@ -381,135 +321,25 @@ class AiManager {
         appLocale,
       });
 
-      const resolved = resolveActiveProvider({
-        userProviders: settings.userProviders,
-        activeProviderId: settings.activeProviderId,
-        aiProvider: settings.aiProvider,
-        legacy: {
-          openai: {
-            apiKey: settings.openaiApiKey,
-            model: settings.openaiModel,
-            baseUrl: settings.openaiBaseUrl,
-          },
-          anthropic: {
-            apiKey: settings.anthropicApiKey,
-            model: settings.anthropicModel,
-            baseUrl: settings.anthropicBaseUrl,
-          },
-          gemini: {
-            apiKey: settings.geminiApiKey,
-            model: settings.geminiModel,
-            baseUrl: settings.geminiBaseUrl,
-          },
-          openrouter: {
-            apiKey: settings.openrouterApiKey,
-            model: settings.openrouterModel,
-            baseUrl: settings.openrouterBaseUrl,
-          },
-          ollama: {
-            apiKey: "",
-            model: settings.ollamaModel,
-            baseUrl: settings.ollamaBaseUrl,
-          },
-        },
-      });
-      const entry = resolved.entry;
+      // ADR-0019: credentials are Class A, so browser-direct is the default
+      // and the server relay is an explicit opt-in for providers that block
+      // cross-origin requests. Nothing transits Cachy infrastructure unless
+      // the user turned the relay on.
+      //
+      // FEAT-0678: target resolution and the transport live in
+      // `lib/ai/completion.ts`, because the Academy needs the same path. What
+      // stays here is the transcript.
+      const target = resolveChatTarget(this.resolveInput());
 
-      // ADR-0019: credentials are Class A, so browser-direct is the default and
-      // the server relay is an explicit opt-in for providers that block
-      // cross-origin requests. Nothing transits Cachy infrastructure unless the
-      // user turned the relay on.
-
-      // The wire format drives the route, the system-prompt shape and the
-      // stream parser. Every provider — built-in or user-added — resolves to
-      // one registry entry; the legacy fields are only a fallback.
-      const streamFlavor: AiApiFlavor = entry
-        ? entry.flavor
-        : (flavorOf(settings.aiProvider) ?? "openai-chat");
-
-      const isOllamaEntry = entry?.id === BUILTIN_ENTRY_IDS.ollama;
-      const provider: AiProvider = entry
-        ? isOllamaEntry
-          ? "ollama"
-          : modelProviderForFlavor(entry.flavor)
-        : settings.aiProvider || "gemini";
-
-      // The generic browser-direct path. Ollama keeps its dedicated block
-      // below (trade-action tools); everything else goes through the entry.
-      const userProvider = entry && !isOllamaEntry ? entry : undefined;
-
-      const systemPrompt = streamFlavor === "anthropic-messages"
+      const systemPrompt = target.flavor === "anthropic-messages"
         ? JSON.stringify(promptParts)
         : `${promptParts.staticInstruction}\n\n${promptParts.dynamicContext}`;
 
-
       // Construct Payload Messages
-      const payloadMessages = [
+      const payloadMessages: ChatMessage[] = [
         { role: "system", content: systemPrompt },
         ...this.messages.map((m) => ({ role: m.role, content: m.content })),
       ];
-
-      const endpoint =
-        entry && !isOllamaEntry
-          ? ROUTE_BY_FLAVOR[entry.flavor]
-          : `/api/ai/${provider}`;
-
-      let apiKey = "";
-      let model = "";
-      let baseUrl = "";
-
-      if (entry && !isOllamaEntry) {
-        apiKey = entry.apiKey;
-        model = entry.model;
-        baseUrl = entry.baseUrl;
-        if (isBuiltinEntryId(entry.id)) {
-          if (!apiKey.trim() && !baseUrl.trim()) {
-            throw new Error(`API Key for ${entry.label} is missing in Settings.`);
-          }
-        } else {
-          if (!baseUrl.trim()) {
-            throw new Error(
-              `"${entry.label}" has no base URL configured. Add one in Settings.`,
-            );
-          }
-          if (!apiKey.trim()) {
-            throw new Error(
-              `"${entry.label}" has no API key configured. Add one in Settings.`,
-            );
-          }
-        }
-      } else if (entry && isOllamaEntry) {
-        // Local (or self-hosted) instance — no API key required.
-        model = entry.model;
-        baseUrl = entry.baseUrl;
-      } else if (provider === "openai") {
-        apiKey = settings.openaiApiKey;
-        model = settings.openaiModel;
-        baseUrl = settings.openaiBaseUrl;
-      } else if (provider === "gemini") {
-        apiKey = settings.geminiApiKey;
-        model = settings.geminiModel;
-        baseUrl = settings.geminiBaseUrl;
-      } else if (provider === "anthropic") {
-        apiKey = settings.anthropicApiKey;
-        model = settings.anthropicModel;
-        baseUrl = settings.anthropicBaseUrl;
-      } else if (provider === "openrouter") {
-        apiKey = settings.openrouterApiKey;
-        model = settings.openrouterModel;
-        baseUrl = settings.openrouterBaseUrl;
-      } else if (provider === "ollama") {
-        // Local (or self-hosted) instance — no API key required.
-        model = settings.ollamaModel;
-        baseUrl = settings.ollamaBaseUrl;
-      }
-
-      if (!apiKey && provider !== "ollama" && !baseUrl?.trim()) {
-        throw new Error(`API Key for ${provider} is missing in Settings.`);
-      }
-      if (!model) {
-        throw new Error(`No model selected for ${provider}. Please choose one in Settings.`);
-      }
 
       // 4. Init Placeholder for Assistant Message
       const aiMsgId = generateId();
@@ -518,233 +348,58 @@ class AiManager {
         role: "assistant",
         content: "", // Start empty for streaming
         timestamp: Date.now(),
-        provider,
+        provider: target.provider,
       };
 
       this.messages = [...this.messages, aiMsg];
       this.isStreaming = true;
 
-      // 5. Call API with Retry & Stream Handling
-      let res: Response | null = null;
-      /** Attempts, not retries: three attempts means two re-sends (BUG-0694). */
-      const MAX_ATTEMPTS = 3;
-      /** The last provider answer or network error, so the final message names it. */
-      let lastFailure = "";
-
-      // Browser-direct: the key never reaches the Cachy server. A CORS or
-      // network failure is surfaced with the relay as the suggested fix.
-      // OpenCode is the exception: its gateway sends no CORS headers, so a
-      // direct request can never work — the relay is used either way.
-      if (
-        userProvider &&
-        !userProvider.allowServerRelay &&
-        !isOpenCodeUrl(userProvider.baseUrl)
-      ) {
-        try {
-          const direct = buildDirectRequest(streamFlavor, {
-            baseUrl,
-            apiKey,
-            model,
-            messages: payloadMessages,
-          });
-          const directRes = await fetch(direct.url, {
-            method: "POST",
-            headers: direct.headers,
-            body: direct.body,
-          });
-          if (!directRes.ok) {
-            const err = await directRes.json().catch(() => ({}));
-            this.errorStatus = directRes.status;
-            throw new Error(providerFailureMessage(directRes.status, err));
-          }
-          res = directRes;
-          this.error = null;
-          this.errorStatus = null;
-        } catch (err) {
-          this.isStreaming = false;
-          const message = err instanceof Error ? err.message : String(err);
-          this.error = `Direct request to "${userProvider.label}" failed: ${message}. If the provider blocks browser requests (CORS), enable "Allow server relay" in Settings → AI.`;
-          return;
-        }
-      }
-
-      if (provider === "ollama") {
-        const targetUrl = (baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
-        try {
-          const directRes = await fetch(`${targetUrl}/v1/chat/completions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model,
-              messages: payloadMessages,
-              tools: [executeTradeActionsTool],
-              stream: true,
-            }),
-          });
-          if (directRes.ok) {
-            res = directRes;
+      // 5. Call the provider. Direct versus relay, the retry window, the local
+      // fail-closed rule and the stream parser are `streamCompletion`'s job.
+      const result = await streamCompletion(target, {
+        messages: payloadMessages,
+        // Trade-action tools belong to the chat. The Academy request omits
+        // them on purpose: a lesson must never change the trade form.
+        tools: target.kind === "local" ? executeTradeActionsTool : undefined,
+        onDelta: (content) => {
+          if (this.error) {
             this.error = null;
             this.errorStatus = null;
-          } else {
-            const err = await directRes.json().catch(() => ({}));
-            this.errorStatus = directRes.status;
-            throw new Error(providerFailureMessage(directRes.status, err));
           }
-        } catch (err) {
-          // Direct browser fetch failed — fail closed! ADR-0011 forbids falling back to server proxy in local mode.
-          this.isStreaming = false;
-          const msg = err instanceof Error ? err.message : String(err);
-          this.error = `Ollama connection failed: ${msg}. Please ensure Ollama is running locally at ${targetUrl} and CORS is configured (OLLAMA_ORIGINS="*").`;
-          return;
-        }
-      }
-
-      // Up to MAX_ATTEMPTS provider attempts per send: a rate limit backs off,
-      // a server fault gets one more try, and an answer a retry cannot improve
-      // (rejected key, billing, permission) leaves at once — each keeping the
-      // provider's own message with its status. A 5xx can have been accepted
-      // upstream before its answer was lost, so a re-send can repeat a paid
-      // request; the window is bounded by MAX_ATTEMPTS (BUG-0694).
-      const providerLabel = userProvider?.label ?? provider;
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-        let candidate: Response;
-        try {
-          candidate = await appFetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": apiKey,
-              // Omitted when the platform has no CSPRNG; the relay then fills
-              // a session id in server-side (BUG-0701).
-              ...(this.sessionId
-                ? { [SESSION_ID_HEADER]: this.sessionId }
-                : {}),
-            },
-            body: JSON.stringify({
-              messages: payloadMessages,
-              model: model,
-              ...(baseUrl?.trim() ? { baseUrl: baseUrl.trim() } : {}),
-            }),
-          });
-        } catch (networkError) {
-          // No answer at all: a transport failure, retried like a server fault.
-          const message =
-            networkError instanceof Error
-              ? networkError.message
-              : String(networkError);
-          lastFailure = `Failed to connect to ${providerLabel} after ${MAX_ATTEMPTS} attempts: ${message}`;
-          if (attempt === MAX_ATTEMPTS) {
-            throw new Error(lastFailure, { cause: networkError });
+          const idx = this.messages.findIndex((m) => m.id === aiMsgId);
+          if (idx !== -1) {
+            this.messages[idx].content = content;
           }
-          if (import.meta.env.DEV) {
-            console.warn(`API Error: ${message}. Retrying...`);
-          }
-          await new Promise((r) => setTimeout(r, 1000));
-          continue;
-        }
+        },
+        onToolCall: (buffer) => {
+          this._toolCallBuffer = buffer;
+        },
+        onRetryNotice: (message) => {
+          this.error = message;
+        },
+      });
 
-        if (candidate.ok) {
-          res = candidate;
-          this.error = null;
-          this.errorStatus = null;
-          break; // Success!
-        }
+      // The answer arrived, so whatever a retry said on the way is no longer
+      // the state. Cleared here rather than in `onDelta`: an empty stream emits
+      // no delta, and the stale "HTTP 5xx" would outlive the success.
+      this.error = null;
+      this.errorStatus = null;
 
-        const body = await candidate.json().catch(() => ({}));
-        const failure = providerFailureMessage(candidate.status, body);
-        lastFailure = failure;
-        this.errorStatus = candidate.status;
-
-        if (
-          !isRetryableProviderStatus(candidate.status) ||
-          attempt === MAX_ATTEMPTS
-        ) {
-          throw new ProviderRequestError(failure, candidate.status);
-        }
-
-        const delay =
-          candidate.status === 429 ? Math.pow(2, attempt) * 1000 : 1000;
-        if (candidate.status === 429) {
-          this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
-        } else {
-          this.error = failure;
-        }
-        if (import.meta.env.DEV) {
-          console.warn(`API Error: ${failure}. Retrying in ${delay / 1000}s...`);
-        }
-        await new Promise((r) => setTimeout(r, delay));
-      }
-
-      // The loop only leaves on a response or a throw — this narrowing is for
-      // the type checker, not a user-facing failure path.
-      if (!res) throw new Error(lastFailure || "AI provider returned no response");
-      if (!res.body) throw new Error("No response body");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = "";
-      const streamUsage: StreamUsage = {};
-
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed === "data: [DONE]") continue;
-          if (trimmed.startsWith("data: ")) {
-            const dataStr = trimmed.slice(6);
-            try {
-              const data = JSON.parse(dataStr);
-              const {
-                text: delta,
-                toolCallFragment: toolCallData,
-                usage,
-              } = parseStreamChunk(streamFlavor, data);
-
-              if (usage) {
-                if (usage.inputTokens != null) {
-                  streamUsage.inputTokens = usage.inputTokens;
-                }
-                if (usage.outputTokens != null) {
-                  streamUsage.outputTokens = usage.outputTokens;
-                }
-              }
-
-              if (toolCallData) {
-                  // Buffer tool call chunks (delta flavors append, the
-                  // Google snapshot flavor keeps the latest — see
-                  // appendToolCallFragment).
-                  this._toolCallBuffer = appendToolCallFragment(
-                    streamFlavor,
-                    this._toolCallBuffer,
-                    toolCallData,
-                  );
-              }
-
-              if (delta) {
-                fullContent += delta;
-                const idx = this.messages.findIndex((m) => m.id === aiMsgId);
-                if (idx !== -1) {
-                  this.messages[idx].content = fullContent;
-                }
-              }
-            } catch {
-              // Ignore parse errors
-            }
-          }
-        }
-      }
+      const streamUsage = result.usage;
+      const fullContent = result.content;
 
       // Attach the usage the provider reported. Cost is added only when a
       // price for the model is cached (OpenRouter and similar); otherwise the
       // token counts stand alone.
       if (streamUsage.inputTokens != null || streamUsage.outputTokens != null) {
-        const price = peekCachedModel(provider, { apiKey, baseUrl }, model);
+        const price = peekCachedModel(
+          target.provider,
+          {
+            apiKey: target.kind === "relay" || target.kind === "direct" ? target.apiKey : "",
+            baseUrl: target.baseUrl,
+          },
+          target.model,
+        );
         const costUsd = estimateCostUsd(streamUsage, price);
         const idx = this.messages.findIndex((m) => m.id === aiMsgId);
         if (idx !== -1) {
@@ -956,7 +611,85 @@ class AiManager {
     } catch (e) {
       this.isStreaming = false;
       this.error = e instanceof Error ? e.message : String(e);
+      // The transport throws a typed error for a provider answer; the chat has
+      // always shown that status next to the message.
+      if (e instanceof ProviderRequestError) {
+        this.errorStatus = e.status;
+      }
     }
+  }
+
+  /**
+   * The provider-registry input, assembled once. Both callers resolve their
+   * target from this, so a new settings key reaches them at the same time.
+   */
+  private resolveInput(): ResolveChatInput {
+    const settings = settingsState;
+    return {
+      userProviders: settings.userProviders,
+      activeProviderId: settings.activeProviderId,
+      aiProvider: settings.aiProvider,
+      legacy: {
+        openai: {
+          apiKey: settings.openaiApiKey,
+          model: settings.openaiModel,
+          baseUrl: settings.openaiBaseUrl,
+        },
+        anthropic: {
+          apiKey: settings.anthropicApiKey,
+          model: settings.anthropicModel,
+          baseUrl: settings.anthropicBaseUrl,
+        },
+        gemini: {
+          apiKey: settings.geminiApiKey,
+          model: settings.geminiModel,
+          baseUrl: settings.geminiBaseUrl,
+        },
+        openrouter: {
+          apiKey: settings.openrouterApiKey,
+          model: settings.openrouterModel,
+          baseUrl: settings.openrouterBaseUrl,
+        },
+        ollama: {
+          apiKey: "",
+          model: settings.ollamaModel,
+          baseUrl: settings.ollamaBaseUrl,
+        },
+      },
+      sessionId: this.sessionId,
+    };
+  }
+
+  /**
+   * Which provider would answer right now, and whether it is configured
+   * (FEAT-0678). The Academy renders this before the control is pressed, so the
+   * recipient of the request is named before any request exists (ADR-0011).
+   */
+  providerStatus(): { ready: boolean; label: string } {
+    return describeTarget(this.resolveInput());
+  }
+
+  /**
+   * One question, one streamed answer, no transcript (FEAT-0678).
+   *
+   * The Academy asks here instead of `sendMessage`, because a lesson is not a
+   * chat turn: nothing is appended to `messages`, nothing is persisted, and no
+   * trade action is parsed out of the answer. Without tools in the request the
+   * model cannot even ask to change the form.
+   *
+   * Throws every failure unchanged, including an abort, so the caller can tell
+   * "cancelled" (silent) from "broken" (shown).
+   */
+  async askOnce(
+    messages: readonly ChatMessage[],
+    options: { onDelta?: (content: string) => void; signal?: AbortSignal } = {},
+  ): Promise<CompletionResult> {
+    const target = resolveChatTarget(this.resolveInput());
+    return streamCompletion(target, {
+      messages,
+      onDelta: options.onDelta,
+      signal: options.signal,
+    });
   }
 
   private async gatherContext(): Promise<AiContext> {

@@ -2,7 +2,7 @@
 id: FEAT-0678
 title: Explain the selected indicator against live data when a provider is connected
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: ui
 data_class: none
 adr: ADR-0011
 depends_on: [FEAT-0677]
-# assignee:            # required while status: in-progress (who is working this)
+assignee: opencode
+branch: feature/feat-0678-academy-live-explanation
 ---
 
 # FEAT-0678 — Explain the selected indicator against live data when a provider is connected
@@ -49,11 +50,14 @@ that asks the user's *configured* provider what the indicator is currently sayin
 about the *currently selected* symbol, and streams the answer in.
 
 **Route through the existing manager.** `src/stores/ai.svelte.ts` is the AI surface
-ADR-0011 governs, with the request path in `src/lib/ai/directRequest.ts`
-(`buildOpenAiChat`, line 110), the stream adapter in `src/lib/ai/streamAdapters.ts`
-(`parseOpenAiChat`, line 121), provider config in `src/stores/settings/aiProviders.ts`
-(`ProviderConfig`, line 58; `AiApiFlavor`, line 41) and endpoint resolution in
-`src/lib/server/aiEndpoint.ts` (`resolveProviderEndpoint`, line 26). Credentials are
+ADR-0011 governs. The provider call itself is being split out of `sendMessage`
+(`src/stores/ai.svelte.ts:327`) into `src/lib/ai/completion.ts` so that the chat and
+the Academy share one request path instead of two. Around that seam: the request
+builder in `src/lib/ai/directRequest.ts` (`buildDirectRequest`, line 246), the stream
+adapter in `src/lib/ai/streamAdapters.ts` (`parseStreamChunk`, line 86), provider
+config in `src/stores/settings/aiProviders.ts` (`ProviderConfig`, line 58;
+`AiApiFlavor`, line 41; `resolveActiveProvider`, line 591) and endpoint resolution in
+`src/lib/server/aiEndpoint.ts` (`resolveProviderEndpoint`, line 47). Credentials are
 encrypted on the device; the browser talks to the provider directly unless the relay is
 enabled. The Academy adds a consumer. It does not add a provider stack, and it must
 not have its own request path — a second path is exactly how ADR-0011's invariant
@@ -74,30 +78,86 @@ by pressing, and the reply is visibly attributed to the provider that produced i
 absent or disabled with a short line pointing at Settings. Nothing about the Academy
 depends on a provider existing.
 
+## State
+
+**Done.** The control sits under the live chart in every lesson and asks nothing
+until it is pressed.
+
+Shipped:
+
+- `src/lib/ai/completion.ts` — target resolution and the stream transport,
+  extracted from `sendMessage`; writes no store state, so the chat and the
+  lesson cannot overwrite each other's error or streaming flag.
+- `src/stores/ai.svelte.ts` — `sendMessage` delegates to it; `askOnce()` is the
+  transcript-free entry, and `providerStatus()` names the recipient.
+- `src/lib/academy/liveExplanation.ts` — the egress allowlist as two pure
+  functions. Symbol, timeframe, indicator, parameters, the last 50 values and a
+  timestamp; nothing else can be added without failing its test.
+- `src/lib/academy/useLiveExplanation.svelte.ts` — one answer at a time, abort
+  on leave, cancellation never shown as an error.
+- `src/components/shared/LiveExplanation.svelte` — button, provider name,
+  streamed text, frozen header, disabled state without a provider.
+- `src/components/shared/IndicatorLessonChart.svelte` — reports the series it
+  actually drew, so the answer describes the values on screen.
+
+Proven by `liveExplanation.test.ts`, `useLiveExplanation.test.ts`,
+`ai.askOnce.test.ts`, `academyEgress.test.ts`,
+`LiveExplanation.component.test.ts`, `IndicatorLessonsView.component.test.ts`,
+`IndicatorLessonChart.readout.component.test.ts`, plus the unchanged
+`aiEgressConsent.test.ts` and `ai.providerFailures.test.ts`.
+
+## Design decisions
+
+Settled before implementation, so the code follows from them rather than the other
+way round.
+
+1. **One request path, two consumers.** `resolveChatTarget` and `streamCompletion`
+   move out of `sendMessage` into `src/lib/ai/completion.ts`. The module writes no
+   store state — no `error`, no `isStreaming` — because the chat and the lesson must
+   not overwrite each other's streaming status. Errors are thrown; the caller
+   decides how to show them.
+2. **A narrow context, not `gatherContext()`.** `src/lib/academy/liveExplanation.ts`
+   builds the payload from what the lesson already holds (catalogue entry, effective
+   parameters, the series the chart drew) and from nothing else. Being pure, it makes
+   acceptance criteria 3 and 4 properties of a function rather than of a caller.
+3. **A prompt of its own.** `buildSystemPromptParts` is a risk analyst with an action
+   schema; reusing it would produce a trade opinion instead of an explanation. The
+   Academy request therefore carries no `tools`, so a lesson can never change the
+   trade form.
+4. **Answer lifetime.** The reply is frozen: symbol, timeframe and timestamp live in
+   its header, and leaving the lesson discards it. A screenshot taken later cannot be
+   mistaken for a current statement.
+5. **Window.** The last 50 values per declared line, `null` preserved where the
+   engine is indeterminate (warmup is not zero — see FEAT-0677).
+6. **Cancel on leave.** A running request is aborted when the user leaves the lesson
+   or switches symbol. An abort is not an error: no error surface, no message, the
+   control returns to idle. Partial text is discarded, never shown.
+
 ## Acceptance criteria
 
-- [ ] The live-explanation request goes through `src/stores/ai.svelte.ts` and the
+- [x] The live-explanation request goes through `src/stores/ai.svelte.ts` and the
       existing `src/lib/ai/` request path. No new provider client, endpoint
       resolution or credential handling exists in the Academy.
-- [ ] `src/tests/ai/aiEgressConsent.test.ts` (BUG-0282) still passes unchanged, and a
+- [x] `src/tests/ai/aiEgressConsent.test.ts` (BUG-0282) still passes unchanged, and a
       test is added that asserts an Academy-initiated request carries no Class A
       field under either consent state.
-- [ ] With `aiShareTradeContext` at its default, an Academy request contains symbol,
+- [x] With `aiShareTradeContext` at its default, an Academy request contains symbol,
       timeframe, indicator id, parameters and indicator values, and nothing else.
-- [ ] With `aiShareTradeContext` enabled, an Academy request is unchanged from the
+- [x] With `aiShareTradeContext` enabled, an Academy request is byte-identical to the
       default case. This feature gains nothing from the consent being on, and a
       diff here is a defect.
-- [ ] No request is issued on lesson open, on tab switch, or on symbol change. A test
+- [x] No request is issued on lesson open, on tab switch, or on symbol change. A test
       asserts zero requests until the control is pressed.
-- [ ] A failed direct connection to a local provider surfaces an error and issues no
+- [x] A failed direct connection to a local provider surfaces an error and issues no
       request to a server proxy. ADR-0011's fail-closed rule holds on this path.
-- [ ] The UI names the provider that will receive the request, at the point of the
+- [x] The UI names the provider that will receive the request, at the point of the
       control, before it is pressed.
-- [ ] With no provider configured, the Academy renders and teaches in full. A test
-      opens every tab and asserts content is present with the AI store empty.
-- [ ] The reply renders as streamed text, and the surrounding lesson is unaffected
+- [x] With no provider configured, the Academy renders and teaches in full. A test
+      opens every lesson with the AI store empty and asserts the lesson's own text
+      is present, and that no request is issued.
+- [x] The reply renders as streamed text, and the surrounding lesson is unaffected
       while it arrives.
-- [ ] The exchange of symbol and indicator values is not logged to telemetry, crash
+- [x] The exchange of symbol and indicator values is not logged to telemetry, crash
       reporting or debug output.
 
 ## Out of scope
@@ -116,21 +176,24 @@ depends on a provider existing.
 
 ## Open questions
 
-- Should the explanation be regenerated when the user changes symbol inside the lesson,
-  or only on an explicit press? Explicit press is the default here; auto-regeneration
-  would put an unrequested egress behind a symbol switch.
-- How much recent history is worth sending? Fifty candles is enough to describe a
-  slope and cheap to send, but the answer's usefulness past that is unproven.
-- What happens to the answer when the market moves? A live explanation is stale the
-  moment it lands. It may need the symbol, timeframe and timestamp printed on it, so
-  a screenshot taken later is not mistaken for current.
+All three are answered; see "Design decisions" above.
+
+- **Regenerate on symbol change?** No. Only an explicit press asks. A symbol switch
+  discards the answer and aborts a running request (decision 6), because either
+  would otherwise put an unrequested egress behind a symbol change.
+- **How much history?** Fifty values per declared line (decision 5).
+- **What happens when the market moves?** The answer is frozen with symbol, timeframe
+  and timestamp in its header and is discarded on leaving the lesson (decision 4).
 
 ## Links
 
 - `src/stores/ai.svelte.ts` — the AI surface this must reuse
-- `src/lib/ai/directRequest.ts` — request path
+- `src/lib/ai/completion.ts` — **new**: the shared request path
+- `src/lib/ai/directRequest.ts` — request builder
 - `src/lib/ai/streamAdapters.ts` — stream parsing
-- `src/stores/settings/aiProviders.ts` — provider config
+- `src/stores/settings/aiProviders.ts` — provider config and `resolveActiveProvider`
+- `src/lib/academy/liveExplanation.ts` — **new**: the narrow payload and its prompt
+- `src/components/shared/IndicatorLessonsView.svelte` — where the control mounts
 - `docs/adr/0011-ai-context-consent-and-local-boundary.md` — **the decision this applies**
 - `docs/adr/0019-multi-provider-registry-and-credential-transit.md` — provider registry
 - `docs/adr/0001-local-first-boundary.md` — data classes
