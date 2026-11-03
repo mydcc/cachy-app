@@ -36,7 +36,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 
-import en from "../../locales/locales/en.json";
+import { message } from "../../tests/helpers/i18nMessages";
 
 const locale = vi.hoisted(() => ({ current: "en" as "en" | "de" }));
 
@@ -142,20 +142,6 @@ function buttonLabelled(label: string): HTMLButtonElement {
     );
     if (!button) throw new Error(`no button labelled "${label}"`);
     return button;
-}
-
-/** The copy a user reads, so a wording change is not a false red. */
-function message(key: string): string {
-    const value = key
-        .split(".")
-        .reduce<unknown>(
-            (acc, part) => (acc as Record<string, unknown>)?.[part],
-            en,
-        );
-    if (typeof value !== "string") {
-        throw new Error(`missing i18n key: ${key}`);
-    }
-    return value;
 }
 
 beforeEach(() => {

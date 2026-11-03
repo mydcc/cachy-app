@@ -39,34 +39,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
-import en from "../../locales/locales/en.json";
-
-function message(key: string, values?: Record<string, unknown>): string {
-    const template = key
-        .split(".")
-        .reduce<unknown>(
-            (acc, part) => (acc as Record<string, unknown>)?.[part],
-            en,
-        );
-    if (typeof template !== "string") {
-        throw new Error(`missing i18n key: ${key}`);
-    }
-    if (!values) return template;
-    return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
-        name in values ? String(values[name]) : whole,
-    );
-}
+import { translate } from "../../tests/helpers/i18nMessages";
 
 vi.mock("../../locales/i18n", async () => {
-    const { readable } = await import("svelte/store");
-    return {
-        _: readable(
-            (key: string, options?: { values?: Record<string, unknown> }) =>
-                message(key, options?.values),
-        ),
-        locale: readable("en"),
-        setLocale: vi.fn(),
-    };
+    const { i18nModule } = await import("../../tests/helpers/i18nMessages");
+    return i18nModule();
 });
 
 vi.mock("../../stores/modal.svelte", () => ({
@@ -133,8 +110,8 @@ describe("BUG-0716 — the header confirms before it destroys", () => {
         await afterHandler();
 
         const [title, body, type] = vi.mocked(modalState.show).mock.calls[0];
-        expect(title).toBe(message("dashboard.resetConfirmTitle"));
-        expect(body).toBe(message("dashboard.resetConfirmMessage"));
+        expect(title).toBe(translate("dashboard.resetConfirmTitle"));
+        expect(body).toBe(translate("dashboard.resetConfirmMessage"));
         expect(type).toBe("confirm");
 
         // The real reset would clear this; nothing did.
@@ -156,9 +133,9 @@ describe("BUG-0716 — the header confirms before it destroys", () => {
         await afterHandler();
 
         const [title, body, type] = vi.mocked(modalState.show).mock.calls[0];
-        expect(title).toBe(message("dashboard.deletePresetConfirmTitle"));
+        expect(title).toBe(translate("dashboard.deletePresetConfirmTitle"));
         expect(body).toBe(
-            message("dashboard.deletePresetConfirmMessage", { name: "Mine" }),
+            translate("dashboard.deletePresetConfirmMessage", { name: "Mine" }),
         );
         expect(body).toContain("Mine");
         expect(type).toBe("confirm");

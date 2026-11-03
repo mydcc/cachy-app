@@ -31,6 +31,10 @@
  *                       user-facing config files (see objectLabelFiles)
  *   4. user-call        literal toast/alert/confirm/prompt messages
  *   5. interpolation    `$_("key", { symbol })` without the `values` wrapper
+ *                       — including `t("key", { symbol })` after
+ *                       `const t = get(_)`, which the `$_(`-only scan missed
+ *   6. dialog-key       `modalState.show("modals.…", …)`: the dialog renders
+ *                       copy, so a translation key is shown literally
  *
  * Escape hatch: add `i18n-ignore` on the same line (or the line above) for a
  * deliberate exception, or extend scripts/i18n-lint.config.json for recurring
@@ -42,6 +46,12 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import {
+    findDialogKeyLiterals,
+    findInterpolationViolations,
+    TRANSLATION_KEY,
+} from './lib/i18n-key-usage.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,7 +85,6 @@ const HAS_LETTER = /[A-Za-zÄÖÜäöüß]/;
 // A real word, not a fragment left over between two `{…}` expressions
 // (units like "x", "px", "MB", or punctuation like "—", "(%").
 const HAS_WORD = /[A-Za-zÄÖÜäöüß]{3,}/;
-const TRANSLATION_KEY = /^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/;
 // Quoted single/double-string literals inside an expression.
 const LITERAL = /(["'])((?:(?!\1).)*)\1/g;
 
@@ -144,18 +153,38 @@ function add(rule, filePath, line, value, context) {
  * error, no runtime error: the placeholder is simply rendered as literal
  * "{symbol}" to the user. That has now reached production three times, so it
  * is checked here rather than found by whoever reads the dialog next.
+ *
+ * The same shape reaches the store through `const t = get(_)`, which is the
+ * service-layer idiom; the rules module recognises that alias too.
  */
 function checkInterpolation(content, filePath) {
-    const call = /\$_\(\s*(?:"[^"]*"|'[^']*'|`[^`]*`|[\w.[\]]+(?:\s+as\s+[\w.]+)?)\s*,\s*\{/g;
-    for (const match of content.matchAll(call)) {
-        const after = content.slice(match.index + match[0].length);
-        if (/^\s*values\s*:/.test(after)) continue;
-        if (/^\s*\}/.test(after)) continue;
+    const lines = content.split('\n');
+    for (const found of findInterpolationViolations(content)) {
+        if (hasIgnore(lines, found.line - 1)) continue;
         interpolationViolations.push({
             file: rel(filePath),
-            line: content.slice(0, match.index).split('\n').length,
-            context: content.slice(match.index, match.index + 90).split('\n')[0].trim(),
+            line: found.line,
+            context: found.context,
         });
+    }
+}
+
+/**
+ * `modalState.show` renders copy, so a key in either copy argument is literal
+ * text on screen (BUG-0761). This is the rule that would have caught it
+ * mechanically instead of by review.
+ */
+function checkDialogKeys(content, filePath) {
+    const lines = content.split('\n');
+    for (const found of findDialogKeyLiterals(content)) {
+        if (hasIgnore(lines, found.line - 1)) continue;
+        add(
+            'dialog-key',
+            filePath,
+            found.line,
+            found.value,
+            lines[found.line - 1] ?? found.context,
+        );
     }
 }
 
@@ -330,6 +359,7 @@ function scanFile(filePath) {
     const lines = content.split('\n');
     ignoredLines = computeIgnoredLines(lines);
     checkInterpolation(content, filePath);
+    checkDialogKeys(content, filePath);
 
     if (filePath.endsWith('.svelte')) {
         const { lines: markupLines, inCode } = toMarkupLines(content);
@@ -364,7 +394,7 @@ if (violations.length > 0) {
         (acc[v.rule] ??= []).push(v);
         return acc;
     }, {});
-    console.error(`❌ Found ${violations.length} hardcoded UI string(s):\n`);
+    console.error(`❌ Found ${violations.length} hardcoded UI string(s) or raw dialog key(s):\n`);
     for (const [rule, list] of Object.entries(byRule)) {
         console.error(`  [${rule}] ${list.length}`);
         for (const v of list) {
@@ -382,7 +412,7 @@ if (violations.length > 0) {
 if (interpolationViolations.length > 0) {
     failed = true;
     console.error(
-        `\n❌ Found ${interpolationViolations.length} $_() call(s) passing interpolation values without the \`values\` wrapper.`,
+        `\n❌ Found ${interpolationViolations.length} translation call(s) passing interpolation values without the \`values\` wrapper.`,
     );
     console.error('   svelte-i18n ignores them and renders the raw {placeholder} to the user.\n');
     interpolationViolations.forEach((v) => {
@@ -391,7 +421,7 @@ if (interpolationViolations.length > 0) {
         console.error(`    Fix:     $_("key", { values: { … } })\n`);
     });
 } else {
-    console.log('✅ All $_() interpolations pass their values correctly');
+    console.log('✅ All translation calls ( $_, get(_), aliases ) pass their values correctly');
 }
 
 process.exit(failed ? 1 : 0);

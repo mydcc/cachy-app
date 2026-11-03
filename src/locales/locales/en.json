@@ -3818,13 +3818,9 @@
       "title": "Confirm Reset",
       "message": "Delete journal?"
     },
-    "deletePreset": {
-      "title": "Delete Preset",
-      "message": "Really delete?"
-    },
     "import": {
       "title": "Import",
-      "message": "Import {count} trades?"
+      "message": "{count, plural, one {Import # trade?} other {Import # trades?}}"
     },
     "adjustMargin": {
       "title": "Adjust position margin",
