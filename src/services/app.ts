@@ -73,17 +73,14 @@ export const app = {
       // 0. Setup Tracking Context
       // BUG-0286: the currently viewed pair is user context and must not be
       // part of the default telemetry dimensions (guarded by test).
-      addContextProvider(() => {
-        return {
-          app_theme: uiState.currentTheme,
-          app_provider: settingsState.apiProvider,
-          app_background: settingsState.backgroundType,
-          app_modals: uiState.windows.map((w) => w.id).join(","),
-          app_viewport: `${window.innerWidth}x${window.innerHeight}`,
-          app_zoom: window.devicePixelRatio,
-          app_version: APP_VERSION,
-        };
-      });
+      // BUG-0778: the same rule covers settings and window ids that carry a
+      // symbol; only the window type is sent.
+      addContextProvider(() => ({
+        app_modals: uiState.windows.map((w) => w.windowType).join(","),
+        app_viewport: `${window.innerWidth}x${window.innerHeight}`,
+        app_zoom: window.devicePixelRatio,
+        app_version: APP_VERSION,
+      }));
       // Telemetry is opt-out (BUG-0286): tracking runs by default and
       // initTracking() injects the container unless the user disabled it
       // under Settings > System > Performance ("Usage Statistics").
