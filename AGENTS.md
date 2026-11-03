@@ -28,7 +28,7 @@ runs both projects. Example: `src/components/shared/TpSlList.refusal.component.t
 
 **Playwright E2E:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
 
-The dev/build process uses the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without Rust the script keeps the committed `static/wasm/` artifacts and the build still succeeds — in cloud sandbox environments (e.g., Jules Environment Setup), including this script in the setup step still rebuilds the module when a toolchain is present.
+The dev/build process uses the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without Rust the script keeps the committed `static/wasm/` artifacts and the build still succeeds — in cloud sandbox environments, including this script in the setup step still rebuilds the module when a toolchain is present.
 
 ## Testing instructions
 
@@ -231,10 +231,10 @@ When agents review each other's PRs or reply to comments:
 
 - **Autonomous/Unattended Selection** ("I'll see what's open in the backlog and solve it") — **no** agent does this, whatever tool it runs in. Instead:
   1. Complete missing parts — clarify Acceptance Criteria, Out of Scope, open questions in the fix proposal (see `docs/backlog/README.md`) — and set `status` to `ready` once the item is complete.
-  2. Actual implementation runs through the designated, filtered pipeline: `.github/workflows/backlog-dispatch.yml` (`scripts/jules/dispatch-backlog.mjs`, daily at 07:00 UTC or manually via workflow dispatch) sends `ready` items to Jules. This pipeline — not Jules as a tool — enforces safety filters: `area: execution`, `area: security`, `area: exchange`, and `priority: P0` are intentionally **never automatically dispatched**, requiring manual handoff (`scripts/jules/create-session.sh --file ...`) only after a human inspects the item.
-- **Explicit Human Instruction** ("solve BUG-0053 now") — any capable agent may do this regardless of tool. This is directed work, not backlog grabbing, and does not require a dispatch pipeline.
+  2. A `ready` item is never picked up automatically. Implementation only starts on explicit human instruction (see the next bullet). Safety filters (`area: execution`, `security`, `exchange`, `priority: P0`) remain a manual gate by convention — items in those areas are never implemented without a human having inspected them.
+- **Explicit Human Instruction** ("solve BUG-0053 now") — any capable agent may do this regardless of tool. This is directed work, not backlog grabbing.
 
-An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-groom` workflow), and set it to `ready` at any time — but it opens a PR with the actual fix implementation ONLY when explicitly instructed by the user in that specific case, or when selected via the dispatch pipeline with its filters.
+An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-groom` workflow), and set it to `ready` at any time — but it opens a PR with the actual fix implementation ONLY when explicitly instructed by the user in that specific case.
 
 ## Git Cleanliness and Parallel Agent Workspaces
 
@@ -279,7 +279,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 3. Check open PRs (`gh pr list`) touching the same `area:`; mention potential overlap in the PR or item instead of silently competing.
 
 **2. Claim (before the first commit):**
-- In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
+- In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
 
 **3. After finishing (mandatory cleanup — also when abandoning):**
 - Retire your session worktree at session end with plain git: `git worktree remove .worktrees/<session>` from the main checkout. Never retire another agent's worktree (see Ownership above).
@@ -289,21 +289,11 @@ Every task follows the same three phases. The point is proactive conflict avoida
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
 - **Remote branches need no cleanup:** GitHub deletes a branch automatically once its PR merges, so never run `git push origin --delete <branch>` (a safety net blocks it anyway) — name a stale remote branch in your report and leave it to the user.
 
-## Scope Guidance for Autonomous/Asynchronous Agents (e.g., Jules)
+## Scope Guidance for Autonomous/Asynchronous Agents
 
 Well-suited for autonomous cloud sessions: Writing tests, checking i18n parity (DE/EN), maintaining documentation/backlog, isolated refactorings without behavior changes, dependency updates, accessibility fixes.
 
 DO NOT merge autonomously without particularly thorough human review: Position size / risk calculations, signature / crypto logic for exchange requests, anything touching `decimal.js` precision or the Local-First boundary. Always have such PRs confirmed by a human review + CI check + tests before merging to `develop`.
-
-## Jules Sandbox Hygiene
-
-A Jules session starts from a frozen sandbox clone that can be far behind `develop`. When the session merges or rebases mid-task, every develop change since the fork gets replayed as a revert commit — PRs then carry dozens of unrelated file reversals and package downgrades instead of the task's actual change. Rules for every Jules task:
-
-- **Never `git merge` or `git rebase` `origin/develop` mid-session.** Ignore base drift; change only what the task needs.
-- **Commit only files you actually edited** (`git add <path> <path>`). Never `git add .`, `git add -A`, or whole-worktree commits.
-- **`package.json` / `package-lock.json`** may be touched only for dependency updates; never lower the `version` field. **`.node-version` and `engines` are raise-only:** never lower either — the pin must stay an exact version (no ranges, no `v` prefix) satisfying `engines` (enforced by the CI `node-version` job).
-- **No sandbox artifacts in branches** (`todo.txt`, `.jules/` notes only when the task itself requires them).
-- **Before pushing:** compare the PR's changed-file list against the task's intended files. If the list is larger, the sandbox is stale — abort the task instead of pushing.
 
 ## References
 

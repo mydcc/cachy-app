@@ -686,7 +686,7 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 
 ### Production Monitor Reports Missing Security Headers or Low Performance Score
 
-If `./scripts/jules/monitor-production.sh` or the daily automated production monitor reports missing security headers (e.g., `Strict-Transport-Security`, `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) or a Lighthouse performance score below the threshold the monitor was configured with (`PERF_THRESHOLD`, 70 by default):
+If `./scripts/monitor-production.sh` or the daily automated production monitor reports missing security headers (e.g., `Strict-Transport-Security`, `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) or a Lighthouse performance score below the threshold the monitor was configured with (`PERF_THRESHOLD`, 70 by default):
 
 Start by telling the two reports apart. They have **different** causes, and the Nginx config is only ever the fix for one of them.
 

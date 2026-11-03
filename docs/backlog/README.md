@@ -117,9 +117,9 @@ depends_on: []
 | `start_date` | `YYYY-MM-DD` | Optional start date for GitHub Projects Roadmap |
 | `target_date` | `YYYY-MM-DD` | Optional target deadline date for GitHub Projects Roadmap |
 | `iteration` | `string` | Optional sprint / iteration tag (e.g. `2026-W34` or `Sprint 1`) |
-| `agent_eligible` | `true`, `false` | Optional override for the `agent:eligible` label on the mirrored issue; the dispatch pipeline does not read it |
+| `agent_eligible` | `true`, `false` | Optional override for the `agent:eligible` label on the mirrored issue; informational only, nothing acts on it automatically |
 | `branch` | branch name | **Required while `status: in-progress`** — a claim with no branch fails `npm run backlog:check:stale`. Also used to flag a claim whose branch has already merged. A `Branch:` line in the body is accepted for older items |
-| `assignee` | free slug (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …) | Who is currently working the item. **Required while `status: in-progress`** — `npm run backlog:check` fails otherwise |
+| `assignee` | free slug (`codex`, `cursor`, `claude`, `opencode`, `human`, …) | Who is currently working the item. **Required while `status: in-progress`** — `npm run backlog:check` fails otherwise |
 
 ### Status
 
@@ -128,9 +128,8 @@ depends_on: []
 - **`idea`** — worth keeping, not thought through. No acceptance criteria yet.
 - **`specced`** — the what and why are clear; acceptance criteria written.
 - **`ready`** — an agent or a developer could start now: dependencies met, open
-  questions resolved, required ADR exists. A `ready` item in dispatchable scope
-  is handed to Jules by the daily dispatch workflow; `execution`, `security`,
-  `exchange` and `priority: P0` are never auto-dispatched and stay manual.
+  questions resolved, required ADR exists. A `ready` item is never started
+  automatically; implementation only begins on explicit human instruction.
 - **`in-progress`** — someone is on it. Record the branch in `branch:` and set
   `assignee`. An `in-progress` item without an `assignee` fails
   `npm run backlog:check`; one without a `branch:` fails
