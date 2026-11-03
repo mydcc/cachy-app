@@ -88,6 +88,13 @@
   --text-on-accent: var(--blue-950);
   --text-on-success: var(--blue-950);
   --text-on-danger: var(--blue-100);
+  /*
+   * BUG-0759: warning is the one semantic fill whose lightness is not implied
+   * by the role — it is a bright yellow in most themes and a dark amber
+   * (#953800) in the four light ones, so no single derived ink works. Dark ink
+   * is the default; the four themes whose fill is dark override it below.
+   */
+  --text-on-warning: var(--blue-950);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--blue-700);
@@ -103,6 +110,7 @@
   --btn-success-hover-bg: var(--green-600);
   --btn-success-text: var(--blue-950);
   --btn-warning-bg: var(--warning-color); /* not re-declared per theme: themes and :root share documentElement, so the var re-substitutes; a theme class on a nested element would break that */
+  --btn-warning-text: var(--text-on-warning); /* same root-only declaration as the fill, for the same reason */
 
   /* --- Toggle & UI --- */
   --toggle-bg-off: var(--blue-700);
@@ -383,6 +391,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --text-on-accent: var(--pure-white);
   --text-on-success: var(--pure-white);
   --text-on-danger: var(--slate-100);
+  --text-on-warning: var(--blue-100); /* the warning fill is dark here */
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--slate-400);
@@ -1102,6 +1111,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --text-on-accent: var(--base3);
   --text-on-success: var(--base3);
   --text-on-danger: var(--base3);
+  --text-on-warning: var(--blue-100); /* the warning fill is dark here */
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--base02);
@@ -2120,6 +2130,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --text-on-accent: var(--ayu-light-bg);
   --text-on-success: #ffffff;
   --text-on-danger: #ffffff;
+  --text-on-warning: var(--blue-100); /* the warning fill is dark here */
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-light-border);
@@ -2337,6 +2348,7 @@ html[data-density="wide"] .input-field.input-field-sm {
   --text-on-accent: var(--gh-light-white);
   --text-on-success: var(--gh-light-white);
   --text-on-danger: var(--gh-light-white);
+  --text-on-warning: var(--blue-100); /* the warning fill is dark here */
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--gh-light-btn-bg);
@@ -2849,7 +2861,7 @@ input[type="number"] {
  */
 .btn-base.btn-warning {
   background-color: var(--btn-warning-bg);
-  color: var(--text-on-warning, var(--text-primary));
+  color: var(--btn-warning-text);
 }
 
 .btn-base.btn-warning:hover:not(:disabled):not([aria-disabled="true"]) {
@@ -3497,7 +3509,7 @@ svg {
 
 .bg-warning-paired {
   background-color: var(--warning-color) !important;
-  color: var(--text-on-warning, var(--text-primary)) !important;
+  color: var(--text-on-warning) !important;
 }
 
 /* Hover variants (using standard CSS classes for manual usage) */
@@ -3546,7 +3558,7 @@ svg {
 
 .badge-warning {
   background-color: var(--warning-color) !important;
-  color: var(--text-on-warning, var(--text-primary)) !important;
+  color: var(--text-on-warning) !important;
 }
 
 .badge-accent {

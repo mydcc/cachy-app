@@ -88,7 +88,7 @@
     border: 1px solid var(--warning-color, var(--border-color));
     border-radius: 0.35rem;
     background: var(--warning-color, transparent);
-    color: var(--bg-primary);
+    color: var(--text-on-warning);
     font-size: 0.65rem;
     font-weight: 800;
     letter-spacing: 0.08em;

@@ -3222,8 +3222,6 @@ export type TranslationKey =
   | "modals.savePreset.prompt"
   | "modals.clearJournal.title"
   | "modals.clearJournal.message"
-  | "modals.deletePreset.title"
-  | "modals.deletePreset.message"
   | "modals.import.title"
   | "modals.import.message"
   | "modals.adjustMargin.title"

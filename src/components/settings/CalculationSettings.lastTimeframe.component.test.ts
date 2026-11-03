@@ -27,47 +27,17 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
 
-import en from "../../locales/locales/en.json";
-
-function message(key: string): string {
-    const value = key
-        .split(".")
-        .reduce<unknown>(
-            (acc, part) => (acc as Record<string, unknown>)?.[part],
-            en,
-        );
-    if (typeof value !== "string") {
-        throw new Error(`missing i18n key: ${key}`);
-    }
-    return value;
-}
+import { message } from "../../tests/helpers/i18nMessages";
 
 /**
- * The real `$(key, { values })` substitutes `{name}` and refuses a message
- * whose placeholders it cannot fill; `timeframesSelected` carries `{count}`,
- * so a mock that ignored `values` would render the raw placeholder.
+ * The harness interpolates `{name}` and throws when a placeholder has no
+ * value: `timeframesSelected` carries `{count}`, and a mock that ignored
+ * `values` would leave the raw placeholder in place and make the assertion
+ * vacuous.
  */
-function t(key: string, values?: Record<string, unknown>): string {
-    const template = message(key);
-    if (!values) return template;
-    return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
-        if (!(name in values)) {
-            throw new Error(`${key}: no value for {${name}}`);
-        }
-        return String(values[name]);
-    });
-}
-
 vi.mock("../../locales/i18n", async () => {
-    const { readable } = await import("svelte/store");
-    return {
-        _: readable(
-            (key: string, options?: { values?: Record<string, unknown> }) =>
-                t(key, options?.values),
-        ),
-        locale: readable("en"),
-        setLocale: vi.fn(),
-    };
+    const { i18nModule } = await import("../../tests/helpers/i18nMessages");
+    return i18nModule();
 });
 
 import CalculationSettings from "./CalculationSettings.svelte";

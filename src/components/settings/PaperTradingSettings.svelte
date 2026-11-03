@@ -121,7 +121,11 @@
           ? $_("settings.paper.modePaper")
           : $_("settings.paper.modeLive")}
       </p>
-      <p class="text-[11px] mt-1 text-[var(--text-secondary)]">
+      <p
+        class="text-[11px] mt-1 {paperState.enabled
+          ? 'text-[var(--text-on-warning)]'
+          : 'text-[var(--text-secondary)]'}"
+      >
         {$_("settings.paper.modeDescription")}
       </p>
 
