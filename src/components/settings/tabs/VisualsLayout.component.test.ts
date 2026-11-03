@@ -32,9 +32,29 @@ function lookup(key: string): string {
         .reduce<unknown>((acc, part) => (acc as Record<string, unknown>)?.[part], en) as string;
 }
 
+/** svelte-i18n's shape: placeholders arrive under `values`. */
+function translate(
+    key: string,
+    options?: { values?: Record<string, unknown> },
+): string {
+    const raw = lookup(key) ?? key;
+    const values = options?.values;
+    if (!values) return raw;
+    return Object.entries(values).reduce(
+        (text, [name, value]) => text.split(`{${name}}`).join(String(value)),
+        raw,
+    );
+}
+
 vi.mock("../../../locales/i18n", async () => {
     const { readable } = await import("svelte/store");
-    return { _: readable((key: string) => lookup(key) ?? key), locale: readable("en"), setLocale: vi.fn() };
+    return {
+        _: readable((key: string, options?: { values?: Record<string, unknown> }) =>
+            translate(key, options),
+        ),
+        locale: readable("en"),
+        setLocale: vi.fn(),
+    };
 });
 
 const settingsMock = vi.hoisted(() => ({
@@ -73,6 +93,10 @@ vi.mock("../../../lib/windows/WindowManager.svelte", () => ({
 }));
 
 import { WINDOW_RULE_TYPES } from "../../../lib/windows/windowRules";
+import {
+    dismissDroppedWindowRules,
+    noteDroppedWindowRules,
+} from "../../../lib/windows/windowRuleDrops.svelte";
 import VisualsLayout from "./VisualsLayout.svelte";
 
 let host: HTMLElement;
@@ -90,6 +114,7 @@ beforeEach(() => {
     uiMock.showAssistant = false;
     windowManagerMock.lastActiveWindow = null;
     windowManagerMock.restack.mockClear();
+    dismissDroppedWindowRules();
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -907,5 +932,65 @@ describe("FEAT-0770 — the button cannot be bypassed", () => {
             lookup("settings.windowRulesApplyRefused"),
         );
         expect(windowManagerMock.restack).not.toHaveBeenCalled();
+    });
+});
+
+describe("FEAT-0771 — the notice for discarded rules", () => {
+    it("names the count and the window types the last load discarded", () => {
+        noteDroppedWindowRules({ types: ["guide", "news"], count: 2 });
+
+        render();
+
+        expect(host.textContent).toContain("guide, news");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesDroppedOther")
+                .replace("{count}", "2")
+                .replace("{types}", "guide, news"),
+        );
+    });
+
+    it("uses the singular for one discarded rule", () => {
+        noteDroppedWindowRules({ types: ["settings"], count: 1 });
+
+        render();
+
+        expect(host.textContent).toContain("settings");
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesDroppedOne")
+                .replace("{types}", "settings"),
+        );
+    });
+
+    it("counts rules, so two rules of one type are not announced as one", () => {
+        noteDroppedWindowRules({ types: ["guide"], count: 2 });
+
+        render();
+
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesDroppedOther")
+                .replace("{count}", "2")
+                .replace("{types}", "guide"),
+        );
+    });
+
+    it("renders nothing when the load discarded no rule", () => {
+        render();
+
+        expect(host.textContent).not.toContain(
+            lookup("settings.windowRulesDroppedDismiss"),
+        );
+    });
+
+    it("stays gone after the user dismisses it", () => {
+        noteDroppedWindowRules({ types: ["iframe"], count: 1 });
+        render();
+
+        buttonContaining(lookup("settings.windowRulesDroppedDismiss")).click();
+        flushSync();
+
+        expect(host.textContent).not.toContain("iframe");
+        expect(host.textContent).not.toContain(
+            lookup("settings.windowRulesDroppedDismiss"),
+        );
     });
 });

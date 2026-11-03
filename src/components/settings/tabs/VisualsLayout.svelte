@@ -31,6 +31,10 @@
         windowRulePatch,
     } from "../../../lib/windows/windowRules";
     import { windowManager } from "../../../lib/windows/WindowManager.svelte";
+    import {
+        dismissDroppedWindowRules,
+        windowRuleDrops,
+    } from "../../../lib/windows/windowRuleDrops.svelte";
     import type { WindowRule, WindowRuleType } from "../../../stores/settings/settingsTypes";
     import type { TranslationKey } from "../../../locales/schema";
     import Toggle from "../../shared/Toggle.svelte";
@@ -233,6 +237,27 @@
      * itself is focused the moment the button is pressed.
      */
     const ruleTarget = $derived(windowManager.lastActiveWindow);
+
+    /**
+     * FEAT-0771 — rules the load path had to discard because their window
+     * types left the target list. The report is transient: once the surviving
+     * rules are saved, the next start has nothing left to report.
+     */
+    const droppedRuleTypes = $derived(windowRuleDrops.types);
+    const droppedRuleCount = $derived(windowRuleDrops.count);
+
+    const droppedRuleNotice = $derived.by(() => {
+        const count = droppedRuleCount;
+        if (count === 0) return "";
+        return $_(
+            count === 1
+                ? "settings.windowRulesDroppedOne"
+                : "settings.windowRulesDroppedOther",
+            // svelte-i18n reads the placeholders from `values`; a flat object
+            // is ignored and the message keeps its literal `{count}`.
+            { values: { count, types: droppedRuleTypes.join(", ") } },
+        );
+    });
 
     /** FEAT-0770 — the transient refusal after a press that the window rejected. */
     let applyRefusal = $state<{ key: string; message: TranslationKey } | null>(
@@ -508,6 +533,27 @@
             <p class="text-[10px] text-[var(--text-secondary)] mb-3">
                 {$_("settings.windowRulesDesc")}
             </p>
+
+            <!-- No live region: the report exists before this section mounts, so
+                 the text is part of the first render and would not be announced
+                 anyway. The card list below is where the loss is visible. -->
+            {#if droppedRuleCount > 0}
+                <div
+                    class="flex items-start gap-2 mb-3 rounded border border-[var(--border-color)] px-2 py-1.5"
+                >
+                    <p class="flex-1 min-w-0 break-words text-[10px] text-[var(--text-secondary)]">
+                        {droppedRuleNotice}
+                    </p>
+                    <!-- FEAT-0611 escape: one-line dismiss on a transient notice; the button primitive does not fit this row. -->
+                    <button
+                        type="button"
+                        class="text-[10px] text-[var(--text-secondary)] underline hover:text-[var(--text-primary)]"
+                        onclick={dismissDroppedWindowRules}
+                    >
+                        {$_("settings.windowRulesDroppedDismiss")}
+                    </button>
+                </div>
+            {/if}
 
             {#if settingsState.windowRules.length === 0}
                 <p class="text-xs text-[var(--text-secondary)] mb-3">
