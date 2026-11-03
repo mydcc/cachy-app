@@ -121,7 +121,9 @@ describe("FEAT-0346 — ApiQuotaStatus surfaces provider quota health", () => {
     it("resets the provider a user confirms", () => {
         render();
 
-        buttonByText(lookup("settings.apiQuota.resetButton"))?.click();
+        const resetBtn = buttonByText(lookup("settings.apiQuota.resetButton"));
+        expect(resetBtn).toBeTruthy();
+        resetBtn!.click();
 
         expect(quotaMock.manualReset).toHaveBeenCalledWith("cryptopanic");
     });

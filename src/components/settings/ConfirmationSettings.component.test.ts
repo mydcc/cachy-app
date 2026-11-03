@@ -158,7 +158,8 @@ describe("ConfirmationSettings", () => {
         flushSync();
 
         const reset = host.querySelector("button");
-        reset?.click();
+        expect(reset).toBeTruthy();
+        reset!.click();
         flushSync();
 
         expect(confirmationPolicyStore.policy).toEqual(DEFAULT_CONFIRMATION_POLICY);

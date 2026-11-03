@@ -100,7 +100,9 @@ describe("VisualsDuck — settings wiring", () => {
         component = mount(VisualsDuck, { target: host });
         settle();
 
-        host.querySelector<HTMLButtonElement>("#duck-reset-button")?.click();
+        const resetBtn = host.querySelector<HTMLButtonElement>("#duck-reset-button");
+        expect(resetBtn).toBeTruthy();
+        resetBtn!.click();
         settle();
 
         expect(confirm).toHaveBeenCalledOnce();

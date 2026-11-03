@@ -87,6 +87,8 @@ describe("FEAT-0346 — SettingsGrid keeps column rules in one place", () => {
     it("renders its children", () => {
         render();
 
-        expect(host.querySelector('[data-testid="grid-child"]')?.textContent).toBe("field");
+        const child = host.querySelector('[data-testid="grid-child"]');
+        expect(child).toBeTruthy();
+        expect(child!.textContent).toBe("field");
     });
 });

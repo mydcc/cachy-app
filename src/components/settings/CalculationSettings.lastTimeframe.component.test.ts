@@ -93,7 +93,7 @@ describe("BUG-0718 — the last timeframe says why it stays", () => {
         expect(hintId).toBeTruthy();
         const hint = host.querySelector<HTMLElement>(`#${hintId}`);
         expect(hint).not.toBeNull();
-        expect(hint?.textContent?.trim()).toBe(HINT);
+        expect(hint!.textContent!.trim()).toBe(HINT);
         expect(host.textContent).toContain(HINT);
 
         // Reachable, so the reason can be read with the control.

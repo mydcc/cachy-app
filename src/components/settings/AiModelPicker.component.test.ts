@@ -90,7 +90,9 @@ describe("FEAT-0346 — AiModelPicker loads and reports the model list", () => {
         );
         const select = host.querySelector("select");
         expect(select).toBeTruthy();
-        expect(select?.querySelector('option[value="gpt-4o"]')?.textContent).toContain("GPT-4o");
+        const option = select?.querySelector('option[value="gpt-4o"]');
+        expect(option).toBeTruthy();
+        expect(option!.textContent).toContain("GPT-4o");
     });
 
     it("forwards flavor and transport for custom providers", async () => {
