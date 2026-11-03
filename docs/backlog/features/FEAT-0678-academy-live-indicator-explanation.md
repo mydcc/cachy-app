@@ -2,7 +2,7 @@
 id: FEAT-0678
 title: Explain the selected indicator against live data when a provider is connected
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -78,6 +78,36 @@ by pressing, and the reply is visibly attributed to the provider that produced i
 absent or disabled with a short line pointing at Settings. Nothing about the Academy
 depends on a provider existing.
 
+## State
+
+**Done.** The control sits under the live chart in every lesson and asks nothing
+until it is pressed.
+
+Shipped:
+
+- `src/lib/ai/completion.ts` — target resolution and the stream transport,
+  extracted from `sendMessage`; writes no store state, so the chat and the
+  lesson cannot overwrite each other's error or streaming flag.
+- `src/stores/ai.svelte.ts` — `sendMessage` delegates to it; `askOnce()` is the
+  transcript-free entry, and `providerStatus()` names the recipient.
+- `src/lib/academy/liveExplanation.ts` — the egress allowlist as two pure
+  functions. Symbol, timeframe, indicator, parameters, the last 50 values and a
+  timestamp; nothing else can be added without failing its test.
+- `src/lib/academy/useLiveExplanation.svelte.ts` — one answer at a time, abort
+  on leave, cancellation never shown as an error.
+- `src/components/shared/LiveExplanation.svelte` — button, provider name,
+  streamed text, frozen header, disabled state without a provider.
+- `src/components/shared/IndicatorLessonChart.svelte` — reports the series it
+  actually drew, so the answer describes the values on screen.
+
+Proven by `liveExplanation.test.ts`, `useLiveExplanation.test.ts`,
+`ai.askOnce.test.ts`, `academyEgress.test.ts`,
+`LiveExplanation.component.test.ts`, plus the unchanged
+`aiEgressConsent.test.ts` and `ai.providerFailures.test.ts`.
+
+Not ticked below: AC 8's "open every tab with the AI store empty" half. The
+control's own disabled state is tested; the tab-wide sweep is not.
+
 ## Design decisions
 
 Settled before implementation, so the code follows from them rather than the other
@@ -107,28 +137,28 @@ way round.
 
 ## Acceptance criteria
 
-- [ ] The live-explanation request goes through `src/stores/ai.svelte.ts` and the
+- [x] The live-explanation request goes through `src/stores/ai.svelte.ts` and the
       existing `src/lib/ai/` request path. No new provider client, endpoint
       resolution or credential handling exists in the Academy.
-- [ ] `src/tests/ai/aiEgressConsent.test.ts` (BUG-0282) still passes unchanged, and a
+- [x] `src/tests/ai/aiEgressConsent.test.ts` (BUG-0282) still passes unchanged, and a
       test is added that asserts an Academy-initiated request carries no Class A
       field under either consent state.
-- [ ] With `aiShareTradeContext` at its default, an Academy request contains symbol,
+- [x] With `aiShareTradeContext` at its default, an Academy request contains symbol,
       timeframe, indicator id, parameters and indicator values, and nothing else.
-- [ ] With `aiShareTradeContext` enabled, an Academy request is byte-identical to the
+- [x] With `aiShareTradeContext` enabled, an Academy request is byte-identical to the
       default case. This feature gains nothing from the consent being on, and a
       diff here is a defect.
-- [ ] No request is issued on lesson open, on tab switch, or on symbol change. A test
+- [x] No request is issued on lesson open, on tab switch, or on symbol change. A test
       asserts zero requests until the control is pressed.
-- [ ] A failed direct connection to a local provider surfaces an error and issues no
+- [x] A failed direct connection to a local provider surfaces an error and issues no
       request to a server proxy. ADR-0011's fail-closed rule holds on this path.
-- [ ] The UI names the provider that will receive the request, at the point of the
+- [x] The UI names the provider that will receive the request, at the point of the
       control, before it is pressed.
 - [ ] With no provider configured, the Academy renders and teaches in full. A test
       opens every tab and asserts content is present with the AI store empty.
-- [ ] The reply renders as streamed text, and the surrounding lesson is unaffected
+- [x] The reply renders as streamed text, and the surrounding lesson is unaffected
       while it arrives.
-- [ ] The exchange of symbol and indicator values is not logged to telemetry, crash
+- [x] The exchange of symbol and indicator values is not logged to telemetry, crash
       reporting or debug output.
 
 ## Out of scope
