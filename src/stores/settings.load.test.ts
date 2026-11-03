@@ -29,7 +29,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsManager } from "./settings.svelte";
 import { MARKET_MODE_WIRE_KEY, WINDOW_RULE_DROP_WIRE_KEY } from "./settings/persistenceSchema";
 import {
-    dismissDroppedWindowRuleTypes,
+    dismissDroppedWindowRules,
     windowRuleDrops,
 } from "../lib/windows/windowRuleDrops.svelte";
 import { cryptoService } from "../services/cryptoService";
@@ -688,7 +688,7 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
     // FEAT-0771 — the notice is fed through the load path's wire key. Writing
     // `_windowRuleDrops` onto the manager instead would pass a value check
     // here while the editor showed nothing.
-    dismissDroppedWindowRuleTypes();
+    dismissDroppedWindowRules();
     localStorageMock.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -705,13 +705,14 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
       { windowType: "journal", enabled: true, x: 40 },
     ]);
     expect(windowRuleDrops.types).toEqual(["guide"]);
+    expect(windowRuleDrops.count).toBe(1);
     expect(WINDOW_RULE_DROP_WIRE_KEY in settings).toBe(false);
     settings.destroy();
-    dismissDroppedWindowRuleTypes();
+    dismissDroppedWindowRules();
   });
 
   it("leaves the drop notice empty when every stored rule still applies", () => {
-    dismissDroppedWindowRuleTypes();
+    dismissDroppedWindowRules();
     localStorageMock.setItem(
       STORAGE_KEY,
       JSON.stringify({ windowRules: [{ windowType: "journal", enabled: true }] }),
@@ -720,6 +721,7 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
     const settings = new SettingsManager();
 
     expect(windowRuleDrops.types).toEqual([]);
+    expect(windowRuleDrops.count).toBe(0);
     settings.destroy();
   });
 });

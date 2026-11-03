@@ -32,7 +32,7 @@
     } from "../../../lib/windows/windowRules";
     import { windowManager } from "../../../lib/windows/WindowManager.svelte";
     import {
-        dismissDroppedWindowRuleTypes,
+        dismissDroppedWindowRules,
         windowRuleDrops,
     } from "../../../lib/windows/windowRuleDrops.svelte";
     import type { WindowRule, WindowRuleType } from "../../../stores/settings/settingsTypes";
@@ -244,15 +244,18 @@
      * rules are saved, the next start has nothing left to report.
      */
     const droppedRuleTypes = $derived(windowRuleDrops.types);
+    const droppedRuleCount = $derived(windowRuleDrops.count);
 
     const droppedRuleNotice = $derived.by(() => {
-        const count = droppedRuleTypes.length;
+        const count = droppedRuleCount;
         if (count === 0) return "";
         return $_(
             count === 1
                 ? "settings.windowRulesDroppedOne"
                 : "settings.windowRulesDroppedOther",
-            { count, types: droppedRuleTypes.join(", ") },
+            // svelte-i18n reads the placeholders from `values`; a flat object
+            // is ignored and the message keeps its literal `{count}`.
+            { values: { count, types: droppedRuleTypes.join(", ") } },
         );
     });
 
@@ -531,19 +534,21 @@
                 {$_("settings.windowRulesDesc")}
             </p>
 
-            {#if droppedRuleTypes.length > 0}
+            <!-- No live region: the report exists before this section mounts, so
+                 the text is part of the first render and would not be announced
+                 anyway. The card list below is where the loss is visible. -->
+            {#if droppedRuleCount > 0}
                 <div
                     class="flex items-start gap-2 mb-3 rounded border border-[var(--border-color)] px-2 py-1.5"
-                    role="status"
                 >
-                    <p class="flex-1 text-[10px] text-[var(--text-secondary)]">
+                    <p class="flex-1 min-w-0 break-words text-[10px] text-[var(--text-secondary)]">
                         {droppedRuleNotice}
                     </p>
                     <!-- FEAT-0611 escape: one-line dismiss on a transient notice; the button primitive does not fit this row. -->
                     <button
                         type="button"
                         class="text-[10px] text-[var(--text-secondary)] underline hover:text-[var(--text-primary)]"
-                        onclick={dismissDroppedWindowRuleTypes}
+                        onclick={dismissDroppedWindowRules}
                     >
                         {$_("settings.windowRulesDroppedDismiss")}
                     </button>

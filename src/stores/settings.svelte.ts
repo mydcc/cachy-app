@@ -62,7 +62,10 @@ import {
     type SaveSource,
 } from "./settings/persistenceSchema";
 import { trackAutosaveReads } from "./settings/tracking";
-import { noteDroppedWindowRuleTypes } from "../lib/windows/windowRuleDrops.svelte";
+import {
+  noteDroppedWindowRules,
+  type DroppedWindowRules,
+} from "../lib/windows/windowRuleDrops.svelte";
 import { DisplaySettingsStore } from "./settings/display.svelte";
 import { CoreSettingsStore } from "./settings/core.svelte";
 import { setWindowRuleSource } from "../lib/windows/windowRuleSource";
@@ -2148,7 +2151,7 @@ export class SettingsManager {
         // discarded. A notice, not a setting: the window layer owns it, and
         // writing the key onto the manager would leak it into every snapshot.
         if (key === WINDOW_RULE_DROP_WIRE_KEY) {
-          noteDroppedWindowRuleTypes(value as string[]);
+          noteDroppedWindowRules(value as DroppedWindowRules);
           return;
         }
         (this as unknown as Record<string, unknown>)[key] = value;

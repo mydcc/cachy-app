@@ -324,6 +324,11 @@ export interface WindowRuleInspection {
    * blame the user for a hand-edited payload.
    */
   droppedTypes: string[];
+  /**
+   * How many entries were discarded for that reason. `droppedTypes` is
+   * deduplicated for the message; two rules of one type are still two rules.
+   */
+  droppedCount: number;
 }
 
 /**
@@ -333,9 +338,12 @@ export interface WindowRuleInspection {
  * appearance of each key.
  */
 export function inspectWindowRules(value: unknown): WindowRuleInspection {
-  if (!Array.isArray(value)) return { rules: [], droppedTypes: [] };
+  if (!Array.isArray(value)) {
+    return { rules: [], droppedTypes: [], droppedCount: 0 };
+  }
   const byKey = new Map<string, WindowRule>();
   const droppedTypes: string[] = [];
+  let droppedCount = 0;
   for (const entry of value) {
     const rule = sanitizeWindowRule(entry);
     if (!rule) {
@@ -343,12 +351,9 @@ export function inspectWindowRules(value: unknown): WindowRuleInspection {
         entry && typeof entry === "object" && !Array.isArray(entry)
           ? (entry as Record<string, unknown>).windowType
           : undefined;
-      if (
-        typeof rawType === "string" &&
-        !isRuleTarget(rawType as WindowType) &&
-        !droppedTypes.includes(rawType)
-      ) {
-        droppedTypes.push(rawType);
+      if (typeof rawType === "string" && !isRuleTarget(rawType as WindowType)) {
+        droppedCount += 1;
+        if (!droppedTypes.includes(rawType)) droppedTypes.push(rawType);
       }
       continue;
     }
@@ -358,10 +363,16 @@ export function inspectWindowRules(value: unknown): WindowRuleInspection {
       byKey.set(key, rule);
     }
   }
-  return { rules: [...byKey.values()], droppedTypes };
+  return { rules: [...byKey.values()], droppedTypes, droppedCount };
 }
 
-/** The surviving rules, without the report. */
+/**
+ * The surviving rules, without the report.
+ *
+ * Kept as the list-only entry point: the load path uses `inspectWindowRules`
+ * so it can report what it discarded, but a caller that only needs the rules
+ * should not have to destructure a report.
+ */
 export function sanitizeWindowRules(value: unknown): WindowRule[] {
   return inspectWindowRules(value).rules;
 }

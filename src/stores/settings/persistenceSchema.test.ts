@@ -633,7 +633,10 @@ describe("FEAT-0771 — the window-rule drop wire key", () => {
 
         loadCustomValue("windowRules", target, merged, defaults, undefined);
 
-        expect(target.values[WINDOW_RULE_DROP_WIRE_KEY]).toEqual(["guide"]);
+        expect(target.values[WINDOW_RULE_DROP_WIRE_KEY]).toEqual({
+            types: ["guide"],
+            count: 1,
+        });
         // The surviving list is still the normal Settings field.
         expect(target.values.windowRules).toEqual([]);
     });

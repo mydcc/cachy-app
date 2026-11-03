@@ -540,8 +540,11 @@ export function loadCustomValue(
             // FEAT-0771: a rule the user set for a type that has since left
             // the list is gone from storage on the next save. Say so once —
             // after that save there is nothing left to report.
-            if (report.droppedTypes.length > 0) {
-                target.set(WINDOW_RULE_DROP_WIRE_KEY, report.droppedTypes);
+            if (report.droppedCount > 0) {
+                target.set(WINDOW_RULE_DROP_WIRE_KEY, {
+                    types: report.droppedTypes,
+                    count: report.droppedCount,
+                });
             }
             return;
         }

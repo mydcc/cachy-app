@@ -31,21 +31,36 @@
  * trim.
  */
 
-let droppedTypes = $state<readonly string[]>([]);
+/** What one load discarded: the affected types, and how many rules in total. */
+export interface DroppedWindowRules {
+  /** Unique window types, in first-seen order. */
+  readonly types: readonly string[];
+  /** Discarded entries, including several rules of the same type. */
+  readonly count: number;
+}
+
+const EMPTY: DroppedWindowRules = { types: [], count: 0 };
+
+let dropped = $state<DroppedWindowRules>(EMPTY);
 
 /** Called by the settings load path through `WINDOW_RULE_DROP_WIRE_KEY`. */
-export function noteDroppedWindowRuleTypes(types: readonly string[]): void {
-  droppedTypes = types.length > 0 ? [...types] : [];
+export function noteDroppedWindowRules(report: DroppedWindowRules): void {
+  dropped =
+    report.count > 0 ? { types: [...report.types], count: report.count } : EMPTY;
 }
 
 /** The user has read the notice; it must not come back this session. */
-export function dismissDroppedWindowRuleTypes(): void {
-  droppedTypes = [];
+export function dismissDroppedWindowRules(): void {
+  dropped = EMPTY;
 }
 
 export const windowRuleDrops = {
   /** Window types whose stored rules the last load discarded. */
   get types(): readonly string[] {
-    return droppedTypes;
+    return dropped.types;
+  },
+  /** How many stored rules were discarded. */
+  get count(): number {
+    return dropped.count;
   },
 };

@@ -477,12 +477,15 @@ describe("FEAT-0771 — the load sanitizer reports what it dropped", () => {
         ]);
         // Unique and in first-seen order: the notice names a type once.
         expect(report.droppedTypes).toEqual(["guide", "news"]);
+        // ... but it counts rules, not types: two guide rules are two rules.
+        expect(report.droppedCount).toBe(3);
     });
 
     it("reports nothing when every stored rule is still a target", () => {
         const report = inspectWindowRules([{ windowType: "chart", enabled: true }]);
 
         expect(report.droppedTypes).toEqual([]);
+        expect(report.droppedCount).toBe(0);
         expect(report.rules).toHaveLength(1);
     });
 
@@ -496,6 +499,7 @@ describe("FEAT-0771 — the load sanitizer reports what it dropped", () => {
         ]);
 
         expect(report.droppedTypes).toEqual([]);
+        expect(report.droppedCount).toBe(0);
         expect(report.rules).toEqual([]);
     });
 

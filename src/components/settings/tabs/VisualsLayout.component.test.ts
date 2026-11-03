@@ -32,11 +32,15 @@ function lookup(key: string): string {
         .reduce<unknown>((acc, part) => (acc as Record<string, unknown>)?.[part], en) as string;
 }
 
-/** Same `{name}` substitution the production store performs. */
-function translate(key: string, vars?: Record<string, unknown>): string {
+/** svelte-i18n's shape: placeholders arrive under `values`. */
+function translate(
+    key: string,
+    options?: { values?: Record<string, unknown> },
+): string {
     const raw = lookup(key) ?? key;
-    if (!vars) return raw;
-    return Object.entries(vars).reduce(
+    const values = options?.values;
+    if (!values) return raw;
+    return Object.entries(values).reduce(
         (text, [name, value]) => text.split(`{${name}}`).join(String(value)),
         raw,
     );
@@ -45,7 +49,9 @@ function translate(key: string, vars?: Record<string, unknown>): string {
 vi.mock("../../../locales/i18n", async () => {
     const { readable } = await import("svelte/store");
     return {
-        _: readable((key: string, vars?: Record<string, unknown>) => translate(key, vars)),
+        _: readable((key: string, options?: { values?: Record<string, unknown> }) =>
+            translate(key, options),
+        ),
         locale: readable("en"),
         setLocale: vi.fn(),
     };
@@ -88,8 +94,8 @@ vi.mock("../../../lib/windows/WindowManager.svelte", () => ({
 
 import { WINDOW_RULE_TYPES } from "../../../lib/windows/windowRules";
 import {
-    dismissDroppedWindowRuleTypes,
-    noteDroppedWindowRuleTypes,
+    dismissDroppedWindowRules,
+    noteDroppedWindowRules,
 } from "../../../lib/windows/windowRuleDrops.svelte";
 import VisualsLayout from "./VisualsLayout.svelte";
 
@@ -108,7 +114,7 @@ beforeEach(() => {
     uiMock.showAssistant = false;
     windowManagerMock.lastActiveWindow = null;
     windowManagerMock.restack.mockClear();
-    dismissDroppedWindowRuleTypes();
+    dismissDroppedWindowRules();
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -931,7 +937,7 @@ describe("FEAT-0770 — the button cannot be bypassed", () => {
 
 describe("FEAT-0771 — the notice for discarded rules", () => {
     it("names the count and the window types the last load discarded", () => {
-        noteDroppedWindowRuleTypes(["guide", "news"]);
+        noteDroppedWindowRules({ types: ["guide", "news"], count: 2 });
 
         render();
 
@@ -944,7 +950,7 @@ describe("FEAT-0771 — the notice for discarded rules", () => {
     });
 
     it("uses the singular for one discarded rule", () => {
-        noteDroppedWindowRuleTypes(["settings"]);
+        noteDroppedWindowRules({ types: ["settings"], count: 1 });
 
         render();
 
@@ -952,6 +958,18 @@ describe("FEAT-0771 — the notice for discarded rules", () => {
         expect(host.textContent).toContain(
             lookup("settings.windowRulesDroppedOne")
                 .replace("{types}", "settings"),
+        );
+    });
+
+    it("counts rules, so two rules of one type are not announced as one", () => {
+        noteDroppedWindowRules({ types: ["guide"], count: 2 });
+
+        render();
+
+        expect(host.textContent).toContain(
+            lookup("settings.windowRulesDroppedOther")
+                .replace("{count}", "2")
+                .replace("{types}", "guide"),
         );
     });
 
@@ -964,7 +982,7 @@ describe("FEAT-0771 — the notice for discarded rules", () => {
     });
 
     it("stays gone after the user dismisses it", () => {
-        noteDroppedWindowRuleTypes(["iframe"]);
+        noteDroppedWindowRules({ types: ["iframe"], count: 1 });
         render();
 
         buttonContaining(lookup("settings.windowRulesDroppedDismiss")).click();

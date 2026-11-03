@@ -45,21 +45,21 @@ not undo it.
 
 ## Acceptance criteria
 
-- [ ] The rule sanitiser reports how many entries it discarded and which
+- [x] The rule sanitiser reports how many entries it discarded and which
       `windowType` values they named, alongside the surviving list, and a caller
       that only needs the list keeps working unchanged.
-- [ ] A payload with nothing to discard produces no notice, no reserved space
+- [x] A payload with nothing to discard produces no notice, no reserved space
       and no stored dismissal flag.
-- [ ] The Window rules section shows the notice only while the last load
+- [x] The Window rules section shows the notice only while the last load
       discarded at least one entry and the notice has not been dismissed.
-- [ ] The notice names the count and the affected window types, in German and
+- [x] The notice names the count and the affected window types, in German and
       English.
-- [ ] Dismissing it persists across reloads; the notice does not come back.
-- [ ] A payload that mixes valid rules with removed types keeps every valid rule
+- [x] Dismissing it persists across reloads; the notice does not come back.
+- [x] A payload that mixes valid rules with removed types keeps every valid rule
       and reports only the removed ones.
-- [ ] Unit tests cover a mixed payload, the zero case and the dismissal
+- [x] Unit tests cover a mixed payload, the zero case and the dismissal
       persistence; the component test covers rendering and the dismiss action.
-- [ ] No hardcoded colours, Svelte 5 runes only, `npm run check` stays at 0
+- [x] No hardcoded colours, Svelte 5 runes only, `npm run check` stays at 0
       errors.
 
 ## Decisions
@@ -115,3 +115,12 @@ Two deliberate refinements to this item, both visible in the code:
 - **Only a removed *type* is reported.** The sanitiser also rejects malformed
   entries, but those were never rules the picker could have produced; naming
   them would blame the user for a hand-edited payload.
+
+Two more notes from the review of the implementation:
+
+- **The count is rules, not types.** `inspectWindowRules` returns `droppedCount`
+  next to the deduplicated `droppedTypes`, so two rules of one type do not read
+  as "one rule".
+- **No live region.** The report exists before the settings section mounts, so
+  the text is part of the first render and `role="status"` would promise an
+  announcement that never happens. The notice is plain content above the cards.
