@@ -87,7 +87,30 @@ describe('mdaService normalizeKlines time hardening (BUG-0741)', () => {
 
     expect(klines).toHaveLength(1);
     expect(klines[0].time).toBe(time);
-    expect(Number.isFinite(klines[0].time)).toBe(true);
+  });
+
+  it('keeps a numeric-string timestamp instead of dropping the candle', () => {
+    const klines = mdaService.normalizeKlines(
+      [{ time: '1775541000000', open: '100', high: '102', low: '99', close: '101' }],
+      'bitunix'
+    );
+
+    expect(klines).toHaveLength(1);
+    expect(klines[0].time).toBe(1775541000000);
+  });
+
+  it.each([
+    ['a negative time', -1],
+    ['a string zero', '0'],
+    ['a whitespace-only string', '   '],
+    ['an infinite time', Infinity],
+  ])('drops a Bitunix kline with %s instead of emitting a non-positive time', (_label, time) => {
+    const klines = mdaService.normalizeKlines(
+      [{ time, open: '100', high: '102', low: '99', close: '101' }],
+      'bitunix'
+    );
+
+    expect(klines).toHaveLength(0);
   });
 
   it('drops a Bitunix kline without any timestamp alias instead of emitting NaN', () => {
@@ -108,16 +131,14 @@ describe('mdaService normalizeKlines time hardening (BUG-0741)', () => {
 
     expect(klines).toHaveLength(1);
     expect(klines[0].time).toBe(time);
-    expect(Number.isFinite(klines[0].time)).toBe(true);
   });
 
-  it('drops a generic/Bitget kline without any timestamp alias instead of emitting NaN', () => {
+  it('drops a generic/Bitget row whose time slot is null', () => {
     const klines = mdaService.normalizeKlines(
-      [{ open: '100', high: '102', low: '99', close: '101' }],
+      [[null, '100', '102', '99', '101', '1']],
       'bitget'
     );
 
     expect(klines).toHaveLength(0);
   });
 });
-
