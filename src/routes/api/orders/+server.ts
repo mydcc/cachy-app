@@ -197,11 +197,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress, url }) =
     const errorMsg = e instanceof Error ? e.message : String(e);
     const errorCode = (e as ExchangeError).code;
     const details = (e as ExchangeError).details;
-    // Enhanced Logging (automatically redacted by logger)
+    // Log the action and venue, never the request body: it carries symbol,
+    // size, price and leverage, which are Class A trade data (BUG-0779). The
+    // error text can echo the same fields, so it stays out of the log too; the
+    // client still receives the scrubbed message below.
     logger.error(`[API] Order failed: ${payload.type}`, {
-      error: errorMsg,
       code: errorCode,
-      body,
+      exchange,
     });
     // The key can appear in upstream error text; the secret cannot, because it
     // never came this way. Scrub what the envelope actually carried — before

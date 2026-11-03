@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHash } from "node:crypto";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { logger } from "../../../lib/server/logger";
 import {
   signedEnvelopeRequest,
   TEST_SIGNING_KEYS,
@@ -113,5 +114,46 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toBe("Order status error");
+  });
+
+  it("does not log the order body on failure (BUG-0779)", async () => {
+    const logSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
+
+    try {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        text: async () =>
+          JSON.stringify({
+            code: 0,
+            data: { successList: [], failureList: [{ orderId: "42", errorMsg: "Order status error", errorCode: 10013 }] },
+            msg: "Success",
+          }),
+      });
+
+      const { request, url } = await cancelOrderRequest();
+      const response = await POST({
+        request,
+        url,
+        getClientAddress,
+      } as unknown as Parameters<typeof POST>[0]);
+
+      expect(response.status).toBe(500);
+
+      const call = logSpy.mock.calls.find(([message]) =>
+        String(message).includes("[API] Order failed"),
+      );
+      expect(call).toBeDefined();
+      const context = call![1] as Record<string, unknown>;
+
+      // The request body carried symbol and order id; neither may reach the
+      // log event, and the upstream error text stays out for the same reason.
+      expect(context).not.toHaveProperty("body");
+      expect(context).not.toHaveProperty("error");
+      const serialized = JSON.stringify(context);
+      expect(serialized).not.toContain("BTCUSDT");
+      expect(serialized).not.toContain("42");
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 });
