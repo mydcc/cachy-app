@@ -170,7 +170,6 @@ info/
 # any other directory entry.
 .agents/skills/
 .claude/
-.jules/
 .gemini/
 .opencode/
 .vscode/

@@ -2,10 +2,8 @@ name: Production Monitor
 
 # Synthetic monitoring of the LIVE deployment (cachy.app), not CI/localhost.
 # Runs daily, checks health/security-headers/Lighthouse against the running
-# app, and — on a regression — triggers a Jules session via the API to
-# propose a fix as a PR against develop. See scripts/jules/monitor-production.sh
-# and scripts/jules/README.md.
-
+# app and writes a report artifact plus an optional Discord notification.
+# See scripts/monitor-production.sh.
 on:
   schedule:
     - cron: '0 6 * * *'   # 06:00 UTC täglich
@@ -13,8 +11,7 @@ on:
 
 # Least-privilege default: this only checks out the repo to run scripts and
 # uploads a report artifact. It never writes to the repo or the GitHub API
-# (the Jules dispatch and Discord notification go through their own APIs,
-# not GITHUB_TOKEN).
+# (the Discord notification goes through its own webhook, not GITHUB_TOKEN).
 permissions:
   contents: read
 
@@ -33,10 +30,8 @@ jobs:
       - name: Run production monitor
         env:
           PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://cachy.app' }}
-          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
-          JULES_SOURCE: ${{ vars.JULES_SOURCE }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: bash scripts/jules/monitor-production.sh
+        run: bash scripts/monitor-production.sh
 
       # Wie benchmarks.yml: Report als Artifact, kein direkter Push auf
       # develop/main (siehe AGENTS.md Branch-Workflow). Ein Verlauf über Zeit

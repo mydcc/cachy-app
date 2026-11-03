@@ -36,7 +36,7 @@ jobs:
       - name: Lint the PR's latest commit message
         # Only the tip commit is linted, not the full base..head range: with
         # squash-merge as the repo's merge strategy, the tip commit's message
-        # is what actually lands on develop/main. Agentic contributors (Jules)
+        # is what actually lands on develop/main. Agentic contributors
         # push many intermediate WIP commits per PR instead of amending one;
         # linting the whole range meant one non-conforming early commit could
         # never be fixed short of a history rewrite, permanently blocking the

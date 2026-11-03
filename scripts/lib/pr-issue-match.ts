@@ -189,7 +189,7 @@ export type ClosingRefPresenceCheck =
  *
  * The missing half of the rule. AGENTS.md has always required `Fixes #N`, but
  * nothing checked for *presence* — only for stray extra references — so the
- * Jules docs pipeline happily merged PRs like #2297/#2254 with no closing
+ * automated docs pipeline happily merged PRs like #2297/#2254 with no closing
  * keyword at all: GitHub closed nothing, the backlog markdown said `done`,
  * and both issues stayed open until someone noticed by hand (BUG-0307).
  *

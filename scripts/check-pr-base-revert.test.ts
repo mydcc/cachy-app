@@ -208,7 +208,7 @@ describe("check-pr-base-revert.mjs", () => {
     /**
      * BUG-0583: the branch never merged base, so the fork anchor and the
      * merge-base collapse onto each other and every removed line is excused.
-     * The tip is a full-tree snapshot of pre-fork content — the Jules-hygiene
+     * The tip is a full-tree snapshot of pre-fork content — the agent-hygiene
      * shape from PR #3718. The guard must fail it anyway.
      */
     it("fails when a branch that never merged base snapshots a pre-fork tree (BUG-0583)", () => {

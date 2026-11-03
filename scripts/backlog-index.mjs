@@ -27,8 +27,8 @@
  * exist. It deliberately does NOT require a committed INDEX.md to be present
  * or fresh — INDEX.md is generated on demand and gitignored
  * (`.gitignore:127`), so nothing commits it: not the PR author, not
- * sync-backlog.yml, not backlog-dispatch.yml (`git add docs/backlog/` skips
- * ignored paths). Requiring every backlog-touching PR to carry a fresh
+ * sync-backlog.yml (`git add docs/backlog/` skips ignored paths).
+ * Requiring every backlog-touching PR to carry a fresh
  * INDEX.md diff is what caused near-constant merge conflicts on its two
  * summary lines (item counts, next free number) when several PRs touched the
  * backlog in parallel — see BUG-0225.

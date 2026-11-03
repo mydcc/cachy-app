@@ -27,8 +27,7 @@ check.
 | `backlog-index.mjs` | `npm run backlog:index` / `backlog:check`, `.github/workflows/audit.yml` | Validates every `docs/backlog/` item's front matter (`--check`, no dependencies) and generates `INDEX.md` + `backlog.generated.*` on demand. Those three files are **not tracked**: nothing has to be committed with a backlog edit, so two backlog PRs can no longer collide on them. `audit.yml` checks the front matter only. |
 | `check-backlog-flip.ts` (+ `lib/backlog-flip.ts`) | `.github/workflows/pr-body-lint.yml` | Fails a PR whose `Fixes #N` points at a backlog mirror issue without flipping that item to `done` in its own diff — the pre-merge replacement for the deleted auto-done bot. Pure verdict logic in the lib, unit-tested; API flakes fail open, findings fail closed. |
 | `check-doc-links.mjs` | `.github/workflows/audit.yml`, `npm run docs:links` | Fails if a relative Markdown link points at a missing file. Moving a document breaks every pointer to it and nothing notices until a reader follows one — archiving the old roadmap broke six links in one commit. External URLs are not checked. |
-| `jules/monitor-production.sh` | `.github/workflows/production-monitor.yml` (daily, 06:00 UTC) | Synthetic monitoring of the live deployment (`cachy.app`, not CI/localhost): health check, security headers, Lighthouse score. Writes a report artifact and, on a regression, opens a Jules session via `jules/create-session.sh` to propose a fix PR. Never touches deploy or exchange credentials. |
-| `jules/dispatch-backlog.mjs` | `.github/workflows/backlog-dispatch.yml` (weekly, Mon 07:00 UTC) | Sends `docs/backlog/` items with `status: ready` to Jules, excluding `execution`/`security`/`exchange` areas and `P0` priority (those stay manual). De-dups against recent Jules sessions, capped at `JULES_MAX_PER_RUN` (default 5) per run. |
+| `monitor-production.sh` | `.github/workflows/production-monitor.yml` (daily, 06:00 UTC) | Synthetic monitoring of the live deployment (`cachy.app`, not CI/localhost): health check, security headers, Lighthouse score. Writes a report artifact and an optional Discord notification. Never touches deploy or exchange credentials. |
 
 ## Run by hand, and worth keeping
 
@@ -59,7 +58,7 @@ Real tools with a clear job. None of them run on their own.
 | `brain/` | A separate Python project — `train.py`, `export.py`, `requirements.txt` and its own README. Not part of the app build. |
 | `pine/` | 18 publicly available Pine Script indicator sources (ADX, MACD, Ichimoku, SuperTrend, …). Reference material for the indicator implementations in `src/utils/indicators.ts`, not executable here. |
 | `maintenance/` | Four one-shot patch scripts (`fix_left_panel.py`, `fix_registry_journal.py`, `fix_window_container.py`, `patch_news_final_clean.js`) written to perform a specific refactor once. They are **not idempotent** and are not meant to be run again — they are kept as a record of what was changed. Do not run one to find out what it does. |
-| `jules/` | Wrappers around the [Jules API](https://developers.google.com/jules/api) (`create-session.sh`, `list-sources.sh`) plus `monitor-production.sh` (wired into `production-monitor.yml`). See `jules/README.md` for setup. Needs `JULES_API_KEY` / `JULES_SOURCE`, never commit the key. |
+
 
 ---
 
