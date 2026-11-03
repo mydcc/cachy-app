@@ -43,8 +43,9 @@ import { afterNavigate } from "$app/navigation";
   // FEAT-0257 follow-up: FireOverlay / AmbientTopline / FXOverlay are NOT
   // statically imported here — each pulls the ~0.5 MB three-vendor chunk.
   // Each component is loaded via dynamic import only when its effect is
-  // enabled/triggered, and a failed import is logged and retried on the
-  // next trigger.
+  // enabled/triggered. A failed import goes through handleLazyLoadFailure:
+  // a stale deployment reloads once, everything else is logged and retried
+  // on the next trigger.
   import { _ } from "../locales/i18n";
   import { effectsState } from "../stores/effects.svelte";
 
@@ -58,6 +59,7 @@ import { afterNavigate } from "$app/navigation";
 
   import { browser } from "$app/env";
   import { themeBackground } from "../lib/themeBackgrounds";
+  import { handleLazyLoadFailure } from "../lib/staleDeploymentRecovery";
 
   interface Props {
     children?: import("svelte").Snippet;
@@ -79,7 +81,7 @@ import { afterNavigate } from "$app/navigation";
     if (uiState.showMarketDashboardModal && !MarketDashboardModalComponent) {
       import("../components/shared/MarketDashboardModal.svelte")
         .then((m) => (MarketDashboardModalComponent = m.default))
-        .catch((err) => console.error("Failed to load MarketDashboardModal", err));
+        .catch((err) => handleLazyLoadFailure("MarketDashboardModal", err));
     }
   });
 
@@ -89,7 +91,7 @@ import { afterNavigate } from "$app/navigation";
     if (uiState.showAlertsModal && !AlertPanelComponent) {
       import("../components/alerts/AlertPanel.svelte")
         .then((m) => (AlertPanelComponent = m.default))
-        .catch((err) => console.error("Failed to load AlertPanel", err));
+        .catch((err) => handleLazyLoadFailure("AlertPanel", err));
     }
   });
 
@@ -97,7 +99,7 @@ import { afterNavigate } from "$app/navigation";
     if (autoBackupState.pendingRestore && !AutoBackupRestoreModalComponent) {
       import("../components/shared/AutoBackupRestoreModal.svelte")
         .then((m) => (AutoBackupRestoreModalComponent = m.default))
-        .catch((err) => console.error("Failed to load AutoBackupRestoreModal", err));
+        .catch((err) => handleLazyLoadFailure("AutoBackupRestoreModal", err));
     }
   });
 
@@ -105,7 +107,7 @@ import { afterNavigate } from "$app/navigation";
     if (uiState.tooltip.visible && uiState.tooltip.type === "order" && !OrderDetailsTooltipComponent) {
       import("../components/shared/OrderDetailsTooltip.svelte")
         .then((m) => (OrderDetailsTooltipComponent = m.default))
-        .catch((err) => console.error("Failed to load OrderDetailsTooltip", err));
+        .catch((err) => handleLazyLoadFailure("OrderDetailsTooltip", err));
     }
   });
 
@@ -113,7 +115,7 @@ import { afterNavigate } from "$app/navigation";
     if (settingsState.enableAmbientTopline && !AmbientToplineComponent) {
       import("../components/shared/AmbientTopline.svelte")
         .then((m) => (AmbientToplineComponent = m.default))
-        .catch((err) => console.error("Failed to load AmbientTopline", err));
+        .catch((err) => handleLazyLoadFailure("AmbientTopline", err));
     }
   });
 
@@ -121,7 +123,7 @@ import { afterNavigate } from "$app/navigation";
     if (settingsState.enableBurningBorders && !FireOverlayComponent) {
       import("../components/shared/FireOverlay.svelte")
         .then((m) => (FireOverlayComponent = m.default))
-        .catch((err) => console.error("Failed to load FireOverlay", err));
+        .catch((err) => handleLazyLoadFailure("FireOverlay", err));
     }
   });
 
@@ -139,7 +141,7 @@ import { afterNavigate } from "$app/navigation";
     if (!hasEvents || FXOverlayComponent) return;
     import("../components/shared/FXOverlay.svelte")
       .then((m) => (FXOverlayComponent = m.default))
-      .catch((err) => console.error("Failed to load FXOverlay", err));
+      .catch((err) => handleLazyLoadFailure("FXOverlay", err));
   });
 
   // A disabled duck never needs the 3D overlay. Drain its queue here so it

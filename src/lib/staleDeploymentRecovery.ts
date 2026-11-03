@@ -85,6 +85,27 @@ export function scheduleStaleReload(): boolean {
   return true;
 }
 
+/**
+ * Routes a failed lazy import. A stale chunk schedules the one-shot reload;
+ * anything else is logged and retried on the next trigger. The callbacks are
+ * injectable so the decision can be tested without timers or a browser.
+ */
+export function handleLazyLoadFailure(
+  label: string,
+  error: unknown,
+  options: {
+    reload?: () => void;
+    log?: (message: string, error: unknown) => void;
+  } = {},
+): "reload" | "log" {
+  if (isStaleChunkError(error)) {
+    (options.reload ?? scheduleStaleReload)();
+    return "reload";
+  }
+  (options.log ?? console.error)(`Failed to load ${label}`, error);
+  return "log";
+}
+
 export function installStaleDeploymentRecovery(): () => void {
   const onUnhandledRejection = (event: PromiseRejectionEvent) => {
     if (isStaleChunkError(event.reason)) {

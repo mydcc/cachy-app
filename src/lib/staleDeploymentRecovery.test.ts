@@ -163,3 +163,40 @@ describe("installStaleDeploymentRecovery", () => {
     expect(reload).not.toHaveBeenCalled();
   });
 });
+
+describe("handleLazyLoadFailure", () => {
+  it.each([
+    [
+      "Chrome",
+      "Failed to fetch dynamically imported module: https://dev.cachy.app/_app/immutable/chunks/XDJtinBa2.js",
+    ],
+    [
+      "Firefox",
+      "error loading dynamically imported module https://dev.cachy.app/_app/immutable/chunks/XDJtinBa2.js",
+    ],
+    ["Safari", "Importing a module script failed."],
+  ])("schedules one reload for a %s stale chunk", async (_browser, message) => {
+    const mod = await freshModule();
+    const reload = vi.fn();
+    const log = vi.fn();
+
+    const action = mod.handleLazyLoadFailure("AlertPanel", new TypeError(message), { reload, log });
+
+    expect(action).toBe("reload");
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("logs an ordinary failure without reloading", async () => {
+    const mod = await freshModule();
+    const reload = vi.fn();
+    const log = vi.fn();
+    const error = new Error("network down");
+
+    const action = mod.handleLazyLoadFailure("AlertPanel", error, { reload, log });
+
+    expect(action).toBe("log");
+    expect(reload).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith("Failed to load AlertPanel", error);
+  });
+});
