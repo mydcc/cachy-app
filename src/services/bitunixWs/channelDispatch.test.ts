@@ -220,6 +220,45 @@ describe("dispatchMessage fast_kline (BUG-0248)", () => {
   });
 });
 
+describe("dispatchMessage drops timestamp-less klines (BUG-0741)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not push a fast_kline candle when neither data nor the message carries a time", () => {
+    const ctx = makeContext();
+    dispatchMessage(
+      {
+        type: "fast_kline",
+        symbol: "BTCUSDT",
+        timeframe: "1h",
+        rawSymbol: "BTCUSDT",
+        data: { o: "68581.4", h: "68590", l: "68579.5", c: "68583.4", b: "5.2395", q: "359348.14078" },
+      },
+      ctx
+    );
+
+    expect(marketState.updateSymbolKlines).not.toHaveBeenCalled();
+  });
+
+  it("does not push a validated market_kline candle when ts is missing", () => {
+    const ctx = makeContext();
+    dispatchMessage(
+      {
+        type: "validated",
+        message: {
+          ch: "market_kline_60min",
+          symbol: "BTCUSDT",
+          data: { o: "68581.4", h: "68590", l: "68579.5", c: "68583.4", b: "5.2395", q: "359348.14078" },
+        },
+      },
+      ctx
+    );
+
+    expect(marketState.updateSymbolKlines).not.toHaveBeenCalled();
+  });
+});
+
 describe("dispatchMessage tp_sl channel", () => {
   beforeEach(() => {
     vi.clearAllMocks();

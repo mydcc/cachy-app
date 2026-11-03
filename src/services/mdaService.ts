@@ -103,9 +103,14 @@ export const mdaService = {
                 const close = k.close || k.c;
                 // Invalid candle check
                 if (open === undefined || close === undefined) return null;
+                // A candle without a usable time cannot key buffer updates
+                // (NaN never equals the last candle's time), so drop it here
+                // instead of passing NaN downstream (BUG-0741).
+                const time = Number(k.time || k.t || k.ts || k.timestamp);
+                if (!Number.isFinite(time) || time <= 0) return null;
 
                 return {
-                    time: Number(k.time || k.t || k.ts || k.timestamp),
+                    time: time,
                     open: open,
                     high: k.high || k.h || open, // Fallback to open if high missing? Or strict?
                     low: k.low || k.l || open,
@@ -121,9 +126,12 @@ export const mdaService = {
             const open = k[1] || k.open;
             const close = k[4] || k.close;
             if (open === undefined || close === undefined) return null;
+            // Same time guard as the Bitunix branch above (BUG-0741).
+            const time = Number(k[0] || k.time);
+            if (!Number.isFinite(time) || time <= 0) return null;
 
             return {
-                time: Number(k[0] || k.time),
+                time: time,
                 open: open,
                 high: k[2] || k.high || open,
                 low: k[3] || k.low || open,

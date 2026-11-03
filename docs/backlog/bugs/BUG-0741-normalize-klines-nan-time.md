@@ -2,7 +2,9 @@
 id: BUG-0741
 title: normalizeKlines returns a NaN candle time instead of dropping a timestamp-less kline
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/BUG-0741-normalize-klines-nan-time
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -96,10 +98,10 @@ an invented time would overwrite or append a candle that never existed.
 
 ## Acceptance criteria
 
-- [ ] `src/services/mdaService.test.ts` covers both branches: a kline with a valid time keeps it, a kline with no time alias is dropped instead of returned with `NaN`
-- [ ] The new test fails without the fix (returned candle with `NaN`) and passes with it
-- [ ] A `dispatchMessage` test feeds a `market_kline` message without a numeric `ts` and asserts that no candle with a non-finite time reaches the buffer
-- [ ] The existing `channelDispatch` timestamp tests stay green — call-site injection is unchanged
+- [x] `src/services/mdaService.test.ts` covers both branches: a kline with a valid time keeps it, a kline with no time alias is dropped instead of returned with `NaN`
+- [x] The new test fails without the fix (returned candle with `NaN`) and passes with it
+- [x] A `dispatchMessage` test feeds a `market_kline` message without a numeric `ts` and asserts that no candle with a non-finite time reaches the buffer
+- [x] The existing `channelDispatch` timestamp tests stay green — call-site injection is unchanged
 
 ## Links
 

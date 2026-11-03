@@ -76,3 +76,48 @@ describe('mdaService Data Hardening', () => {
       expect(typeof normalized!.lastPrice).toBe('string');
   });
 });
+
+describe('mdaService normalizeKlines time hardening (BUG-0741)', () => {
+  it('keeps a Bitunix kline that carries a valid timestamp', () => {
+    const time = 1775541000000;
+    const klines = mdaService.normalizeKlines(
+      [{ time, open: '100', high: '102', low: '99', close: '101' }],
+      'bitunix'
+    );
+
+    expect(klines).toHaveLength(1);
+    expect(klines[0].time).toBe(time);
+    expect(Number.isFinite(klines[0].time)).toBe(true);
+  });
+
+  it('drops a Bitunix kline without any timestamp alias instead of emitting NaN', () => {
+    const klines = mdaService.normalizeKlines(
+      [{ open: '100', high: '102', low: '99', close: '101' }],
+      'bitunix'
+    );
+
+    expect(klines).toHaveLength(0);
+  });
+
+  it('keeps a generic/Bitget kline that carries a valid timestamp', () => {
+    const time = 1775541000000;
+    const klines = mdaService.normalizeKlines(
+      [[time, '100', '102', '99', '101', '1']],
+      'bitget'
+    );
+
+    expect(klines).toHaveLength(1);
+    expect(klines[0].time).toBe(time);
+    expect(Number.isFinite(klines[0].time)).toBe(true);
+  });
+
+  it('drops a generic/Bitget kline without any timestamp alias instead of emitting NaN', () => {
+    const klines = mdaService.normalizeKlines(
+      [{ open: '100', high: '102', low: '99', close: '101' }],
+      'bitget'
+    );
+
+    expect(klines).toHaveLength(0);
+  });
+});
+
