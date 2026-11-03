@@ -6,10 +6,7 @@ status: done
 priority: P2
 milestone: none
 created: 2026-10-22
-editions:
-  - community
-  - pro
-  - private
+editions: [community, pro, private]
 area: ui
 data_class: none
 adr: none
