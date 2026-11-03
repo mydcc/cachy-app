@@ -300,14 +300,18 @@ export function createTpSlService(ports: TpSlPorts): TpSlService {
      */
     async function modifyTpSlOrder(params: ModifyTpSlParams) {
         const wire: Record<string, unknown> = { orderId: params.orderId };
+        // BUG-0777: the chart drag hands over `Decimal.toString()`, which
+        // switches to exponential notation below 1e-6 (`1e-7`). The venue
+        // rejects that, so every leg goes through the same serializer the
+        // create paths use.
         if (params.planType === "PROFIT") {
-            wire.tpPrice = params.triggerPrice;
+            wire.tpPrice = formatApiNum(params.triggerPrice);
             wire.tpStopType = params.stopType ?? "MARK_PRICE";
-            if (params.qty !== undefined) wire.tpQty = params.qty;
+            if (params.qty !== undefined) wire.tpQty = formatApiNum(params.qty);
         } else {
-            wire.slPrice = params.triggerPrice;
+            wire.slPrice = formatApiNum(params.triggerPrice);
             wire.slStopType = params.stopType ?? "MARK_PRICE";
-            if (params.qty !== undefined) wire.slQty = params.qty;
+            if (params.qty !== undefined) wire.slQty = formatApiNum(params.qty);
         }
 
         return ports.gatedRequest({

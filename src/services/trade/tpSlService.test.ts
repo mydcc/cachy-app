@@ -140,6 +140,26 @@ describe("createTpSlService — write ports", () => {
         expect(intent.payload.params.triggerPrice).toBeUndefined();
     });
 
+    // A chart drag hands over `Decimal.toString()`; below 1e-6 that is
+    // "1e-7", which the venue rejects (BUG-0777).
+    it("serialises a chart-dragged sub-micro price without scientific notation", async () => {
+        const chartPrice = new Decimal("0.0000001").toString();
+        expect(chartPrice).toBe("1e-7");
+
+        await svc.modifyTpSlOrder({
+            orderId: "1",
+            symbol: "SOLUSDT",
+            planType: "LOSS",
+            triggerPrice: chartPrice,
+            qty: "1000000",
+        });
+
+        const [intent] = gatedRequest.mock.calls[0];
+        expect(intent.payload.params.slPrice).toBe("0.0000001");
+        expect(intent.payload.params.slQty).toBe("1000000");
+        expect(JSON.stringify(intent.payload.params)).not.toContain("1e-7");
+    });
+
     // Each leg has to land in the slot the gate checks, or the gate is
     // measuring the wrong field (BUG-0505).
     it("states the take-profit and stop-loss legs in the displayed state", async () => {
