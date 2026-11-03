@@ -12,6 +12,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
+branch: refactor/i18n-dialog-followups
 size: S
 ---
 
