@@ -237,10 +237,10 @@ export const newsService = {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
+                  "x-api-key": cryptoPanicApiKey,
                 },
                 body: JSON.stringify({
                   source: "cryptopanic",
-                  apiKey: cryptoPanicApiKey,
                   params,
                   plan: s.cryptoPanicPlan || "developer",
                 }),
@@ -294,10 +294,10 @@ export const newsService = {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
+                  "x-api-key": newsApiKey,
                 },
                 body: JSON.stringify({
                   source: "newsapi",
-                  apiKey: newsApiKey,
                   params,
                 }),
                 signal: controller.signal,

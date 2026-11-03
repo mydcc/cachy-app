@@ -223,4 +223,49 @@ describe('News Service Security', () => {
         const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress: () => '10.2.0.99' } as unknown as Parameters<typeof POST>[0]);
         expect(res.status).toBe(429);
     });
+
+    it('rejects a raw secret header instead of using it as the API key (BUG-0776)', async () => {
+        const requestMock = {
+            headers: new Headers({ 'x-api-secret': 'raw-secret-only' }),
+            json: async () => ({ source: 'newsapi', params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: vi.fn(), getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toContain('Unsupported credential header');
+    });
+
+    it('rejects an apiKey supplied only in the body (BUG-0776)', async () => {
+        const requestMock = {
+            headers: new Headers(),
+            json: async () => ({ source: 'newsapi', apiKey: 'body-only-key', params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: vi.fn(), getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toContain('Missing API Key');
+    });
+
+    it('keeps the raw API key out of the cache map key (BUG-0776)', async () => {
+        const apiKey = 'cache-map-secret';
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ status: "ok", articles: [] }),
+            text: async () => "",
+        });
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': apiKey }),
+            json: async () => ({ source: 'newsapi', params: { q: 'cache-key' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(res.status).toBe(200);
+        expect([..._newsCache.keys()].some((key) => key.includes(apiKey))).toBe(false);
+    });
 });

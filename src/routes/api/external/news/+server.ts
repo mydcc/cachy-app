@@ -8,11 +8,11 @@
  */
 
 import { json } from "@sveltejs/kit";
+import crypto from "node:crypto";
 import type { RequestHandler } from "./$types";
 import { checkClientToken, clientTokenKey, onClientTokenEvicted, TOKEN_MAP_CAP } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
 import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
-import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 
@@ -42,6 +42,15 @@ const pendingRequests = new Map<string, Promise<unknown>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)
 const MAX_CACHE_SIZE = 50;
 
+/**
+ * The cache outlives the request by up to an hour, so the map key must not
+ * carry the raw credential (BUG-0776). SHA-256 keeps the per-key isolation
+ * without keeping the key itself.
+ */
+function hashApiKey(apiKey: string): string {
+  return crypto.createHash("sha256").update(apiKey).digest("hex");
+}
+
 function setCache(key: string, data: unknown) {
   if (_newsCache.has(key)) {
     _newsCache.delete(key);
@@ -63,16 +72,23 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
     const body = await request.json();
     const { source, params, plan } = body;
 
-    // Extract API Key from Header (primary) or Body (fallback)
-    const creds = extractApiCredentials(request, body);
-    apiKey = creds.apiKey || body.apiKey;
+    // News credentials travel in one header only (BUG-0776). The shared
+    // `extractApiCredentials` helper also accepts `x-api-secret`,
+    // `x-api-passphrase` and body fallbacks — credentials this route never
+    // needs and ADR-0013 forbids outside the exchange routes.
+    if (request.headers.has("x-api-secret") || request.headers.has("x-api-passphrase")) {
+      return json({ error: "Unsupported credential header" }, { status: 400 });
+    }
+
+    apiKey = request.headers.get("x-api-key") ?? "";
 
     if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    // Cache key needs apiKey to isolate user quotas/plans
-    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${apiKey}`;
+    // The key isolates user quotas/plans in the cache, but only as a hash:
+    // the map can hold it for up to an hour.
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${hashApiKey(apiKey)}`;
     const now = Date.now();
 
     // Check Cache (before rate limiting so cached responses don't consume quota)

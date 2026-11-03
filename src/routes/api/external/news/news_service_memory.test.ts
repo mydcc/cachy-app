@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createHash } from 'node:crypto';
 import { POST, _newsCache, _rateLimits } from './+server';
 import * as clientToken from '../../../../lib/server/clientToken';
 
@@ -54,11 +55,13 @@ describe('News Service Cache Memory', () => {
         // Optimization: Cache size should be capped at 50
         expect(_newsCache.size).toBe(50);
 
-        // Verify LRU: The last item (99) should exist, the first (0) should not
-        const cacheKeyLast = `newsapi:{"q":"test-99"}:default:test-key`;
+        // Verify LRU: The last item (99) should exist, the first (0) should not.
+        // The trailing segment is the key hash, never the raw key (BUG-0776).
+        const keyHash = createHash("sha256").update("test-key").digest("hex");
+        const cacheKeyLast = `newsapi:{"q":"test-99"}:default:${keyHash}`;
         expect(_newsCache.has(cacheKeyLast)).toBe(true);
 
-        const cacheKeyFirst = `newsapi:{"q":"test-0"}:default:test-key`;
+        const cacheKeyFirst = `newsapi:{"q":"test-0"}:default:${keyHash}`;
         expect(_newsCache.has(cacheKeyFirst)).toBe(false);
     });
 });
