@@ -638,7 +638,24 @@ import { afterNavigate } from "$app/navigation";
   <AutoBackupRestoreModalComponent />
 {/if}
 
-<WindowContainer />
+<svelte:boundary>
+  {#snippet failed(_error, reset)}
+    <div class="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--overlay-color)] p-4" role="alert">
+      <div class="max-w-md rounded-lg bg-[var(--bg-primary)] p-6 text-center shadow-xl">
+        <h2 class="text-lg font-semibold">{$_("errorBoundary.title")}</h2>
+        <p class="mt-2 text-sm opacity-80">{$_("errorBoundary.message")}</p>
+        <button
+          type="button"
+          class="mt-4 rounded-md border px-4 py-2 text-sm font-medium"
+          onclick={() => (typeof window !== "undefined" ? window.location.reload() : reset())}
+        >
+          {$_("errorBoundary.reload")}
+        </button>
+      </div>
+    </div>
+  {/snippet}
+  <WindowContainer />
+</svelte:boundary>
 <WindowSwitcherHost />
 <ToastContainer />
 <GlobalTracker />

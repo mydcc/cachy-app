@@ -4787,6 +4787,11 @@
       "confirmPositionModeLine": "Positions-Modus → {to}"
     }
   },
+  "errorBoundary": {
+    "title": "Etwas ist schiefgelaufen",
+    "message": "Ein unerwarteter Fehler ist aufgetreten. Lade die Seite neu, um fortzufahren.",
+    "reload": "Neu laden"
+  },
   "orderEntry": {
     "title": "Diese Position platzieren",
     "notReady": "Erst Einstiegskurs und Stop eingeben, damit eine Positionsgröße berechnet werden kann.",
