@@ -31,6 +31,11 @@ class NewsStore {
   // not something the UI renders.
   private readonly pendingSymbols = new Set<string>();
 
+  // PA-03: a refresh that resolves after the symbol moved must not overwrite
+  // the newer symbol's news/sentiment. Every real fetch captures a generation;
+  // a write is applied only while that generation is still the current one.
+  private generation = 0;
+
   async refresh(symbol?: string, force = false) {
     if (!settingsState.enableNewsAnalysis) return;
 
@@ -72,28 +77,34 @@ class NewsStore {
       }
     }
 
+    const generation = ++this.generation;
     this.isLoading = true;
     this.error = null;
     this.lastSymbol = symbol;
 
     try {
       const items = await newsService.fetchNews(symbol);
+      // PA-03: a newer refresh started while this one was in flight — drop
+      // this result instead of writing it under the new symbol.
+      if (generation !== this.generation) return;
       this.news = items || [];
       this.lastFetchTime = Date.now();
 
       if (this.news.length > 0) {
         const analysis = await newsService.analyzeSentiment(this.news);
+        if (generation !== this.generation) return;
         this.sentiment = analysis;
       } else {
         this.sentiment = null;
       }
     } catch (e) {
+      if (generation !== this.generation) return;
       logger.error("market", "Refresh failed", e);
       this.error = (e instanceof Error ? e.message : null) || "Failed to load news";
       // Update fetch time even on error to enforce cooldown
       this.lastFetchTime = Date.now();
     } finally {
-      this.isLoading = false;
+      if (generation === this.generation) this.isLoading = false;
     }
     } finally {
       // Runs for every exit path, including the cooldown early-returns above,

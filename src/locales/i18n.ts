@@ -23,6 +23,7 @@ import {
 } from "svelte-i18n";
 import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
+import { StorageHelper } from "../utils/storageHelper";
 
 
 
@@ -304,8 +305,11 @@ function syncDocumentLang(value: string) {
 // store, so the settings -> ui -> i18n cycle stays gone.
 locale.subscribe((value) => {
   if (value) {
+    // PA-04: a full quota must not throw on every locale change. safeSave
+    // catches QuotaExceededError, cleans cache and retries; the chosen locale
+    // still applies for the session, it just may not survive a reload.
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem("locale", value);
+      StorageHelper.safeSave("locale", value);
     }
     syncDocumentLang(value);
     void updateEffectiveLocale(false);

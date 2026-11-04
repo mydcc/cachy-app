@@ -28,6 +28,7 @@ import { computeSnapGeometry, readShellInsets, isSnapZone } from "./snapping";
 import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
+import { StorageHelper } from "../../utils/storageHelper";
 import { readWindowRules } from "./windowRuleSource";
 import type { WindowRule } from "../../stores/settings/settingsTypes";
 import {
@@ -205,6 +206,8 @@ export abstract class WindowBase {
     canMinimizeToPanel = $state(true);
     /** If true, state is persisted to LocalStorage. */
     persistent = $state(true);
+    /** PA-04: set when a layout write fails (quota) so the UI can surface it. */
+    persistFailed = $state(false);
     allowMultipleInstances = $state(false);
     centerByDefault = $state(false);
     showHeaderIndicators = $state(false);
@@ -542,7 +545,18 @@ export abstract class WindowBase {
     /** Serialize reactive state to persistent storage. */
     public saveState() {
         if (typeof localStorage === 'undefined' || !this.persistent) return;
-        localStorage.setItem(this.storageKey, JSON.stringify(this.persistedSnapshot));
+        // PA-04: a full storage quota must not throw a QuotaExceededError into
+        // the global handler on every drag/resize/zoom. The wrapper logs the
+        // failure and returns false; the layout then simply does not persist.
+        const ok = StorageHelper.safeSave(
+            this.storageKey,
+            JSON.stringify(this.persistedSnapshot),
+        );
+        if (!ok) {
+            this.persistFailed = true;
+        } else if (this.persistFailed) {
+            this.persistFailed = false;
+        }
     }
 
     /** Rehydrate state from storage if available, then apply a matching rule. */

@@ -746,3 +746,35 @@ describe("WindowBase registry geometry (BUG-0696)", () => {
         expect(win.minWidth).toBe(0);
     });
 });
+
+/**
+ * PA-04 — a full localStorage quota must not throw out of `saveState()` into
+ * the global handler on every drag/resize/zoom. The write is routed through
+ * `StorageHelper.safeSave`, so the failure is contained and flagged.
+ */
+describe("WindowBase persistence (PA-04)", () => {
+    it("does not throw when localStorage is full and flags persistFailed", () => {
+        const win = makeTestWindow();
+        const quotaError = new Error("quota exceeded");
+        quotaError.name = "QuotaExceededError";
+        const setItem = vi
+            .spyOn(localStorage, "setItem")
+            .mockImplementation(() => {
+                throw quotaError;
+            });
+
+        try {
+            expect(() => win.saveState()).not.toThrow();
+            expect(win.persistFailed).toBe(true);
+        } finally {
+            setItem.mockRestore();
+        }
+    });
+
+    it("clears persistFailed after a successful save", () => {
+        const win = makeTestWindow();
+        win.persistFailed = true;
+        win.saveState();
+        expect(win.persistFailed).toBe(false);
+    });
+});

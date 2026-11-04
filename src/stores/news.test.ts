@@ -152,6 +152,45 @@ describe("NewsStore", () => {
     expect(newsStore.sentiment).toBeNull();
   });
 
+  it("discards a slow result when the symbol moved while it was in flight (PA-03)", async () => {
+      // BTC's fetch stays pending; ETH's resolves first. The BTC result must
+      // not be written over ETH's news/sentiment once it finally arrives.
+      let resolveBtc: ((items: NewsItem[]) => void) | undefined;
+      mockFetchNews.mockImplementation((symbol: string) => {
+        if (symbol === "BTC") {
+          return new Promise<NewsItem[]>((resolve) => {
+            resolveBtc = resolve;
+          });
+        }
+        return Promise.resolve([
+          { title: "ETH News", url: "http://eth.com", source: "Test", published_at: "2023-01-03" },
+        ]);
+      });
+      mockAnalyzeSentiment.mockResolvedValue({
+        score: 0.5,
+        regime: "NEUTRAL",
+        summary: "Neutral",
+        keyFactors: [],
+      });
+
+      const btcRequest = newsStore.refresh("BTC", true);
+      await Promise.resolve(); // let the BTC fetch reach its await
+
+      await newsStore.refresh("ETH", true);
+      expect(newsStore.news[0]?.title).toBe("ETH News");
+      expect(newsStore.lastSymbol).toBe("ETH");
+
+      // The slow BTC request finishes last; its result is stale.
+      resolveBtc?.([
+        { title: "BTC News", url: "http://btc.com", source: "Test", published_at: "2023-01-01" },
+      ]);
+      await btcRequest;
+
+      expect(newsStore.news[0]?.title).toBe("ETH News");
+      expect(newsStore.lastSymbol).toBe("ETH");
+      expect(newsStore.isLoading).toBe(false);
+  });
+
   it("should skip concurrent requests", async () => {
       mockFetchNews.mockImplementationOnce(
         () =>
