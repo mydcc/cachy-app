@@ -28,6 +28,7 @@ import { computeSnapGeometry, readShellInsets, isSnapZone } from "./snapping";
 import type { SnapZone } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
+import { StorageHelper } from "../../utils/storageHelper";
 import { readWindowRules } from "./windowRuleSource";
 import type { WindowRule } from "../../stores/settings/settingsTypes";
 import {
@@ -539,10 +540,35 @@ export abstract class WindowBase {
         };
     }
 
-    /** Serialize reactive state to persistent storage. */
+    /**
+     * Best-effort persist of the reactive state.
+     *
+     * BUG-0786: a full quota — or a blocked-storage `SecurityError` — must not
+     * throw into the global handler on every gesture-end save. `safeSave`
+     * evicts cached entries and retries once for a quota hit; anything else is
+     * logged here. The layout then simply does not survive a reload.
+     */
     public saveState() {
-        if (typeof localStorage === 'undefined' || !this.persistent) return;
-        localStorage.setItem(this.storageKey, JSON.stringify(this.persistedSnapshot));
+        if (!this.persistent) return;
+        try {
+            // The `localStorage` property access itself throws when storage is
+            // blocked, so it belongs inside the try.
+            if (typeof localStorage === 'undefined') return;
+            const ok = StorageHelper.safeSave(
+                this.storageKey,
+                JSON.stringify(this.persistedSnapshot),
+            );
+            if (!ok) {
+                console.warn(
+                    `[WindowBase] Layout for ${this.storageKey} could not be persisted; it will not survive a reload.`,
+                );
+            }
+        } catch (e) {
+            console.warn(
+                `[WindowBase] Layout for ${this.storageKey} could not be persisted.`,
+                e,
+            );
+        }
     }
 
     /** Rehydrate state from storage if available, then apply a matching rule. */

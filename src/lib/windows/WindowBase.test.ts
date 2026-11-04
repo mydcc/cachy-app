@@ -746,3 +746,47 @@ describe("WindowBase registry geometry (BUG-0696)", () => {
         expect(win.minWidth).toBe(0);
     });
 });
+
+/**
+ * BUG-0786 — a full localStorage quota, or blocked storage, must not throw out
+ * of `saveState()` into the global handler on a gesture-end save. The write goes
+ * through `StorageHelper.safeSave`, which contains the quota failure.
+ */
+describe("WindowBase persistence (BUG-0786)", () => {
+    it("does not throw when the quota is full, and still writes on success", () => {
+        const win = makeTestWindow();
+        const quotaError = new DOMException("quota", "QuotaExceededError");
+        const setItem = vi
+            .spyOn(localStorage, "setItem")
+            .mockImplementation(() => {
+                throw quotaError;
+            });
+
+        try {
+            expect(() => win.saveState()).not.toThrow();
+        } finally {
+            setItem.mockRestore();
+        }
+
+        // The failure is contained, not a silent early return: a later save
+        // still reaches storage.
+        win.saveState();
+        expect(localStorage.getItem(win.storageKey)).toBeTruthy();
+    });
+
+    it("does not throw when storage is blocked (SecurityError)", () => {
+        const win = makeTestWindow();
+        const blocked = new DOMException("blocked", "SecurityError");
+        const setItem = vi
+            .spyOn(localStorage, "setItem")
+            .mockImplementation(() => {
+                throw blocked;
+            });
+
+        try {
+            expect(() => win.saveState()).not.toThrow();
+        } finally {
+            setItem.mockRestore();
+        }
+    });
+});

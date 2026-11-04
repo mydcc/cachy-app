@@ -23,6 +23,7 @@ import {
 } from "svelte-i18n";
 import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
+import { StorageHelper } from "../utils/storageHelper";
 
 
 
@@ -304,8 +305,27 @@ function syncDocumentLang(value: string) {
 // store, so the settings -> ui -> i18n cycle stays gone.
 locale.subscribe((value) => {
   if (value) {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("locale", value);
+    try {
+      // BUG-0786: a full quota — or blocked storage, where the `localStorage`
+      // property access itself throws — must not escape from every locale
+      // change. The locale still applies for the session; it just may not
+      // survive a reload.
+      if (
+        typeof localStorage !== "undefined" &&
+        localStorage.getItem("locale") !== value
+      ) {
+        const ok = StorageHelper.safeSave("locale", value);
+        if (!ok) {
+          console.warn(
+            "[i18n] Locale could not be persisted; it will revert on reload.",
+          );
+        }
+      }
+    } catch (e) {
+      console.warn(
+        "[i18n] Locale could not be persisted; it will revert on reload.",
+        e,
+      );
     }
     syncDocumentLang(value);
     void updateEffectiveLocale(false);
