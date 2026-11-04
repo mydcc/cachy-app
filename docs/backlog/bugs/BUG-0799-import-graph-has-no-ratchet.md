@@ -12,6 +12,7 @@ adr: none
 depends_on: []
 assignee: opencode
 branch: chore/arch-cycle-ratchet
+shipped: PR #4532
 ---
 
 # BUG-0799 — The import graph has no ratchet (W1-02 / B4)
