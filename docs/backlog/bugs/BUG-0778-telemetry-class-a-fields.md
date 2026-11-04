@@ -2,7 +2,7 @@
 id: BUG-0778
 title: Telemetry sends Class A settings and symbol-bearing window ids
 type: bug
-status: in-progress
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
