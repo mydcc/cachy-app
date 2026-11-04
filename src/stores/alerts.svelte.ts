@@ -139,11 +139,12 @@ class AlertsManager {
      * Candle gaps the loop found for series an armed rule watches.
      *
      * The reactive mirror of `ruleEvaluationLoop.seriesGaps()`, written only by
-     * the subscriber below. One entry per series and session: a missing candle
-     * means that close was never evaluated, which is exactly what a trader
-     * needs to know before trusting a silent alarm. This replaces the
-     * flush-cadence toast that used to report a "gap" caused by a throttled
-     * background tab.
+     * the subscriber below and refreshed on every change to that record — a new
+     * gap, a forgotten series, a reset. One entry per series until it is
+     * evicted: a missing candle means that close was never evaluated, which is
+     * exactly what a trader needs to know before trusting a silent alarm. This
+     * replaces the flush-cadence toast that used to report a "gap" caused by a
+     * throttled background tab.
      */
     seriesGapReport = $state<SeriesGap[]>([]);
 }

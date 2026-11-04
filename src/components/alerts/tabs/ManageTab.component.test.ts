@@ -402,12 +402,11 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     const el = render();
 
-    expect(el.textContent).toContain(getNestedTranslation("dashboard.alerts.seriesGapTitle"));
-    expect(el.textContent).toContain(
-      getNestedTranslation("dashboard.alerts.seriesGapRow", {
-        values: { symbol: "ETHUSDT", timeframe: "1m", candles: 2 },
-      }),
-    );
+    // Literal text, not the same helper the component's `$_` is: the helper
+    // returns the key path when a translation is missing, so comparing against
+    // it would keep passing after a rename.
+    expect(el.textContent).toContain("Candle gaps detected");
+    expect(el.textContent).toContain("ETHUSDT (1m) — missing candles: 2");
     // A gap in the data is a fact about what was evaluated, not a fault the
     // trader has to act on right now — the old red toast made it look like one.
     expect(el.querySelector("[role='alert']")).toBeNull();

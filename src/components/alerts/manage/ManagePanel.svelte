@@ -389,8 +389,8 @@
   The honest gap report: a candle period that never arrived for a series an
   armed rule watches. Not a toast and not an error — it is a fact about the
   data the alarm was evaluated on, and it belongs next to the alarms. One row
-  per series per session (the loop keeps the record); a background tab alone
-  never produces one.
+  per series until it is evicted (the loop keeps the record); a throttled
+  background tab produces none, only a candle jump does.
 -->
 {#if alertState.seriesGapReport.length > 0}
     <div class="engine-info" role="status">

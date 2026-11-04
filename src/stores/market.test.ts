@@ -255,23 +255,24 @@ describe('MarketManager', () => {
   // flush timer, so switching away and back produced it without a single
   // candle missing — the alert loop now reports real candle gaps instead,
   // derived from open times. This pins the store to stay silent.
-  it('does not raise a gap toast after a long pause between kline flushes', async () => {
-    const internals = market as unknown as {
-      flushUpdates: () => void;
-      lastFlushTime?: number;
-    };
+  //
+  // The timestamp that detector compared is gone, so a pause cannot be seeded
+  // any more; what is left to guard is that a flush applies its batch without
+  // raising anything. The length assertion is the part that fails if
+  // `flushUpdates()` ever early-returns — without it this test would stay green
+  // while asserting nothing.
+  it('applies a kline batch without raising a data-gap toast', async () => {
+    const internals = market as unknown as { flushUpdates: () => void };
     const errorSpy = vi.spyOn(toastService, 'error');
-    // The exact state the removed detector read: the last kline flush is 15s
-    // old, which is what a hidden tab left behind.
-    internals.lastFlushTime = Date.now() - 15_000;
 
-    market.updateSymbolKlines('BTCUSDT', '1m', [createKline(0, 100)], 'ws');
+    market.updateSymbolKlines('BTCUSDT', '1m', [createKline(1_000, 100)], 'ws');
     internals.flushUpdates();
 
     // The removed path created its toast from a dynamic import; give that
     // microtask chain a turn before asserting silence.
     await new Promise((resolve) => setTimeout(resolve, 0));
 
+    expect(market.data['BTCUSDT'].klines['1m']).toHaveLength(1);
     expect(errorSpy).not.toHaveBeenCalled();
     errorSpy.mockRestore();
   });

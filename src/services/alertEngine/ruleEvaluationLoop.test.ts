@@ -1282,7 +1282,40 @@ describe("RuleEvaluationLoop", () => {
       expect(loop.seriesGaps()).toHaveLength(1);
     });
 
-    it("tells subscribers once, and forgets on reset", () => {
+    it("reports nothing for a timeframe it cannot parse", () => {
+      // `safeTfToMs` defaults to one minute, so without the explicit NaN this
+      // jump would be counted against a 1m grid and report 525 600 candles.
+      const loop = gapLoop({ trigger_timeframe: "1y" });
+
+      loop.observeCandles("BTCUSDT", "1y", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1y", [{ time: 1_000 + 365 * 24 * 60 * 60 * 1000 }]);
+
+      expect(loop.seriesGaps()).toEqual([]);
+    });
+
+    it("counts against the series' own interval, not a minute", () => {
+      const loop = gapLoop({ trigger_timeframe: "4h" });
+      const fourHours = 4 * 60 * 60 * 1000;
+
+      loop.observeCandles("BTCUSDT", "4h", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "4h", [{ time: 1_000 + 2 * fourHours }]);
+
+      expect(loop.seriesGaps()).toHaveLength(1);
+      expect(loop.seriesGaps()[0].missingCandles).toBe(1);
+    });
+
+    it("counts only the periods the batch did not carry", () => {
+      const loop = gapLoop();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      // Three periods jumped, one of them delivered: two closes replayed, one
+      // period genuinely missing.
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }, { time: 181_000 }]);
+
+      expect(loop.seriesGaps()[0].missingCandles).toBe(1);
+    });
+
+    it("tells subscribers once when a gap is recorded", () => {
       const seen: number[] = [];
       const loop = gapLoop();
       const unsubscribe = loop.subscribeSeriesGaps((gaps) => seen.push(gaps.length));
@@ -1293,9 +1326,81 @@ describe("RuleEvaluationLoop", () => {
       unsubscribe();
 
       expect(seen).toEqual([1]);
+    });
 
+    it("still evaluates the batch when gap detection itself fails", () => {
+      // `readRules` is injected, and it is called from inside `advance()` after
+      // the high-water mark has already moved. A throw there must not abandon
+      // the closes below — they could never be replayed. The detector is
+      // replaced directly, so this stays true for any future failure inside it,
+      // not just the current reader call.
+      const { loop, onFiring } = loopWith([rule()]);
+      const detection = vi
+        .spyOn(
+          loop as unknown as { reportSeriesGap: (...args: unknown[]) => void },
+          "reportSeriesGap",
+        )
+        .mockImplementation(() => {
+          throw new Error("boom");
+        });
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+
+      // The detector really ran and really threw; the close was still evaluated.
+      expect(detection).toHaveBeenCalledTimes(1);
+      expect(onFiring).toHaveBeenCalledTimes(1);
+    });
+
+    it("tells subscribers when reset clears the record", () => {
+      // Without the emit, the panel keeps a row for a record that is gone.
+      const seen: number[] = [];
+      const loop = gapLoop();
+      loop.subscribeSeriesGaps((gaps) => seen.push(gaps.length));
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
       loop.reset();
+
+      expect(seen).toEqual([1, 0]);
       expect(loop.seriesGaps()).toEqual([]);
+    });
+
+    it("tells subscribers when an eviction forgets a symbol", () => {
+      const seen: number[] = [];
+      const loop = gapLoop();
+      loop.subscribeSeriesGaps((gaps) => seen.push(gaps.length));
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+      loop.forgetSymbol("BTCUSDT");
+
+      expect(seen).toEqual([1, 0]);
+      expect(loop.seriesGaps()).toEqual([]);
+    });
+
+    it("tells subscribers when one series is forgotten", () => {
+      const seen: number[] = [];
+      const loop = gapLoop();
+      loop.subscribeSeriesGaps((gaps) => seen.push(gaps.length));
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+      loop.forgetSeries("BTCUSDT", "1m");
+
+      expect(seen).toEqual([1, 0]);
+      expect(loop.seriesGaps()).toEqual([]);
+    });
+
+    it("stays silent when forgetting a series that never gapped", () => {
+      const seen: number[] = [];
+      const loop = gapLoop();
+      loop.subscribeSeriesGaps((gaps) => seen.push(gaps.length));
+
+      loop.forgetSymbol("BTCUSDT");
+      loop.reset();
+
+      expect(seen).toEqual([]);
     });
   });
 });

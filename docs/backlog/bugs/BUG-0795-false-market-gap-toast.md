@@ -31,8 +31,9 @@ introduced by BUG-0217.
 
 ## Evidence
 
-Demonstrated. The toast is raised by `MarketManager.flushUpdates()`
-(`src/stores/market.svelte.ts:290-303` before this change):
+Demonstrated. The toast was raised by `MarketManager.flushUpdates()`
+(`src/stores/market.svelte.ts:292-303` before this change; abridged below — the
+real block also resolved the translator and swallowed the import failure):
 
 ```ts
 if (this.pendingUpdates.size > 0 || this.pendingKlineUpdates.size > 0) {
@@ -55,29 +56,30 @@ between two flushes, and the first kline flush after the return raises the
 toast. The toast can be created while the tab is hidden and only become visible
 on return, because the 5 s dismissal timer of `toastService` is throttled too.
 
-A regression test now pins the store to stay silent: it sets `lastFlushTime`
-15 s in the past, flushes one kline batch and asserts `toastService.error` was
-not called. Against the old code it fails with exactly
-`dashboard.alerts.gapDetected`.
+A regression test now pins the store to stay silent: it flushes one kline batch
+through the real path, asserts the close actually landed (so an early return
+cannot make the test vacuous) and that `toastService.error` was not called.
+Against the old code it fails with exactly `dashboard.alerts.gapDetected`.
 
 ## Cause
 
 Three separate defects in one block:
 
-1. **It measured flush cadence, not data.** `lastFlushTime` is the last flush
-   that *carried klines*, and it is only written inside the same block. An idle
-   series (early return, no buffered data) leaves it old, so the next candle
-   after a quiet minute looks like a gap even though there was nothing to
-   process.
+1. **It measured flush cadence, not data.** `lastFlushTime` is store-global, not
+   per-series: it is only written by a flush that carried klines, and any other
+   symbol's flush refreshes it. Its age therefore says nothing about a
+   particular series — a first candle after a globally quiet window looks like a
+   gap even when nothing was missed.
 2. **The condition is half dead.** The check runs after
-   `pendingUpdates.clear()` (`market.svelte.ts:284-287`), so
+   `pendingUpdates.clear()` (`market.svelte.ts:288-289`), so
    `pendingUpdates.size > 0` is always false there. Only a kline flush can
    trigger it, which is why price-only symbols never showed the toast.
 3. **The wording is stale.** Since FEAT-0399 nothing evaluates on price ticks
-   (`applyUpdate.ts` says so explicitly); alerts run on candle close, and
-   `ruleEvaluationLoop.advance()` already reports every skipped close, which
-   `observeCandles` replays oldest-first (BUG-0483 part 2). A real connection
-   loss is signalled by `OfflineBanner`, not by this toast.
+   (`applyUpdate.ts` says so explicitly); alerts run on candle close, and the
+   closes a batch *carries* are replayed oldest-first (BUG-0483 part 2). A close
+   it does not carry is the hole this change now reports instead of toasting
+   about. A real connection loss is signalled by `OfflineBanner`, not by this
+   toast.
 
 The toast therefore made a designed, handled reconnect look like a fault, and
 described a "missed intermediate prices" path that no longer exists.
@@ -94,11 +96,12 @@ Two halves, one honest signal:
   period neither the live stream nor a backfill carried is recorded once per
   `symbol:timeframe` in `RuleEvaluationLoop.seriesGaps()`, mirrored into
   `alertState.seriesGapReport` and rendered as an informational `role="status"`
-  banner in the Manage tab — not a toast, no error styling.
+  banner above the Manage tabs — not a toast, no error styling.
 - Only series an armed rule watches are recorded: a hole in a chart nobody
   alerts on is not an alert problem.
 - The record is cleared by `reset()` and when the market cache evicts the
-  symbol, so a re-subscribed series can report a genuinely new gap.
+  symbol, and both tell the panel, so a re-subscribed series can report a
+  genuinely new gap without leaving a stale row behind.
 
 ## Acceptance criteria
 
@@ -111,9 +114,10 @@ Two halves, one honest signal:
       of missing candles.
 - [x] A contiguous batch and a batch that carries the intermediate candles
       itself record nothing (the closes are replayed, nothing was missed).
-- [x] One record per series per session; a second gap does not re-notify.
+- [x] One record per series until it is evicted; a second gap does not
+      re-notify, and a forgotten series leaves no row behind.
 - [x] A hole in a series no armed rule watches records nothing.
-- [x] The Manage tab lists the gap as information and never as `role="alert"`.
+- [x] The alert panel lists the gap as information and never as `role="alert"`.
 - [x] DE/EN translation parity holds and `schema.d.ts` is regenerated.
 
 ## Out of scope

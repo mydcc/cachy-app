@@ -309,6 +309,44 @@ describe("FEAT-0399 — rule engine startup wiring", () => {
 
     expect(mockStartRuleEvaluationLoop.mock.calls[0][1]).toBeUndefined();
   });
+
+  it("mirrors the loop's candle-gap record into the store", async () => {
+    const mod = await importFreshAlertsModule();
+    await mod.initAlertEngine();
+    // Imported after the reset above, so this is the same singleton the store
+    // subscribed to — not a second copy with its own record.
+    const { ruleEvaluationLoop } = await import("../services/alertEngine/ruleEvaluationLoop");
+
+    ruleEvaluationLoop.configure({
+      readCandles: () => [],
+      readRules: () => [ruleDoc() as never],
+    });
+    ruleEvaluationLoop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+    ruleEvaluationLoop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+
+    expect(mod.alertState.seriesGapReport).toEqual([
+      {
+        symbol: "BTCUSDT",
+        timeframe: "1m",
+        lastOpenMs: 1_000,
+        detectedAtMs: 181_000,
+        missingCandles: 2,
+      },
+    ]);
+  });
+
+  it("subscribes to the gap record once, however often startup runs", async () => {
+    const mod = await importFreshAlertsModule();
+    await mod.initAlertEngine();
+    const { ruleEvaluationLoop } = await import("../services/alertEngine/ruleEvaluationLoop");
+    const subscribe = vi.spyOn(ruleEvaluationLoop, "subscribeSeriesGaps");
+
+    await mod.initAlertEngine();
+
+    // A second listener would assign the same snapshot twice — harmless here,
+    // a leak everywhere else. The guard is what prevents it.
+    expect(subscribe).not.toHaveBeenCalled();
+  });
 });
 
 describe("FEAT-0399 — the startup order the legacy retirement depends on", () => {
