@@ -85,21 +85,59 @@ jobs:
           # Preserve the current artifact as <tag>-previous before overwriting,
           # so a failing deploy can roll back to the last known-good build
           # without a rebuild. Idempotent: only the newest previous is kept.
+          #
+          # The snapshot is best-effort on purpose. `gh release create` creates
+          # the release first, uploads the asset second and publishes last, so an
+          # interrupted upload leaves a *draft* with no asset. `gh release
+          # download` then exits non-zero, and under `set -e` that used to abort
+          # the step before the rebuild: one transient 5xx from the releases API
+          # (HTTP 502, 2026-11-04) wedged every later build until somebody
+          # deleted the empty draft by hand. A missing rollback snapshot is a
+          # warning; a missing deploy artifact is a failure.
           if gh release view "$TAG" >/dev/null 2>&1; then
             rm -rf .deploy_prev && mkdir -p .deploy_prev
-            gh release download "$TAG" \
-              --pattern "cachy-build.tar.gz" \
-              --dir .deploy_prev --clobber
-            gh release delete "$PREV" --yes --cleanup-tag >/dev/null 2>&1 || true
-            gh release create "$PREV" \
-              --title "Deploy artifact ($PREV)" \
-              --notes "Previous $TAG artifact, preserved before the build at ${{ github.sha }}." \
-              .deploy_prev/cachy-build.tar.gz
+            if gh release download "$TAG" \
+                 --pattern "cachy-build.tar.gz" \
+                 --dir .deploy_prev --clobber; then
+              gh release delete "$PREV" --yes --cleanup-tag >/dev/null 2>&1 || true
+              gh release create "$PREV" \
+                --title "Deploy artifact ($PREV)" \
+                --notes "Previous $TAG artifact, preserved before the build at ${{ github.sha }}." \
+                .deploy_prev/cachy-build.tar.gz \
+                || echo "::warning::could not snapshot the previous artifact into $PREV"
+            else
+              echo "::warning::$TAG carries no cachy-build.tar.gz (draft or partial release); skipping the rollback snapshot"
+            fi
+            rm -rf .deploy_prev
           fi
           # Force-recreate the moving tag + release; idempotent per build.
           gh release delete "$TAG" --yes --cleanup-tag >/dev/null 2>&1 || true
-          gh release create "$TAG" \
-            --target "${{ github.sha }}" \
-            --title "Deploy artifact ($TAG)" \
-            --notes "Automated build artifact for ${{ github.ref }} @ ${{ github.sha }}." \
-            cachy-build.tar.gz
+          # Retry: the releases API returns sporadic 5xx under load. A failed
+          # attempt leaves a draft behind that occupies the tag name, so clear
+          # it before trying again instead of inheriting the broken state.
+          for attempt in 1 2 3; do
+            if gh release create "$TAG" \
+                 --target "${{ github.sha }}" \
+                 --title "Deploy artifact ($TAG)" \
+                 --notes "Automated build artifact for ${{ github.ref }} @ ${{ github.sha }}." \
+                 cachy-build.tar.gz; then
+              break
+            fi
+            echo "::warning::publishing $TAG failed (attempt $attempt/3)"
+            gh release delete "$TAG" --yes --cleanup-tag >/dev/null 2>&1 || true
+            if [ "$attempt" = "3" ]; then
+              echo "::error::could not publish $TAG after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
+          # A draft is not downloadable without a token, so the server's
+          # anonymous curl would 404 while this job still reported success.
+          # Verify what the server will actually fetch.
+          DRAFT=$(gh release view "$TAG" --json isDraft --jq '.isDraft')
+          ASSET=$(gh release view "$TAG" --json assets \
+            --jq '[.assets[].name] | index("cachy-build.tar.gz") // empty')
+          if [ "$DRAFT" != "false" ] || [ -z "$ASSET" ]; then
+            echo "::error::$TAG is draft=$DRAFT and asset present=${ASSET:+yes}; the server would get a 404"
+            exit 1
+          fi
