@@ -2,7 +2,7 @@
 id: BUG-0779
 title: Order failure log includes the full trade body
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
