@@ -17,7 +17,6 @@
     "src/lib/windows/implementations/AssistantView.svelte",
     "src/lib/windows/implementations/ChartWindow.svelte.ts",
     "src/lib/windows/implementations/SymbolPickerWindow.svelte.ts",
-    "src/services/uiManager.ts",
     "src/services/chart/priceLineManager.ts",
     "src/lib/calculators/stats.ts",
     "src/components/shared/CandlestickChart.svelte"

@@ -630,6 +630,11 @@ call site it was written for. The parameter itself is kept (not
 deleted) with a `docs/TODO.md` pointer, since `uiManager.ts` still
 depends on its position in the call signature.
 
+*(2026-11-04: `src/services/uiManager.ts` was removed in BUG-0790 and
+`showReadme()` no longer exists anywhere in the tree, so the call site this
+section describes is already gone. The `extraClasses` decision itself is
+unchanged.)*
+
 ## 16. ✅ Ichimoku's lagging span (Chikou Span) is accepted as a parameter but never computed
 
 **RESOLVED** (2026-09-08). Implemented the lagging span and wired it into

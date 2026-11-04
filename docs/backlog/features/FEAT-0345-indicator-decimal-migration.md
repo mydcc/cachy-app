@@ -39,9 +39,10 @@ Per-file verdict while implementing:
   display-only boundary with `toDisplayPrice()` conversion point + precision
   guard test. Migrating would break both.
 - `src/services/smc/types.ts` — zone/candle math is comparison-only feeding
-  analysis/charting via `aggregatorService`, never execution; Decimal would
-  rewrite ~430 lines and ripple into the aggregator with zero precision
-  benefit.
+  analysis/charting through the journal aggregator
+  (`src/lib/calculators/aggregator.ts`, called synchronously from
+  `calculator.ts`), never execution; Decimal would rewrite ~430 lines and
+  ripple into the aggregator with zero precision benefit.
 
 Resolved via the item's own escape hatch: ADR-0021 records the
 money-vs-display boundary instead of migrating. Reopen with a demonstrated

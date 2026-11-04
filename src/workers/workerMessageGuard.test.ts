@@ -9,9 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  MAX_AGGREGATOR_JOURNAL,
   MAX_WORKER_POINTS,
-  readAggregatorWorkerMessage,
   readTechnicalsWorkerMessage,
 } from "./workerMessageGuard";
 
@@ -110,24 +108,5 @@ describe("readTechnicalsWorkerMessage", () => {
     expect(readTechnicalsWorkerMessage({ type: "CLEANUP" })).not.toBeNull();
     expect(readTechnicalsWorkerMessage({ type: "SHIFT" })).toBeNull();
     expect(readTechnicalsWorkerMessage(null)).toBeNull();
-  });
-});
-
-describe("readAggregatorWorkerMessage", () => {
-  it("accepts a journal array and preserves the id", () => {
-    expect(
-      readAggregatorWorkerMessage({ journal: [{ id: 1 }], id: "req-1" }),
-    ).toEqual({ journal: [{ id: 1 }], id: "req-1" });
-  });
-
-  it("rejects a non-array journal and an oversized one", () => {
-    expect(readAggregatorWorkerMessage({ journal: {} })).toBeNull();
-    expect(
-      readAggregatorWorkerMessage({ journal: new Array(MAX_AGGREGATOR_JOURNAL + 1) }),
-    ).toBeNull();
-  });
-
-  it("rejects a non-object message", () => {
-    expect(readAggregatorWorkerMessage("journal")).toBeNull();
   });
 });
