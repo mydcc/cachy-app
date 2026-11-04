@@ -42,18 +42,24 @@ export interface StoredKlines {
 class StorageService {
     private dbPromise: Promise<IDBDatabase> | null = null;
     private isSupported = false;
+    private quotaWarned = false;
 
     constructor() {
         if (browser && "indexedDB" in window) {
             this.isSupported = true;
             this.initDB();
+            void this.dbPromise?.catch(() => {});
         } else {
             logger.warn("general", "IndexedDB not supported or SSR environment");
         }
     }
 
     private initDB() {
-        this.dbPromise = new Promise((resolve, reject) => {
+        // PA-05: a rejected open must not leave a permanently rejected
+        // promise behind. Reset to null on failure so the next getDB() retries.
+        // Capture the promise so a stale rejection handler cannot clobber a
+        // newer dbPromise (concurrency safety).
+        const promise = new Promise<IDBDatabase>((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onerror = (event) => {
@@ -75,13 +81,18 @@ class StorageService {
             request.onsuccess = (event) => {
                 resolve((event.target as IDBOpenDBRequest).result);
             };
+        }).catch((err) => {
+            if (this.dbPromise === promise) this.dbPromise = null;
+            throw err;
         });
+        this.dbPromise = promise;
     }
 
     private async getDB(): Promise<IDBDatabase> {
         if (!this.isSupported) throw new Error("IndexedDB not supported");
         if (!this.dbPromise) this.initDB();
-        return this.dbPromise!;
+        if (!this.dbPromise) throw new Error("IndexedDB not supported");
+        return this.dbPromise;
     }
 
     /**
@@ -90,9 +101,35 @@ class StorageService {
      */
     async saveKlines(symbol: string, tf: string, newKlines: Kline[]): Promise<void> {
         if (!this.isSupported || newKlines.length === 0) return;
-
         try {
-            const db = await this.getDB();
+            await this.saveKlinesOnce(symbol, tf, newKlines);
+            this.quotaWarned = false;
+        } catch (e) {
+            if (isQuotaError(e)) {
+                try {
+                    await this.evictOldestChunk(symbol, tf);
+                } catch (evictErr) {
+                    logger.warn("general", "Best-effort eviction failed", evictErr);
+                }
+                if (!this.quotaWarned) {
+                    this.quotaWarned = true;
+                    logger.warn("general", "IndexedDB quota exceeded; evicted oldest kline chunks");
+                }
+                try {
+                    await this.saveKlinesOnce(symbol, tf, newKlines);
+                } catch (e2) {
+                    logger.error("general", "Error saving klines", e2);
+                }
+            } else {
+                logger.error("general", "Error saving klines", e);
+            }
+        }
+    }
+
+    async saveKlinesOnce(symbol: string, tf: string, newKlines: Kline[]): Promise<void> {
+        if (!this.isSupported || newKlines.length === 0) return;
+
+        const db = await this.getDB();
 
             // Group by chunk
             const chunks = new Map<string, Kline[]>();
@@ -104,6 +141,12 @@ class StorageService {
 
             const tx = db.transaction(STORE_KLINES, "readwrite");
             const store = tx.objectStore(STORE_KLINES);
+
+            const txDone = new Promise<void>((resolve, reject) => {
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));
+            });
 
             const promises = Array.from(chunks.entries()).map(([chunkId, klines]) => {
                 return new Promise<void>((resolve, reject) => {
@@ -147,10 +190,8 @@ class StorageService {
             });
 
             await Promise.all(promises);
+            await txDone;
             this.logUsage();
-        } catch (e) {
-            logger.error("general", "Error saving klines", e);
-        }
     }
 
     async getKlines(symbol: string, tf: string): Promise<Kline[]> {
@@ -163,8 +204,10 @@ class StorageService {
             const endKey = `${symbol}:${tf}:\uffff`;
             const range = IDBKeyRange.bound(startKey, endKey);
 
-            return new Promise((resolve, reject) => {
+            const inner = new Promise<Kline[]>((resolve, reject) => {
                 const tx = db.transaction(STORE_KLINES, "readonly");
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));
                 const store = tx.objectStore(STORE_KLINES);
                 const req = store.getAll(range);
 
@@ -181,22 +224,57 @@ class StorageService {
 
                 req.onerror = () => reject(req.error);
             });
+            return inner.catch((e) => {
+                logger.error("general", "Error loading klines", e);
+                return [];
+            });
         } catch (e) {
             logger.error("general", "Error loading klines", e);
             return [];
         }
     }
 
+    private async evictOldestChunk(symbol: string, tf: string): Promise<void> {
+        if (!this.isSupported) return;
+        const db = await this.getDB();
+        const startKey = `${symbol}:${tf}:`;
+        const endKey = `${symbol}:${tf}:\uffff`;
+        const range = IDBKeyRange.bound(startKey, endKey);
+        const ids: string[] = await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_KLINES, "readonly");
+            const store = tx.objectStore(STORE_KLINES);
+            const req = store.getAllKeys(range);
+            req.onsuccess = () => resolve(req.result as string[]);
+            req.onerror = () => reject(req.error);
+        });
+        if (ids.length === 0) return;
+        ids.sort((a, b) => {
+            const na = Number(a.split(":").pop() ?? 0);
+            const nb = Number(b.split(":").pop() ?? 0);
+            if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+            return a < b ? -1 : a > b ? 1 : 0;
+        });
+        const oldest = ids[0];
+        await new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(STORE_KLINES, "readwrite");
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));
+            const store = tx.objectStore(STORE_KLINES);
+            const req = store.delete(oldest);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
     async logUsage() {
-        if (navigator.storage && navigator.storage.estimate) {
-            try {
-                const estimate = await navigator.storage.estimate();
-                const usedMB = (estimate.usage || 0) / 1024 / 1024;
-                const quotaMB = (estimate.quota || 0) / 1024 / 1024;
-                logger.log('data', `[Storage] Used: ${usedMB.toFixed(2)} MB / ${quotaMB.toFixed(0)} MB`);
-            } catch {
-                // ignore
-            }
+        if (typeof navigator === "undefined" || !navigator.storage || !navigator.storage.estimate) return;
+        try {
+            const estimate = await navigator.storage.estimate();
+            const usedMB = (estimate.usage || 0) / 1024 / 1024;
+            const quotaMB = (estimate.quota || 0) / 1024 / 1024;
+            logger.log('data', `[Storage] Used: ${usedMB.toFixed(2)} MB / ${quotaMB.toFixed(0)} MB`);
+        } catch (e) {
+            logger.debug("general", "Storage estimate unavailable", e);
         }
     }
 
@@ -204,7 +282,12 @@ class StorageService {
         if (!this.isSupported) return;
         const db = await this.getDB();
         const tx = db.transaction(STORE_KLINES, "readwrite");
-        tx.objectStore(STORE_KLINES).clear();
+        await new Promise<void>((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));
+            tx.objectStore(STORE_KLINES).clear();
+        });
     }
 
     /**
@@ -220,12 +303,25 @@ class StorageService {
         try {
             const db = await opening;
             db.close();
-        } catch {
+        } catch (e) {
             // already closed/failed — nothing to release
+            logger.debug("general", "Storage handle close failed", e);
         }
     }
 }
 
+
+function isQuotaError(e: unknown): boolean {
+    const err = e instanceof Event ? (e.target as { error?: unknown })?.error : e;
+    if (!err) return false;
+    if (err instanceof DOMException && err.name === "QuotaExceededError") return true;
+    const name = (err as { name?: string })?.name;
+    const code = (err as { code?: number })?.code;
+    // Legacy Firefox / older engines
+    if (name === "QuotaExceededError") return true;
+    if (code === 22 || code === 1014) return true;
+    return false;
+}
 
 // --- Helpers ---
 

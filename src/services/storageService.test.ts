@@ -60,13 +60,34 @@ const mockStore = {
         resolveLater(() =>
             Array.from(storeMap.values()).sort((a, b) => a.id.localeCompare(b.id)),
         ),
+    getAllKeys: (range?: { lower: unknown; upper: unknown }) =>
+        resolveLater(() =>
+            Array.from(storeMap.keys())
+                .filter((k) => !range || (k >= (range.lower as string) && k <= (range.upper as string)))
+                .sort(),
+        ),
+    delete: (key: string) => resolveLater(() => {
+        storeMap.delete(key);
+        return undefined;
+    }),
     clear: () => {
          storeMap.clear();
     }
 };
 
-const mockTx = {
-    objectStore: () => mockStore
+const mockTxFactory = () => {
+    const tx: { objectStore: () => typeof mockStore; oncomplete: (() => void) | null; onerror: ((e?: unknown) => void) | null; onabort: ((e?: unknown) => void) | null } = {
+        objectStore: () => mockStore,
+        oncomplete: null,
+        onerror: null,
+        onabort: null,
+    };
+    // Fire oncomplete on the next tick after requests settle (mock parity for
+    // the transaction-completion awaits added in PA-06).
+    setTimeout(() => {
+        if (tx.oncomplete) tx.oncomplete();
+    }, 20);
+    return tx;
 };
 
 const mockDB = {
@@ -74,7 +95,7 @@ const mockDB = {
         contains: () => true
     },
     createObjectStore: () => {},
-    transaction: () => mockTx,
+    transaction: () => mockTxFactory(),
     deleteObjectStore: () => {}
 };
 
