@@ -40,9 +40,10 @@ export interface ChatMessage {
 const SEND_INTERVAL_MS = 2000;
 
 /**
- * PA-09: the SpacetimeDB subscription retains 90 days of rows. Rendering all
- * of them re-sorts and re-renders the entire list on every new message, so the
- * client keeps only the most recent window.
+ * BUG-0787: the module retains 90 days of rows (docs/GLOBAL-CHAT.md §4), and
+ * `cloudService` hands the whole list to `applyRows` on every insert. The store
+ * projects and renders only the newest window, which bounds the DOM and the
+ * per-message render — not the incoming sort, which still costs O(n log n).
  */
 const MAX_CHAT_MESSAGES = 200;
 
@@ -133,12 +134,14 @@ class ChatManager {
    * expose it camelCased as `sentAt`. This side speaks the bindings' spelling.
    */
   private applyRows(rows: { sender: string; text: string; sentAt: number }[]) {
-    // PA-09: cap the list. The subscription can carry tens of thousands of
-    // rows; only the newest window is rendered.
+    // BUG-0787: sort the raw rows first, so only the newest window is projected
+    // into `ChatMessage` objects. Sorting before the slice is what makes the
+    // cut mean "newest", not "last delivered".
     this.messages = rows
-      .map((row) => this.toMessage(row))
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .slice(-MAX_CHAT_MESSAGES);
+      .slice()
+      .sort((a, b) => a.sentAt - b.sentAt)
+      .slice(-MAX_CHAT_MESSAGES)
+      .map((row) => this.toMessage(row));
   }
 
   private toMessage(row: {
