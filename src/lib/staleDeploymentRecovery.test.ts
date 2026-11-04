@@ -40,6 +40,10 @@ function stubBrowser(
       if (opts.brokenStorage) throw new Error("storage denied");
       store.set(key, value);
     },
+    removeItem: (key: string): void => {
+      if (opts.brokenStorage) throw new Error("storage denied");
+      store.delete(key);
+    },
   };
 
   const reload = vi.fn();
@@ -112,6 +116,24 @@ describe("scheduleStaleReload", () => {
     expect(scheduleStaleReload()).toBe(true);
     expect(reload).toHaveBeenCalledTimes(1);
   });
+
+  it("re-arms the guard when the browser blocks the reload", async () => {
+    const { scheduleStaleReload } = await freshModule();
+    const { reload } = stubBrowser();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    reload.mockImplementationOnce(() => {
+      throw new Error("navigation blocked");
+    });
+
+    try {
+      expect(scheduleStaleReload()).toBe(false);
+      expect(scheduleStaleReload()).toBe(true);
+      expect(reload).toHaveBeenCalledTimes(2);
+      expect(log).toHaveBeenCalledWith("Stale-deployment reload failed", expect.any(Error));
+    } finally {
+      log.mockRestore();
+    }
+  });
 });
 
 describe("installStaleDeploymentRecovery", () => {
@@ -161,5 +183,66 @@ describe("installStaleDeploymentRecovery", () => {
     });
     expect(preventDefault).not.toHaveBeenCalled();
     expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("handleLazyLoadFailure", () => {
+  const staleMessage =
+    "Failed to fetch dynamically imported module: https://dev.cachy.app/_app/immutable/chunks/XDJtinBa2.js";
+
+  it("takes the reload path for a stale chunk", async () => {
+    const mod = await freshModule();
+    const reload = vi.fn();
+    const log = vi.fn();
+
+    const action = mod.handleLazyLoadFailure("AlertPanel", new TypeError(staleMessage), { reload, log });
+
+    expect(action).toBe("reload");
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("reloads through the production default and suppresses a second attempt", async () => {
+    const mod = await freshModule();
+    const { reload } = stubBrowser();
+    const error = new TypeError(staleMessage);
+
+    expect(mod.handleLazyLoadFailure("AlertPanel", error)).toBe("reload");
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    // One recovery per tab: the guard suppresses a second stale chunk.
+    expect(mod.handleLazyLoadFailure("AlertPanel", error)).toBe("reload");
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs an ordinary failure without reloading", async () => {
+    const mod = await freshModule();
+    const reload = vi.fn();
+    const log = vi.fn();
+    const error = new Error("network down");
+
+    const action = mod.handleLazyLoadFailure("AlertPanel", error, { reload, log });
+
+    expect(action).toBe("log");
+    expect(reload).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls[0][0]).toBe("Failed to load AlertPanel");
+    expect(log.mock.calls[0][1]).toBe(error);
+  });
+
+  it("logs and reports a blocked reload", async () => {
+    const mod = await freshModule();
+    const log = vi.fn();
+    const error = new TypeError(staleMessage);
+
+    const action = mod.handleLazyLoadFailure("AlertPanel", error, {
+      reload: () => false,
+      log,
+    });
+
+    expect(action).toBe("reload-failed");
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls[0][0]).toBe("Failed to load AlertPanel: reload blocked");
+    expect(log.mock.calls[0][1]).toBe(error);
   });
 });
