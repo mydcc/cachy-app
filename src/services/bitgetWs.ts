@@ -8,6 +8,7 @@
  */
 
 import { marketState } from "../stores/market.svelte";
+import { jitteredDelay } from "../utils/backoff";
 import { accountState, type RawWsOrder, type RawWsPosition } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol, stripLegacyVenueSuffix } from "../utils/symbolUtils";
@@ -564,11 +565,12 @@ export class BitgetWebSocketService {
     const delay = this.backoffDelay;
     this.backoffDelay = Math.min(this.backoffDelay * 1.5, this.MAX_BACKOFF_DELAY);
 
+    const scheduled = jitteredDelay(delay, this.MAX_BACKOFF_DELAY);
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       this.isReconnecting = false;
       if (!this.isDestroyed) this.connect();
-    }, delay);
+    }, scheduled);
   }
 
   /**

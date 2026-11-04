@@ -15,6 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * BUG-0789/PA-15: 60 s leaves room for a multi-MB screenshot on a slow uplink
+ * (2 MB at 0.5 Mbit/s is already ~32 s), while still bounding a dead upload.
+ */
+const IMGBB_UPLOAD_TIMEOUT_MS = 60_000;
+
 export interface ImgbbUploadConfig {
   apiKey?: string;
   expiration?: number;
@@ -44,9 +50,11 @@ export const imgbbService = {
     const url = "https://api.imgbb.com/1/upload";
 
     try {
+      // BUG-0789: an upload that hangs otherwise spins with no way out.
       const response = await fetch(url, {
         method: "POST",
         body: formData,
+        signal: AbortSignal.timeout(IMGBB_UPLOAD_TIMEOUT_MS),
       });
 
       if (!response.ok) {

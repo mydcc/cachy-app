@@ -12,6 +12,11 @@ import type { AiModelInfo } from "../types/ai";
 import { buildDirectModelsRequest } from "../lib/ai/directRequest";
 import type { AiApiFlavor } from "../stores/settings/aiProviders";
 import { safeLocalStorage } from "../utils/storageWrapper";
+import { logger } from "./logger";
+
+/** BUG-0789/PA-15: bounds so a hung provider cannot spin the settings list. */
+const MODEL_LIST_TIMEOUT_MS = 10_000;
+const OLLAMA_PROBE_TIMEOUT_MS = 5_000;
 
 export type { AiModelInfo };
 
@@ -88,7 +93,13 @@ async function fetchFromServer(
   const headers: Record<string, string> = {};
   if (opts.apiKey) headers["x-api-key"] = opts.apiKey;
 
-  const res = await appFetch(`/api/ai/${provider}/models${qs ? `?${qs}` : ""}`, { headers });
+  // BUG-0789: the server-proxy transport is the default (AiModelPicker), so it
+  // needs the same bound as the direct one; without it PA-15 only covered the
+  // browser-direct path.
+  const res = await appFetch(`/api/ai/${provider}/models${qs ? `?${qs}` : ""}`, {
+    headers,
+    signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS),
+  });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -121,7 +132,12 @@ async function fetchDirectModels(
     baseUrl: opts.baseUrl?.trim() ?? "",
     apiKey: opts.apiKey ?? "",
   });
-  const res = await fetch(url, { headers });
+  // BUG-0789: a hung provider must not leave the settings model list loading
+  // forever.
+  const res = await fetch(url, {
+    headers,
+    signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS),
+  });
   if (!res.ok) {
     throw new Error(`Model list request failed with status ${res.status}`);
   }
@@ -191,7 +207,10 @@ export async function getModels(
   if (provider === "ollama") {
     const baseUrl = (opts.baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
     try {
-      const directRes = await fetch(`${baseUrl}/api/tags`);
+      // BUG-0789: local Ollama can hang; bound the probe.
+      const directRes = await fetch(`${baseUrl}/api/tags`, {
+        signal: AbortSignal.timeout(OLLAMA_PROBE_TIMEOUT_MS),
+      });
       if (directRes.ok) {
         const data = await directRes.json();
         const models: AiModelInfo[] = ((data.models as { name: string }[]) || []).map((m) => ({
@@ -201,8 +220,15 @@ export async function getModels(
         writeCache(provider, scope, models);
         return { models, fromCache: false };
       }
-    } catch {
-      // Direct browser fetch to Ollama failed — fall through to server proxy
+    } catch (e) {
+      // Direct browser fetch to Ollama failed — fall through to the server
+      // proxy. Logged, so "no models" is diagnosable: not running, CORS, and
+      // a timeout all look identical from the UI otherwise.
+      logger.warn(
+        "ai",
+        "[AiModels] Direct Ollama probe failed; falling back to the server proxy",
+        e,
+      );
     }
   }
 

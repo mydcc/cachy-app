@@ -123,6 +123,16 @@ export type MarkCandleFetcher = (
  * "unsupported" and never retried — a rule naming the mark price on such a venue
  * then stays indeterminate rather than re-requesting once per candle forever.
  */
+/**
+ * BUG-0789/PA-13: the browser→node leg had no deadline, so a half-open link
+ * held `inFlight` for this symbol/timeframe and `ensure()` never retried.
+ * Deliberately above the route's own retry budget (3 × 8 s upstream attempts),
+ * so the browser does not abort a response the server is still assembling.
+ * A timeout has no `status`, so it takes the transient branch below — it must
+ * never be recorded as "venue does not support mark candles".
+ */
+const MARK_CANDLE_TIMEOUT_MS = 30_000;
+
 export const fetchMarkCandles: MarkCandleFetcher = async (
   symbol,
   timeframe,
@@ -134,7 +144,9 @@ export const fetchMarkCandles: MarkCandleFetcher = async (
     limit: String(limit),
     priceSource: "mark",
   });
-  const response = await fetch(`/api/klines?${params.toString()}`);
+  const response = await fetch(`/api/klines?${params.toString()}`, {
+    signal: AbortSignal.timeout(MARK_CANDLE_TIMEOUT_MS),
+  });
   if (!response.ok) {
     throw Object.assign(
       new Error(`mark klines request failed with ${response.status}`),

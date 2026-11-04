@@ -40,6 +40,27 @@ describe("aiModelsService", () => {
     expect(result.models).toEqual([{ id: "mistral:latest", label: "mistral:latest" }]);
   });
 
+  it("bounds every direct fetch with its configured deadline (BUG-0789)", async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ models: [], data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
+
+    await getModels("ollama", { baseUrl: "http://localhost:11434" }, { forceRefresh: true });
+    expect(timeoutSpy).toHaveBeenCalledWith(5_000);
+
+    await getModels(
+      "openai",
+      { apiKey: "sk-test", baseUrl: "https://opencode.ai/zen/go/v1" },
+      { forceRefresh: true, transport: "direct", flavor: "openai-chat" },
+    );
+    expect(timeoutSpy).toHaveBeenCalledWith(10_000);
+  });
+
   it("falls back to server proxy if direct Ollama fetch fails", async () => {
     // First call (direct fetch to http://localhost:11434/api/tags) fails
     // Second call (appFetch to /api/ai/ollama/models?baseUrl=http://localhost:11434) succeeds

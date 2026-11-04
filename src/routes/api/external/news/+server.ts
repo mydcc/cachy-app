@@ -14,6 +14,7 @@ import { createRateLimiter } from "../../../../lib/server/rateLimit";
 import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
+import { fetchWithTimeout, upstreamErrorStatus, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../../utils/server/fetchWithTimeout";
 
 // In-Memory Cache for News Proxy
 interface CachedResponse {
@@ -157,7 +158,7 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
           // `URLSearchParams`, so only this interpolation was raw.
           const url = `https://cryptopanic.com/api/${p}/v2/posts/?auth_token=${encodeURIComponent(apiKey)}&${query}`;
           try {
-            const response = await fetch(url);
+            const response = await fetchWithTimeout(url, {}, DEFAULT_UPSTREAM_TIMEOUT_MS, fetch);
             if (response.ok) {
               const rawData = await response.json();
               // Validate Schema
@@ -192,6 +193,10 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
 
             // eslint-disable-next-line preserve-caught-error
             if (is429) throw new Error(msg);
+            // A timed-out upstream is not a plan mismatch. Retrying it on the
+            // next plan would triple the deadline past the client's own abort
+            // and burn three upstream calls on a quota-sensitive API.
+            if (upstreamErrorStatus(e) !== undefined) throw e;
             console.warn(`[NewsProxy] Plan ${p} failed:`, msg);
             lastError = msg;
             continue;
@@ -202,11 +207,12 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
         const query = new URLSearchParams(params).toString();
         // NewsAPI supports X-Api-Key header. Much safer.
         const url = `https://newsapi.org/v2/everything?${query}`;
-        const response = await fetch(url, {
-             headers: {
-                 "X-Api-Key": apiKey
-             }
-        });
+        const response = await fetchWithTimeout(
+          url,
+          { headers: { "X-Api-Key": apiKey } },
+          DEFAULT_UPSTREAM_TIMEOUT_MS,
+          fetch,
+        );
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -256,6 +262,14 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
         console.warn("[NewsProxy] Using stale cache due to quota exhaustion");
         return json(staleCache.data);
       }
+    }
+
+    // A hung upstream carries a 504 from `fetchWithTimeout`; keep it so the
+    // client can tell "provider too slow" from "bad key" (BUG-0727 keeps the
+    // text opaque either way).
+    const upstreamStatus = upstreamErrorStatus(err);
+    if (upstreamStatus === 504) {
+      return json({ error: "News provider timed out" }, { status: 504 });
     }
 
     // `errorMsg` is redacted and logged above; the client gets our text only

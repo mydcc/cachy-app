@@ -16,6 +16,7 @@
  */
 
 import { parseMessage } from "./bitunixWs/messageParser";
+import { jitteredDelay } from "../utils/backoff";
 import { dispatchMessage } from "./bitunixWs/channelDispatch";
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
@@ -722,13 +723,14 @@ export class BitunixWebSocketService {
       const delay = this.backoffDelay;
       this.backoffDelay = Math.min(this.backoffDelay * 1.5, this.MAX_BACKOFF_DELAY);
 
-      logger.log("network", `[BitunixWS] Scheduling reconnect in ${delay}ms (Backoff: ${this.backoffDelay})`);
+      const scheduled = jitteredDelay(delay, this.MAX_BACKOFF_DELAY);
+      logger.log("network", `[BitunixWS] Scheduling reconnect in ${scheduled}ms (Backoff: ${this.backoffDelay})`);
 
       if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
       this.reconnectTimerPublic = setTimeout(() => {
         this.isReconnectingPublic = false;
         if (!this.isDestroyed) this.connectPublic();
-      }, delay);
+      }, scheduled);
     } else {
       if (this.isReconnectingPrivate) return;
       this.reconnectAttemptsPrivate++;
@@ -737,13 +739,14 @@ export class BitunixWebSocketService {
       const delay = this.backoffDelayPrivate;
       this.backoffDelayPrivate = Math.min(this.backoffDelayPrivate * 1.5, this.MAX_BACKOFF_DELAY);
 
-      logger.log("network", `[BitunixWS] Scheduling private reconnect in ${delay}ms (Backoff: ${this.backoffDelayPrivate})`);
+      const scheduled = jitteredDelay(delay, this.MAX_BACKOFF_DELAY);
+      logger.log("network", `[BitunixWS] Scheduling private reconnect in ${scheduled}ms (Backoff: ${this.backoffDelayPrivate})`);
 
       if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
       this.reconnectTimerPrivate = setTimeout(() => {
         this.isReconnectingPrivate = false;
         if (!this.isDestroyed) this.connectPrivate();
-      }, delay);
+      }, scheduled);
     }
   }
 

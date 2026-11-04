@@ -67,6 +67,51 @@ describe('News Service Security', () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
+    it('sends an abort signal with the upstream request (BUG-0789)', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ status: "ok", articles: [] }),
+            text: async () => "",
+        });
+        const apiKey = 'signal-key';
+
+        const response = await POST({
+            request: {
+                headers: new Headers({ 'x-api-key': apiKey }),
+                json: async () => ({ source: 'newsapi', params: { q: 'signal' } }),
+                url: 'http://localhost/api/news',
+            } as unknown as Request,
+            fetch: fetchMock,
+            getClientAddress: () => '127.0.0.1',
+        } as unknown as Parameters<typeof POST>[0]);
+
+        expect(response.status).toBe(200);
+        const init = fetchMock.mock.calls[0][1] as RequestInit;
+        expect(init.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('answers 504 and does not retry another plan when an upstream times out (BUG-0789)', async () => {
+        // Every CryptoPanic plan would otherwise be tried, tripling the
+        // deadline past the client's own abort.
+        const fetchMock = vi.fn().mockRejectedValue(
+            Object.assign(new Error("Upstream exchange API timed out"), { status: 504 }),
+        );
+        const apiKey = 'timeout-key';
+
+        const response = await POST({
+            request: {
+                headers: new Headers({ 'x-api-key': apiKey }),
+                json: async () => ({ source: 'cryptopanic', params: { q: 'timeout' } }),
+                url: 'http://localhost/api/news',
+            } as unknown as Request,
+            fetch: fetchMock,
+            getClientAddress: () => '127.0.0.1',
+        } as unknown as Parameters<typeof POST>[0]);
+
+        expect(response.status).toBe(504);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
     it('should rate limit upstream-bound requests from one client address', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
