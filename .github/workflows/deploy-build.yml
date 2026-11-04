@@ -85,21 +85,92 @@ jobs:
           # Preserve the current artifact as <tag>-previous before overwriting,
           # so a failing deploy can roll back to the last known-good build
           # without a rebuild. Idempotent: only the newest previous is kept.
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            rm -rf .deploy_prev && mkdir -p .deploy_prev
-            gh release download "$TAG" \
-              --pattern "cachy-build.tar.gz" \
-              --dir .deploy_prev --clobber
-            gh release delete "$PREV" --yes --cleanup-tag >/dev/null 2>&1 || true
-            gh release create "$PREV" \
-              --title "Deploy artifact ($PREV)" \
-              --notes "Previous $TAG artifact, preserved before the build at ${{ github.sha }}." \
-              .deploy_prev/cachy-build.tar.gz
+          #
+          # Best-effort by design: gh creates a release as a draft, uploads the
+          # asset, then publishes, so a failed upload can leave a release with no
+          # asset — and downloading from it exits non-zero, which under the
+          # default `bash -e` aborts the step. A missing rollback snapshot is a
+          # warning; a missing deploy artifact is a failure. See BUG-0796.
+          TAG_EXISTS=false
+          if VIEW=$(gh release view "$TAG" --json isDraft 2>"$RUNNER_TEMP/gh-view.err"); then
+            TAG_EXISTS=true
+            DRAFT_NOW=$(printf '%s' "$VIEW" | jq -r '.isDraft' 2>/dev/null || echo unknown)
+            if [ "$DRAFT_NOW" != "false" ]; then
+              # A draft is a build that was never live; preserving it would make
+              # the rollback target a build nobody deployed.
+              echo "::warning::$TAG is a draft (isDraft=$DRAFT_NOW), so it is not a known-good build and is not preserved as $PREV"
+            else
+              rm -rf .deploy_prev && mkdir -p .deploy_prev
+              SNAPSHOT_OK=false
+              for dl in 1 2 3; do
+                if gh release download "$TAG" \
+                     --pattern "cachy-build.tar.gz" \
+                     --dir .deploy_prev --clobber; then
+                  SNAPSHOT_OK=true
+                  break
+                fi
+                echo "::warning::could not download $TAG's artifact (attempt $dl/3); the error above says whether the asset is missing or the API call failed"
+                if [ "$dl" != "3" ]; then sleep $((dl * 5)); fi
+              done
+              if [ "$SNAPSHOT_OK" = "true" ]; then
+                gh release delete "$PREV" --yes --cleanup-tag >/dev/null \
+                  || echo "::warning::$PREV could not be cleared; it may still hold an older build"
+                gh release create "$PREV" \
+                  --title "Deploy artifact ($PREV)" \
+                  --notes "Previous $TAG artifact, preserved before the build at ${{ github.sha }}." \
+                  .deploy_prev/cachy-build.tar.gz \
+                  || echo "::error::could not recreate $PREV: the previous rollback artifact was already deleted, so rollback is unavailable until a later build snapshots successfully"
+              fi
+              rm -rf .deploy_prev
+            fi
+          elif ! grep -qiE 'release not found|could not find' "$RUNNER_TEMP/gh-view.err"; then
+            echo "::warning::could not inspect $TAG, so no rollback snapshot was taken: $(tr '\n' ' ' < "$RUNNER_TEMP/gh-view.err")"
           fi
+
           # Force-recreate the moving tag + release; idempotent per build.
-          gh release delete "$TAG" --yes --cleanup-tag >/dev/null 2>&1 || true
-          gh release create "$TAG" \
-            --target "${{ github.sha }}" \
-            --title "Deploy artifact ($TAG)" \
-            --notes "Automated build artifact for ${{ github.ref }} @ ${{ github.sha }}." \
-            cachy-build.tar.gz
+          if [ "$TAG_EXISTS" = "true" ]; then
+            gh release delete "$TAG" --yes --cleanup-tag >/dev/null \
+              || echo "::warning::$TAG could not be deleted; publishing below will fail on the occupied tag"
+          fi
+          # Retry: the releases API answered 502 once (BUG-0796). A failed
+          # attempt can leave a draft that reserves the tag name, so clear it
+          # before retrying instead of inheriting the broken state.
+          for attempt in 1 2 3; do
+            if gh release create "$TAG" \
+                 --target "${{ github.sha }}" \
+                 --title "Deploy artifact ($TAG)" \
+                 --notes "Automated build artifact for ${{ github.ref }} @ ${{ github.sha }}." \
+                 cachy-build.tar.gz 2>"$RUNNER_TEMP/gh-create-$attempt.err"; then
+              break
+            fi
+            LAST_ERR=$(tr '\n' ' ' < "$RUNNER_TEMP/gh-create-$attempt.err")
+            echo "::warning::publishing $TAG failed (attempt $attempt/3): $LAST_ERR"
+            case "$LAST_ERR" in
+              *"HTTP 401"*|*"HTTP 403"*|*"HTTP 422"*)
+                echo "::error::publishing $TAG hit a non-retryable error; check contents: write on this job and any tag protection rule covering $TAG"
+                exit 1
+                ;;
+            esac
+            gh release delete "$TAG" --yes --cleanup-tag >/dev/null \
+              || echo "::warning::could not clear the failed $TAG release before retry $attempt"
+            if [ "$attempt" = "3" ]; then
+              echo "::error::could not publish $TAG after 3 attempts: $LAST_ERR"
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
+          # Verify what the host will actually fetch. A draft's assets need a
+          # token, and `--target` is ignored when the tag ref already exists, so
+          # the CLI's exit code proves nothing. BUG-0796.
+          VERIFY=$(gh release view "$TAG" --json isDraft,assets,targetCommitish \
+            --jq '[.isDraft, (.targetCommitish | .[0:9]), (any(.assets[]; .name == "cachy-build.tar.gz"))] | @tsv' \
+            2>"$RUNNER_TEMP/gh-verify.err") \
+            || { echo "::error::could not verify $TAG: $(tr '\n' ' ' < "$RUNNER_TEMP/gh-verify.err")"; exit 1; }
+          IFS=$'\t' read -r IS_DRAFT TARGET_SHA HAS_ASSET <<< "$VERIFY"
+          if [ "$IS_DRAFT" != "false" ] || [ "$HAS_ASSET" != "true" ] || [ "$TARGET_SHA" != "${GITHUB_SHA:0:9}" ]; then
+            echo "::error::$TAG is draft=$IS_DRAFT, target=${TARGET_SHA:-unknown}, carries cachy-build.tar.gz=$HAS_ASSET; expected false, ${GITHUB_SHA:0:9}, true - delete a surviving draft release and re-run"
+            exit 1
+          fi
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/cachy-build.tar.gz"
+          curl -fsSL --retry 3 --retry-all-errors -o /dev/null "$URL" \
+            || { echo "::error::$URL is not anonymously fetchable; the host would 404 even though the release reports published"; exit 1; }
