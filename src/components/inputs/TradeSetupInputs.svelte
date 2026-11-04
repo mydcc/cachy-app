@@ -271,7 +271,7 @@
   }
 
   function handleFetchPriceClick() {
-    trackCustomEvent("Price", "Fetch", symbol);
+    trackCustomEvent("Price", "Fetch");
     // BUG-0556: a price refresh loads market context only — it must not
     // change the stop strategy. The user's useAtrSl/atrMode and manual stop
     // values survive; only the symbol context is (re-)applied.
@@ -308,7 +308,7 @@
   });
 
   function selectSuggestion(s: string) {
-    trackCustomEvent("Symbol", "SelectSuggestion", s);
+    trackCustomEvent("Symbol", "SelectSuggestion");
     onselectsymbolsuggestion?.(s);
     // When selecting suggestion, we want immediate update
     localSymbol = s;
@@ -910,7 +910,7 @@
                   ? 'animate-spin'
                   : ''}"
                 onclick={() => {
-                  trackCustomEvent("ATR", "Fetch", symbol);
+                  trackCustomEvent("ATR", "Fetch");
                   onfetchatr?.();
                 }}
                 title={$_("dashboard.tradeSetupInputs.fetchAtrValue")}
