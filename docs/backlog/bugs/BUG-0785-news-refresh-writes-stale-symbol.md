@@ -2,7 +2,7 @@
 id: BUG-0785
 title: A slow news refresh writes its result under the new symbol after a fast symbol switch
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

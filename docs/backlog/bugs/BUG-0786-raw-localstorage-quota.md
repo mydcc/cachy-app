@@ -2,7 +2,7 @@
 id: BUG-0786
 title: Window layout and locale writes hit localStorage raw, so a full quota throws into the global handler
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
