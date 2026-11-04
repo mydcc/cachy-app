@@ -4787,6 +4787,11 @@
       "confirmPositionModeLine": "Position mode → {to}"
     }
   },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred. You can reload the page to continue.",
+    "reload": "Reload"
+  },
   "orderEntry": {
     "title": "Place this position",
     "notReady": "Enter an entry price and a stop to size a position first.",
