@@ -136,11 +136,11 @@ export function isUphill(fromLayer, toLayer) {
 
 /* ----------------------------------------------------------- source text */
 
-// `i` is not cosmetic: Svelte itself only recognises a lowercase `<script>`,
-// but a case-insensitive match is what keeps a security scanner from reading
-// this as an HTML filter (`js/bad-html-filtering-regexp`). Extra leniency here
-// costs nothing — unknown tags yield text that parses to no imports.
-const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+// `i` and the `\s*` before the end tag are not cosmetic: Svelte itself only
+// recognises a lowercase, tightly written `<script>`, but CodeQL reads a looser
+// pattern as an HTML filter and fails the PR (`js/bad-html-filtering-regexp`).
+// Extra leniency costs nothing — an unknown tag yields text with no imports.
+const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi;
 
 /**
  * The TypeScript text of one module. For `.svelte` that is every `<script>`
