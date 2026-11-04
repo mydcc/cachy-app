@@ -918,54 +918,6 @@ export class SettingsManager {
   set showMarketSentiment(v: DisplaySettingsStore["showMarketSentiment"]) {
     this.display.showMarketSentiment = v;
   }
-  get showTechnicalsSummary(): DisplaySettingsStore["showTechnicalsSummary"] {
-    return this.display.showTechnicalsSummary;
-  }
-  set showTechnicalsSummary(v: DisplaySettingsStore["showTechnicalsSummary"]) {
-    this.display.showTechnicalsSummary = v;
-  }
-  get showTechnicalsConfluence(): DisplaySettingsStore["showTechnicalsConfluence"] {
-    return this.display.showTechnicalsConfluence;
-  }
-  set showTechnicalsConfluence(v: DisplaySettingsStore["showTechnicalsConfluence"]) {
-    this.display.showTechnicalsConfluence = v;
-  }
-  get showTechnicalsVolatility(): DisplaySettingsStore["showTechnicalsVolatility"] {
-    return this.display.showTechnicalsVolatility;
-  }
-  set showTechnicalsVolatility(v: DisplaySettingsStore["showTechnicalsVolatility"]) {
-    this.display.showTechnicalsVolatility = v;
-  }
-  get showTechnicalsOscillators(): DisplaySettingsStore["showTechnicalsOscillators"] {
-    return this.display.showTechnicalsOscillators;
-  }
-  set showTechnicalsOscillators(v: DisplaySettingsStore["showTechnicalsOscillators"]) {
-    this.display.showTechnicalsOscillators = v;
-  }
-  get showTechnicalsMAs(): DisplaySettingsStore["showTechnicalsMAs"] {
-    return this.display.showTechnicalsMAs;
-  }
-  set showTechnicalsMAs(v: DisplaySettingsStore["showTechnicalsMAs"]) {
-    this.display.showTechnicalsMAs = v;
-  }
-  get showTechnicalsAdvanced(): DisplaySettingsStore["showTechnicalsAdvanced"] {
-    return this.display.showTechnicalsAdvanced;
-  }
-  set showTechnicalsAdvanced(v: DisplaySettingsStore["showTechnicalsAdvanced"]) {
-    this.display.showTechnicalsAdvanced = v;
-  }
-  get showTechnicalsSignals(): DisplaySettingsStore["showTechnicalsSignals"] {
-    return this.display.showTechnicalsSignals;
-  }
-  set showTechnicalsSignals(v: DisplaySettingsStore["showTechnicalsSignals"]) {
-    this.display.showTechnicalsSignals = v;
-  }
-  get showTechnicalsPivots(): DisplaySettingsStore["showTechnicalsPivots"] {
-    return this.display.showTechnicalsPivots;
-  }
-  set showTechnicalsPivots(v: DisplaySettingsStore["showTechnicalsPivots"]) {
-    this.display.showTechnicalsPivots = v;
-  }
   get showTvLink(): DisplaySettingsStore["showTvLink"] {
     return this.display.showTvLink;
   }
