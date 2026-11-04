@@ -177,10 +177,15 @@ export class BitunixWebSocketService {
   private backoffDelay = INITIAL_BACKOFF_DELAY;
   private backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
+  // BUG-0788: after the reconnect budget is exhausted, keep a slow probe alive
+  // so a venue-only outage recovers without a manual reconnect.
+  private readonly EXHAUSTED_PROBE_DELAY_MS = 60000;
 
-  // Reconnect budget (BUG-0725): after 12 consecutive schedules without a
-  // successful open, stop retrying and wait for an explicit connect() or the
-  // online event. Backoff alone bounds the rate but never stops the loop.
+  // Reconnect budget (BUG-0725, revised by BUG-0788): after 12 consecutive
+  // schedules without a successful open, the fast cycle stops and a 60 s probe
+  // takes over. The probe makes a single attempt without resetting the budget,
+  // so the socket keeps trying at roughly one attempt per minute until an open
+  // succeeds (which resets the counter) or the operator calls connect(true).
   private reconnectAttemptsPublic = 0;
   private reconnectAttemptsPrivate = 0;
   private readonly MAX_RECONNECT_ATTEMPTS = 12;
@@ -682,8 +687,9 @@ export class BitunixWebSocketService {
       return;
     }
 
-    // Budget check before the schedule, not after: an exhausted breaker must
-    // leave no timer behind (BUG-0725).
+    // Budget check before the schedule, not after: the 12th failed attempt
+    // must not queue a *backoff* timer. From here the clock belongs to the
+    // 60 s probe (BUG-0788).
     const attempts =
       type === "public" ? this.reconnectAttemptsPublic : this.reconnectAttemptsPrivate;
     if (attempts >= this.MAX_RECONNECT_ATTEMPTS) {
@@ -692,10 +698,17 @@ export class BitunixWebSocketService {
       if (type === "public") {
         marketState.connectionStatus = "disconnected";
       }
-      logger.error(
+      // Forced: with `logSettings.network` off by default, a non-forced warn
+      // would leave the give-up transition invisible in the console.
+      logger.warn(
         "network",
-        `[BitunixWS] ${type}: reconnect budget exhausted after ${attempts} attempts; waiting for an explicit connect.`,
+        `[BitunixWS] ${type}: reconnect budget exhausted after ${attempts} attempts; switching to a ${this.EXHAUSTED_PROBE_DELAY_MS / 1000} s probe.`,
+        undefined,
+        true,
       );
+      // BUG-0788: a venue-only outage leaves navigator.onLine true and the
+      // `online` event never fires. Do not wait for a manual reconnect.
+      this.scheduleExhaustedProbe(type);
       return;
     }
 
@@ -732,6 +745,80 @@ export class BitunixWebSocketService {
         if (!this.isDestroyed) this.connectPrivate();
       }, delay);
     }
+  }
+
+  /**
+   * BUG-0788: one 60 s probe, re-armed by each later exhaustion.
+   *
+   * The probe makes a single connection attempt and deliberately does not
+   * reset the fast budget: if the attempt fails, the close handler reaches the
+   * exhausted branch again and arms the next probe. A successful open resets
+   * the counter, which is what ends the probe cycle.
+   */
+  private scheduleExhaustedProbe(type: "public" | "private") {
+    if (this.isDestroyed) return;
+    const existing =
+      type === "public" ? this.reconnectTimerPublic : this.reconnectTimerPrivate;
+    if (existing) clearTimeout(existing);
+
+    const probe = setTimeout(() => {
+      // Drop the dead handle first, so "timer === null" keeps meaning "nothing
+      // pending" for cleanup() and for readers.
+      if (type === "public") this.reconnectTimerPublic = null;
+      else this.reconnectTimerPrivate = null;
+      if (this.isDestroyed) return;
+
+      try {
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          // Still offline: `handleOnline` normally resets and reconnects, but
+          // keep the probe alive in case that event never arrives.
+          if (type === "public") marketState.connectionStatus = "disconnected";
+          logger.log("network", `[BitunixWS] ${type}: probe deferred, browser is offline`);
+          this.scheduleExhaustedProbe(type);
+          return;
+        }
+
+        const before = type === "public" ? this.wsPublic : this.wsPrivate;
+        if (type === "public") {
+          this.isReconnectingPublic = false;
+          this.connectPublic();
+        } else {
+          this.isReconnectingPrivate = false;
+          this.connectPrivate();
+        }
+
+        const after = type === "public" ? this.wsPublic : this.wsPrivate;
+        const alive =
+          after !== null &&
+          after !== undefined &&
+          (after.readyState === WebSocket.OPEN ||
+            after.readyState === WebSocket.CONNECTING);
+        if (after === before && !alive) {
+          // `connect*` declined to start a socket (entitlement revoked, key
+          // missing, insecure endpoint). That is a configuration state, not an
+          // outage: say so and stop rather than re-arming forever.
+          logger.warn(
+            "network",
+            `[BitunixWS] ${type}: probe stopped, the connection was not started (entitlement or configuration).`,
+            undefined,
+            true,
+          );
+          return;
+        }
+        if (!alive) {
+          // A socket was created; the close handler owns what happens next.
+          logger.log("network", `[BitunixWS] ${type}: probe started a connection`);
+        }
+
+      } catch (e) {
+        // The probe is the last recovery path; it must not die silently.
+        logger.error("network", `[BitunixWS] ${type}: probe failed; re-arming`, e);
+        this.scheduleExhaustedProbe(type);
+      }
+    }, this.EXHAUSTED_PROBE_DELAY_MS);
+
+    if (type === "public") this.reconnectTimerPublic = probe;
+    else this.reconnectTimerPrivate = probe;
   }
 
   private startHeartbeat(ws: WebSocket, type: "public" | "private") {

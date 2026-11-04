@@ -28,6 +28,7 @@ type WsInternals = {
   reconnectAttemptsPublic: number;
   reconnectAttemptsPrivate: number;
   MAX_RECONNECT_ATTEMPTS: number;
+  reconnectTimerPublic: ReturnType<typeof setTimeout> | null;
   reconnectTimerPrivate: ReturnType<typeof setTimeout> | null;
   cleanup: (type: "public" | "private") => void;
   handleMessage: (message: unknown, type: "public" | "private") => void;
@@ -47,6 +48,8 @@ describe("BitunixWebSocketService reconnect budget (BUG-0725)", () => {
 
   afterEach(() => {
     internals.cleanup("private");
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -57,15 +60,96 @@ describe("BitunixWebSocketService reconnect budget (BUG-0725)", () => {
     expect(internals.reconnectTimerPrivate).not.toBeNull();
   });
 
-  it("stops scheduling once the budget is exhausted", () => {
+  it("switches to a slow probe once the budget is exhausted (BUG-0788)", () => {
     internals.reconnectAttemptsPrivate = internals.MAX_RECONNECT_ATTEMPTS;
     internals.reconnectTimerPrivate = null;
+    const connectPrivate = vi
+      .spyOn(internals, "connectPrivate")
+      .mockImplementation(() => {});
 
     internals.scheduleReconnect("private");
 
+    // A timer stays alive (the 60 s probe), and the fast counter is untouched
+    // until that probe fires.
+    expect(internals.reconnectTimerPrivate).not.toBeNull();
     expect(internals.reconnectAttemptsPrivate).toBe(
       internals.MAX_RECONNECT_ATTEMPTS,
     );
+
+    // Exactly 60 s: a probe that fired after the normal 1 s backoff would
+    // reinstate the retry storm this budget exists to stop.
+    vi.advanceTimersByTime(59_999);
+    expect(connectPrivate).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(connectPrivate).toHaveBeenCalledTimes(1);
+
+    // One attempt, not twelve: the fast cycle stays closed until an open
+    // resets the counter.
+    expect(internals.reconnectAttemptsPrivate).toBe(
+      internals.MAX_RECONNECT_ATTEMPTS,
+    );
+  });
+
+  it("probes the public socket too (BUG-0788)", () => {
+    internals.reconnectAttemptsPublic = internals.MAX_RECONNECT_ATTEMPTS;
+    internals.reconnectTimerPublic = null;
+    const connectPublic = vi
+      .spyOn(internals, "connectPublic")
+      .mockImplementation(() => {});
+
+    internals.scheduleReconnect("public");
+    expect(internals.reconnectTimerPublic).not.toBeNull();
+
+    vi.advanceTimersByTime(60_000);
+
+    expect(connectPublic).toHaveBeenCalledTimes(1);
+    expect(internals.reconnectAttemptsPublic).toBe(
+      internals.MAX_RECONNECT_ATTEMPTS,
+    );
+  });
+
+  it("keeps the probe alive without connecting while offline (BUG-0788)", () => {
+    internals.reconnectAttemptsPrivate = internals.MAX_RECONNECT_ATTEMPTS;
+    internals.reconnectTimerPrivate = null;
+    const connectPrivate = vi
+      .spyOn(internals, "connectPrivate")
+      .mockImplementation(() => {});
+    internals.scheduleReconnect("private");
+
+    // The network drops while the probe is pending.
+    vi.stubGlobal("navigator", { onLine: false });
+    vi.advanceTimersByTime(60_000);
+    expect(connectPrivate).not.toHaveBeenCalled();
+    expect(internals.reconnectTimerPrivate).not.toBeNull();
+
+    vi.stubGlobal("navigator", { onLine: true });
+    vi.advanceTimersByTime(60_000);
+    expect(connectPrivate).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-arms when the probe itself throws instead of dying (BUG-0788)", () => {
+    internals.reconnectAttemptsPrivate = internals.MAX_RECONNECT_ATTEMPTS;
+    internals.reconnectTimerPrivate = null;
+    vi.spyOn(internals, "connectPrivate").mockImplementation(() => {
+      throw new TypeError("entitlement unavailable");
+    });
+
+    internals.scheduleReconnect("private");
+    vi.advanceTimersByTime(60_000);
+
+    // The last recovery path must not end on a thrown error.
+    expect(internals.reconnectTimerPrivate).not.toBeNull();
+  });
+
+  it("stops rather than re-arming when the connect is declined (BUG-0788)", () => {
+    internals.reconnectAttemptsPrivate = internals.MAX_RECONNECT_ATTEMPTS;
+    internals.reconnectTimerPrivate = null;
+    // A connect that starts no socket: entitlement revoked, key missing.
+    vi.spyOn(internals, "connectPrivate").mockImplementation(() => {});
+
+    internals.scheduleReconnect("private");
+    vi.advanceTimersByTime(60_000);
+
     expect(internals.reconnectTimerPrivate).toBeNull();
   });
 

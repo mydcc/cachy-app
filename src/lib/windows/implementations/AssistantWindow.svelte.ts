@@ -87,9 +87,13 @@ export class AssistantWindow extends WindowBase {
                 .map(m => `${new Date(m.timestamp).toLocaleString()}:\n${m.text}\n`)
                 .join("\n---\n\n");
         } else {
-            content = chatState.messages
-                .map(m => `${m.senderId === "me" ? "YOU" : "USER"} (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`)
-                .join("\n---\n\n");
+            // BUG-0787: the store renders only the newest window, so the export
+            // must not pass a truncated transcript off as the whole record.
+            content =
+                "# Only the most recent messages are included in this export.\n\n" +
+                chatState.messages
+                    .map(m => `${m.senderId === "me" ? "YOU" : "USER"} (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`)
+                    .join("\n---\n\n");
         }
 
         const blob = new Blob([content], { type: "text/plain" });

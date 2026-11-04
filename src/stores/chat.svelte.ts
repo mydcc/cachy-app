@@ -39,6 +39,14 @@ export interface ChatMessage {
 /** Client-side rate limit, unchanged from the previous backend. */
 const SEND_INTERVAL_MS = 2000;
 
+/**
+ * BUG-0787: the module retains 90 days of rows (docs/GLOBAL-CHAT.md §4), and
+ * `cloudService` hands the whole list to `applyRows` on every insert. The store
+ * projects and renders only the newest window, which bounds the DOM and the
+ * per-message render — not the incoming sort, which still costs O(n log n).
+ */
+const MAX_CHAT_MESSAGES = 200;
+
 class ChatManager {
   messages = $state<ChatMessage[]>([]);
   lastSentTimestamp = $state(0);
@@ -126,9 +134,14 @@ class ChatManager {
    * expose it camelCased as `sentAt`. This side speaks the bindings' spelling.
    */
   private applyRows(rows: { sender: string; text: string; sentAt: number }[]) {
+    // BUG-0787: sort the raw rows first, so only the newest window is projected
+    // into `ChatMessage` objects. Sorting before the slice is what makes the
+    // cut mean "newest", not "last delivered".
     this.messages = rows
-      .map((row) => this.toMessage(row))
-      .sort((a, b) => a.timestamp - b.timestamp);
+      .slice()
+      .sort((a, b) => a.sentAt - b.sentAt)
+      .slice(-MAX_CHAT_MESSAGES)
+      .map((row) => this.toMessage(row));
   }
 
   private toMessage(row: {

@@ -121,8 +121,13 @@ export class BitgetWebSocketService {
   // Backoff
   private backoffDelay = RECONNECT_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
-  // Reconnect budget (BUG-0725): stop after 12 consecutive schedules without a
-  // successful open; an explicit connect(true) or a successful open resets it.
+  // BUG-0788: after the fast budget is spent, keep a slow probe alive so a
+  // venue-only outage recovers without a manual reconnect.
+  private readonly EXHAUSTED_PROBE_DELAY_MS = 60000;
+  // Reconnect budget (BUG-0725, revised by BUG-0788): after 12 consecutive
+  // schedules without a successful open, the fast cycle stops and a 60 s probe
+  // takes over. The probe makes a single attempt without resetting the budget;
+  // a successful open or an explicit connect(true) resets it.
   private reconnectAttempts = 0;
   private readonly MAX_RECONNECT_ATTEMPTS = 12;
 
@@ -533,14 +538,21 @@ export class BitgetWebSocketService {
       return;
     }
 
-    // Budget check before the schedule: an exhausted breaker leaves no timer
-    // behind (BUG-0725).
+    // Budget check before the schedule: the 12th failed attempt must not queue
+    // a backoff timer. The 60 s probe owns every attempt from here (BUG-0788).
     if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
       this.reportStatus("disconnected");
-      logger.error(
+      // Forced: `logSettings.network` is off by default, so a non-forced warn
+      // would leave the give-up transition invisible in the console.
+      logger.warn(
         "network",
-        `[WS-Bitget] Reconnect budget exhausted after ${this.reconnectAttempts} attempts; waiting for an explicit connect.`,
+        `[WS-Bitget] Reconnect budget exhausted after ${this.reconnectAttempts} attempts; switching to a ${this.EXHAUSTED_PROBE_DELAY_MS / 1000} s probe.`,
+        undefined,
+        true,
       );
+      // BUG-0788: a venue-only outage leaves navigator.onLine true, so the
+      // `online` event never fires. Probe slowly instead of waiting forever.
+      this.scheduleExhaustedProbe();
       return;
     }
     this.reconnectAttempts++;
@@ -557,6 +569,66 @@ export class BitgetWebSocketService {
       this.isReconnecting = false;
       if (!this.isDestroyed) this.connect();
     }, delay);
+  }
+
+  /**
+   * BUG-0788: one 60 s probe, re-armed by each later exhaustion.
+   *
+   * The probe makes a single connection attempt and deliberately does not
+   * reset the budget: if the attempt fails, the close handler reaches the
+   * exhausted branch again and arms the next probe. A successful open resets
+   * the counter, which is what ends the probe cycle.
+   */
+  private scheduleExhaustedProbe() {
+    if (this.isDestroyed) return;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+
+    this.reconnectTimer = setTimeout(() => {
+      // Drop the dead handle first, so "timer === null" keeps meaning
+      // "nothing pending" for cleanup() and for readers.
+      this.reconnectTimer = null;
+      if (this.isDestroyed) return;
+
+      try {
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          this.reportStatus("disconnected");
+          logger.log("network", "[WS-Bitget] probe deferred, browser is offline");
+          this.scheduleExhaustedProbe();
+          return;
+        }
+
+        const before = this.ws;
+        this.isReconnecting = false;
+        this.connect();
+
+        const after = this.ws;
+        const alive =
+          after !== null &&
+          after !== undefined &&
+          (after.readyState === WebSocket.OPEN ||
+            after.readyState === WebSocket.CONNECTING);
+        if (after === before && !alive) {
+          // `connect` declined to start a socket (entitlement revoked, wrong
+          // provider, insecure endpoint). That is a configuration state, not an
+          // outage: say so and stop rather than re-arming forever.
+          logger.warn(
+            "network",
+            "[WS-Bitget] probe stopped, the connection was not started (entitlement or configuration).",
+            undefined,
+            true,
+          );
+          return;
+        }
+        if (!alive) {
+          // A socket was created; the close handler owns what happens next.
+          logger.log("network", "[WS-Bitget] probe started a connection");
+        }
+      } catch (e) {
+        // The probe is the last recovery path; it must not die silently.
+        logger.error("network", "[WS-Bitget] probe failed; re-arming", e);
+        this.scheduleExhaustedProbe();
+      }
+    }, this.EXHAUSTED_PROBE_DELAY_MS);
   }
 
   private startHeartbeat(ws: WebSocket) {

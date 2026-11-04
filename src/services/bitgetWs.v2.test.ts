@@ -204,21 +204,70 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       insecure.destroy();
     });
 
-    it("stops scheduling reconnects once the budget is exhausted (BUG-0725)", () => {
+    it("switches to a slow probe once the budget is exhausted (BUG-0788)", () => {
+      vi.useFakeTimers();
+      vi.stubGlobal("navigator", { onLine: true });
+      const i = service as unknown as {
+        reconnectAttempts: number;
+        MAX_RECONNECT_ATTEMPTS: number;
+        reconnectTimer: ReturnType<typeof setTimeout> | null;
+        scheduleReconnect(): void;
+        connect(force?: boolean): void;
+      };
+      try {
+        i.reconnectAttempts = i.MAX_RECONNECT_ATTEMPTS;
+        i.reconnectTimer = null;
+        const connect = vi.spyOn(i, "connect").mockImplementation(() => {});
+
+        i.scheduleReconnect();
+
+        expect(i.reconnectTimer).not.toBeNull();
+        expect(i.reconnectAttempts).toBe(i.MAX_RECONNECT_ATTEMPTS);
+
+        // Exactly 60 s: a probe on the 1 s backoff would reinstate the storm
+        // the budget exists to stop.
+        vi.advanceTimersByTime(59_999);
+        expect(connect).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(connect).toHaveBeenCalledTimes(1);
+
+        // One attempt, not twelve; a successful open resets the counter.
+        expect(i.reconnectAttempts).toBe(i.MAX_RECONNECT_ATTEMPTS);
+      } finally {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+      }
+    });
+
+    it("keeps the probe alive without connecting while offline (BUG-0788)", () => {
       vi.useFakeTimers();
       const i = service as unknown as {
         reconnectAttempts: number;
         MAX_RECONNECT_ATTEMPTS: number;
         reconnectTimer: ReturnType<typeof setTimeout> | null;
         scheduleReconnect(): void;
+        connect(force?: boolean): void;
       };
-      i.reconnectAttempts = i.MAX_RECONNECT_ATTEMPTS;
-      i.reconnectTimer = null;
+      try {
+        i.reconnectAttempts = i.MAX_RECONNECT_ATTEMPTS;
+        i.reconnectTimer = null;
+        const connect = vi.spyOn(i, "connect").mockImplementation(() => {});
+        i.scheduleReconnect();
 
-      i.scheduleReconnect();
+        vi.stubGlobal("navigator", { onLine: false });
+        vi.advanceTimersByTime(60_000);
+        expect(connect).not.toHaveBeenCalled();
+        expect(i.reconnectTimer).not.toBeNull();
 
-      expect(i.reconnectTimer).toBeNull();
-      vi.useRealTimers();
+        vi.stubGlobal("navigator", { onLine: true });
+        vi.advanceTimersByTime(60_000);
+        expect(connect).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+      }
     });
 
     it("never sends a login frame on the public socket, even with keys configured", () => {
