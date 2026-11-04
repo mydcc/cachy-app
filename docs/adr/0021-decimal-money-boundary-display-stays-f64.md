@@ -22,11 +22,9 @@ Per-file findings (`develop` at FEAT-0538):
   guarded by the precision guard test. Migrating it would break the guard
   test and the architecture behind it.
 - `src/services/smc/types.ts` (+ `smcService.ts` math) — zone/candle math is
-  comparison-only (`low <= top`, sweep activation) feeding analysis/charting
-  through the journal aggregator (`src/lib/calculators/aggregator.ts`, called
-  synchronously from `calculator.ts`), never execution. Decimal would rewrite
-  ~430 lines of comparisons into method calls and ripple into the aggregator,
-  with zero precision benefit (comparisons do not accumulate rounding error).
+  comparison-only (`low <= top`, sweep activation) and never feeds execution.
+  Decimal would rewrite ~430 lines of comparisons into method calls, with zero
+  precision benefit (comparisons do not accumulate rounding error).
 
 The Decimal.js Enforcement CI already codifies this split: it audits files
 that import `decimal.js` plus the legacy critical money files — none of the
@@ -67,7 +65,7 @@ boundary) where money becomes pixels.
 ## Alternatives considered
 
 - **Migrate SMC math to Decimal**: rejected — comparison-only math gains no
-  precision, rewrites ~430 lines, ripples into the journal aggregator.
+  precision, rewrites ~430 lines.
 - **Migrate statefulTechnicalsCalculator internals**: rejected — contradicts
   the BUG-0426 display-only boundary and breaks its guard test.
 - **Blanket Decimal everywhere including chart APIs**: rejected — the chart

@@ -16,8 +16,9 @@
  * than in the worker file so it can be tested without emulating `self`.
  *
  * The cap is deliberately far above what the service sends — the technicals
- * history is trimmed to 750 candles — but low enough that a hostile or broken
- * caller cannot turn one message into an unbounded allocation.
+ * history is trimmed to the user's `historyLimit` (750 by default) — but low
+ * enough that a hostile or broken caller cannot turn one message into an
+ * unbounded allocation.
  */
 
 export const MAX_WORKER_POINTS = 50_000;

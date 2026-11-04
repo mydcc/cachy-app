@@ -4184,8 +4184,6 @@ export type TranslationKey =
   | "iframe.openArticle"
   | "iframe.fullArticleOn"
   | "iframe.providerProtection"
-  | "chat.placeholder"
-  | "chat.send"
   | "charts.tradesCount"
   | "charts.tradesLabel"
   | "charts.pnlLabel"

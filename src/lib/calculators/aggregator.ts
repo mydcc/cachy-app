@@ -13,29 +13,7 @@ import { sortByDateAsc } from "./core";
 import {
   calculateJournalStats,
   calculatePerformanceStats,
-  getCalendarData,
-  getDisciplineData,
-  getDurationStats,
-  getTagData,
-  getTimingData,
 } from "./stats";
-import {
-  getPerformanceData,
-  getQualityData,
-  getDirectionData,
-  getCostData,
-  getDurationData,
-  getAssetData,
-  getRiskData,
-  getMarketData,
-  getPsychologyData,
-  getTagEvolution,
-  getConfluenceData,
-  getExecutionEfficiencyData,
-  getVisualRiskRadarData,
-  getVolatilityMatrixData,
-  getSystemQualityData,
-} from "./charts";
 
 export function getJournalContext(journal: JournalEntry[]): JournalContext {
   // 1. Single Pass Filtering & Sorting
@@ -71,36 +49,4 @@ export function getJournalContext(journal: JournalEntry[]): JournalContext {
   context.performanceStats = calculatePerformanceStats(journal, context) || undefined;
 
   return context;
-}
-
-export function getJournalAnalysis(journal: JournalEntry[]) {
-  const context = getJournalContext(journal);
-
-  // 3. Compute All Metrics using Shared Context
-  return {
-    performanceMetrics: getPerformanceData(journal, context),
-    qualityMetrics: getQualityData(journal, context),
-    directionMetrics: getDirectionData(journal, context),
-    tagMetrics: getTagData(journal, context), // From stats
-    calendarMetrics: getCalendarData(journal, context), // From stats
-    disciplineMetrics: getDisciplineData(journal, context), // From stats
-    costMetrics: getCostData(journal, context),
-
-    // Deep Dive
-    timingMetrics: getTimingData(journal, context), // From stats
-    confluenceMetrics: getConfluenceData(journal, context),
-    durationStatsMetrics: getDurationStats(journal, context), // From stats
-    durationDataMetrics: getDurationData(journal, context),
-    tagEvolutionMetrics: getTagEvolution(journal, context),
-    assetMetrics: getAssetData(journal, context),
-    riskMetrics: getRiskData(journal, context),
-    marketMetrics: getMarketData(journal, context),
-    psychologyMetrics: getPsychologyData(journal, context),
-
-    // 6-Pillars
-    executionMetrics: getExecutionEfficiencyData(journal, context),
-    riskRadarMetrics: getVisualRiskRadarData(journal, context),
-    marketContextMetrics: getVolatilityMatrixData(journal, context),
-    systemQualityMetrics: getSystemQualityData(journal, context),
-  };
 }

@@ -5123,10 +5123,6 @@
     "fullArticleOn": "Vollständiger Artikel auf {source}",
     "providerProtection": "Dieser Anbieter schützt Volltexte vor direktem In-App-Laden."
   },
-  "chat": {
-    "placeholder": "Nachricht...",
-    "send": "Senden"
-  },
   "charts": {
     "tradesCount": "{count} Trades",
     "tradesLabel": "Trades:",
