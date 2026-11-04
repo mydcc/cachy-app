@@ -305,11 +305,27 @@ function syncDocumentLang(value: string) {
 // store, so the settings -> ui -> i18n cycle stays gone.
 locale.subscribe((value) => {
   if (value) {
-    // PA-04: a full quota must not throw on every locale change. safeSave
-    // catches QuotaExceededError, cleans cache and retries; the chosen locale
-    // still applies for the session, it just may not survive a reload.
-    if (typeof localStorage !== "undefined") {
-      StorageHelper.safeSave("locale", value);
+    try {
+      // BUG-0786: a full quota — or blocked storage, where the `localStorage`
+      // property access itself throws — must not escape from every locale
+      // change. The locale still applies for the session; it just may not
+      // survive a reload.
+      if (
+        typeof localStorage !== "undefined" &&
+        localStorage.getItem("locale") !== value
+      ) {
+        const ok = StorageHelper.safeSave("locale", value);
+        if (!ok) {
+          console.warn(
+            "[i18n] Locale could not be persisted; it will revert on reload.",
+          );
+        }
+      }
+    } catch (e) {
+      console.warn(
+        "[i18n] Locale could not be persisted; it will revert on reload.",
+        e,
+      );
     }
     syncDocumentLang(value);
     void updateEffectiveLocale(false);

@@ -152,7 +152,36 @@ describe("NewsStore", () => {
     expect(newsStore.sentiment).toBeNull();
   });
 
-  it("discards a slow result when the symbol moved while it was in flight (PA-03)", async () => {
+  it("drops a refresh parked in the startup delay when a newer one lands first (BUG-0785)", async () => {
+      // A non-forced call waits 3 s before it fetches. If a newer refresh lands
+      // in that window, the parked call must not claim a fresh generation when
+      // it wakes and overwrite the newer symbol.
+      mockFetchNews.mockResolvedValueOnce([
+        { title: "ETH News", url: "http://eth.com", source: "Test", published_at: "2023-01-03" },
+      ]);
+      mockAnalyzeSentiment.mockResolvedValue({
+        score: 0.5,
+        regime: "NEUTRAL",
+        summary: "Neutral",
+        keyFactors: [],
+      });
+
+      const parked = newsStore.refresh("BTC"); // non-forced: parks for 3 s
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockFetchNews).not.toHaveBeenCalled();
+
+      await newsStore.refresh("ETH", true); // forced: no delay
+      expect(newsStore.news[0]?.title).toBe("ETH News");
+
+      await vi.advanceTimersByTimeAsync(3000); // BTC wakes up
+      await parked;
+
+      expect(mockFetchNews).toHaveBeenCalledTimes(1);
+      expect(newsStore.news[0]?.title).toBe("ETH News");
+      expect(newsStore.lastSymbol).toBe("ETH");
+  });
+
+  it("discards a slow fetch when the symbol moved while it was in flight (BUG-0785)", async () => {
       // BTC's fetch stays pending; ETH's resolves first. The BTC result must
       // not be written over ETH's news/sentiment once it finally arrives.
       let resolveBtc: ((items: NewsItem[]) => void) | undefined;
@@ -174,7 +203,8 @@ describe("NewsStore", () => {
       });
 
       const btcRequest = newsStore.refresh("BTC", true);
-      await Promise.resolve(); // let the BTC fetch reach its await
+      await vi.advanceTimersByTimeAsync(0); // BTC reaches its fetch
+      expect(resolveBtc).toBeTypeOf("function");
 
       await newsStore.refresh("ETH", true);
       expect(newsStore.news[0]?.title).toBe("ETH News");
@@ -186,8 +216,127 @@ describe("NewsStore", () => {
       ]);
       await btcRequest;
 
+      expect(mockFetchNews).toHaveBeenCalledWith("BTC");
       expect(newsStore.news[0]?.title).toBe("ETH News");
       expect(newsStore.lastSymbol).toBe("ETH");
+  });
+
+  it("keeps the newer sentiment when a slow analysis lands late (BUG-0785)", async () => {
+      // The news write and the sentiment write are separate awaits; guarding
+      // only the first would still let the old symbol's sentiment win.
+      let resolveBtcAnalysis: ((a: unknown) => void) | undefined;
+      mockFetchNews.mockImplementation((symbol: string) =>
+        Promise.resolve([
+          {
+            title: `${symbol} News`,
+            url: `http://${symbol.toLowerCase()}.com`,
+            source: "Test",
+            published_at: "2023-01-01",
+          },
+        ])
+      );
+      mockAnalyzeSentiment.mockImplementation((items: NewsItem[]) => {
+        if (items[0]?.title.startsWith("BTC")) {
+          return new Promise((resolve) => {
+            resolveBtcAnalysis = resolve;
+          });
+        }
+        return Promise.resolve({
+          score: 0,
+          regime: "NEUTRAL",
+          summary: "Neutral",
+          keyFactors: [],
+        });
+      });
+
+      const btcRequest = newsStore.refresh("BTC", true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(resolveBtcAnalysis).toBeTypeOf("function");
+
+      await newsStore.refresh("ETH", true);
+      expect(newsStore.sentiment?.regime).toBe("NEUTRAL");
+
+      resolveBtcAnalysis?.({
+        score: 0.9,
+        regime: "BULLISH",
+        summary: "Bullish",
+        keyFactors: [],
+      });
+      await btcRequest;
+
+      expect(newsStore.news[0]?.title).toBe("ETH News");
+      expect(newsStore.sentiment?.regime).toBe("NEUTRAL");
+  });
+
+  it("keeps the newer state when a superseded refresh fails (BUG-0785)", async () => {
+      // A stale rejection must not set the error banner or bump the cooldown
+      // that belongs to the request now on screen.
+      let rejectBtc: ((e: unknown) => void) | undefined;
+      mockFetchNews.mockImplementation((symbol: string) => {
+        if (symbol === "BTC") {
+          return new Promise<NewsItem[]>((_resolve, reject) => {
+            rejectBtc = reject;
+          });
+        }
+        return Promise.resolve([
+          { title: "ETH News", url: "http://eth.com", source: "Test", published_at: "2023-01-03" },
+        ]);
+      });
+      mockAnalyzeSentiment.mockResolvedValue({
+        score: 0,
+        regime: "NEUTRAL",
+        summary: "Neutral",
+        keyFactors: [],
+      });
+
+      const btcRequest = newsStore.refresh("BTC", true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(rejectBtc).toBeTypeOf("function");
+
+      await newsStore.refresh("ETH", true);
+      const ethFetchTime = newsStore.lastFetchTime;
+
+      rejectBtc?.(new Error("Network Error"));
+      await btcRequest;
+
+      expect(newsStore.error).toBeNull();
+      expect(newsStore.news[0]?.title).toBe("ETH News");
+      expect(newsStore.lastFetchTime).toBe(ethFetchTime);
+  });
+
+  it("does not clear the spinner of a newer in-flight refresh (BUG-0785)", async () => {
+      let resolveBtc: ((items: NewsItem[]) => void) | undefined;
+      let resolveEth: ((items: NewsItem[]) => void) | undefined;
+      mockFetchNews.mockImplementation((symbol: string) =>
+        new Promise<NewsItem[]>((resolve) => {
+          if (symbol === "BTC") resolveBtc = resolve;
+          else resolveEth = resolve;
+        })
+      );
+      mockAnalyzeSentiment.mockResolvedValue({
+        score: 0,
+        regime: "NEUTRAL",
+        summary: "Neutral",
+        keyFactors: [],
+      });
+
+      const btcRequest = newsStore.refresh("BTC", true);
+      await vi.advanceTimersByTimeAsync(0);
+      const ethRequest = newsStore.refresh("ETH", true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(newsStore.isLoading).toBe(true);
+
+      resolveBtc?.([
+        { title: "BTC News", url: "http://btc.com", source: "Test", published_at: "2023-01-01" },
+      ]);
+      await btcRequest;
+      // ETH is still loading; the stale completion must not hide that.
+      expect(newsStore.isLoading).toBe(true);
+
+      resolveEth?.([
+        { title: "ETH News", url: "http://eth.com", source: "Test", published_at: "2023-01-03" },
+      ]);
+      await ethRequest;
       expect(newsStore.isLoading).toBe(false);
   });
 

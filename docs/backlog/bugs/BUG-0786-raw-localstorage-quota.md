@@ -18,24 +18,54 @@ branch: fix/news-race-and-storage
 
 ## Symptom
 
-When storage is full, every drag/resize/zoom (`WindowBase.saveState`) and
-every locale change throws a `QuotaExceededError` into the global handler,
+When storage is full, every gesture-end layout save (`WindowBase.saveState`)
+and every locale change throws out of the caller into the global handler,
 which shows a blocking error modal, and the layout silently stops persisting.
 
 ## Evidence
 
 Derived — `src/lib/windows/WindowBase.svelte.ts` (`saveState`) and
-`src/locales/i18n.ts` (locale subscription). Production audit PA-04.
+`src/locales/i18n.ts` (locale subscription) wrote `localStorage.setItem`
+directly. Demonstrated by the tests below, which throw a real `DOMException`
+of each class at the write.
+
+## Cause
+
+Neither call site contained the exception. `StorageHelper.safeSave` already
+existed and handles `QuotaExceededError` (evict cached entries, retry once),
+but it rethrows everything else, and neither caller wrapped it.
 
 ## Fix
 
-Both writes go through `StorageHelper.safeSave`, which catches
-`QuotaExceededError`, tries a cache cleanup, and retries. `WindowBase` exposes
-`persistFailed` so a failed layout write can be surfaced.
+Both writes go through `StorageHelper.safeSave` inside a `try`/`catch`, so a
+quota hit, a blocked-storage `SecurityError` (where the `localStorage` property
+access itself throws) or any other storage error stays at the call site and is
+logged. The window layout and the locale still apply for the session; they
+just may not survive a reload.
 
-## Verification
+`saveState` does not expose a failure flag: nothing in the UI reads window
+geometry, and the reset is visible on reload. It logs at warn level instead of
+carrying dead state.
 
-New tests in `src/lib/windows/WindowBase.test.ts` — a throwing
-`localStorage.setItem` no longer escapes `saveState()` and sets
-`persistFailed`; a successful save clears it. RED against `origin/develop`
-(`QuotaExceededError … was thrown`), GREEN after the fix.
+## Acceptance criteria
+
+- [x] A full quota at the window-layout write does not throw, and a later save
+      still reaches storage
+- [x] A blocked-storage `SecurityError` at the same write does not throw
+- [x] A quota hit and a `SecurityError` at the locale write do not throw
+- [x] A working write still persists the locale
+
+## Out of scope
+
+- `StorageHelper.cleanupCache()` also removes `cachy_settings_backup` to free
+  space. No code writes that key today, so it is latent, but evicting a
+  settings backup for a window position is wrong and belongs in its own change.
+- `NewsSentimentPanel.svelte` swallows `localStorage` errors in two empty
+  catches (same family, different file).
+
+## Links
+
+- `src/lib/windows/WindowBase.svelte.ts` (`saveState`)
+- `src/locales/i18n.ts` (locale subscription)
+- `src/utils/storageHelper.ts` (`safeSave`)
+- ADR-0001 (Local-First boundary)

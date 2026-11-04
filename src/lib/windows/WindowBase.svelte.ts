@@ -206,8 +206,6 @@ export abstract class WindowBase {
     canMinimizeToPanel = $state(true);
     /** If true, state is persisted to LocalStorage. */
     persistent = $state(true);
-    /** PA-04: set when a layout write fails (quota) so the UI can surface it. */
-    persistFailed = $state(false);
     allowMultipleInstances = $state(false);
     centerByDefault = $state(false);
     showHeaderIndicators = $state(false);
@@ -542,20 +540,34 @@ export abstract class WindowBase {
         };
     }
 
-    /** Serialize reactive state to persistent storage. */
+    /**
+     * Best-effort persist of the reactive state.
+     *
+     * BUG-0786: a full quota — or a blocked-storage `SecurityError` — must not
+     * throw into the global handler on every gesture-end save. `safeSave`
+     * evicts cached entries and retries once for a quota hit; anything else is
+     * logged here. The layout then simply does not survive a reload.
+     */
     public saveState() {
-        if (typeof localStorage === 'undefined' || !this.persistent) return;
-        // PA-04: a full storage quota must not throw a QuotaExceededError into
-        // the global handler on every drag/resize/zoom. The wrapper logs the
-        // failure and returns false; the layout then simply does not persist.
-        const ok = StorageHelper.safeSave(
-            this.storageKey,
-            JSON.stringify(this.persistedSnapshot),
-        );
-        if (!ok) {
-            this.persistFailed = true;
-        } else if (this.persistFailed) {
-            this.persistFailed = false;
+        if (!this.persistent) return;
+        try {
+            // The `localStorage` property access itself throws when storage is
+            // blocked, so it belongs inside the try.
+            if (typeof localStorage === 'undefined') return;
+            const ok = StorageHelper.safeSave(
+                this.storageKey,
+                JSON.stringify(this.persistedSnapshot),
+            );
+            if (!ok) {
+                console.warn(
+                    `[WindowBase] Layout for ${this.storageKey} could not be persisted; it will not survive a reload.`,
+                );
+            }
+        } catch (e) {
+            console.warn(
+                `[WindowBase] Layout for ${this.storageKey} could not be persisted.`,
+                e,
+            );
         }
     }
 

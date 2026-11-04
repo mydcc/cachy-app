@@ -748,15 +748,14 @@ describe("WindowBase registry geometry (BUG-0696)", () => {
 });
 
 /**
- * PA-04 — a full localStorage quota must not throw out of `saveState()` into
- * the global handler on every drag/resize/zoom. The write is routed through
- * `StorageHelper.safeSave`, so the failure is contained and flagged.
+ * BUG-0786 — a full localStorage quota, or blocked storage, must not throw out
+ * of `saveState()` into the global handler on a gesture-end save. The write goes
+ * through `StorageHelper.safeSave`, which contains the quota failure.
  */
-describe("WindowBase persistence (PA-04)", () => {
-    it("does not throw when localStorage is full and flags persistFailed", () => {
+describe("WindowBase persistence (BUG-0786)", () => {
+    it("does not throw when the quota is full, and still writes on success", () => {
         const win = makeTestWindow();
-        const quotaError = new Error("quota exceeded");
-        quotaError.name = "QuotaExceededError";
+        const quotaError = new DOMException("quota", "QuotaExceededError");
         const setItem = vi
             .spyOn(localStorage, "setItem")
             .mockImplementation(() => {
@@ -765,16 +764,29 @@ describe("WindowBase persistence (PA-04)", () => {
 
         try {
             expect(() => win.saveState()).not.toThrow();
-            expect(win.persistFailed).toBe(true);
         } finally {
             setItem.mockRestore();
         }
+
+        // The failure is contained, not a silent early return: a later save
+        // still reaches storage.
+        win.saveState();
+        expect(localStorage.getItem(win.storageKey)).toBeTruthy();
     });
 
-    it("clears persistFailed after a successful save", () => {
+    it("does not throw when storage is blocked (SecurityError)", () => {
         const win = makeTestWindow();
-        win.persistFailed = true;
-        win.saveState();
-        expect(win.persistFailed).toBe(false);
+        const blocked = new DOMException("blocked", "SecurityError");
+        const setItem = vi
+            .spyOn(localStorage, "setItem")
+            .mockImplementation(() => {
+                throw blocked;
+            });
+
+        try {
+            expect(() => win.saveState()).not.toThrow();
+        } finally {
+            setItem.mockRestore();
+        }
     });
 });
