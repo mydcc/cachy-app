@@ -385,6 +385,33 @@
     </div>
 {/if}
 
+<!--
+  The honest gap report: a candle period that never arrived for a series an
+  armed rule watches. Not a toast and not an error — it is a fact about the
+  data the alarm was evaluated on, and it belongs next to the alarms. One row
+  per series per session (the loop keeps the record); a background tab alone
+  never produces one.
+-->
+{#if alertState.seriesGapReport.length > 0}
+    <div class="engine-info" role="status">
+        <h4>{$_("dashboard.alerts.seriesGapTitle")}</h4>
+        <p>{$_("dashboard.alerts.seriesGapHint")}</p>
+        <ul>
+            {#each alertState.seriesGapReport as gap (gap.symbol + ":" + gap.timeframe)}
+                <li>
+                    {$_("dashboard.alerts.seriesGapRow", {
+                        values: {
+                            symbol: gap.symbol,
+                            timeframe: gap.timeframe,
+                            candles: gap.missingCandles,
+                        },
+                    })}
+                </li>
+            {/each}
+        </ul>
+    </div>
+{/if}
+
 {#if view === "alerts"}
     <div class="panel-body">
     <AlertFilters
@@ -444,6 +471,29 @@
         border-left: 3px solid var(--accent-color, var(--border-color));
         color: var(--text-primary);
         font-size: 0.85rem;
+    }
+    .engine-info {
+        margin-bottom: var(--space-4);
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-sm);
+        border-left: 3px solid var(--accent-color, var(--border-color));
+        color: var(--text-primary);
+        font-size: 0.85rem;
+    }
+    .engine-info h4 {
+        margin: 0 0 var(--space-2) 0;
+        font-size: 0.9rem;
+    }
+    .engine-info p {
+        margin: 0 0 var(--space-2) 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+    .engine-info ul {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: var(--text-secondary);
     }
     .cutover-notice h4 {
         margin: 0 0 var(--space-2) 0;

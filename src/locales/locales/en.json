@@ -358,7 +358,6 @@
       "manage": "Manage Alerts",
       "addAlert": "Add Alert",
       "priceLimit": "Price",
-      "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
       "engineUnavailable": "The alert engine failed to load. Alerts will not fire.",
       "engineUnavailableHint": "The alert engine is not running. Alerts are saved but will only be evaluated after a successful page reload.",
       "createSuccess": "Alert created successfully.",
@@ -393,6 +392,9 @@
       "legacyUnverifiedHint": "Old price alerts could not be checked against the migration record, so we cannot confirm all of them became alarms. Please verify your alarm list.",
       "drawingSuspendedHint": "Drawing alerts disabled: {count}. Their drawing no longer exists on the chart, so they were switched off automatically.",
       "drawingWithheldHint": "Drawing alerts with unreadable store: {count}. We could not read the drawing store, so they are being kept active as a precaution and can still trigger.",
+      "seriesGapTitle": "Candle gaps detected",
+      "seriesGapHint": "A candle period never arrived for these series. Their alarms were evaluated on the candles that did arrive; a candle that never arrived was not evaluated.",
+      "seriesGapRow": "{symbol} ({timeframe}) — missing candles: {candles}",
       "panel": {
         "title": "Super Alert",
         "open": "Open the Super Alert panel",

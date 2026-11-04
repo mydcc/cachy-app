@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { _ } from "../locales/i18n";
-import { get } from "svelte/store";
 import { browser } from "$app/env";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
@@ -136,7 +134,6 @@ export class MarketManager {
   // browser and a Timeout object under Node, and these run in both.
   private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
   private flushIntervalId: ReturnType<typeof setInterval> | null = null;
-  private lastFlushTime: number = 0;
 
   constructor() {
     this.klineBufferManager = new KlineBufferManager();
@@ -287,19 +284,6 @@ export class MarketManager {
         });
         this.pendingUpdates.clear();
         this.pendingSources.clear();
-      }
-
-      // Gap detection for alerts
-      if (this.pendingUpdates.size > 0 || this.pendingKlineUpdates.size > 0) {
-        const now = Date.now();
-        // Determine if we experienced a data gap (>10s)
-        if (this.lastFlushTime && now - this.lastFlushTime > 10000) {
-             import('../services/toastService.svelte').then(m => {
-                 const t = get(_);
-                 m.toastService.error((t as (key: string) => string)("dashboard.alerts.gapDetected"));
-             }).catch(() => {});
-        }
-        this.lastFlushTime = now;
       }
 
       // 2. Apply Kline Updates

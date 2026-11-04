@@ -149,6 +149,7 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     alertState.legacyMigrationReport = null;
     alertState.drawingReport = null;
     alertState.unevaluableReport = [];
+    alertState.seriesGapReport = [];
     alertPanelState.closePanel();
     alertPanelState.reset("BTCUSDT");
     alertPanelState.activeTab = "manage";
@@ -386,6 +387,31 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     const fineRow = rows.find((r) => r.textContent?.includes("ETHUSDT"));
     expect(fineRow?.querySelector(".broken-badge")).toBeNull();
+  });
+
+  it("lists a candle gap as information, not as an error", () => {
+    alertState.seriesGapReport = [
+      {
+        symbol: "ETHUSDT",
+        timeframe: "1m",
+        lastOpenMs: 1_000,
+        detectedAtMs: 181_000,
+        missingCandles: 2,
+      },
+    ];
+
+    const el = render();
+
+    expect(el.textContent).toContain(getNestedTranslation("dashboard.alerts.seriesGapTitle"));
+    expect(el.textContent).toContain(
+      getNestedTranslation("dashboard.alerts.seriesGapRow", {
+        values: { symbol: "ETHUSDT", timeframe: "1m", candles: 2 },
+      }),
+    );
+    // A gap in the data is a fact about what was evaluated, not a fault the
+    // trader has to act on right now — the old red toast made it look like one.
+    expect(el.querySelector("[role='alert']")).toBeNull();
+    expect(el.querySelector(".engine-info")?.getAttribute("role")).toBe("status");
   });
 
   it("FEAT-0542: the pencil loads that row's rule, keeps focus in the panel and toasts nothing", () => {

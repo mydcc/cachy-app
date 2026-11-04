@@ -55,6 +55,7 @@ import type {
   RuleState,
   Verdict,
 } from "../../lib/rules/types";
+import { safeTfToMs } from "../../utils/timeUtils";
 import { logger } from "../logger";
 
 /** Closed candles for one series, oldest first. Never includes the open one. */
@@ -119,6 +120,32 @@ export interface UnevaluableRule {
   symbol: string;
   /** Developer-facing English. A UI renders its own wording. */
   reason: string;
+}
+
+/**
+ * A candle period that never arrived for a series an armed rule watches.
+ *
+ * The honest replacement for the flush-cadence toast the market store used to
+ * raise. That one measured the gap between two *batches*, which a background
+ * tab widens without any candle going missing, and its wording ("alerts may
+ * have missed intermediate prices") described an engine that no longer exists.
+ * This record is derived from candle open times: a period is listed missing
+ * only when neither the live stream nor a backfill delivered it, so nothing was
+ * replayed for it either.
+ *
+ * `missingCandles` counts periods between the last candle the loop evaluated
+ * and the newest one it has just seen. `lastOpenMs` is exact — it is the open
+ * time of a candle that was really observed.
+ */
+export interface SeriesGap {
+  symbol: string;
+  timeframe: string;
+  /** Open time of the last candle seen before the jump. */
+  lastOpenMs: number;
+  /** Open time of the newest candle that revealed the gap. */
+  detectedAtMs: number;
+  /** How many candle periods in between never arrived. */
+  missingCandles: number;
 }
 
 /**
@@ -270,6 +297,17 @@ export class RuleEvaluationLoop {
    * it grow underneath, which is why listeners receive a copy, never the map.
    */
   private readonly unevaluableListeners = new Set<(rules: UnevaluableRule[]) => void>();
+  /**
+   * Candle gaps this session found, keyed by `symbol:timeframe`.
+   *
+   * One record per series: a second gap on the same series tells the trader
+   * nothing new, and the panel stays a short list instead of a log. Cleared by
+   * `reset()` and when the market cache forgets the symbol, so a series that
+   * is dropped and re-subscribed can report a genuinely new gap.
+   */
+  private readonly seriesGapRecords = new Map<string, SeriesGap>();
+  /** Panel-side readers of the record above, same contract as the inert list. */
+  private readonly seriesGapListeners = new Set<(gaps: SeriesGap[]) => void>();
   private readCandles: CandleReader = NO_CANDLES;
   private readMarkCandles: CandleReader = NO_CANDLES;
   private readFormingCandles: CandleReader = NO_CANDLES;
@@ -339,6 +377,86 @@ export class RuleEvaluationLoop {
         logger.error("alerts", "An unevaluable-rules listener failed", e);
       }
     }
+  }
+
+  /**
+   * The candle gaps this session found, one record per series.
+   *
+   * A snapshot, like `unevaluableRules()`: the panel iterates it while the
+   * market hot path may still be recording, and nobody outside the loop has any
+   * business editing it.
+   */
+  seriesGaps(): SeriesGap[] {
+    return [...this.seriesGapRecords.values()];
+  }
+
+  /**
+   * Follow the record above. Fires with a snapshot when a gap is first found
+   * for a series; a second gap on the same series does not fire again.
+   *
+   * Returns the unsubscribe. Listener failures are contained to that listener,
+   * so one broken reader cannot cost the others their update.
+   */
+  subscribeSeriesGaps(listener: (gaps: SeriesGap[]) => void): () => void {
+    this.seriesGapListeners.add(listener);
+    return () => {
+      this.seriesGapListeners.delete(listener);
+    };
+  }
+
+  private emitSeriesGaps(): void {
+    const snapshot = this.seriesGaps();
+    for (const listener of this.seriesGapListeners) {
+      try {
+        listener(snapshot);
+      } catch (e) {
+        logger.error("alerts", "A series-gap listener failed", e);
+      }
+    }
+  }
+
+  /**
+   * Record a gap if — and only if — one really happened.
+   *
+   * `periods` is how many closes the jump covers, including the last candle the
+   * loop had already seen. `closes` is what this batch actually delivered or
+   * replayed; when the two agree, nothing is missing and this is a no-op.
+   * `Math.round` absorbs the small drift some venues show in open times without
+   * letting it look like a missing period.
+   *
+   * A hole in a series no armed rule watches is not an alert problem, so it is
+   * not listed: the panel is about alarms, not about every chart the trader
+   * happens to have open.
+   */
+  private reportSeriesGap(
+    symbol: string,
+    timeframe: string,
+    previous: number,
+    highest: number,
+    closes: readonly number[],
+  ): void {
+    const intervalMs = safeTfToMs(timeframe);
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) return;
+
+    const periods = Math.round((highest - previous) / intervalMs);
+    if (periods <= closes.length) return;
+
+    const watched =
+      this.rulesFor(symbol, timeframe, false).length > 0 ||
+      this.rulesFor(symbol, timeframe, true).length > 0;
+    if (!watched) return;
+
+    const key = `${symbol}:${timeframe}`;
+    if (this.seriesGapRecords.has(key)) return;
+
+    this.seriesGapRecords.set(key, {
+      symbol,
+      timeframe,
+      lastOpenMs: previous,
+      detectedAtMs: highest,
+      missingCandles: periods - closes.length,
+    });
+    this.emitSeriesGaps();
   }
 
   /**
@@ -450,7 +568,14 @@ export class RuleEvaluationLoop {
       if (time > previous && time < highest) closes.push(time);
     }
     closes.sort((a, b) => a - b);
-    return [...new Set(closes)];
+    const uniqueCloses = [...new Set(closes)];
+
+    // A jump this batch did not fill: periods between the last candle the loop
+    // evaluated and the newest one it has just seen, which neither the live
+    // stream nor a backfill delivered.
+    this.reportSeriesGap(symbol, timeframe, previous, highest, uniqueCloses);
+
+    return uniqueCloses;
   }
 
   /**
@@ -797,7 +922,9 @@ export class RuleEvaluationLoop {
 
   /** Forget one series. */
   forgetSeries(symbol: string, timeframe: string): void {
-    this.highestOpenMs.delete(`${symbol}:${timeframe}`);
+    const key = `${symbol}:${timeframe}`;
+    this.highestOpenMs.delete(key);
+    this.seriesGapRecords.delete(key);
   }
 
   /**
@@ -806,12 +933,16 @@ export class RuleEvaluationLoop {
    * Two reasons, one small and one smaller: the map would otherwise keep a
    * row per timeframe for every symbol ever seen, and a stale high-water mark
    * makes the first candle after a re-subscription look like a close that
-   * already happened, skipping it.
+   * already happened, skipping it. The gap record goes with it for the same
+   * reason — a re-subscribed series is a new observed span.
    */
   forgetSymbol(symbol: string): void {
     const prefix = `${symbol}:`;
     for (const key of this.highestOpenMs.keys()) {
       if (key.startsWith(prefix)) this.highestOpenMs.delete(key);
+    }
+    for (const key of this.seriesGapRecords.keys()) {
+      if (key.startsWith(prefix)) this.seriesGapRecords.delete(key);
     }
   }
 
@@ -864,6 +995,7 @@ export class RuleEvaluationLoop {
     this.highestOpenMs.clear();
     this.unevaluable.clear();
     this.unevaluableNotified.clear();
+    this.seriesGapRecords.clear();
   }
 }
 

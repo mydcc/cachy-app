@@ -41,7 +41,7 @@ import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
 import { alertNotificationKey } from "../lib/notificationPolicy";
 import { channelSelection } from "../lib/alerts/effectiveChannels";
-import type { FiringSink, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
+import type { FiringSink, SeriesGap, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
 import type { RuleDocument } from "../lib/rules/types";
 import { logger } from "../services/logger";
@@ -134,6 +134,18 @@ class AlertsManager {
      * read, not another banner.
      */
     unevaluableReport = $state<UnevaluableRule[]>([]);
+
+    /**
+     * Candle gaps the loop found for series an armed rule watches.
+     *
+     * The reactive mirror of `ruleEvaluationLoop.seriesGaps()`, written only by
+     * the subscriber below. One entry per series and session: a missing candle
+     * means that close was never evaluated, which is exactly what a trader
+     * needs to know before trusting a silent alarm. This replaces the
+     * flush-cadence toast that used to report a "gap" caused by a throttled
+     * background tab.
+     */
+    seriesGapReport = $state<SeriesGap[]>([]);
 }
 
 export const alertState = new AlertsManager();
@@ -495,6 +507,9 @@ let disarmRuleLoop: (() => void) | null = null;
 /** BUG-0485 — the mirror subscription below is registered once (see `initAlertEngine`). */
 let unevaluableSubscribed = false;
 
+/** The gap mirror is registered once for the same reason as the one above. */
+let seriesGapSubscribed = false;
+
 /**
  * Stops the rule path — FEAT-0406.
  *
@@ -544,6 +559,16 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
             alertState.unevaluableReport = rules;
         });
         alertState.unevaluableReport = ruleEvaluationLoop.unevaluableRules();
+    }
+
+    // The candle-gap mirror. Same one-subscription guard, same reason: the loop
+    // is store-free and cannot know the store came back.
+    if (!seriesGapSubscribed) {
+        seriesGapSubscribed = true;
+        ruleEvaluationLoop.subscribeSeriesGaps((gaps) => {
+            alertState.seriesGapReport = gaps;
+        });
+        alertState.seriesGapReport = ruleEvaluationLoop.seriesGaps();
     }
 
     // FEAT-0388: one-shot, best-effort — migrateAlertsToRuleDocuments()

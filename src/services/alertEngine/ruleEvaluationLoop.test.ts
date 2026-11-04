@@ -1202,4 +1202,100 @@ describe("RuleEvaluationLoop", () => {
       expect(seen).toEqual([["refused"]]);
     });
   });
+
+  describe("candle gaps — one honest signal per series", () => {
+    function gapLoop(overrides: Partial<RuleDocument> = {}): RuleEvaluationLoop {
+      return loopWith([rule(overrides)]).loop;
+    }
+
+    it("stays silent when every period arrived", () => {
+      const loop = gapLoop();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      expect(loop.seriesGaps()).toEqual([]);
+    });
+
+    it("reports the periods a jump skipped", () => {
+      const loop = gapLoop();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      // Two periods between the mark and the newest candle, and the batch
+      // carried neither of them: exactly the case a reconnect creates.
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+
+      expect(loop.seriesGaps()).toEqual([
+        {
+          symbol: "BTCUSDT",
+          timeframe: "1m",
+          lastOpenMs: 1_000,
+          detectedAtMs: 181_000,
+          missingCandles: 2,
+        },
+      ]);
+    });
+
+    it("reports nothing when the batch carried the candles itself", () => {
+      const loop = gapLoop();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      // A backfill after a reconnect fills the hole; nothing was missed,
+      // because every skipped close is replayed from this batch.
+      loop.observeCandles("BTCUSDT", "1m", [
+        { time: 61_000 },
+        { time: 121_000 },
+        { time: 181_000 },
+      ]);
+
+      expect(loop.seriesGaps()).toEqual([]);
+    });
+
+    it("lists a series once, however often it gaps in a session", () => {
+      const loop = gapLoop();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 601_000 }]);
+
+      expect(loop.seriesGaps()).toHaveLength(1);
+      // The first record is kept: the trader has already been told this
+      // series is unreliable, and the panel is not a log.
+      expect(loop.seriesGaps()[0].missingCandles).toBe(2);
+    });
+
+    it("ignores a hole no armed rule watches", () => {
+      const loop = gapLoop({ symbol: "ETHUSDT" });
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+
+      expect(loop.seriesGaps()).toEqual([]);
+    });
+
+    it("counts an intrabar rule as a watcher", () => {
+      const loop = gapLoop({ evaluation_mode: "intrabar" });
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+
+      expect(loop.seriesGaps()).toHaveLength(1);
+    });
+
+    it("tells subscribers once, and forgets on reset", () => {
+      const seen: number[] = [];
+      const loop = gapLoop();
+      const unsubscribe = loop.subscribeSeriesGaps((gaps) => seen.push(gaps.length));
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 601_000 }]);
+      unsubscribe();
+
+      expect(seen).toEqual([1]);
+
+      loop.reset();
+      expect(loop.seriesGaps()).toEqual([]);
+    });
+  });
 });

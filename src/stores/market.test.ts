@@ -16,9 +16,10 @@
  */
 
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MarketManager } from './market.svelte';
 import { settingsState } from './settings.svelte';
+import { toastService } from '../services/toastService.svelte';
 import { Decimal } from 'decimal.js';
 
 describe('MarketManager', () => {
@@ -247,6 +248,32 @@ describe('MarketManager', () => {
 
     // safePush overwrites. First k2 pushed. Then k2Dup pushed -> safePush sees same time -> overwrites.
     expect(history[1].close.toNumber()).toBe(103);
+  });
+
+  // The store used to raise a red "market-data gap" toast whenever two kline
+  // flushes were more than 10s apart. A background tab throttles the 250ms
+  // flush timer, so switching away and back produced it without a single
+  // candle missing — the alert loop now reports real candle gaps instead,
+  // derived from open times. This pins the store to stay silent.
+  it('does not raise a gap toast after a long pause between kline flushes', async () => {
+    const internals = market as unknown as {
+      flushUpdates: () => void;
+      lastFlushTime?: number;
+    };
+    const errorSpy = vi.spyOn(toastService, 'error');
+    // The exact state the removed detector read: the last kline flush is 15s
+    // old, which is what a hidden tab left behind.
+    internals.lastFlushTime = Date.now() - 15_000;
+
+    market.updateSymbolKlines('BTCUSDT', '1m', [createKline(0, 100)], 'ws');
+    internals.flushUpdates();
+
+    // The removed path created its toast from a dynamic import; give that
+    // microtask chain a turn before asserting silence.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
 });
