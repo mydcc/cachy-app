@@ -204,20 +204,28 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       insecure.destroy();
     });
 
-    it("stops scheduling reconnects once the budget is exhausted (BUG-0725)", () => {
+    it("switches to a slow probe once the budget is exhausted (PA-10)", () => {
       vi.useFakeTimers();
       const i = service as unknown as {
         reconnectAttempts: number;
         MAX_RECONNECT_ATTEMPTS: number;
         reconnectTimer: ReturnType<typeof setTimeout> | null;
         scheduleReconnect(): void;
+        connect(force?: boolean): void;
       };
       i.reconnectAttempts = i.MAX_RECONNECT_ATTEMPTS;
       i.reconnectTimer = null;
+      const connect = vi.spyOn(i, "connect").mockImplementation(() => {});
 
       i.scheduleReconnect();
 
-      expect(i.reconnectTimer).toBeNull();
+      expect(i.reconnectTimer).not.toBeNull();
+      expect(i.reconnectAttempts).toBe(i.MAX_RECONNECT_ATTEMPTS);
+
+      vi.advanceTimersByTime(60_000);
+
+      expect(i.reconnectAttempts).toBe(0);
+      expect(connect).toHaveBeenCalled();
       vi.useRealTimers();
     });
 

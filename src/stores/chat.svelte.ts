@@ -39,6 +39,13 @@ export interface ChatMessage {
 /** Client-side rate limit, unchanged from the previous backend. */
 const SEND_INTERVAL_MS = 2000;
 
+/**
+ * PA-09: the SpacetimeDB subscription retains 90 days of rows. Rendering all
+ * of them re-sorts and re-renders the entire list on every new message, so the
+ * client keeps only the most recent window.
+ */
+const MAX_CHAT_MESSAGES = 200;
+
 class ChatManager {
   messages = $state<ChatMessage[]>([]);
   lastSentTimestamp = $state(0);
@@ -126,9 +133,12 @@ class ChatManager {
    * expose it camelCased as `sentAt`. This side speaks the bindings' spelling.
    */
   private applyRows(rows: { sender: string; text: string; sentAt: number }[]) {
+    // PA-09: cap the list. The subscription can carry tens of thousands of
+    // rows; only the newest window is rendered.
     this.messages = rows
       .map((row) => this.toMessage(row))
-      .sort((a, b) => a.timestamp - b.timestamp);
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-MAX_CHAT_MESSAGES);
   }
 
   private toMessage(row: {

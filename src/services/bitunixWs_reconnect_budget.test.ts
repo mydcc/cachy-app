@@ -57,16 +57,26 @@ describe("BitunixWebSocketService reconnect budget (BUG-0725)", () => {
     expect(internals.reconnectTimerPrivate).not.toBeNull();
   });
 
-  it("stops scheduling once the budget is exhausted", () => {
+  it("switches to a slow probe once the budget is exhausted (PA-10)", () => {
     internals.reconnectAttemptsPrivate = internals.MAX_RECONNECT_ATTEMPTS;
     internals.reconnectTimerPrivate = null;
+    const connectPrivate = vi
+      .spyOn(internals, "connectPrivate")
+      .mockImplementation(() => {});
 
     internals.scheduleReconnect("private");
 
+    // A timer stays alive (the 60 s probe), and the fast counter is unchanged
+    // until that probe fires.
+    expect(internals.reconnectTimerPrivate).not.toBeNull();
     expect(internals.reconnectAttemptsPrivate).toBe(
       internals.MAX_RECONNECT_ATTEMPTS,
     );
-    expect(internals.reconnectTimerPrivate).toBeNull();
+
+    vi.advanceTimersByTime(60_000);
+
+    expect(internals.reconnectAttemptsPrivate).toBe(0);
+    expect(connectPrivate).toHaveBeenCalled();
   });
 
   it("resets the budget after a successful login", () => {

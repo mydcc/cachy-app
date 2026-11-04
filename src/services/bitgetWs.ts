@@ -121,6 +121,9 @@ export class BitgetWebSocketService {
   // Backoff
   private backoffDelay = RECONNECT_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
+  // PA-10: after the fast budget is spent, keep a slow probe alive so a
+  // venue-only outage recovers without a manual reconnect.
+  private readonly EXHAUSTED_PROBE_DELAY_MS = 60000;
   // Reconnect budget (BUG-0725): stop after 12 consecutive schedules without a
   // successful open; an explicit connect(true) or a successful open resets it.
   private reconnectAttempts = 0;
@@ -537,10 +540,13 @@ export class BitgetWebSocketService {
     // behind (BUG-0725).
     if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
       this.reportStatus("disconnected");
-      logger.error(
+      logger.warn(
         "network",
-        `[WS-Bitget] Reconnect budget exhausted after ${this.reconnectAttempts} attempts; waiting for an explicit connect.`,
+        `[WS-Bitget] Reconnect budget exhausted after ${this.reconnectAttempts} attempts; switching to a 60 s probe.`,
       );
+      // PA-10: a venue-only outage leaves navigator.onLine true, so the
+      // `online` event never fires. Probe slowly instead of waiting forever.
+      this.scheduleExhaustedProbe();
       return;
     }
     this.reconnectAttempts++;
@@ -557,6 +563,29 @@ export class BitgetWebSocketService {
       this.isReconnecting = false;
       if (!this.isDestroyed) this.connect();
     }, delay);
+  }
+
+  /**
+   * PA-10: one slow retry after the fast budget is spent. It resets the
+   * counter so a failed probe re-enters the normal backoff cycle; if that
+   * exhausts again, this schedules the next probe.
+   */
+  private scheduleExhaustedProbe() {
+    if (this.isDestroyed) return;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+
+    this.reconnectTimer = setTimeout(() => {
+      if (this.isDestroyed) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        this.reportStatus("disconnected");
+        this.scheduleExhaustedProbe();
+        return;
+      }
+      this.reconnectAttempts = 0;
+      this.backoffDelay = RECONNECT_DELAY;
+      this.isReconnecting = false;
+      this.connect();
+    }, this.EXHAUSTED_PROBE_DELAY_MS);
   }
 
   private startHeartbeat(ws: WebSocket) {

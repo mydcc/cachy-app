@@ -177,6 +177,9 @@ export class BitunixWebSocketService {
   private backoffDelay = INITIAL_BACKOFF_DELAY;
   private backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
+  // PA-10: after the reconnect budget is exhausted, keep a slow probe alive
+  // so a venue-only outage recovers without a manual reconnect.
+  private readonly EXHAUSTED_PROBE_DELAY_MS = 60000;
 
   // Reconnect budget (BUG-0725): after 12 consecutive schedules without a
   // successful open, stop retrying and wait for an explicit connect() or the
@@ -692,10 +695,14 @@ export class BitunixWebSocketService {
       if (type === "public") {
         marketState.connectionStatus = "disconnected";
       }
-      logger.error(
+      logger.warn(
         "network",
-        `[BitunixWS] ${type}: reconnect budget exhausted after ${attempts} attempts; waiting for an explicit connect.`,
+        `[BitunixWS] ${type}: reconnect budget exhausted after ${attempts} attempts; switching to a 60 s probe.`,
       );
+      // PA-10: a venue-only outage leaves navigator.onLine true and the
+      // `online` event never fires. Do not wait for a manual reconnect; probe
+      // slowly and reset the budget on each probe.
+      this.scheduleExhaustedProbe(type);
       return;
     }
 
@@ -732,6 +739,43 @@ export class BitunixWebSocketService {
         if (!this.isDestroyed) this.connectPrivate();
       }, delay);
     }
+  }
+
+  /**
+   * PA-10: one slow retry after the fast budget is spent. It resets the
+   * counters so a failed probe re-enters the normal backoff cycle; if that
+   * exhausts again, this schedules the next probe.
+   */
+  private scheduleExhaustedProbe(type: "public" | "private") {
+    if (this.isDestroyed) return;
+    const existing =
+      type === "public" ? this.reconnectTimerPublic : this.reconnectTimerPrivate;
+    if (existing) clearTimeout(existing);
+
+    const probe = setTimeout(() => {
+      if (this.isDestroyed) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        // Still offline: `handleOnline` will reset and reconnect, but keep a
+        // probe in case that event never arrives.
+        if (type === "public") marketState.connectionStatus = "disconnected";
+        this.scheduleExhaustedProbe(type);
+        return;
+      }
+      if (type === "public") {
+        this.reconnectAttemptsPublic = 0;
+        this.backoffDelay = INITIAL_BACKOFF_DELAY;
+        this.isReconnectingPublic = false;
+        this.connectPublic();
+      } else {
+        this.reconnectAttemptsPrivate = 0;
+        this.backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
+        this.isReconnectingPrivate = false;
+        this.connectPrivate();
+      }
+    }, this.EXHAUSTED_PROBE_DELAY_MS);
+
+    if (type === "public") this.reconnectTimerPublic = probe;
+    else this.reconnectTimerPrivate = probe;
   }
 
   private startHeartbeat(ws: WebSocket, type: "public" | "private") {

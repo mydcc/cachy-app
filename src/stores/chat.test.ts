@@ -140,6 +140,21 @@ describe("ChatManager (SpacetimeDB-backed)", () => {
       expect(chatState.messages.map((m) => m.text)).toEqual(["early", "late"]);
     });
 
+    it("keeps only the newest window of a large subscription (PA-09)", () => {
+      const rows = Array.from({ length: 250 }, (_, i) => ({
+        sender: "aabbccdd",
+        text: `msg-${i}`,
+        sentAt: 1000 + i,
+      }));
+
+      internals.applyRows(rows);
+
+      expect(chatState.messages).toHaveLength(200);
+      // The oldest 50 are dropped, the newest survives.
+      expect(chatState.messages[0].text).toBe("msg-50");
+      expect(chatState.messages[199].text).toBe("msg-249");
+    });
+
     it("re-marks ownership once the identity is known", () => {
       // Rows can arrive before onConnect reports the identity, so every message
       // would otherwise be stuck rendering as someone else's.
