@@ -2,7 +2,7 @@
 
 Welcome to Cachy! This guide is your comprehensive manual for using the application effectively for your trading. It covers everything from basic position calculation to advanced performance analysis.
 
-**Privacy Note:** Cachy stores your data (settings, journal, API keys) locally in your browser (`localStorage`). The app additionally sends anonymous usage statistics (theme, provider, app version — never journal, settings or API keys) to our self-hosted Matomo instance at `s.cachy.app`; opt out anytime under Settings → System → Performance ("Usage Statistics"). Exchange API requests you configure go directly to the exchange.
+**Privacy Note:** Cachy stores your data (settings, journal, API keys) locally in your browser (`localStorage`). The app additionally sends anonymous usage statistics (window types, viewport, zoom level, app version — never journal, settings or API keys) to our self-hosted Matomo instance at `s.cachy.app`; opt out anytime under Settings → System → Performance ("Usage Statistics"). Exchange API requests you configure go directly to the exchange.
 
 ---
 

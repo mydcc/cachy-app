@@ -2,7 +2,7 @@
 
 Willkommen bei Cachy! Dieses Handbuch ist deine umfassende Anleitung, um die App effektiv für dein Trading zu nutzen. Es deckt alles ab, von der grundlegenden Positionsberechnung bis hin zur fortgeschrittenen Performance-Analyse.
 
-**Datenschutz-Hinweis:** Cachy speichert deine Daten (Einstellungen, Journal, API-Schlüssel) lokal in deinem Browser (`localStorage`). Zusätzlich sendet die App anonyme Nutzungsstatistiken (Theme, Anbieter, App-Version – niemals Journal, Einstellungen oder API-Schlüssel) an unsere selbst gehostete Matomo-Instanz unter `s.cachy.app`; jederzeit abwählbar unter Einstellungen → System → Performance („Nutzungsstatistiken"). API-Anfragen an deine konfigurierten Börsen gehen direkt an die Börse.
+**Datenschutz-Hinweis:** Cachy speichert deine Daten (Einstellungen, Journal, API-Schlüssel) lokal in deinem Browser (`localStorage`). Zusätzlich sendet die App anonyme Nutzungsstatistiken (Fensterarten, Viewport, Zoom-Stufe, App-Version – niemals Journal, Einstellungen oder API-Schlüssel) an unsere selbst gehostete Matomo-Instanz unter `s.cachy.app`; jederzeit abwählbar unter Einstellungen → System → Performance („Nutzungsstatistiken"). API-Anfragen an deine konfigurierten Börsen gehen direkt an die Börse.
 
 ---
 

@@ -28,7 +28,6 @@ import { apiService } from "./apiService";
 import { tradeService } from "./tradeService";
 import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
-import { APP_VERSION } from "../lib/version";
 import { modalState } from "../stores/modal.svelte";
 import { parseDecimal, generateId } from "../utils/utils";
 import { describeStaleness } from "../utils/tradeStaleness";
@@ -39,6 +38,7 @@ import type { JournalStatus } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { browser } from "$app/env";
 import { addContextProvider, initTracking } from "./trackingService";
+import { buildTelemetryContext } from "./telemetryContext";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
 import { tradeCalculator } from "./tradeCalculator.svelte";
@@ -73,17 +73,15 @@ export const app = {
       // 0. Setup Tracking Context
       // BUG-0286: the currently viewed pair is user context and must not be
       // part of the default telemetry dimensions (guarded by test).
-      addContextProvider(() => {
-        return {
-          app_theme: uiState.currentTheme,
-          app_provider: settingsState.apiProvider,
-          app_background: settingsState.backgroundType,
-          app_modals: uiState.windows.map((w) => w.id).join(","),
-          app_viewport: `${window.innerWidth}x${window.innerHeight}`,
-          app_zoom: window.devicePixelRatio,
-          app_version: APP_VERSION,
-        };
-      });
+      // BUG-0778: settings are dropped entirely and window ids are reduced to
+      // their type — only `windowType` is sent (ADR-0001).
+      addContextProvider(() =>
+        buildTelemetryContext(uiState.windows, {
+          width: window.innerWidth,
+          height: window.innerHeight,
+          devicePixelRatio: window.devicePixelRatio,
+        }),
+      );
       // Telemetry is opt-out (BUG-0286): tracking runs by default and
       // initTracking() injects the container unless the user disabled it
       // under Settings > System > Performance ("Usage Statistics").

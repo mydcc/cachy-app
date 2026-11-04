@@ -2,7 +2,7 @@
 id: BUG-0777
 title: TP/SL modify serialises sub-micro prices in scientific notation
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
