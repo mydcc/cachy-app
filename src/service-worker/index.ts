@@ -42,10 +42,39 @@ const ASSETS: string[] = [
 ];
 
 self.addEventListener("install", (event) => {
-  // Create a new cache and add all files to it
+  // PA-07: cache assets one by one so a single failing request (flaky
+  // connection, ~12 MB of static/) does not abort the whole install/update.
+  // Teilerfolge bleiben im Cache; fehlende Eintraege werden beim naechsten
+  // Fetch nachgezogen (siehe respond() unten). PA-08: die App-Shell ("/")
+  // wird mitgecached, damit ein Reload/Kaltstart ohne Netz die App startet.
   async function addFilesToCache() {
-    const cache = await caches.open(CACHE);
-    await cache.addAll(ASSETS);
+    let cache: Cache;
+    try {
+      cache = await caches.open(CACHE);
+    } catch (err) {
+      console.error("Failed to open cache:", err);
+      return;
+    }
+    const toCache = [...ASSETS, "/"];
+    const results = await Promise.allSettled(
+      toCache.map(async (path) => {
+        try {
+          const response = await fetch(path);
+          if (!(response instanceof Response)) {
+            throw new Error("fetch returned non-Response");
+          }
+          if (response.status !== 200) {
+            throw new Error(`bad status ${response.status}`);
+          }
+          await cache.put(path, response);
+        } catch (err) {
+          // PA-07: log, but do not fail the install. allSettled records the rejection.
+          console.warn("Failed to cache asset:", path, err);
+        }
+      }),
+    );
+    // Keep the partial successes; nothing else to do.
+    void results;
   }
 
   (event as ExtendableEvent).waitUntil(addFilesToCache());
@@ -56,7 +85,11 @@ self.addEventListener("activate", (event) => {
   async function deleteOldCaches() {
     for (const key of await caches.keys()) {
       if (key !== CACHE) {
-        await caches.delete(key);
+        try {
+          await caches.delete(key);
+        } catch (err) {
+          console.warn("Failed to delete old cache:", key, err);
+        }
       }
     }
   }
@@ -79,12 +112,38 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return;
 
   async function respond() {
-    const cache = await caches.open(CACHE);
+    let cache: Cache;
+    try {
+      cache = await caches.open(CACHE);
+    } catch (err) {
+      console.error("Failed to open cache:", fetchEvent.request.url, err);
+      throw err;
+    }
 
     // Serve build assets from the cache
     if (ASSETS.includes(url.pathname)) {
       const response = await cache.match(url.pathname);
       if (response) return response;
+    }
+
+    // PA-08: App-Shell fallback for navigations. A reload/kaltstart without
+    // network serves the cached "/" so Journal/Settings/Presets (lokal) noch
+    // starten, statt der Browser-Offline-Seite.
+    if (fetchEvent.request.mode === "navigate") {
+      const cachedShell = await cache.match("/");
+      if (cachedShell) {
+        // Network-first: try the network, fall back to the shell.
+        try {
+          const response = await fetch(fetchEvent.request);
+          if (response instanceof Response && response.ok) return response;
+          if (!(response instanceof Response)) {
+            console.warn("Navigation fetch returned non-Response, serving cached shell:", fetchEvent.request.url, response);
+          }
+        } catch (err) {
+          console.warn("Navigation fetch failed, serving cached shell:", fetchEvent.request.url, err);
+        }
+        return cachedShell;
+      }
     }
 
     try {
@@ -96,20 +155,26 @@ self.addEventListener("fetch", (event) => {
         throw new Error("invalid response from fetch");
       }
 
-      const isCacheable = response.status === 200 && ASSETS.includes(url.pathname);
+      const isCacheable =
+        response.status === 200 && (ASSETS.includes(url.pathname) || url.pathname === "/");
 
       if (isCacheable) {
         cache.put(fetchEvent.request, response.clone()).catch((err) => {
-          console.warn("Failed to cache response:", err);
+          console.warn("Failed to cache response:", fetchEvent.request.url, err);
         });
       }
 
       return response;
     } catch (err) {
-      const response = await cache.match(fetchEvent.request);
-
-      if (response) {
-        return response;
+      console.warn("Fetch failed, trying cache:", fetchEvent.request.url, err);
+      let cached: Response | undefined;
+      try {
+        cached = await cache.match(fetchEvent.request);
+      } catch (matchErr) {
+        console.warn("Cache match failed:", fetchEvent.request.url, matchErr);
+      }
+      if (cached) {
+        return cached;
       }
 
       // if there's no cache, then just error out
@@ -118,5 +183,10 @@ self.addEventListener("fetch", (event) => {
     }
   }
 
-  fetchEvent.respondWith(respond());
+  fetchEvent.respondWith(
+    respond().catch((err) => {
+      console.error("Service worker respond() failed:", fetchEvent.request.url, err);
+      throw err;
+    }),
+  );
 });
