@@ -33,7 +33,7 @@ artifact until someone deletes the release by hand.
 
 ## Evidence
 
-Demonstrated, on `develop` at `1b7543f95`, 2026-11-04.
+Demonstrated, on `develop` at `98c9be96a` (run `41818821620`), 2026-11-04.
 
 `Deploy Build` succeeded at 11:03Z (`1.6.0-beta.514`). The next run
 ([`41818821620`](https://github.com/mydcc/cachy-app/actions/runs/41818821620))
@@ -68,8 +68,9 @@ so the abort happened before the step's own `gh release delete` could clear the
 broken release. Sixteen further runs failed this way (11:08Z–19:25Z).
 
 A draft is also invisible to the anonymous download URL the host uses
-(`GET /releases/tags/deploy-beta` → 404), so even a successful-looking run can
-produce an artifact URL that 404s.
+(`releases/download/deploy-beta/cachy-build.tar.gz` → 404, because draft assets
+need a token), so even a successful-looking run can produce an artifact URL
+that 404s.
 
 ## Cause
 
@@ -102,8 +103,8 @@ Two independent defects in the `Publish artifact` step of
 
 ## Out of scope
 
-- The `deploy.sh` side on the host (it only downloads a URL; the URL was wrong,
-  the script was not).
+- The `deploy.sh` side on the host (it only fetches a fixed URL; the script was
+  fine — the release behind that URL was a draft).
 - Pinning artifacts per commit instead of a moving tag — a larger change to how
   the host selects a build.
 - The xyOps trigger in `deploy-staging.yml`.
