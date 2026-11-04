@@ -3973,6 +3973,7 @@ export type TranslationKey =
   | "orderEntry.protection.failed"
   | "orderEntry.result.placed"
   | "orderEntry.errors.entryRejected"
+  | "orderEntry.errors.statusUnknown"
   | "orderEntry.errors.unprotectedTitle"
   | "orderEntry.errors.unprotected"
   | "orderEntry.errors.targetMissing"

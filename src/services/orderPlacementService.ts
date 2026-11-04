@@ -44,6 +44,7 @@
 
 import { Decimal } from "decimal.js";
 import { tradeService, type TpSlOrder } from "./tradeService";
+import { OrderStatusUnknownError, TradeError } from "./trade/tradeErrors";
 import { accountState } from "../stores/account.svelte";
 import { paperState } from "../stores/paperTrading.svelte";
 import { tpSlState } from "../stores/tpsl.svelte";
@@ -321,6 +322,7 @@ class OrderPlacementService {
         } catch (e) {
             // Nothing was sent, so nothing is unprotected. A refusal is the
             // gate doing its job and is reported as itself, not as a failure.
+            logger.error("market", "[OrderPlacement] entry failed", e);
             return {
                 entryPlaced: false,
                 stopLoss: "none",
@@ -329,14 +331,17 @@ class OrderPlacementService {
                 errorKey:
                     e instanceof OrderRefusedError
                         ? e.refusal.messageKey
-                        : "orderEntry.errors.entryRejected",
+                        : (e instanceof OrderStatusUnknownError || (e instanceof TradeError && e.code === "ORDER_STATUS_UNKNOWN"))
+                          ? "orderEntry.errors.statusUnknown"
+                          : "orderEntry.errors.entryRejected",
                 refusal: e instanceof OrderRefusedError ? e.refusal : undefined,
                 // `getDisplayMessage`, not `e.message`: BitunixApiError puts the
                 // i18n key "apiErrors.generic" in `message` and the exchange's
                 // own text — the only thing that says *why* the order failed —
                 // in `rawMessage`. Reading `message` threw that away and showed
                 // the trader the key instead.
-                errorDetail: getDisplayMessage(e),
+                errorDetail:
+                    e instanceof OrderStatusUnknownError ? undefined : getDisplayMessage(e),
             };
         }
 

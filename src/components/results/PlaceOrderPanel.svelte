@@ -66,6 +66,9 @@
     type PlacementResult,
   } from "../../services/orderPlacementService";
   import { activeExchange } from "../../services/exchange";
+  import { OrderStatusUnknownError, TradeError } from "../../services/trade/tradeErrors";
+  import { logger } from "../../services/logger";
+  import { getDisplayMessage } from "../../utils/errorUtils";
   import ActiveAccountChip from "../shared/ActiveAccountChip.svelte";
   import { translateRefusal, MAX_ACCOUNT_STATE_AGE_MS } from "../../services/orderGate";
   import { marketState, META_FETCH_RETRY_MS } from "../../stores/market.svelte";
@@ -683,13 +686,22 @@
        * polite and queued, once assertive. That is the trade, taken knowingly
        * against a refusal that otherwise can go unheard on the money path.
        */
-      uiState.showError($_("orderEntry.errors.entryRejected"));
+      // PA-01: a timed-out (or half-open) request may have reached the
+      // venue. Do not present it as a plain rejection — the status is
+      // unknown, and the reconciliation above re-reads what is actually
+      // there. The trader must not be told the order failed and retry it.
+      logger.error("market", "[PlaceOrderPanel] submit failed", e);
+      const isStatusUnknown = (e instanceof OrderStatusUnknownError || (e instanceof TradeError && e.code === "ORDER_STATUS_UNKNOWN"));
+      uiState.showError(
+        $_(isStatusUnknown ? "orderEntry.errors.statusUnknown" : "orderEntry.errors.entryRejected"),
+      );
       result = {
         entryPlaced: false,
         stopLoss: "none",
         takeProfit: "none",
         unprotected: false,
-        errorDetail: e instanceof Error ? e.message : String(e),
+        errorKey: isStatusUnknown ? "orderEntry.errors.statusUnknown" : "orderEntry.errors.entryRejected",
+        errorDetail: isStatusUnknown ? undefined : getDisplayMessage(e),
       };
     } finally {
       submitting = false;

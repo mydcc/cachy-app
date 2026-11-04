@@ -4852,6 +4852,7 @@
     },
     "errors": {
       "entryRejected": "Die Order wurde nicht platziert.",
+      "statusUnknown": "Orderstatus unbekannt: Die Anfrage hat vor einer Antwort abgebrochen. Die Order kann die Börse erreicht haben oder nicht — prüfe offene Orders und Positionen, bevor du es erneut versuchst.",
       "unprotectedTitle": "Position ist ungeschützt",
       "unprotected": "Der Einstieg wurde platziert, aber sein Stop liegt nicht an der Börse. Die Position ist ohne Stop offen. Cachy schließt sie nicht von sich aus — setze jetzt einen Stop oder schließe die Position selbst.",
       "targetMissing": "Einstieg und Stop liegen an, der Take-Profit jedoch nicht.",

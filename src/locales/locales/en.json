@@ -4852,6 +4852,7 @@
     },
     "errors": {
       "entryRejected": "The order was not placed.",
+      "statusUnknown": "Order status unknown: the request timed out before a reply arrived. The order may or may not have reached the exchange — check your open orders and positions before retrying.",
       "unprotectedTitle": "Position is unprotected",
       "unprotected": "The entry was placed but its stop is not on the exchange. The position is open with no stop. Cachy will not close it for you — set a stop now, or close the position yourself.",
       "targetMissing": "The entry and its stop are in place, but the take-profit is not.",

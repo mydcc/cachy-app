@@ -34,3 +34,16 @@ export class TradeError extends Error {
         this.name = "TradeError";
     }
 }
+
+/**
+ * The request was aborted by the client deadline before a response arrived
+ * (PA-01). The order may or may not have reached the exchange: do NOT retry
+ * automatically — reconcile state and tell the trader.
+ */
+export class OrderStatusUnknownError extends TradeError {
+    constructor(cause?: unknown) {
+        super("orderEntry.errors.statusUnknown", "ORDER_STATUS_UNKNOWN", cause);
+        this.name = "OrderStatusUnknownError";
+        if (cause !== undefined) this.cause = cause;
+    }
+}
