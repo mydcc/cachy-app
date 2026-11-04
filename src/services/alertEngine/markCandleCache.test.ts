@@ -18,6 +18,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MarkCandleCache,
+  fetchMarkCandles,
   toEvaluationCandles,
   type MarkCandleFetcher,
 } from "./markCandleCache";
@@ -184,5 +185,33 @@ describe("MarkCandleCache", () => {
     cache.forgetSymbol("BTCUSDT");
     await cache.ensure("BTCUSDT", "4h");
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * BUG-0789 — `fetchMarkCandles` is the default fetcher and the only place the
+ * browser→node deadline exists. Every other test injects its own fetcher, so
+ * this is the sole guard that the signal is still attached.
+ */
+describe("fetchMarkCandles upstream deadline (BUG-0789)", () => {
+  it("bounds the klines request with the mark-candle budget", async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await fetchMarkCandles("BTCUSDT", "4h", 200);
+
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(String(url)).toContain("priceSource=mark");
+      expect((init as RequestInit).signal).toBeInstanceOf(AbortSignal);
+      expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+    } finally {
+      vi.unstubAllGlobals();
+      timeoutSpy.mockRestore();
+    }
   });
 });

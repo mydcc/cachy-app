@@ -40,11 +40,15 @@ const internals = bitunixWs as unknown as WsInternals;
 describe("BitunixWebSocketService private reconnect backoff (BUG-0356)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    // PA-11 adds ±20% jitter; pin it to 0 so the exact timer advances below
-    // still describe the backoff curve rather than a random draw.
+    // BUG-0789 adds ±20% jitter. Pin Math.random to its midpoint so the factor
+    // is exactly 1.0 (0.8 + 0.5 × 0.4) and the timer advances below still
+    // describe the backoff curve rather than a random draw.
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     internals.cleanup("private");
     internals.backoffDelayPrivate = 1000;
+    // Independent of whatever the previous test left behind.
+    internals.reconnectAttemptsPrivate = 0;
+    internals.isReconnectingPrivate = false;
   });
 
   afterEach(() => {
@@ -80,6 +84,23 @@ describe("BitunixWebSocketService private reconnect backoff (BUG-0356)", () => {
       internals.scheduleReconnect("private");
     }
     expect(internals.backoffDelayPrivate).toBe(internals.MAX_BACKOFF_DELAY);
+  });
+
+  it("jitters the reconnect delay without changing the backoff curve (BUG-0789)", () => {
+    // Lowest draw: factor 0.8, so a 1000 ms delay fires at 800 ms. Without the
+    // jitter the timer sits at 1000 and the 800 ms assertion fails.
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    internals.backoffDelayPrivate = 1000;
+
+    internals.scheduleReconnect("private");
+
+    // The curve is untouched: only the scheduled wait is jittered.
+    expect(internals.backoffDelayPrivate).toBe(1500);
+
+    vi.advanceTimersByTime(799);
+    expect(internals.isReconnectingPrivate).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(internals.isReconnectingPrivate).toBe(false);
   });
 
   it("resets backoffDelayPrivate to 1000ms upon successful login", () => {

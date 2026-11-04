@@ -16,6 +16,7 @@
  */
 
 import { parseMessage } from "./bitunixWs/messageParser";
+import { jitteredDelay } from "../utils/backoff";
 import { dispatchMessage } from "./bitunixWs/channelDispatch";
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
@@ -679,14 +680,6 @@ export class BitunixWebSocketService {
     }
   }
 
-  /**
-   * PA-11: ±20% jitter on the backoff delay, so every client does not
-   * reconnect in lockstep and spike the venue exactly when it recovers.
-   */
-  private jitter(delay: number): number {
-    return Math.round(delay * (0.8 + Math.random() * 0.4));
-  }
-
   private scheduleReconnect(type: "public" | "private") {
     if (this.isDestroyed) return;
 
@@ -730,13 +723,14 @@ export class BitunixWebSocketService {
       const delay = this.backoffDelay;
       this.backoffDelay = Math.min(this.backoffDelay * 1.5, this.MAX_BACKOFF_DELAY);
 
-      logger.log("network", `[BitunixWS] Scheduling reconnect in ${delay}ms (Backoff: ${this.backoffDelay})`);
+      const scheduled = jitteredDelay(delay, this.MAX_BACKOFF_DELAY);
+      logger.log("network", `[BitunixWS] Scheduling reconnect in ${scheduled}ms (Backoff: ${this.backoffDelay})`);
 
       if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
       this.reconnectTimerPublic = setTimeout(() => {
         this.isReconnectingPublic = false;
         if (!this.isDestroyed) this.connectPublic();
-      }, this.jitter(delay));
+      }, scheduled);
     } else {
       if (this.isReconnectingPrivate) return;
       this.reconnectAttemptsPrivate++;
@@ -745,13 +739,14 @@ export class BitunixWebSocketService {
       const delay = this.backoffDelayPrivate;
       this.backoffDelayPrivate = Math.min(this.backoffDelayPrivate * 1.5, this.MAX_BACKOFF_DELAY);
 
-      logger.log("network", `[BitunixWS] Scheduling private reconnect in ${delay}ms (Backoff: ${this.backoffDelayPrivate})`);
+      const scheduled = jitteredDelay(delay, this.MAX_BACKOFF_DELAY);
+      logger.log("network", `[BitunixWS] Scheduling private reconnect in ${scheduled}ms (Backoff: ${this.backoffDelayPrivate})`);
 
       if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
       this.reconnectTimerPrivate = setTimeout(() => {
         this.isReconnectingPrivate = false;
         if (!this.isDestroyed) this.connectPrivate();
-      }, this.jitter(delay));
+      }, scheduled);
     }
   }
 

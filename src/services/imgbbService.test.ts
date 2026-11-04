@@ -66,6 +66,8 @@ describe("imgbbService", () => {
 
     // Form data must contain key and image
     expect(calledOptions?.method).toBe("POST");
+    // BUG-0789: a hung upload must abort instead of spinning forever.
+    expect(calledOptions?.signal).toBeInstanceOf(AbortSignal);
     const body = calledOptions?.body as FormData;
     expect(body).toBeInstanceOf(FormData);
     expect(body.get("key")).toBe("test-secret-key-12345");

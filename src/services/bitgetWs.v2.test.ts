@@ -270,6 +270,38 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       }
     });
 
+    it("jitters the reconnect delay without changing the backoff curve (BUG-0789)", () => {
+      vi.useFakeTimers();
+      vi.stubGlobal("navigator", { onLine: true });
+      const i = service as unknown as {
+        reconnectAttempts: number;
+        backoffDelay: number;
+        isReconnecting: boolean;
+        scheduleReconnect(): void;
+        connect(force?: boolean): void;
+      };
+      try {
+        vi.spyOn(Math, "random").mockReturnValue(0); // factor 0.8
+        i.reconnectAttempts = 0;
+        i.backoffDelay = 1000;
+        const connect = vi.spyOn(i, "connect").mockImplementation(() => {});
+
+        i.scheduleReconnect();
+
+        // The curve is untouched: only the scheduled wait is jittered.
+        expect(i.backoffDelay).toBe(1500);
+
+        vi.advanceTimersByTime(799);
+        expect(connect).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(connect).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+      }
+    });
+
     it("never sends a login frame on the public socket, even with keys configured", () => {
       settingsState.apiProvider = "bitget";
       settingsState.entitlement.capabilities.marketData = true;
