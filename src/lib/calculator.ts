@@ -18,13 +18,12 @@
 import * as Core from "./calculators/core";
 import * as Stats from "./calculators/stats";
 import * as Charts from "./calculators/charts";
-import { getJournalAnalysis, getJournalContext } from "./calculators/aggregator";
+import { getJournalContext } from "./calculators/aggregator";
 
 export const calculator = {
   ...Core,
   ...Stats,
   ...Charts,
-  getJournalAnalysis,
   getJournalContext,
 };
 
@@ -71,4 +70,4 @@ export const {
   getSystemQualityData,
 } = Charts;
 
-export { getJournalAnalysis, getJournalContext };
+export { getJournalContext };

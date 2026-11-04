@@ -5123,10 +5123,6 @@
     "fullArticleOn": "Full article on {source}",
     "providerProtection": "This provider protects full texts from being loaded directly in the app."
   },
-  "chat": {
-    "placeholder": "Message...",
-    "send": "Send"
-  },
   "charts": {
     "tradesCount": "{count} Trades",
     "tradesLabel": "Trades:",

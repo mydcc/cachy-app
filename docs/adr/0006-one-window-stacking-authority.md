@@ -15,7 +15,7 @@ know about each other.
 | `ModalFrame.svelte` | none — fixed centre overlay | `10000` (`ModalFrame.svelte:154`) | `AcademyModal`, `MarketDashboardModal`, `TpSlEditModal` |
 | `floatingWindowsStore` + `SidePanel.svelte` | **interactjs** (`SidePanel.svelte:100-190`) | `1000` (`floatingWindows.svelte.ts:23`) | SidePanel |
 | `FlashCard.svelte` | none — fixed overlay | `200` (`FlashCard.svelte:73`) | quiz |
-| `modalState` (`stores/modal.svelte.ts`) | renders through `DialogWindow` | inherits window manager | `uiManager.showReadme()` |
+| `modalState` (`stores/modal.svelte.ts`) | renders through `DialogWindow` | inherits window manager | `modalState.show()` (alert / confirm / prompt) |
 
 Around them sit hand-picked values with no shared origin: `PositionsSidebar`
 `10000`, `ToastContainer` `10000`, `+layout.svelte` `10000`, `FXOverlay`

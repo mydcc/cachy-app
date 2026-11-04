@@ -8,21 +8,20 @@
  */
 
 /**
- * Entry validation for the two Web Workers (BUG-0725).
+ * Entry validation for the technicals Web Worker (BUG-0725).
  *
  * Worker entry points are a trust boundary of their own: a malformed
  * `postMessage` from any same-origin script (or a bug in the caller) reaches
  * code that assumes arrays, ids and klines exist. The check lives here rather
  * than in the worker file so it can be tested without emulating `self`.
  *
- * The caps are deliberately far above what the service sends — the technicals
- * history is trimmed to 750 candles and a journal is user data — but low
+ * The cap is deliberately far above what the service sends — the technicals
+ * history is trimmed to the user's `historyLimit` (750 by default) — but low
  * enough that a hostile or broken caller cannot turn one message into an
  * unbounded allocation.
  */
 
 export const MAX_WORKER_POINTS = 50_000;
-export const MAX_AGGREGATOR_JOURNAL = 50_000;
 
 const SERIES_KEYS = ["times", "opens", "highs", "lows", "closes", "volumes"] as const;
 const KLINE_KEYS = ["time", "open", "high", "low", "close", "volume"] as const;
@@ -138,20 +137,4 @@ export function readTechnicalsWorkerMessage(
   if (type === "UPDATE" && !isKlineRecord(payload.kline)) return null;
 
   return { type, payload, id };
-}
-
-export interface GuardedAggregatorMessage {
-  journal: unknown[];
-  id?: string;
-}
-
-/** Returns the journal analysis message, or `null` for a malformed one. */
-export function readAggregatorWorkerMessage(
-  data: unknown,
-): GuardedAggregatorMessage | null {
-  if (!isRecord(data)) return null;
-  if (!Array.isArray(data.journal)) return null;
-  if (data.journal.length > MAX_AGGREGATOR_JOURNAL) return null;
-  const id = typeof data.id === "string" && data.id.length > 0 ? data.id : undefined;
-  return { journal: data.journal, id };
 }

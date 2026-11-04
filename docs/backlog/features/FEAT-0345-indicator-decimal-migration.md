@@ -38,9 +38,8 @@ Per-file verdict while implementing:
 - `src/utils/statefulTechnicalsCalculator.ts` — intentionally f64: BUG-0426
   display-only boundary with `toDisplayPrice()` conversion point + precision
   guard test. Migrating would break both.
-- `src/services/smc/types.ts` — zone/candle math is comparison-only feeding
-  analysis/charting via `aggregatorService`, never execution; Decimal would
-  rewrite ~430 lines and ripple into the aggregator with zero precision
+- `src/services/smc/types.ts` — zone/candle math is comparison-only and never
+  feeds execution; Decimal would rewrite ~430 lines with zero precision
   benefit.
 
 Resolved via the item's own escape hatch: ADR-0021 records the

@@ -630,6 +630,13 @@ call site it was written for. The parameter itself is kept (not
 deleted) with a `docs/TODO.md` pointer, since `uiManager.ts` still
 depends on its position in the call signature.
 
+*(2026-11-04: `src/services/uiManager.ts` was removed in BUG-0790, so
+`showReadme()` no longer exists in `src/` and the call site this section
+describes is gone. ADR-0006's `modalState` row was corrected in the same
+change. The `extraClasses` decision itself is unchanged — but the reason given
+above for keeping the parameter no longer holds: no caller passes a fifth
+argument at all.)*
+
 ## 16. ✅ Ichimoku's lagging span (Chikou Span) is accepted as a parameter but never computed
 
 **RESOLVED** (2026-09-08). Implemented the lagging span and wired it into
@@ -987,8 +994,10 @@ holds. `openIframe()` has a live production caller:
 `NewsSentimentPanel.svelte`'s `handleArticleClick()` opens news articles
 in an `IframeWindow` whenever the user's `newsOpenBehavior` setting is not
 "new_tab" (that path uses `window.open` instead). The panel itself is
-mounted twice in `+page.svelte` (sidebar variant) and also hosts inside
-`NewsFrameWindow`, so the caller is on a rendered page. A session can
+mounted twice in `+page.svelte` (sidebar variant) and also hosted inside
+`NewsFrameWindow`, so the caller is on a rendered page. (`NewsFrameWindow`
+was removed later in BUG-0790; the `+page.svelte` sidebar mounts keep the
+caller reachable and this conclusion unchanged.) A session can
 therefore legitimately contain an `IframeWindow` (persisted news-article
 window, `storageKey: "news_article"`), which makes `createFromData()`'s
 `'iframe'` rehydration branch reachable too. The grep that originally

@@ -178,8 +178,8 @@ Cloud, Connections, System, Trading, Visuals, plus indicator configuration),
 
 ### `src/workers/`, `technicals-wasm/`
 
-`technicals.worker.ts` and `aggregator.worker.ts` keep indicator computation off
-the main thread. `technicals-wasm/` is the Rust/WASM indicator module, built by
+`technicals.worker.ts` keeps indicator computation off the main thread.
+`technicals-wasm/` is the Rust/WASM indicator module, built by
 `scripts/build_wasm.sh`, which `npm run dev` and `npm run build` run first.
 `technicals-wasm/src/rule/` is the rule evaluator for `RuleDocument`s — one
 condition language for alerts, bots and (later) backtests, evaluated on candle
