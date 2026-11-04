@@ -5190,6 +5190,14 @@
       "noBreak": "kein Bruch",
       "candlesAgoZero": "diese Kerze",
       "candlesAgoOne": "1 Kerze"
+    },
+    "pivots": {
+      "basis": "Basis",
+      "formulaClassic": "P = (H+L+C)/3 · R1 = 2P-L · S1 = 2P-H · R2 = P+(H-L) · S2 = P-(H-L) · R3 = H+2(P-L) · S3 = L-2(H-P)",
+      "formulaWoodie": "P = (H+L+2C)/4 · R1 = 2P-L · S1 = 2P-H · R2 = P+H-L · S2 = P-H+L · R3 = H+2(P-L) · S3 = L-2(H-P)",
+      "formulaCamarilla": "P = C · R1 = C+1,1(H-L)/12 · S1 = C-1,1(H-L)/12 · R2 = C+1,1(H-L)/6 · S2 = C-1,1(H-L)/6 · R3 = C+1,1(H-L)/4 · S3 = C-1,1(H-L)/4",
+      "formulaFibonacci": "P = (H+L+C)/3 · R1 = P+0,382(H-L) · S1 = P-0,382(H-L) · R2 = P+0,618(H-L) · S2 = P-0,618(H-L) · R3 = P+(H-L) · S3 = P-(H-L) — die Spanne H-L ist die der letzten Kerze, kein Swing-Retracement.",
+      "projection": "H, L und C sind Hoch, Tief und Schluss der letzten abgeschlossenen Kerze. R2/R3 und S2/S3 liegen außerhalb ihrer Spanne: Projektionen, keine beobachteten Preise."
     }
   }
 }

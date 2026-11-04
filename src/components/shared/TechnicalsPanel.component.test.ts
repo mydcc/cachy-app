@@ -360,3 +360,128 @@ describe("FEAT-0766 — the market-context check", () => {
         expect(view.querySelector('[data-testid="technicals-context"]')).toBeNull();
     });
 });
+
+/*
+ * FEAT-0797 — pivot explainability.
+ *
+ * The panel printed R3…S3 as bare numbers. A pivot level is a formula applied
+ * to the *previous closed candle*, so without that candle, the formula and the
+ * selected type the number cannot be checked against the chart — which is the
+ * report this block answers. The fixture pins the basis candle to a known bar,
+ * so the row can be asserted by value instead of by "something rendered".
+ */
+const PIVOT_BASIS_TIME = 1_700_000_000_000 + 62 * 3_600_000;
+
+function pivotKlines(): Kline[] {
+    const bars = contextKlines();
+    // Second-to-last = the closed basis candle, last = the forming one.
+    bars.push({
+        open: 100.1,
+        high: 100.4,
+        low: 100.0,
+        close: 100.3,
+        volume: 0,
+        time: PIVOT_BASIS_TIME,
+    } as unknown as Kline);
+    bars.push({
+        open: 100.3,
+        high: 100.5,
+        low: 100.2,
+        close: 100.4,
+        volume: 0,
+        time: PIVOT_BASIS_TIME + 3_600_000,
+    } as unknown as Kline);
+    return bars;
+}
+
+function pivotTechnicals(): TechnicalsData {
+    return {
+        ...contextTechnicals(),
+        pivots: {
+            classic: {
+                p: 100.2333,
+                r1: 100.4667,
+                r2: 100.6333,
+                r3: 100.8667,
+                s1: 100.0667,
+                s2: 99.8333,
+                s3: 99.6667,
+            },
+        },
+        pivotBasis: { high: 100.4, low: 100.0, close: 100.3, open: 100.1 },
+    };
+}
+
+function seedPivotMarket(): void {
+    tradeState.update((state) => ({ ...state, symbol: "BTCUSDT" }));
+    marketState.data["BTCUSDT"] = {
+        klines: { "1h": pivotKlines(), "4h": biasKlines() },
+        klinesLastUpdated: {},
+        technicals: { "1h": pivotTechnicals() },
+    } as unknown as MarketData;
+}
+
+describe("FEAT-0797 — pivot explainability", () => {
+    let previousSymbol: string;
+    let previousType: typeof indicatorState.pivots.type;
+
+    beforeEach(() => {
+        previousSymbol = tradeState.symbol;
+        previousType = indicatorState.pivots.type;
+        indicatorState.pivots.type = "classic";
+        indicatorState.panelSections.pivots = true;
+    });
+
+    afterEach(() => {
+        indicatorState.pivots.type = previousType;
+        indicatorState.panelSections.pivots = true;
+        tradeState.update((state) => ({ ...state, symbol: previousSymbol }));
+        delete (marketState.data as Record<string, unknown>)["BTCUSDT"];
+    });
+
+    it("names the pivot type and the timeframe it was computed on", () => {
+        seedPivotMarket();
+        const header = rowText(renderPanel(), "pivot-header");
+
+        expect(header).toContain(lookup("settings.technicals.pivotsTitle"));
+        expect(header).toContain(lookup("settings.technicals.pivotClassic"));
+        expect(header).toContain("1h");
+    });
+
+    it("shows the candle the levels were derived from", () => {
+        seedPivotMarket();
+        const basis = rowText(renderPanel(), "pivot-basis");
+
+        // H, L and C come from `pivotBasis` — the values the calculator used,
+        // not a second read of the series.
+        expect(basis).toContain(lookup("technicals.pivots.basis"));
+        expect(basis).toContain("100.4000");
+        expect(basis).toContain("100.0000");
+        expect(basis).toContain("100.3000");
+        expect(basis).toMatch(/\d{1,2}:\d{2}/);
+    });
+
+    it("explains the formula of the selected type", () => {
+        seedPivotMarket();
+        const header = renderPanel().querySelector('[data-testid="pivot-header"]')!;
+        expect(header.getAttribute("title")).toContain("(H+L+C)/3");
+
+        indicatorState.pivots.type = "fibonacci";
+        const fib = renderPanel().querySelector('[data-testid="pivot-header"]')!;
+        expect(fib.textContent).toContain(lookup("settings.technicals.pivotFibonacci"));
+        expect(fib.getAttribute("title")).toContain("0.382");
+    });
+
+    it("drops the time instead of labelling the levels with the wrong candle", () => {
+        seedPivotMarket();
+        // The series no longer contains the candle the levels were built from
+        // (a stale render between a new candle and the next calculation).
+        marketState.data["BTCUSDT"].klines["1h"] = contextKlines();
+        const basis = rowText(renderPanel(), "pivot-basis");
+
+        // The basis values stay authoritative …
+        expect(basis).toContain("100.4000");
+        // … and the row refuses to invent a timestamp for them.
+        expect(basis).not.toMatch(/\d{1,2}:\d{2}/);
+    });
+});

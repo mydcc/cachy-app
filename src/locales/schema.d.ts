@@ -4238,4 +4238,10 @@ export type TranslationKey =
   | "technicals.context.candlesAgo"
   | "technicals.context.noBreak"
   | "technicals.context.candlesAgoZero"
-  | "technicals.context.candlesAgoOne";
+  | "technicals.context.candlesAgoOne"
+  | "technicals.pivots.basis"
+  | "technicals.pivots.formulaClassic"
+  | "technicals.pivots.formulaWoodie"
+  | "technicals.pivots.formulaCamarilla"
+  | "technicals.pivots.formulaFibonacci"
+  | "technicals.pivots.projection";

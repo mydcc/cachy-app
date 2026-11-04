@@ -36,6 +36,7 @@
   import { LESSON_HISTORY_TARGET, lessonKlines } from "../../lib/academy/lessonSettings";
   import { computeStructureRead, type StructureBar } from "../../lib/academy/structureRead";
   import { higherTimeframe, recentLevels } from "../../lib/academy/structureSignals";
+  import { timeframeDurationMs } from "../../utils/chartDisplay";
 
   interface Props {
     isVisible?: boolean;
@@ -59,6 +60,83 @@
   let pivotsArray = $derived(
     data?.pivots ? TechnicalsPresenter.getPivotsArray(data.pivots) : [],
   );
+
+  /*
+   * FEAT-0797 — the pivot section says what it computed and from what.
+   *
+   * The seven levels are a formula applied to the previous closed candle, so a
+   * bare number cannot be checked against the chart. The header names the type
+   * and the timeframe, the tooltip carries the formula for that type, and the
+   * basis row prints the candle the calculator actually used.
+   */
+  const PIVOT_TYPE_KEY: Record<string, TranslationKey> = {
+    classic: "settings.technicals.pivotClassic",
+    woodie: "settings.technicals.pivotWoodie",
+    camarilla: "settings.technicals.pivotCamarilla",
+    fibonacci: "settings.technicals.pivotFibonacci",
+  };
+  const PIVOT_FORMULA_KEY: Record<string, TranslationKey> = {
+    classic: "technicals.pivots.formulaClassic",
+    woodie: "technicals.pivots.formulaWoodie",
+    camarilla: "technicals.pivots.formulaCamarilla",
+    fibonacci: "technicals.pivots.formulaFibonacci",
+  };
+
+  let pivotType = $derived(indicatorSettings.pivots?.type ?? "classic");
+  let pivotTypeLabel = $derived(
+    $_(PIVOT_TYPE_KEY[pivotType] ?? PIVOT_TYPE_KEY.classic),
+  );
+  let pivotHelp = $derived(
+    `${$_(PIVOT_FORMULA_KEY[pivotType] ?? PIVOT_FORMULA_KEY.classic)}\n\n${$_(
+      "technicals.pivots.projection",
+    )}`,
+  );
+
+  /**
+   * The candle the displayed levels were derived from.
+   *
+   * `pivotBasis` is authoritative for H/L/C — it is exactly what the
+   * calculator consumed. The timestamp is read back from the analysis series by
+   * matching those three values. If the series no longer holds that candle (a
+   * new candle arrived before the next calculation), the time is dropped
+   * rather than guessed: a wrong timestamp is worse than none.
+   */
+  let pivotBasisCandle = $derived.by(() => {
+    const basis = data?.pivotBasis;
+    if (!basis) return null;
+    const klines = marketState.data[symbol]?.klines?.[timeframe] ?? [];
+    let time: number | null = null;
+    for (let i = klines.length - 1; i >= 0 && i >= klines.length - 5; i--) {
+      const kline = klines[i];
+      // Display-only match against f64 indicator outputs (ADR-0021); the basis
+      // values are not money and never feed a calculation.
+      const high = Number(kline.high); // audit: safe — f64 indicator display value (ADR-0021)
+      const low = Number(kline.low); // audit: safe — f64 indicator display value (ADR-0021)
+      const close = Number(kline.close); // audit: safe — f64 indicator display value (ADR-0021)
+      if (high === basis.high && low === basis.low && close === basis.close) {
+        time = Number(kline.time); // audit: safe — epoch-ms timestamp
+        break;
+      }
+    }
+    return { ...basis, time };
+  });
+
+  /** Clock for intraday timeframes, date for daily and longer ones. */
+  function formatBasisTime(ms: number): string {
+    const date = new Date(ms);
+    const duration = timeframeDurationMs(timeframe);
+    if (duration === null || duration >= 86_400_000) {
+      return date.toLocaleDateString();
+    }
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  let pivotBasisLabel = $derived.by(() => {
+    const candle = pivotBasisCandle;
+    if (!candle) return "";
+    const head = `${$_("technicals.pivots.basis")} ${timeframe}`;
+    return candle.time === null ? head : `${head} · ${formatBasisTime(candle.time)}`;
+  });
 
   // We can infer "loading" if we have a symbol but no data yet
   let loading = $derived(showPanel && symbol && !data);
@@ -555,11 +633,18 @@
 
           <!-- Pivot Points -->
           {#if indicatorSettings.panelSections.pivots && data.pivots}
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1" data-testid="technicals-pivots">
               <div
-                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
+                class="flex items-baseline justify-between gap-2 text-[10px] uppercase text-[var(--text-secondary)] px-1"
+                data-testid="pivot-header"
+                title={pivotHelp}
               >
-                {$_("settings.technicals.pivotsTitle") || "Pivot Points"}
+                <span
+                  >{$_("settings.technicals.pivotsTitle") || "Pivot Points"}</span
+                >
+                <span class="shrink-0 text-right normal-case text-[var(--text-tertiary)]"
+                  >{pivotTypeLabel} · {timeframe}</span
+                >
               </div>
               <div class="grid grid-cols-1 gap-y-0.5">
                 {#each pivotsArray as pivot (pivot.label)}
@@ -576,6 +661,29 @@
                   </div>
                 {/each}
               </div>
+              {#if pivotBasisCandle}
+                <div
+                  class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-1 pt-0.5 text-[10px] text-[var(--text-tertiary)]"
+                  data-testid="pivot-basis"
+                  title={pivotHelp}
+                >
+                  <span class="shrink-0">{pivotBasisLabel}</span>
+                  <span class="font-mono text-right">
+                    H {TechnicalsPresenter.formatVal(
+                      pivotBasisCandle.high,
+                      indicatorSettings?.precision,
+                    )}
+                    L {TechnicalsPresenter.formatVal(
+                      pivotBasisCandle.low,
+                      indicatorSettings?.precision,
+                    )}
+                    C {TechnicalsPresenter.formatVal(
+                      pivotBasisCandle.close,
+                      indicatorSettings?.precision,
+                    )}
+                  </span>
+                </div>
+              {/if}
             </div>
           {/if}
 
