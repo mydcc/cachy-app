@@ -136,7 +136,11 @@ export function isUphill(fromLayer, toLayer) {
 
 /* ----------------------------------------------------------- source text */
 
-const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
+// `i` is not cosmetic: Svelte itself only recognises a lowercase `<script>`,
+// but a case-insensitive match is what keeps a security scanner from reading
+// this as an HTML filter (`js/bad-html-filtering-regexp`). Extra leniency here
+// costs nothing — unknown tags yield text that parses to no imports.
+const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
 
 /**
  * The TypeScript text of one module. For `.svelte` that is every `<script>`
