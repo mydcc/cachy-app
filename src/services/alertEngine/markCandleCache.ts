@@ -134,7 +134,11 @@ export const fetchMarkCandles: MarkCandleFetcher = async (
     limit: String(limit),
     priceSource: "mark",
   });
-  const response = await fetch(`/api/klines?${params.toString()}`);
+  // PA-13: a hung request would keep `inFlight` set for this symbol/timeframe
+  // for minutes, blocking every mark-price rule that needs it.
+  const response = await fetch(`/api/klines?${params.toString()}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!response.ok) {
     throw Object.assign(
       new Error(`mark klines request failed with ${response.status}`),

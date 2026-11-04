@@ -40,12 +40,16 @@ const internals = bitunixWs as unknown as WsInternals;
 describe("BitunixWebSocketService private reconnect backoff (BUG-0356)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // PA-11 adds ±20% jitter; pin it to 0 so the exact timer advances below
+    // still describe the backoff curve rather than a random draw.
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
     internals.cleanup("private");
     internals.backoffDelayPrivate = 1000;
   });
 
   afterEach(() => {
     internals.cleanup("private");
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 

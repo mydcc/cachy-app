@@ -679,6 +679,14 @@ export class BitunixWebSocketService {
     }
   }
 
+  /**
+   * PA-11: ±20% jitter on the backoff delay, so every client does not
+   * reconnect in lockstep and spike the venue exactly when it recovers.
+   */
+  private jitter(delay: number): number {
+    return Math.round(delay * (0.8 + Math.random() * 0.4));
+  }
+
   private scheduleReconnect(type: "public" | "private") {
     if (this.isDestroyed) return;
 
@@ -728,7 +736,7 @@ export class BitunixWebSocketService {
       this.reconnectTimerPublic = setTimeout(() => {
         this.isReconnectingPublic = false;
         if (!this.isDestroyed) this.connectPublic();
-      }, delay);
+      }, this.jitter(delay));
     } else {
       if (this.isReconnectingPrivate) return;
       this.reconnectAttemptsPrivate++;
@@ -743,7 +751,7 @@ export class BitunixWebSocketService {
       this.reconnectTimerPrivate = setTimeout(() => {
         this.isReconnectingPrivate = false;
         if (!this.isDestroyed) this.connectPrivate();
-      }, delay);
+      }, this.jitter(delay));
     }
   }
 

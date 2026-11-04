@@ -44,9 +44,12 @@ export const imgbbService = {
     const url = "https://api.imgbb.com/1/upload";
 
     try {
+      // PA-15: an upload that hangs otherwise spins with no way out. 30 s
+      // leaves room for a large image on a slow link.
       const response = await fetch(url, {
         method: "POST",
         body: formData,
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {

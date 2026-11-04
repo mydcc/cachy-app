@@ -530,6 +530,14 @@ export class BitgetWebSocketService {
     }
   }
 
+  /**
+   * PA-11: ±20% jitter on the backoff delay, so every client does not
+   * reconnect in lockstep and spike the venue exactly when it recovers.
+   */
+  private jitter(delay: number): number {
+    return Math.round(delay * (0.8 + Math.random() * 0.4));
+  }
+
   private scheduleReconnect() {
     if (this.isDestroyed || this.isReconnecting) return;
 
@@ -568,7 +576,7 @@ export class BitgetWebSocketService {
     this.reconnectTimer = setTimeout(() => {
       this.isReconnecting = false;
       if (!this.isDestroyed) this.connect();
-    }, delay);
+    }, this.jitter(delay));
   }
 
   /**

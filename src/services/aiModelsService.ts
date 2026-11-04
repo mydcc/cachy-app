@@ -121,7 +121,8 @@ async function fetchDirectModels(
     baseUrl: opts.baseUrl?.trim() ?? "",
     apiKey: opts.apiKey ?? "",
   });
-  const res = await fetch(url, { headers });
+  // PA-15: a hung provider must not leave the settings model list loading forever.
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(10_000) });
   if (!res.ok) {
     throw new Error(`Model list request failed with status ${res.status}`);
   }
@@ -191,7 +192,10 @@ export async function getModels(
   if (provider === "ollama") {
     const baseUrl = (opts.baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
     try {
-      const directRes = await fetch(`${baseUrl}/api/tags`);
+      // PA-15: local Ollama can hang; bound the probe.
+      const directRes = await fetch(`${baseUrl}/api/tags`, {
+        signal: AbortSignal.timeout(5_000),
+      });
       if (directRes.ok) {
         const data = await directRes.json();
         const models: AiModelInfo[] = ((data.models as { name: string }[]) || []).map((m) => ({
