@@ -2,7 +2,7 @@
 id: BUG-0781
 title: Order submission has no client-side deadline; a half-open link leaves "Submitting" for minutes
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
