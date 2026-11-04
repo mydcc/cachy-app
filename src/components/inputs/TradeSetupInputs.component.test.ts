@@ -51,6 +51,7 @@ const tradeStateMock = vi.hoisted(() => {
         atrMultiplier: "2",
         isPositionSizeLocked: false,
         lockedPositionSize: null,
+        applySymbolRefresh: vi.fn(),
     };
     state.update = vi.fn((fn: (s: Record<string, unknown>) => Record<string, unknown>) => {
         Object.assign(state, fn({ ...state }));
@@ -124,6 +125,9 @@ import TradeSetupInputs from "./TradeSetupInputs.svelte";
 import { fundingRateService } from "../../services/fundingRateService.svelte";
 import { marketState } from "../../stores/market.svelte";
 import { resultsState } from "../../stores/results.svelte";
+import { trackCustomEvent } from "../../services/trackingService";
+
+const track = vi.mocked(trackCustomEvent);
 
 const BASE_PROPS = {
     symbol: "BTCUSDT",
@@ -233,6 +237,36 @@ describe("FEAT-0346 — TradeSetupInputs feeds only complete numbers to the stor
         suggestion?.click();
 
         expect(onselectsymbolsuggestion).toHaveBeenCalledWith("ETHUSDT");
+        expect(track).toHaveBeenCalledWith("Symbol", "SelectSuggestion");
+    });
+
+    it("reports a price fetch without naming the pair", () => {
+        render();
+
+        const button = host.querySelector<HTMLButtonElement>(
+            '[data-track-id="btn-fetch-price"]',
+        );
+        expect(button).toBeTruthy();
+        button!.click();
+        flushSync();
+
+        expect(track).toHaveBeenCalledWith("Price", "Fetch");
+    });
+
+    it("reports an ATR fetch without naming the pair", () => {
+        const onfetchatr = vi.fn();
+        // The ATR fetch button only exists in the ATR stop-loss mode.
+        render({ onfetchatr, useAtrSl: true });
+
+        const button = host.querySelector<HTMLButtonElement>(
+            '[data-track-id="btn-fetch-atr"]',
+        );
+        expect(button).toBeTruthy();
+        button!.click();
+        flushSync();
+
+        expect(onfetchatr).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenCalledWith("ATR", "Fetch");
     });
 });
 
