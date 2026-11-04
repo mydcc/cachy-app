@@ -246,6 +246,28 @@ Each of these is enforced by something, not just written down.
 | Backlog front matter is valid and the index is current | `npm run backlog:check` |
 | The position mode is written only through its stamping setter | `scripts/audit-account-state.mjs` in CI, and private fields in `account.svelte.ts` |
 | Account state is read under an ordering ticket, and two values are never paired across time | [ADR-0015](adr/0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md) — the ticket is branded, the pairing rule is review |
+| The import graph does not get more entangled | `scripts/arch-cycles.mjs` and `src/tests/architecture/cycle_ratchet.test.ts`, against a burn-down baseline in `scripts/arch-cycles.baseline.json` |
+
+### The cycle ratchet
+
+The ESLint boundaries judge one file at a time. Whether module A and module B
+can still reach each other is a graph property, so it is measured separately:
+`scripts/arch-cycles.mjs` walks the static import graph, and
+`src/tests/architecture/cycle_ratchet.test.ts` fails when a cycle grows, a new
+cycle appears, or a layer pair gains edges.
+
+It counts three graphs — value imports, those plus `import()`, and those plus
+`import type` — because one number would hide the difference between a
+load-order hazard and a lazy registry. The reasoning is in the script's header;
+it is worth reading before changing the baseline.
+
+```bash
+npm run check:cycles                            # report, then check
+npm run check:cycles -- --update-baseline       # refuses to raise a value
+```
+
+The baseline only goes down. Lower it in the PR that removes the cycle or the
+edge — never in a PR that adds one.
 
 ---
 

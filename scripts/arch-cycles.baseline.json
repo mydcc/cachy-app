@@ -1,0 +1,107 @@
+{
+  "note": "Burn-down only. Regenerate with `node scripts/arch-cycles.mjs --update-baseline`, which refuses to raise a value. Lower it in the PR that removes the cycle or the edge. `static` counts value imports, `combined` adds import(), `lazy` counts import() alone — see the header of scripts/arch-cycles.mjs for why all three are gated.",
+  "static": {
+    "sccs": [
+      {
+        "size": 8,
+        "sample": "src/lib/appAuth.ts"
+      },
+      {
+        "size": 8,
+        "sample": "src/services/bitunixWs.ts"
+      },
+      {
+        "size": 5,
+        "sample": "src/services/activeTechnicals/calculationExecutor.ts"
+      },
+      {
+        "size": 4,
+        "sample": "src/lib/windows/implementations/SymbolPickerView.svelte"
+      }
+    ],
+    "layerPairs": {
+      "actions->lib": 2,
+      "actions->locales": 1,
+      "actions->services": 1,
+      "actions->stores": 4,
+      "actions->utils": 3,
+      "components->actions": 13,
+      "components->components": 271,
+      "components->config": 1,
+      "components->lib": 175,
+      "components->locales": 132,
+      "components->services": 120,
+      "components->stores": 230,
+      "components->types": 2,
+      "components->utils": 68,
+      "hooks.client.ts->locales": 1,
+      "hooks.server.ts->locales": 1,
+      "lib->actions": 2,
+      "lib->components": 6,
+      "lib->lib": 129,
+      "lib->locales": 12,
+      "lib->services": 15,
+      "lib->stores": 41,
+      "lib->types": 2,
+      "lib->utils": 26,
+      "locales->utils": 1,
+      "routes->actions": 1,
+      "routes->components": 37,
+      "routes->lib": 100,
+      "routes->locales": 3,
+      "routes->services": 9,
+      "routes->stores": 12,
+      "routes->types": 11,
+      "routes->utils": 109,
+      "services->config": 3,
+      "services->lib": 63,
+      "services->locales": 10,
+      "services->services": 296,
+      "services->stores": 113,
+      "services->types": 12,
+      "services->utils": 117,
+      "stores->lib": 63,
+      "stores->locales": 6,
+      "stores->services": 45,
+      "stores->stores": 72,
+      "stores->utils": 56,
+      "tests->components": 5,
+      "tests->services": 2,
+      "tests->tests": 1,
+      "tests->utils": 1,
+      "types->types": 4,
+      "utils->lib": 2,
+      "utils->services": 7,
+      "utils->types": 1,
+      "utils->utils": 42,
+      "workers->utils": 1,
+      "workers->workers": 1
+    }
+  },
+  "lazy": {
+    "layerPairs": {
+      "components->components": 9,
+      "lib->lib": 3,
+      "lib->services": 1,
+      "routes->components": 7,
+      "routes->services": 4,
+      "services->config": 1,
+      "services->services": 5,
+      "services->utils": 1,
+      "stores->components": 2,
+      "stores->lib": 1,
+      "stores->locales": 1,
+      "stores->services": 8,
+      "stores->stores": 2,
+      "utils->stores": 1
+    }
+  },
+  "combined": {
+    "sccs": [
+      {
+        "size": 199,
+        "sample": "src/components/alerts/bots/BotIntentEditor.svelte"
+      }
+    ]
+  }
+}
