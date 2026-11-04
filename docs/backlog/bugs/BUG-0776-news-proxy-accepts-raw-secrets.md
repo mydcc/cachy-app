@@ -65,11 +65,11 @@ proxies started from the same request shape. The cache key then reused the raw
   answered with `400 Unsupported credential header`. A body credential field
   (`apiKey`, `apiSecret`, `passphrase`) is answered with `400 Unsupported
   credential field`.
-- Hash the key with HMAC-SHA256 and a per-process key before it becomes part of
-  `cacheKey`. CodeQL still flags the HMAC as a password hash; the alert is a
-  false positive (the digest is an in-memory cache namespace whose entries
-  expire after `CACHE_TTL`, and the HMAC key never leaves the process) and is
-  dismissed in the Security tab.
+- Namespace the cache by the client token's SHA-256 hash (or the normalized
+  address fallback), which the route already computes for the rate limiter. No
+  credential enters `cacheKey`. The trade-off is per-client isolation instead
+  of per-key: the response is public news, `plan` is part of the key, and the
+  API key only affects the upstream quota.
 - Redact the raw and URL-encoded key, and `err.cause`, from error logs.
 - Send `x-api-key` from `src/services/newsService.ts` instead of putting the
   key in the JSON body.
@@ -80,8 +80,9 @@ proxies started from the same request shape. The cache key then reused the raw
       upstream fetch.
 - [x] `x-api-passphrase` and `x-api-key` plus `x-api-secret` also return 400.
 - [x] A body `apiKey` or `apiSecret` returns 400, even with a valid header.
-- [x] No cache-map key contains the raw API key, and a repeated request is
-      served from the cache.
+- [x] No cache-map key contains the raw API key, a repeated request is served
+      from the cache, and two clients with the same API key do not share an
+      entry.
 - [x] `newsService` sends `x-api-key` and keeps the body free of the key.
 - [x] Error logs contain neither the raw nor the URL-encoded key.
 - [x] Targeted route and client tests are green.

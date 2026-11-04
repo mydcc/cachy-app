@@ -29,61 +29,42 @@ describe('News Service Security', () => {
         vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
     });
 
-    it('should not serve cached data to a different API key', async () => {
-        const validKey = 'key-A';
-        const invalidKey = 'key-B';
+    it('should not serve cached data to a different client (BUG-0776)', async () => {
+        const apiKey = 'shared-key';
         const params = { q: 'bitcoin' };
         const responseData = { status: "ok", articles: [{ title: 'secure-data' }] };
-
-        // Mock fetch
-        const fetchMock = vi.fn().mockImplementation(async (url, options) => {
-            if (url.includes(validKey) || options?.headers?.["X-Api-Key"] === validKey || options?.headers?.["x-api-key"] === validKey) {
-                return {
-                    ok: true,
-                    json: async () => responseData,
-                    text: async () => "",
-                };
-            } else {
-                 return {
-                    ok: false,
-                    status: 401,
-                    text: async () => "Unauthorized",
-                };
-            }
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => responseData,
+            text: async () => "",
         });
-
-        // 1. Request with Valid Key
-        const req1 = {
-            headers: new Headers({ 'x-api-key': validKey }),
+        const makeRequest = () => ({
+            headers: new Headers({ 'x-api-key': apiKey }),
             json: async () => ({
                 source: 'newsapi',
                 params: params
             }),
             url: 'http://localhost/api/news'
-        } as unknown as Request;
-        await POST({ request: req1, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+        } as unknown as Request);
 
-        // Verify it was cached
-        expect(_newsCache.size).toBeGreaterThan(0);
+        // First client fills the cache.
+        const first = await POST({
+            request: makeRequest(),
+            fetch: fetchMock,
+            getClientAddress: () => '127.0.0.1',
+        } as unknown as Parameters<typeof POST>[0]);
+        expect(first.status).toBe(200);
+        expect(_newsCache.size).toBe(1);
 
-        // 2. Request with Invalid Key
-        const req2 = {
-            headers: new Headers({ 'x-api-key': invalidKey }),
-            json: async () => ({
-                source: 'newsapi',
-                params: params
-            }),
-            url: 'http://localhost/api/news'
-        } as unknown as Request;
-
-        const res2 = await POST({ request: req2, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-        const json2 = await res2.json();
-
-        // If vulnerable, json2 will be responseData (from cache)
-        // If fixed, json2 should be an error because the fetch failed
-
-        expect(json2).not.toEqual(responseData);
-        expect(json2).toHaveProperty('error');
+        // A second client with the same API key must not share that entry:
+        // the namespace is the client token/address, not the credential.
+        const second = await POST({
+            request: makeRequest(),
+            fetch: fetchMock,
+            getClientAddress: () => '127.0.0.2',
+        } as unknown as Parameters<typeof POST>[0]);
+        expect(second.status).toBe(200);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it('should rate limit upstream-bound requests from one client address', async () => {

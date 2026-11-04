@@ -8,7 +8,6 @@
  */
 
 import { json } from "@sveltejs/kit";
-import crypto from "node:crypto";
 import type { RequestHandler } from "./$types";
 import { checkClientToken, clientTokenKey, onClientTokenEvicted, TOKEN_MAP_CAP } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
@@ -43,28 +42,6 @@ const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)
 const MAX_CACHE_SIZE = 50;
 
 /**
- * The cache outlives the request by up to an hour, so the map key must not
- * carry the raw credential (BUG-0776). A keyed hash keeps the per-key
- * isolation without keeping the key itself.
- *
- * CodeQL `js/insufficient-password-hash` fires on this HMAC because it treats
- * the API key as a password. It is a false positive: nothing durable is
- * stored — the digest is an in-memory cache namespace whose entries expire
- * after `CACHE_TTL` (60 minutes), and the HMAC key never leaves this process.
- * The query's threat model — an attacker who stole a hash database and
- * brute-forces it offline — has no target. A slow KDF would add tens of
- * milliseconds to every news request for no security gain. The alert is
- * dismissed in the repository's Security tab; source-level `// codeql[...]`
- * markers are not honoured by GitHub code scanning (see the same note in
- * `src/utils/server/bitunix.ts`).
- */
-const CACHE_NAMESPACE_KEY = crypto.randomBytes(32);
-
-function hashApiKey(apiKey: string): string {
-  return crypto.createHmac("sha256", CACHE_NAMESPACE_KEY).update(apiKey).digest("hex");
-}
-
-/**
  * Removes the raw and the URL-encoded form of the key from a message. The
  * CryptoPanic path carries the key in the query string, so transport errors
  * can echo the encoded form.
@@ -95,6 +72,9 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
 
   let cacheKey = "";
   let apiKey = "";
+  // The same key the rate limiter uses: the client token's SHA-256 hash, or
+  // the normalized address when the token is absent.
+  const limiterKey = clientTokenKey(request) ?? normalizeClientAddress(getClientAddress());
 
   try {
     // News credentials travel in one header only (BUG-0776). The shared
@@ -120,9 +100,10 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    // The key isolates user quotas/plans in the cache, but only as a hash:
-    // the map can hold it for up to an hour.
-    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${hashApiKey(apiKey)}`;
+    // The cache is per client, not per API key: the response is public news
+    // and `plan` is already part of the key. The client token is a SHA-256
+    // hash (or the address fallback), so no credential enters the map key.
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${limiterKey}`;
     const now = Date.now();
 
     // Check Cache (before rate limiting so cached responses don't consume quota)
@@ -138,8 +119,6 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
     // apiKey strings would let one caller fill the tracked-key map, while a
     // token hash is bounded by the token store (BUG-0722). The address is a
     // fallback for the impossible case that the guard passed without a token.
-    const limiterKey =
-      clientTokenKey(request) ?? normalizeClientAddress(getClientAddress());
     if (!_rateLimits.consume(limiterKey)) {
       return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
     }
