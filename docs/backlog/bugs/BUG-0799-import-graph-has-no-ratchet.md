@@ -21,77 +21,90 @@ shipped: PR #4532
 
 The target layering `components -> stores -> services -> lib -> utils` is
 written down and gated at the file level: ESLint refuses a *new* file that
-imports across a boundary and grandfathers 37 that already do. Nothing
-measures the shape those grandfathers add up to, so the gate cannot tell
-whether the graph got better or worse — only whether an unlisted file
-appeared.
+imports across a boundary and grandfathers 37 that already do. Nothing measures
+the shape those grandfathers add up to, so the gate cannot tell whether the
+graph got better or worse — only whether an unlisted file appeared.
 
 ## Evidence
 
-Derived from the 2026-11-03 structure audit (W1-02, B4) and re-measured
-against `develop` at `247d1632f`. The audit reported one SCC of 237 files. That
-figure is reproducible, but only under a wide definition of "import", and the
-distinction matters enough to record here:
+Derived from the 2026-11-03 structure audit (W1-02, B4), then re-measured
+against `develop` at `247d1632f` with the analyser this item adds. The gate
+scans 717 modules, 2 448 static value edges and 42 runtime `import()` edges
+(test fixtures excluded).
+
+**The audit's "237 files" is reproducible, and it is not a load-order hazard.**
+It only appears when type-only constructs and lazy calls are counted as edges:
 
 | Edges counted | Cycles | Largest |
 | --- | --- | --- |
-| static value imports | 4 | 8 modules |
-| + `import()` | 1 | 199 modules |
-| + `import()` + `import type` | 1 | **237 modules** |
+| static value imports | 4 | **8 modules** |
+| + runtime `import()` | 1 | **197 modules** |
+| + `import type` and `import("./x").Member` | 2 | 237 modules (+ a 3-module) |
 
-- 738 modules, 2 464 static value edges, 46 lazy `import()` edges.
+The last row is the audit's figure, reproduced exactly — including its layer
+breakdown `services=83 components=64 stores=44 lib=43 utils=2 actions=1`. It
+requires counting 566 type-only imports and 21 `ImportTypeNode` references,
+every one of which the compiler erases. So 229 of those 237 modules are
+connected only by code that no bundler emits.
+
+What the gate measures:
+
 - Load-order cycles: `src/lib/appAuth.ts` (8), `src/services/bitunixWs.ts` (8),
-  `src/services/activeTechnicals/calculationExecutor.ts` (5),
-  `src/lib/windows/implementations/SymbolPickerView.svelte` (4).
-- One 199-module dependency cycle once lazy edges count, anchored at
+  `src/lib/windows/implementations/SymbolPickerView.svelte` (4),
+  `src/services/activeTechnicals/calculationExecutor.ts` (4).
+- One 197-module dependency cycle once runtime `import()` counts, anchored at
   `src/components/alerts/bots/BotIntentEditor.svelte`.
-- Uphill edges: `services->stores` 113, `lib->stores` 41, `lib->services` 15,
-  `utils->services` 7, `lib->components` 6, `utils->lib` 2.
-
-The 38-module difference between the second and third row is `import type`,
-which is erased at compile time and which the ESLint boundary rules explicitly
-allow. The 191-module difference between the first and second is `import()`:
-registries that pull their entries on demand (`AlertPanelView.svelte` maps tab
-ids to `() => import(…)`). Neither is a load-order hazard. Both are real
-coupling.
+- Uphill static edges: `services->stores` 113, `lib->stores` 41,
+  `lib->services` 15, `utils->services` 7, `lib->components` 6, `utils->lib` 2.
+  Uphill lazy edges: `stores->components` 2, `lib->services` 1,
+  `utils->stores` 1.
 
 ## Cause
 
-An architectural constraint with no measurement becomes a comment. `eslint.config.js`
-sees one file at a time; the property that actually degrades — "module A and
-module B can reach each other" — is a graph property, and nothing computes it.
+An architectural constraint with no measurement becomes a comment.
+`eslint.config.js` sees one file at a time; the property that actually degrades
+— "module A and module B can still reach each other" — is a graph property, and
+nothing computed it.
 
 ## Fix
 
 `scripts/arch-cycles.mjs` builds the graph and `scripts/arch-cycles.baseline.json`
-freezes the current state; `src/tests/architecture/cycle_ratchet.test.ts` runs
-the comparison in the `unit` project, so `npm test` and CI both enforce it.
+freezes the state; `src/tests/architecture/cycle_ratchet.test.ts` compares the
+two inside the `unit` project, so `npm test` and CI both enforce it.
 
-Three axes, because SCC size alone is a lagging indicator — a new
-`services -> stores` import inside the 199-module blob changes its size by
-exactly zero:
+Three decisions worth keeping:
 
-1. **`static.sccs`** — load-order cycles. These are the ones that break.
-2. **`static.layerPairs`** — edges per layer pair. The leading indicator, and
-   the reason a brand-new uphill pair fails on a single edge.
-3. **`combined.sccs` + `lazy.layerPairs`** — the 199-module blob and the lazy
-   couplings inside it. Not a crash risk, but the reason the layers cannot be
-   separated today.
+1. **TypeScript's parser decides what is an edge**, not a regex. Four shapes in
+   this tree break a lexical scan: `import type` as the first statement of a
+   `<script>` block, inline `import { type X }`, `import("./x").Member` inside a
+   type annotation, and imports quoted in comments. Two of those produced a
+   phantom cycle during development, so the parser is not decoration.
+2. **Two axes.** SCC size is a lagging indicator — a new `services -> stores`
+   import *inside* the 197-module blob changes its size by exactly zero. The
+   per-pair edge count is the leading indicator, and a brand-new uphill pair
+   fails on a single edge.
+3. **Only uphill pairs are frozen.** Downhill counts are reported, never gated:
+   freezing them would make every feature PR edit the baseline, and a baseline
+   every PR edits is a merge conflict, not a review.
 
-`--update-baseline` refuses to raise any value.
+`--update-baseline` refuses to raise any value and refuses every cycle change;
+`--init` is separate so "there is no baseline" cannot be confused with "reset
+the ratchet".
 
 ## Acceptance criteria
 
-- [x] The analyser reports all three measurements and excludes `import type`,
-      comment text, test files and declaration files
+- [x] The analyser reports static, lazy and combined measurements and excludes
+      `import type`, inline `{ type X }`, `ImportTypeNode`, comment text, test
+      files and declaration files
 - [x] The baseline records the current state and only goes down
-- [x] The gate fails on a new cycle, on a grown cycle and on a new uphill pair
-      — each verified against the real tree by adding the offending import and
-      removing it again
-- [x] `--update-baseline` exits non-zero and writes nothing when a regression
-      is present
-- [x] Self-tests pin the analyser's decisions (comment, `import type`,
-      `import()`), so a matcher that silently stopped matching fails
+- [x] The gate fails on a new cycle, on a grown cycle and on a new uphill pair,
+      and on an uphill pair that gained an edge — each verified against the real
+      tree by adding the offending import and removing it again
+- [x] `decide()` refuses to write while a regression exists; the refusal is
+      tested, not just documented
+- [x] The self-tests are mutation-checked: disabling the uphill-growth branch,
+      the anchor-gone branch, the refusal, or the inline-type detection each
+      turns the suite red
 
 ## Out of scope
 

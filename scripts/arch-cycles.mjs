@@ -19,70 +19,84 @@
 /**
  * arch-cycles.mjs — the import-graph cycle ratchet (W1-02, BUG-0799).
  *
- * The 2026-11-03 structure audit reported one strongly connected component of
- * 237 files spanning all four layers. That number is reproducible, but only
- * under a wide definition of "import": it counts `import type` statements and
- * `import()` calls as edges. Measured precisely, this tree has three different
+ * The architecture rule the ESLint boundaries enforce is a per-file rule. The
+ * property that actually degrades — "module A and module B can still reach
+ * each other" — is a graph property, and nothing measured it. This does.
+ *
+ * WHAT THE AUDIT'S "237 FILES" MEANS
+ *
+ * W1-02 reported one strongly connected component of 237 files. That figure is
+ * reproducible, but only when `import type` statements and `import()` calls
+ * both count as edges. Measured precisely, the tree has three different
  * graphs, and they say different things:
  *
- *   static value imports       4 cycles, largest 8 modules
- *   + `import()`               1 cycle,  199 modules
- *   + `import()` + `import type`  1 cycle, 237 modules   <- the audit's figure
+ *   static value imports            4 cycles, largest 8 modules
+ *   + runtime `import()`            1 cycle,  197 modules
+ *   + `import()` + `import type`      (audit measurement, not computed here)
  *
- * So the headline number is not a load-order hazard. Type imports are erased
- * at compile time, and the lazy edges are registries that pull their entries
- * on demand (`AlertPanelView.svelte` maps tab ids to `() => import(…)`). What
- * remains after removing both is four small genuine cycles.
+ * Type imports are erased at compile time and the ESLint boundary rules
+ * explicitly allow them, so they are not a load-order hazard. The lazy edges
+ * are registries that pull their entries on demand (`AlertPanelView.svelte`
+ * maps tab ids to `() => import(…)`), so they are not a load-order hazard
+ * either — but they do mean every module in that 197-cycle can reach every
+ * other at runtime, which is why the layering cannot be separated today.
  *
- * That is why the ratchet freezes three things, not one. Each is a different
- * question with a different fix:
+ * WHAT IS GATED
  *
- *   1. `static.sccs` — load-order cycles. These are the ones that actually
- *      break: a value read from a partially initialised module. Small today,
- *      and they must stay small.
- *   2. `static.layerPairs` — how many imports cross each layer boundary. SCC
- *      size is a lagging indicator: a new `services -> stores` import *inside*
- *      an existing cycle changes its size by exactly zero. The per-pair count
- *      is the leading indicator, and the uphill pairs (`services -> stores`,
- *      `lib -> stores`, `lib -> services`, …) are the direction the layering
- *      forbids.
- *   3. `combined.sccs` and `lazy.layerPairs` — the 199-module blob that exists
- *      once lazy edges count. It is not a crash risk, but it is why the
- *      layering cannot be separated: every one of those modules can reach every
- *      other at runtime. Freezing it keeps it from growing while the burn-down
- *      happens.
+ *   1. `static.sccs` — load-order cycles. These are the ones that break: a
+ *      value read from a partially initialised module.
+ *   2. `uphillPairs` — edges that cross a layer boundary against the target
+ *      chain. SCC size is a lagging indicator: a new `services -> stores`
+ *      import *inside* an existing cycle changes its size by exactly zero.
+ *      The per-pair count is the leading indicator, and it is the one the
+ *      burn-down has to move.
+ *   3. `combined.sccs` — the 197-module dependency cycle. Frozen so it cannot
+ *      grow while the burn-down happens.
  *
- * WHAT DOES NOT COUNT
+ * Downhill pair counts are reported but deliberately *not* frozen. A component
+ * importing from `services` is what the layering wants; freezing the count
+ * would make every feature PR edit the baseline, and a baseline every PR edits
+ * is a merge conflict in a file nobody reviews. Only the direction that is a
+ * violation is ratcheted.
  *
- *   - `import type` / `export type`: erased at compile time, and the ESLint
- *     boundary rules explicitly allow them. Counting them would report cycles
- *     the boundary gate permits.
- *   - Text inside comments. This repository documents its own imports in JSDoc
- *     blocks; a plain regex scan reads those examples as edges and invents
- *     cycles. `stripComments` runs first for that reason.
- *   - `*.test.ts`, `*.spec.ts`, `*.bench.ts`, `*.d.ts`: tests may import across
- *     layers freely and are never bundled; declaration files have no runtime.
+ * WHAT COUNTS AS AN EDGE
  *
- * KNOWN LIMITATION
+ * TypeScript's own parser decides, not a regex. That matters more than it
+ * sounds: a hand-rolled scan gets four things wrong that this tree actually
+ * contains — `import type` as the first statement of a `<script>` block,
+ * `import { type X }` inline specifiers, `import("./x").Member` in a type
+ * annotation (an `ImportTypeNode`, not a call), and imports quoted inside
+ * comments. The AST has no such ambiguities.
  *
- * `import()` with a computed specifier (`import(\`./tabs/${name}\`)`) cannot be
- * resolved statically and is invisible to every count here. The codebase has
- * none today; if one is added, the graph silently loses that edge.
+ * Excluded: `*.test.ts`, `*.spec.ts`, `*.bench.ts`, `*.d.ts`, and everything
+ * under `src/tests/` — test-only fixtures are never bundled and may import
+ * across layers freely.
+ *
+ * KNOWN LIMITATIONS
+ *
+ *   - `import()` with a computed specifier (`import(\`./tabs/${name}\`)`) cannot
+ *     be resolved statically and is invisible here. The tree has none today.
+ *   - Only `.svelte` `<script>` blocks are read. Markup is not analysed, which
+ *     is correct: markup cannot import.
+ *   - `require()` is not an edge. The tree is ESM.
  *
  * CLI
  *
- *   node scripts/arch-cycles.mjs                    report, then check
- *   node scripts/arch-cycles.mjs --json             machine-readable report
- *   node scripts/arch-cycles.mjs --update-baseline  freeze the current state
+ *   node scripts/arch-cycles.mjs             report, then check
+ *   node scripts/arch-cycles.mjs --json      machine-readable report
+ *   node scripts/arch-cycles.mjs --init      write the first baseline
+ *   node scripts/arch-cycles.mjs --update-baseline
+ *                                            record a burn-down
  *
- * `--update-baseline` refuses to raise any value. A ratchet that can be raised
- * is not a ratchet; when it reports a regression, the fix is the code, not the
- * number.
+ * `--update-baseline` refuses to raise any value and refuses every cycle
+ * change. `--init` is separate on purpose: "the file is missing" must not be
+ * indistinguishable from "reset the ratchet".
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 /* ------------------------------------------------------------------ layers */
 
@@ -91,9 +105,9 @@ import { fileURLToPath } from "node:url";
  * An edge the other way round is "uphill" — the direction the boundary gates
  * forbid and the direction that makes a cycle impossible to break apart.
  *
- * `routes`, `workers`, `actions`, `hooks` and `locales` are entry points or
- * assets rather than links in that chain, so they are unranked and never
- * reported as uphill.
+ * `routes`, `workers`, `actions`, `hooks`, `tests`, `locales`, `config` and
+ * `types` are entry points, assets or leaf vocabularies rather than links in
+ * that chain, so they are unranked and never reported as uphill.
  */
 const LAYER_RANK = Object.freeze({
   components: 0,
@@ -122,134 +136,89 @@ export function isUphill(fromLayer, toLayer) {
 
 /* ----------------------------------------------------------- source text */
 
+const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
+
 /**
- * Remove comments while leaving string literals intact.
- *
- * Necessary, not cosmetic — see the module doc block. `<!-- … -->` is handled
- * too, because `.svelte` files carry markup.
+ * The TypeScript text of one module. For `.svelte` that is every `<script>`
+ * block concatenated — the markup itself cannot import, and skipping it keeps
+ * the parser from seeing template syntax.
  */
-export function stripComments(source) {
-  let out = "";
-  let i = 0;
-  let state = "code";
+export function scriptText(filePath, source) {
+  if (!filePath.endsWith(".svelte")) return source;
 
-  while (i < source.length) {
-    const char = source[i];
-    const next = source[i + 1];
+  let text = "";
+  SCRIPT_BLOCK.lastIndex = 0;
+  let match;
+  while ((match = SCRIPT_BLOCK.exec(source))) text += `${match[1]}\n`;
+  return text;
+}
 
-    if (state === "code") {
-      if (char === "/" && next === "/") {
-        state = "line";
-        i += 2;
-        continue;
-      }
-      if (char === "/" && next === "*") {
-        state = "block";
-        i += 2;
-        continue;
-      }
-      if (char === "<" && source.startsWith("<!--", i)) {
-        state = "markup";
-        i += 4;
-        continue;
-      }
-      if (char === '"') state = "double";
-      else if (char === "'") state = "single";
-      else if (char === "`") state = "template";
-      out += char;
-      i += 1;
-      continue;
-    }
-
-    if (state === "line") {
-      if (char === "\n") {
-        state = "code";
-        out += char;
-      }
-      i += 1;
-      continue;
-    }
-
-    if (state === "block") {
-      if (char === "*" && next === "/") {
-        state = "code";
-        i += 2;
-        continue;
-      }
-      i += 1;
-      continue;
-    }
-
-    if (state === "markup") {
-      if (char === "-" && source.startsWith("-->", i)) {
-        state = "code";
-        i += 3;
-        continue;
-      }
-      i += 1;
-      continue;
-    }
-
-    // Inside a string literal: copy verbatim, honour escapes, close on the
-    // same quote that opened it.
-    if (char === "\\") {
-      out += char + (next ?? "");
-      i += 2;
-      continue;
-    }
-    if (
-      (state === "double" && char === '"') ||
-      (state === "single" && char === "'") ||
-      (state === "template" && char === "`")
-    ) {
-      state = "code";
-    }
-    out += char;
-    i += 1;
+/**
+ * Every module specifier in one file, classified by how it is loaded.
+ *
+ * `staticSpecifiers` are the load-order edges — value imports and re-exports.
+ * `lazySpecifiers` are runtime `import()` calls. Neither includes anything the
+ * compiler erases:
+ *
+ *   - `import type { A } from "x"`      -> importClause.isTypeOnly
+ *   - `import { type A } from "x"`      -> every named binding isTypeOnly
+ *   - `export { type A } from "x"`      -> every export specifier isTypeOnly
+ *   - `import("x").A` in a type         -> an ImportTypeNode, never a call
+ */
+export function extractSpecifiers(filePath, source) {
+  const text = scriptText(filePath, source);
+  // Most files settle the question with a substring check; parsing them anyway
+  // would double the cost of the gate for no answer.
+  if (!text.includes("import") && !text.includes("export")) {
+    return { staticSpecifiers: [], lazySpecifiers: [] };
   }
 
-  return out;
-}
+  const file = ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
 
-const STATIC_FROM = /\bfrom\s*["']([^"']+)["']/g;
-const STATIC_BARE = /\bimport\s*["']([^"']+)["']/g;
-const DYNAMIC_IMPORT = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
-
-/** `import type …` / `export type …` — erased at compile time. */
-function startsTypeOnly(prefix) {
-  const statementStart = prefix.lastIndexOf(";");
-  const statement = statementStart >= 0 ? prefix.slice(statementStart + 1) : prefix;
-  return /^\s*(?:import|export)\s+type\b/.test(statement);
-}
-
-/**
- * Every module specifier in one file, split by how it is loaded.
- * `staticSpecifiers` are the load-order edges; `dynamicSpecifiers` are the
- * lazy edges, counted separately and never mixed into the static graph.
- */
-export function extractSpecifiers(source) {
-  const code = stripComments(source);
   const staticSpecifiers = [];
-  const dynamicSpecifiers = [];
-  const seen = new Set();
+  const lazySpecifiers = [];
 
-  const collect = (regex, target, { checkTypeOnly }) => {
-    regex.lastIndex = 0;
-    let match;
-    while ((match = regex.exec(code))) {
-      if (checkTypeOnly && startsTypeOnly(code.slice(0, match.index))) continue;
-      const key = `${target === staticSpecifiers ? "s" : "d"}:${match[1]}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      target.push(match[1]);
-    }
+  const namedBindingsAreTypeOnly = (clause) => {
+    const bindings = clause?.namedBindings;
+    if (!bindings || !ts.isNamedImports(bindings)) return false;
+    return bindings.elements.length > 0 && bindings.elements.every((element) => element.isTypeOnly);
   };
 
-  collect(STATIC_FROM, staticSpecifiers, { checkTypeOnly: true });
-  collect(STATIC_BARE, staticSpecifiers, { checkTypeOnly: false });
-  collect(DYNAMIC_IMPORT, dynamicSpecifiers, { checkTypeOnly: false });
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      const specifier = node.moduleSpecifier;
+      if (specifier && ts.isStringLiteral(specifier)) {
+        const clause = ts.isImportDeclaration(node) ? node.importClause : undefined;
+        // `import D, { type A }` still binds D at runtime.
+        const hasValueBinding = Boolean(clause?.name) || clause?.namedBindings?.kind === ts.SyntaxKind.NamespaceImport;
+        const typeOnly = ts.isImportDeclaration(node)
+          ? Boolean(clause?.isTypeOnly) || (!hasValueBinding && namedBindingsAreTypeOnly(clause))
+          : node.isTypeOnly ||
+            Boolean(
+              node.exportClause &&
+                ts.isNamedExports(node.exportClause) &&
+                node.exportClause.elements.length > 0 &&
+                node.exportClause.elements.every((element) => element.isTypeOnly),
+            );
+        if (!typeOnly) staticSpecifiers.push(specifier.text);
+      }
+    }
 
-  return { staticSpecifiers, dynamicSpecifiers };
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      lazySpecifiers.push(node.arguments[0].text);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(file);
+
+  return { staticSpecifiers, lazySpecifiers };
 }
 
 /* -------------------------------------------------------------- resolving */
@@ -258,6 +227,7 @@ const RESOLVE_SUFFIXES = Object.freeze([
   "",
   ".ts",
   ".svelte",
+  ".svelte.js",
   ".js",
   "/index.ts",
   "/index.svelte",
@@ -295,6 +265,7 @@ function isRelativeSpecifier(specifier) {
 /* ---------------------------------------------------------------- sources */
 
 export const DEFAULT_EXCLUDE = Object.freeze([
+  /^src\/tests\//,
   /\.test\.ts$/,
   /\.spec\.ts$/,
   /\.bench\.ts$/,
@@ -332,8 +303,7 @@ export function readSources(srcDir, { exclude = DEFAULT_EXCLUDE } = {}) {
 
 /**
  * Two adjacency maps over the same node set: `static` (load-order) and
- * `lazy` (only `import()`). `combined` is the union and is materialised by
- * `mergeAdjacency` where it is needed.
+ * `lazy` (only `import()`). The union is built where it is needed.
  */
 export function buildImportGraph(sources) {
   const fileSet = new Set(sources.map((entry) => entry.path));
@@ -342,7 +312,7 @@ export function buildImportGraph(sources) {
   const unresolved = [];
 
   for (const { path: file, source } of sources) {
-    const { staticSpecifiers, dynamicSpecifiers } = extractSpecifiers(source);
+    const { staticSpecifiers, lazySpecifiers } = extractSpecifiers(file, source);
     const staticTargets = new Set();
     const lazyTargets = new Set();
 
@@ -354,7 +324,7 @@ export function buildImportGraph(sources) {
       }
     }
 
-    for (const specifier of dynamicSpecifiers) {
+    for (const specifier of lazySpecifiers) {
       const target = resolveSpecifier(file, specifier, fileSet);
       if (target && target !== file) lazyTargets.add(target);
     }
@@ -453,6 +423,16 @@ export function layerPairCounts(adjacency) {
   return Object.fromEntries([...counts.entries()].sort((a, b) => a[0].localeCompare(b[0])));
 }
 
+/** Only the pairs that cross a boundary against the target chain. */
+export function uphillPairs(layerPairs) {
+  return Object.fromEntries(
+    Object.entries(layerPairs).filter(([pair]) => {
+      const [from, to] = pair.split("->");
+      return isUphill(from, to);
+    }),
+  );
+}
+
 /** Layers present in one SCC, largest first — the report's "what is inside". */
 function layerBreakdown(members) {
   const counts = new Map();
@@ -482,23 +462,25 @@ export function analyse(sources) {
   const graph = buildImportGraph(sources);
   const combined = mergeAdjacency(graph.files, graph.staticEdges, graph.lazyEdges);
 
+  const staticPairs = layerPairCounts(graph.staticEdges);
+  const lazyPairs = layerPairCounts(graph.lazyEdges);
+
   return {
     fileCount: graph.files.length,
     staticEdgeCount: countEdges(graph.staticEdges),
     lazyEdgeCount: countEdges(graph.lazyEdges),
     static: {
       sccs: describeCycles(graph.files, graph.staticEdges),
-      layerPairs: layerPairCounts(graph.staticEdges),
+      layerPairs: staticPairs,
+      uphillPairs: uphillPairs(staticPairs),
     },
     lazy: {
-      layerPairs: layerPairCounts(graph.lazyEdges),
+      layerPairs: lazyPairs,
+      uphillPairs: uphillPairs(lazyPairs),
     },
     combined: {
       sccs: describeCycles(graph.files, combined),
     },
-    dynamicEdges: [...graph.lazyEdges].flatMap(([from, targets]) =>
-      targets.map((to) => ({ from, to })),
-    ),
     unresolved: graph.unresolved,
   };
 }
@@ -507,19 +489,16 @@ export function analyse(sources) {
 
 /** The persisted shape: sizes plus one stable anchor per SCC, nothing else. */
 export function toBaseline(result) {
-  const cycles = (group) =>
-    group.sccs.map(({ size, sample }) => ({ size, sample }));
+  const cycles = (group) => group.sccs.map(({ size, sample }) => ({ size, sample }));
 
   return {
     note:
-      "Burn-down only. Regenerate with `node scripts/arch-cycles.mjs --update-baseline`, " +
-      "which refuses to raise a value. Lower it in the PR that removes the cycle or the edge. " +
-      "`static` counts value imports, `combined` adds import(), `lazy` counts import() alone — " +
-      "see the header of scripts/arch-cycles.mjs for why all three are gated.",
-    // Spread, not the live object: a caller that mutates the returned baseline
-    // to simulate drift must not mutate the measurement it is compared against.
-    static: { sccs: cycles(result.static), layerPairs: { ...result.static.layerPairs } },
-    lazy: { layerPairs: { ...result.lazy.layerPairs } },
+      "Burn-down only. Regenerate with `npm run check:cycles -- --update-baseline`, which refuses " +
+      "to raise a value and refuses every cycle change. `static` counts value imports, `combined` " +
+      "adds runtime import(), and only uphill layer pairs are frozen — see the header of " +
+      "scripts/arch-cycles.mjs for why.",
+    static: { sccs: cycles(result.static), uphillPairs: { ...result.static.uphillPairs } },
+    lazy: { uphillPairs: { ...result.lazy.uphillPairs } },
     combined: { sccs: cycles(result.combined) },
   };
 }
@@ -563,18 +542,13 @@ function compareCycles(currentSccs, baselineSccs, label, failures, improvements)
   }
 }
 
-function compareLayerPairs(current, baseline, label, failures, improvements, allowNewDownhillPairs) {
+function compareUphillPairs(current, baseline, label, failures, improvements) {
   for (const [pair, count] of Object.entries(current)) {
     const allowed = baseline?.[pair];
     if (allowed === undefined) {
-      const [from, to] = pair.split("->");
-      if (isUphill(from, to)) {
-        failures.push(
-          `[${label}] new uphill import pair ${pair} (${count} edges) — this is the direction the layering forbids`,
-        );
-      } else if (!allowNewDownhillPairs) {
-        failures.push(`[${label}] new import pair ${pair} (${count} edges) — not covered by the baseline`);
-      }
+      failures.push(
+        `[${label}] new uphill import pair ${pair} (${count} edges) — this is the direction the layering forbids`,
+      );
     } else if (count > allowed) {
       failures.push(`[${label}] ${pair} grew: ${allowed} -> ${count} edges`);
     } else if (count < allowed) {
@@ -592,14 +566,16 @@ function compareLayerPairs(current, baseline, label, failures, improvements, all
 /**
  * Compare a measurement against the frozen baseline.
  *
- * `allowNewDownhillPairs` exists for exactly one caller: `--update-baseline`.
- * A layer pair that never existed before is normally a failure worth a human
- * decision, but the target layering permits new *downhill* imports by design —
- * a component starting to read from `services` is not a regression. Uphill
- * pairs stay refused in both modes, and so does every cycle change: those are
- * the two things the ratchet exists to prevent.
+ * Only uphill pairs are compared. A downhill import is what the layering asks
+ * for, and freezing its count would make every feature PR edit the baseline —
+ * which in this repository means a merge conflict in a generated file, not a
+ * decision. The direction that is a violation is the one that is ratcheted.
+ *
+ * Improvements are reported separately: they never fail the gate, but a PR that
+ * removes a cycle or an uphill edge is expected to lower the baseline in the
+ * same change, which is what keeps the numbers meaningful.
  */
-export function compareToBaseline(result, baseline, { allowNewDownhillPairs = false } = {}) {
+export function compareToBaseline(result, baseline) {
   const failures = [];
   const improvements = [];
 
@@ -608,25 +584,36 @@ export function compareToBaseline(result, baseline, { allowNewDownhillPairs = fa
   }
 
   compareCycles(result.static.sccs, baseline.static?.sccs, "static", failures, improvements);
-  compareLayerPairs(
-    result.static.layerPairs,
-    baseline.static?.layerPairs,
-    "static",
-    failures,
-    improvements,
-    allowNewDownhillPairs,
-  );
+  compareUphillPairs(result.static.uphillPairs, baseline.static?.uphillPairs, "static", failures, improvements);
   compareCycles(result.combined.sccs, baseline.combined?.sccs, "combined", failures, improvements);
-  compareLayerPairs(
-    result.lazy.layerPairs,
-    baseline.lazy?.layerPairs,
-    "lazy",
-    failures,
-    improvements,
-    allowNewDownhillPairs,
-  );
+  compareUphillPairs(result.lazy.uphillPairs, baseline.lazy?.uphillPairs, "lazy", failures, improvements);
 
   return { failures, improvements };
+}
+
+/**
+ * What the CLI should do, without doing it — so the refusal path is testable
+ * without touching the filesystem. `main` performs the action; nothing else
+ * decides whether a write is allowed.
+ */
+export function decide({ result, baseline, wantsInit, wantsUpdate }) {
+  if (wantsInit) {
+    if (baseline) return { action: "refuse", failures: ["a baseline already exists — use --update-baseline"] };
+    return { action: "write", failures: [], improvements: [] };
+  }
+
+  if (!baseline) {
+    return { action: "error", failures: ["no baseline yet — run with --init once"], improvements: [] };
+  }
+
+  const { failures, improvements } = compareToBaseline(result, baseline);
+
+  if (wantsUpdate) {
+    if (failures.length > 0) return { action: "refuse", failures, improvements };
+    return { action: "write", failures, improvements };
+  }
+
+  return { action: failures.length > 0 ? "fail" : "pass", failures, improvements };
 }
 
 /* ------------------------------------------------------------------- cli */
@@ -644,28 +631,22 @@ function printCycles(title, sccs) {
 }
 
 function printUphill(pairs, title) {
-  const uphill = Object.entries(pairs)
-    .filter(([pair]) => {
-      const [from, to] = pair.split("->");
-      return isUphill(from, to);
-    })
-    .sort((a, b) => b[1] - a[1]);
-
-  if (uphill.length === 0) return;
+  const entries = Object.entries(pairs).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) return;
   console.log(`\n${title}:`);
-  for (const [pair, count] of uphill) console.log(`  ${pair.padEnd(26)} ${count}`);
+  for (const [pair, count] of entries) console.log(`  ${pair.padEnd(26)} ${count}`);
 }
 
 function printReport(result) {
   console.log(
     `Import graph: ${result.fileCount} modules, ${result.staticEdgeCount} static value edges, ` +
-      `${result.lazyEdgeCount} lazy import() edges.`,
+      `${result.lazyEdgeCount} runtime import() edges.`,
   );
 
   printCycles("Load-order cycles (static value imports)", result.static.sccs);
   printCycles("Dependency cycles (static + lazy)", result.combined.sccs);
-  printUphill(result.static.layerPairs, "Uphill static import pairs");
-  printUphill(result.lazy.layerPairs, "Uphill lazy import pairs");
+  printUphill(result.static.uphillPairs, "Uphill static import pairs (gated)");
+  printUphill(result.lazy.uphillPairs, "Uphill lazy import pairs (gated)");
 
   if (result.unresolved.length > 0) {
     console.log(
@@ -685,6 +666,7 @@ function main(argv) {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const baselinePath = path.join(repoRoot, "scripts", "arch-cycles.baseline.json");
   const wantsUpdate = argv.includes("--update-baseline");
+  const wantsInit = argv.includes("--init");
   const wantsJson = argv.includes("--json");
 
   const result = analyse(readSources(path.join(repoRoot, "src")));
@@ -696,40 +678,35 @@ function main(argv) {
 
   printReport(result);
 
-  const existing = existsSync(baselinePath)
-    ? JSON.parse(readFileSync(baselinePath, "utf8"))
-    : null;
+  const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : null;
+  const outcome = decide({ result, baseline, wantsInit, wantsUpdate });
 
-  if (wantsUpdate) {
-    if (existing) {
-      const { failures } = compareToBaseline(result, existing, { allowNewDownhillPairs: true });
-      if (failures.length > 0) {
-        console.error("\n❌ refusing to raise the baseline:");
-        for (const failure of failures) console.error(`   - ${failure}`);
-        console.error("\nA ratchet that can be raised is not a ratchet. Fix the regression instead.");
-        process.exit(1);
-      }
-    }
+  if (outcome.improvements?.length > 0) {
+    console.log("\nLower the baseline (improvements, not failures):");
+    for (const improvement of outcome.improvements) console.log(`  · ${improvement}`);
+  }
+
+  if (outcome.action === "write") {
     writeFileSync(baselinePath, `${JSON.stringify(toBaseline(result), null, 2)}\n`);
     console.log(`\n✅ baseline written: ${path.relative(repoRoot, baselinePath)}`);
     return;
   }
 
-  if (!existing) {
-    console.error("\n❌ no baseline yet — run with --update-baseline once.");
+  if (outcome.action === "refuse") {
+    console.error("\n❌ refusing to write the baseline:");
+    for (const failure of outcome.failures) console.error(`   - ${failure}`);
+    console.error("\nA ratchet that can be raised is not a ratchet. Fix the regression instead.");
     process.exit(1);
   }
 
-  const { failures, improvements } = compareToBaseline(result, existing);
-
-  if (improvements.length > 0) {
-    console.log("\nLower the baseline (improvements, not failures):");
-    for (const improvement of improvements) console.log(`  · ${improvement}`);
+  if (outcome.action === "error") {
+    for (const failure of outcome.failures) console.error(`❌ ${failure}`);
+    process.exit(1);
   }
 
-  if (failures.length > 0) {
-    console.error(`\n❌ ${failures.length} regression(s) against the baseline:`);
-    for (const failure of failures) console.error(`  - ${failure}`);
+  if (outcome.action === "fail") {
+    console.error(`\n❌ ${outcome.failures.length} regression(s) against the baseline:`);
+    for (const failure of outcome.failures) console.error(`  - ${failure}`);
     process.exit(1);
   }
 

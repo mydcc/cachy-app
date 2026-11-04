@@ -22,20 +22,25 @@
  *
  * `scripts/arch-cycles.mjs` measures the graph and
  * `scripts/arch-cycles.baseline.json` freezes it. This file is the gate: it
- * re-measures on every run and fails if any cycle grew, if a new cycle
- * appeared, or if a layer pair gained edges.
+ * re-measures on every run and fails if a cycle grew, if a new cycle appeared,
+ * or if an uphill layer pair gained edges.
  *
  * Two axes on purpose. A new `services -> stores` import *inside* the existing
- * 199-module blob changes the SCC size by exactly zero, so a size-only gate
- * would stay green while the layering eroded further. The per-pair edge count
- * is the leading indicator; the SCC size is the one that catches a cycle
- * forming where there was none.
+ * 197-module blob changes the SCC size by exactly zero, so a size-only gate
+ * would stay green while the layering eroded further. The per-pair count is
+ * the leading indicator; the SCC size is the one that catches a cycle forming
+ * where there was none.
  *
- * The self-tests below exist because a ratchet that silently stops matching is
- * worse than no ratchet — it reads as a guarantee. Each one pins a decision the
- * analyser makes (comments are not imports, `import type` is not an edge,
- * `import()` is not a load-order edge) and one proves the comparator reports
- * growth, which is the only claim that matters.
+ * Both directions are asserted. A ratchet that only checks for growth cannot
+ * tell "the graph got better" from "the measurement stopped working" — the
+ * second one is the failure the existing `boundary_allowlist.test.ts` was
+ * written to catch, and it applies here for the same reason.
+ *
+ * The self-tests pin the analyser's decisions. Each one corresponds to a real
+ * shape in this tree: `import type` as the first statement of a `<script>`
+ * block, an inline `{ type X }` specifier, `import("./x").Member` inside a type
+ * annotation, and an import quoted inside a comment. A regex gets all four
+ * wrong, which is why the analyser parses instead.
  */
 
 import { describe, it, expect } from "vitest";
@@ -46,9 +51,11 @@ import path from "node:path";
 import {
 	analyse,
 	compareToBaseline,
+	decide,
 	isUphill,
 	layerOf,
 	readSources,
+	resolveSpecifier,
 	toBaseline,
 } from "../../../scripts/arch-cycles.mjs";
 
@@ -64,7 +71,7 @@ function sourcesOf(files: Record<string, string>) {
 const sources = readSources(path.join(REPO_ROOT, "src"));
 const result = analyse(sources);
 
-describe("architecture cycle ratchet is measured against a frozen baseline", () => {
+describe("the ratchet is measured against a frozen baseline", () => {
 	it("scans a graph large enough for the gate to mean something", () => {
 		// A walker that stopped finding files would make every assertion below
 		// vacuously true. This is the cheapest way to notice that.
@@ -72,17 +79,19 @@ describe("architecture cycle ratchet is measured against a frozen baseline", () 
 		expect(result.staticEdgeCount).toBeGreaterThan(1000);
 	});
 
-	it("records every layer pair it claims to gate", () => {
-		expect(Object.keys(BASELINE.static.layerPairs).length).toBeGreaterThan(0);
-		expect(Array.isArray(BASELINE.static.sccs)).toBe(true);
-		expect(Array.isArray(BASELINE.combined.sccs)).toBe(true);
+	it("leaves test code out of the graph", () => {
+		// Test fixtures are never bundled and may import across layers freely,
+		// so counting them would freeze coupling that does not ship.
+		const paths = sources.map((entry) => entry.path);
+		expect(paths.filter((file) => /\.(test|spec|bench)\.ts$/.test(file))).toEqual([]);
+		expect(paths.filter((file) => /\.d\.ts$/.test(file))).toEqual([]);
+		expect(paths.filter((file) => file.startsWith("src/tests/"))).toEqual([]);
 	});
 
 	it("anchors every baseline cycle on a file that still exists", () => {
-		// If an anchor file is renamed, the comparator sees a cycle it does not
-		// know and a baseline entry that vanished. Both are reported — but a
-		// dangling anchor is the root cause, and naming it saves the reader a
-		// detour.
+		// If an anchor file is renamed, the comparator reports a new cycle and a
+		// vanished baseline entry. Both are true, but the root cause is the
+		// dangling anchor, and naming it saves the reader the detour.
 		const scanned = new Set(sources.map((entry) => entry.path));
 		const anchors = [...BASELINE.static.sccs, ...BASELINE.combined.sccs].map(
 			(entry: { sample: string }) => entry.sample,
@@ -90,9 +99,29 @@ describe("architecture cycle ratchet is measured against a frozen baseline", () 
 		expect(anchors.filter((anchor) => !scanned.has(anchor))).toEqual([]);
 	});
 
+	it("freezes an entry for every uphill pair the graph still has", () => {
+		for (const pair of Object.keys(result.static.uphillPairs)) {
+			expect(BASELINE.static.uphillPairs).toHaveProperty(pair);
+		}
+		for (const pair of Object.keys(result.lazy.uphillPairs)) {
+			expect(BASELINE.lazy.uphillPairs).toHaveProperty(pair);
+		}
+	});
+
 	it("has not regressed", () => {
-		const { failures } = compareToBaseline(result, BASELINE);
-		expect(failures).toEqual([]);
+		expect(compareToBaseline(result, BASELINE).failures).toEqual([]);
+	});
+
+	it("has not drifted out from under the baseline either", () => {
+		// An analyser that stopped seeing edges leaves `failures` empty. The
+		// improvement list is what makes that visible, and it costs nothing when
+		// the tree and the baseline agree — which they must, between changes.
+		const { improvements } = compareToBaseline(result, BASELINE);
+		expect(
+			improvements,
+			"the baseline is stale: either a cycle or an uphill edge was removed (lower the baseline in this PR) " +
+				"or the analyser stopped seeing it (a regression in scripts/arch-cycles.mjs)",
+		).toEqual([]);
 	});
 });
 
@@ -115,9 +144,21 @@ describe("the analyser agrees with the layering it enforces", () => {
 		expect(isUphill("components", "stores")).toBe(false);
 		expect(isUphill("services", "lib")).toBe(false);
 
-		// Entry points are not links in the chain, so they can never be uphill.
+		// Entry points and leaf vocabularies are not links in the chain.
 		expect(isUphill("routes", "stores")).toBe(false);
 		expect(isUphill("workers", "services")).toBe(false);
+		expect(isUphill("types", "stores")).toBe(false);
+	});
+
+	it("resolves $lib, query suffixes and honest misses", () => {
+		const tree = new Set(["src/lib/x.ts", "src/lib/window/index.ts"]);
+		expect(resolveSpecifier("src/components/a.svelte", "$lib/x", tree)).toBe("src/lib/x.ts");
+		expect(resolveSpecifier("src/components/a.svelte", "$lib/window", tree)).toBe(
+			"src/lib/window/index.ts",
+		);
+		expect(resolveSpecifier("src/components/a.svelte", "../lib/x.ts?raw", tree)).toBe("src/lib/x.ts");
+		expect(resolveSpecifier("src/components/a.svelte", "../lib/missing", tree)).toBe(null);
+		expect(resolveSpecifier("src/components/a.svelte", "decimal.js", tree)).toBe(null);
 	});
 });
 
@@ -146,9 +187,8 @@ describe("the analyser reports what it claims to report", () => {
 	});
 
 	it("does not read an import written inside a comment", () => {
-		// Without comment stripping this is a 2-cycle that does not exist.
-		// The repository documents its own imports in JSDoc, so this is a real
-		// false positive, not a hypothetical one.
+		// The repository documents its own imports in JSDoc, so an example
+		// quoted in a comment is a real false positive, not a hypothetical one.
 		const probe = analyse(
 			sourcesOf({
 				"src/lib/a.ts":
@@ -160,7 +200,7 @@ describe("the analyser reports what it claims to report", () => {
 		expect(probe.static.sccs).toEqual([]);
 	});
 
-	it("does not count a type-only import as an edge", () => {
+	it("does not count an `import type` statement as an edge", () => {
 		const probe = analyse(
 			sourcesOf({
 				"src/lib/a.ts": 'import type { B } from "./b";\nexport type A = B;',
@@ -171,7 +211,36 @@ describe("the analyser reports what it claims to report", () => {
 		expect(probe.static.sccs).toEqual([]);
 	});
 
-	it("keeps a lazy import out of the load-order graph and inside the dependency graph", () => {
+	it("does not count an inline `{ type X }` specifier as an edge", () => {
+		// `marketWatcher/historyFetcher.ts` and `subscriptionRegistry.ts` import
+		// each other this way. Counting it froze a phantom 5-module cycle that
+		// is 4 modules at runtime — and it would hide a later change from
+		// `type` to value, which is exactly the edge the ratchet exists for.
+		const probe = analyse(
+			sourcesOf({
+				"src/lib/a.ts": 'import { type B } from "./b";\nexport const a = 1;',
+				"src/lib/b.ts": 'import { a } from "./a";\nexport const b = a;',
+			}),
+		);
+
+		expect(probe.static.sccs).toEqual([]);
+	});
+
+	it("does not count `import(\"./x\").T` in a type annotation as a lazy edge", () => {
+		// That is an ImportTypeNode, erased like any other type. Four live
+		// occurrences connect modules that never load each other.
+		const probe = analyse(
+			sourcesOf({
+				"src/lib/a.ts": 'export type X = import("./b").Thing;',
+				"src/lib/b.ts": 'import { a } from "./a";\nexport const b = a;',
+			}),
+		);
+
+		expect(probe.lazyEdgeCount).toBe(0);
+		expect(probe.combined.sccs).toEqual([]);
+	});
+
+	it("keeps a runtime import() out of the load-order graph and inside the dependency graph", () => {
 		const probe = analyse(
 			sourcesOf({
 				"src/lib/a.ts": 'export const load = () => import("./b");',
@@ -221,14 +290,12 @@ describe("the comparator reports the regressions it exists for", () => {
 		);
 
 		const { failures } = compareToBaseline(probe, frozen);
-		expect(
-			failures.some((failure: string) => failure.includes("new cycle of 2 files")),
-		).toBe(true);
+		expect(failures.some((failure: string) => failure.includes("new cycle of 2 files"))).toBe(true);
 	});
 
 	it("reports an uphill pair the baseline does not know about", () => {
-		// The point of the pair axis: this import creates no cycle at all, so a
-		// size-only ratchet would wave it through.
+		// This import creates no cycle at all, so a size-only ratchet would wave
+		// it through. It is the case the pair axis exists for.
 		const probe = analyse(
 			sourcesOf({
 				"src/services/reader.ts": 'import { state } from "../stores/s";\nexport const read = state;',
@@ -238,7 +305,7 @@ describe("the comparator reports the regressions it exists for", () => {
 		expect(probe.static.sccs).toEqual([]);
 
 		const frozen = toBaseline(probe);
-		delete frozen.static.layerPairs["services->stores"];
+		delete frozen.static.uphillPairs["services->stores"];
 
 		const { failures } = compareToBaseline(probe, frozen);
 		expect(
@@ -248,30 +315,154 @@ describe("the comparator reports the regressions it exists for", () => {
 		).toBe(true);
 	});
 
-	it("tells a new downhill pair apart from a new uphill one", () => {
-		// Only `--update-baseline` passes `allowNewDownhillPairs`. It has to:
-		// a component reading from a service is what the layering wants, so
-		// recording that pair must not require a code change. An uphill pair
-		// stays refused in both modes.
-		const probe = analyse(
+	it("reports an uphill pair that gained an edge", () => {
+		// The leading indicator: same pair, no new cycle, one more module
+		// reached. Two imports from the *same* store would stay one edge.
+		const before = analyse(
 			sourcesOf({
-				"src/components/panel.svelte":
-					'<script>import { read } from "../services/reader";</script>',
-				"src/services/reader.ts": "export const read = 1;",
+				"src/services/reader.ts": 'import { state } from "../stores/s";\nexport const read = state;',
+				"src/stores/s.ts": "export const state = 1;",
+				"src/stores/t.ts": "export const other = 2;",
+			}),
+		);
+		const after = analyse(
+			sourcesOf({
+				"src/services/reader.ts":
+					'import { state } from "../stores/s";\nimport { other } from "../stores/t";\nexport const read = state + other;',
+				"src/stores/s.ts": "export const state = 1;",
+				"src/stores/t.ts": "export const other = 2;",
 			}),
 		);
 
-		const frozen = toBaseline(probe);
-		delete frozen.static.layerPairs["components->services"];
+		const { failures } = compareToBaseline(after, toBaseline(before));
+		expect(failures.some((failure: string) => failure.includes("services->stores grew: 1 -> 2"))).toBe(
+			true,
+		);
+	});
 
-		const strict = compareToBaseline(probe, frozen);
-		expect(
-			strict.failures.some((failure: string) =>
-				failure.includes("new import pair components->services"),
+	it("does not fail on a downhill pair that grew", () => {
+		// A component importing from a service is what the layering wants.
+		// Freezing it would make every feature PR edit the baseline.
+		const before = analyse(
+			sourcesOf({
+				"src/components/a.svelte": '<script>import { read } from "../services/s";</script>',
+				"src/services/s.ts": "export const read = 1;\nexport const write = 2;",
+			}),
+		);
+		const after = analyse(
+			sourcesOf({
+				"src/components/a.svelte":
+					'<script>import { read, write } from "../services/s";export const x = read + write;</script>',
+				"src/services/s.ts": "export const read = 1;\nexport const write = 2;",
+			}),
+		);
+
+		expect(compareToBaseline(after, toBaseline(before)).failures).toEqual([]);
+	});
+
+	it("reports a cycle that shrank, without failing", () => {
+		const frozen = toBaseline(
+			analyse(
+				sourcesOf({
+					"src/lib/a.ts": 'import { b } from "./b";\nexport const a = b;',
+					"src/lib/b.ts": 'import { c } from "./c";\nexport const b = c;',
+					"src/lib/c.ts": 'import { a } from "./a";\nexport const c = a;',
+				}),
 			),
-		).toBe(true);
+		);
+		frozen.static.sccs[0].size = 5;
 
-		const update = compareToBaseline(probe, frozen, { allowNewDownhillPairs: true });
-		expect(update.failures).toEqual([]);
+		const probe = analyse(
+			sourcesOf({
+				"src/lib/a.ts": 'import { b } from "./b";\nexport const a = b;',
+				"src/lib/b.ts": 'import { c } from "./c";\nexport const b = c;',
+				"src/lib/c.ts": 'import { a } from "./a";\nexport const c = a;',
+			}),
+		);
+
+		const { failures, improvements } = compareToBaseline(probe, frozen);
+		expect(failures).toEqual([]);
+		expect(improvements.some((line: string) => line.includes("shrank: 5 -> 3"))).toBe(true);
+	});
+
+	it("reports a renamed anchor as both a vanishing cycle and a new one", () => {
+		const frozen = toBaseline(
+			analyse(
+				sourcesOf({
+					"src/lib/a.ts": 'import { b } from "./b";\nexport const a = b;',
+					"src/lib/b.ts": 'import { a } from "./a";\nexport const b = a;',
+				}),
+			),
+		);
+
+		const renamed = analyse(
+			sourcesOf({
+				"src/lib/a2.ts": 'import { b } from "./b";\nexport const a = b;',
+				"src/lib/b.ts": 'import { a } from "./a2";\nexport const b = a;',
+			}),
+		);
+
+		const { failures, improvements } = compareToBaseline(renamed, frozen);
+		expect(improvements.some((line: string) => line.includes("anchored at src/lib/a.ts is gone"))).toBe(
+			true,
+		);
+		expect(failures.some((line: string) => line.includes("new cycle of 2 files at src/lib/a2.ts"))).toBe(
+			true,
+		);
+	});
+
+	it("fails an empty measurement instead of passing it", () => {
+		const { failures } = compareToBaseline(analyse([]), { static: {}, lazy: {}, combined: {} });
+		expect(failures.some((line: string) => line.includes("a graph that empty proves nothing"))).toBe(true);
+	});
+});
+
+describe("the CLI only writes when the ratchet allows it", () => {
+	const clean = analyse(
+		sourcesOf({
+			"src/services/reader.ts": 'import { state } from "../stores/s";\nexport const read = state;',
+			"src/stores/s.ts": "export const state = 1;",
+			"src/stores/t.ts": "export const other = 2;",
+		}),
+	);
+	const frozen = toBaseline(clean);
+	const regressed = analyse(
+		sourcesOf({
+			"src/services/reader.ts":
+				'import { state } from "../stores/s";\nimport { other } from "../stores/t";\nexport const read = state + other;',
+			"src/stores/s.ts": "export const state = 1;",
+			"src/stores/t.ts": "export const other = 2;",
+		}),
+	);
+
+	it("refuses --update-baseline while a regression exists", () => {
+		const outcome = decide({ result: regressed, baseline: frozen, wantsInit: false, wantsUpdate: true });
+		expect(outcome.action).toBe("refuse");
+		expect(outcome.failures.some((line: string) => line.includes("services->stores grew"))).toBe(true);
+	});
+
+	it("writes on --update-baseline when only the baseline is stale", () => {
+		const outcome = decide({ result: clean, baseline: frozen, wantsInit: false, wantsUpdate: true });
+		expect(outcome.action).toBe("write");
+	});
+
+	it("fails a plain check when a regression exists", () => {
+		const outcome = decide({ result: regressed, baseline: frozen, wantsInit: false, wantsUpdate: false });
+		expect(outcome.action).toBe("fail");
+	});
+
+	it("does not let a missing baseline pass as a clean check", () => {
+		expect(decide({ result: clean, baseline: null, wantsInit: false, wantsUpdate: false }).action).toBe(
+			"error",
+		);
+	});
+
+	it("requires --init, not --update-baseline, to create the first baseline", () => {
+		expect(decide({ result: clean, baseline: null, wantsInit: true, wantsUpdate: false }).action).toBe(
+			"write",
+		);
+		expect(decide({ result: clean, baseline: frozen, wantsInit: true, wantsUpdate: false }).action).toBe(
+			"refuse",
+		);
 	});
 });

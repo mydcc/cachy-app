@@ -256,10 +256,16 @@ can still reach each other is a graph property, so it is measured separately:
 `src/tests/architecture/cycle_ratchet.test.ts` fails when a cycle grows, a new
 cycle appears, or a layer pair gains edges.
 
-It counts three graphs — value imports, those plus `import()`, and those plus
-`import type` — because one number would hide the difference between a
-load-order hazard and a lazy registry. The reasoning is in the script's header;
-it is worth reading before changing the baseline.
+It measures two graphs — value imports, and those plus runtime `import()` — and
+freezes only the uphill layer pairs and the cycles. Type imports are erased by
+the compiler and are not counted, which is why the 2026-11 audit's "237 files"
+is larger than the 197 reported here: reproducing 237 needs
+`import("./x").Member` type references counted as edges as well. The reasoning
+is in the script's header; read it before changing the baseline.
+
+A component importing from a service is what the layering wants, so downhill
+counts are reported but never gated. Only the direction that is a violation is
+ratcheted.
 
 ```bash
 npm run check:cycles                            # report, then check
