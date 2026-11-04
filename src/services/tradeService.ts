@@ -77,9 +77,12 @@ import {
 
 // Error shapes and order parameter contracts live in ./trade/* (FEAT-0342);
 // re-exported here so existing importers keep working.
-export { BitunixApiError, TradeError, TRADE_ERRORS } from "./trade/tradeErrors";
+export { BitunixApiError, TradeError, TRADE_ERRORS, OrderStatusUnknownError } from "./trade/tradeErrors";
 export type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
-import { BitunixApiError, TRADE_ERRORS } from "./trade/tradeErrors";
+import { BitunixApiError, TRADE_ERRORS, OrderStatusUnknownError } from "./trade/tradeErrors";
+
+/** Client-side deadline (ms) for mutating order requests (PA-01). */
+const ORDER_DEADLINE_MS = 15_000;
 import type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
 import type { TradingPairInfo } from "../stores/market/types";
 // Payload validation/serialization and the intent builder (FEAT-0342). The
@@ -547,7 +550,15 @@ class TradeService {
                 ? buildTpslWriteBody(params as Record<string, unknown>)
                 : signedPayload;
 
-        const response = await exchangeSignedFetch({
+        // PA-01: a client-side deadline on the money path. The server already
+        // caps the upstream call at 8 s, but the browser->node leg has none;
+        // a half-open link used to leave `submitting` true for minutes. A
+        // read keeps its (longer) behaviour — only mutating actions get
+        // the deadline, and an abort is surfaced as "status unknown".
+        const isMutating = mutatingActionOf(payload, endpoint) !== null;
+        let response: Response | undefined;
+        try {
+            response = await exchangeSignedFetch({
                   cachyPath: routeUrl,
                   // Declared, not just embedded: `routeUrl` already carries
                   // this in its query string, and the mismatch guard inside
@@ -573,7 +584,7 @@ class TradeService {
                   // carries no write, and a stale read is dropped at the store,
                   // not here.
                   fetchFn:
-                      mutatingActionOf(payload, endpoint) === null
+                      isMutating === false
                           ? appFetch
                           : this.dispatchUnderSession(
                                 accountEpoch.current(),
@@ -589,8 +600,21 @@ class TradeService {
                   // refused there rather than forwarded.
                   payload: signingPayload,
                   queryParams,
+                  signal: isMutating ? AbortSignal.timeout(ORDER_DEADLINE_MS) : undefined,
               });
+        } catch (e) {
+            const isAbort =
+                e instanceof Error &&
+                (e.name === "AbortError" || e.name === "TimeoutError" ||
+                 (typeof DOMException !== "undefined" && e instanceof DOMException));
+            if (isMutating && isAbort) {
+                logger.warn("network", "[TradeService] order aborted by client deadline", e);
+                throw new OrderStatusUnknownError(e);
+            }
+            throw e;
+        }
 
+        if (response === undefined) throw new OrderStatusUnknownError();
         const text = await response.text();
         let data: Record<string, unknown> = {};
         try {
@@ -747,16 +771,33 @@ class TradeService {
      */
     private async gatedRequest<T>(intent: PartialIntent): Promise<T> {
         const full = completeIntent(intent, this.displayedAccount());
-        const result = await orderGate.submit<T>(full, (pass) =>
-            this.signedRequest<T>(full.endpoint, full.payload, pass, undefined, full.origin),
-        );
-        // Eager post-action reconciliation: refresh account balance & positions
         try {
-            accountState.requestSync();
-        } catch {
-            // non-blocking
+            const result = await orderGate.submit<T>(full, (pass) =>
+                this.signedRequest<T>(full.endpoint, full.payload, pass, undefined, full.origin),
+            );
+            // Eager post-action reconciliation on success.
+            try {
+                accountState.requestSync();
+            } catch (syncErr) {
+                logger.warn("market", "[gatedRequest] post-action requestSync failed", syncErr);
+            }
+            return result;
+        } catch (e) {
+            // A transport failure (timeout, half-open link, abort) may have
+            // landed at the venue even though we never got a response (PA-01).
+            // Reconcile before rethrowing so the UI reflects what is actually
+            // there. A gate refusal never reached the network, so it does
+            // not reconcile — that is the property the reconciliation tests
+            // assert.
+            if (!(e instanceof OrderRefusedError)) {
+                try {
+                    accountState.requestSync();
+                } catch (syncErr) {
+                    logger.warn("market", "[gatedRequest] post-action requestSync failed", syncErr);
+                }
+            }
+            throw e;
         }
-        return result;
     }
 
     /**
