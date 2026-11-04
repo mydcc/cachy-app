@@ -2,7 +2,7 @@
 id: BUG-0796
 title: A single 5xx from the releases API wedges every later deploy build
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -12,6 +12,7 @@ adr: none
 depends_on: []
 assignee: opencode
 branch: fix/deploy-build-survive-transient-5xx
+shipped: PR #4527
 ---
 
 # BUG-0796 — A partial release upload blocks all subsequent builds
@@ -64,7 +65,7 @@ no assets to download
 matching asset, and the step runs under `bash -e`. The `if gh release view`
 guard only proves the *release* exists, not that it has anything to download —
 so the abort happened before the step's own `gh release delete` could clear the
-broken release. Fourteen consecutive builds failed this way (11:08Z–19:26Z).
+broken release. Sixteen further runs failed this way (11:08Z–19:25Z).
 
 A draft is also invisible to the anonymous download URL the host uses
 (`GET /releases/tags/deploy-beta` → 404), so even a successful-looking run can
