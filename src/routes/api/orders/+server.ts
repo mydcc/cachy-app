@@ -61,6 +61,7 @@ import {
   resolveVenue,
   type ExchangeError,
 } from "../../../utils/server/venues";
+import { cleanPayload } from "../../../utils/exchange/orderErrors";
 
 /**
  * The one path this route answers to. A literal for the envelope guard rather
@@ -195,18 +196,30 @@ export const POST: RequestHandler = async ({ request, getClientAddress, url }) =
     return json(result);
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
-    const errorCode = (e as ExchangeError).code;
-    const details = (e as ExchangeError).details;
-    // Enhanced Logging (automatically redacted by logger)
-    logger.error(`[API] Order failed: ${payload.type}`, {
-      error: errorMsg,
-      code: errorCode,
-      body,
-    });
+    const exchangeError = e as ExchangeError;
+    const errorCode = exchangeError.code;
+    const details = exchangeError.details;
+    // Log the action and venue, never the request body: it carries symbol,
+    // quantity (`qty`), price/trigger price and order type, which are Class A
+    // trade data (BUG-0779). The upstream message can echo the same fields, so
+    // it stays out of the log; the client still receives the scrubbed message
+    // below. `venueCode`/`status`/`name` keep the failure diagnosable.
+    logger.error(
+      `[API] Order failed: ${payload.type}`,
+      cleanPayload({
+        code: errorCode ?? exchangeError.venueCode ?? "UNKNOWN",
+        venueCode: exchangeError.venueCode,
+        venueHttpStatus: exchangeError.venueHttpStatus,
+        status: upstreamErrorStatus(e),
+        name: e instanceof Error ? e.name : typeof e,
+        exchange,
+      }),
+    );
     // The key can appear in upstream error text; the secret cannot, because it
-    // never came this way. Scrub what the envelope actually carried — before
-    // the log line as well as before the response. The passphrase rides the
-    // same path on Bitget (ADR-0013 named exception), so it is scrubbed too.
+    // never came this way. Scrub what the envelope actually carried before the
+    // response. The log line above carries no message, so there is nothing to
+    // scrub there. The passphrase rides the same path on Bitget (ADR-0013
+    // named exception), so it is scrubbed too.
     let sanitizedMsg = errorMsg;
     let sanitizedDetails = details ? String(details) : undefined;
     if (forwardedApiKey && forwardedApiKey.length > 3) {

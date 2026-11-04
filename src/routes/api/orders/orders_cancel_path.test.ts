@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHash } from "node:crypto";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { logger } from "../../../lib/server/logger";
 import {
   signedEnvelopeRequest,
   TEST_SIGNING_KEYS,
@@ -34,10 +35,10 @@ vi.stubGlobal("fetch", fetchMock);
 const getClientAddress = () => "127.0.0.1";
 
 /** The envelope `exchangeSignedFetch` would send for a Bitunix cancel. */
-async function cancelOrderRequest() {
+async function cancelOrderRequest(orderId = "42") {
   return signedEnvelopeRequest(
     "/api/orders?action=cancel-order",
-    { exchange: "bitunix", type: "cancel-order", symbol: "BTCUSDT", orderId: "42" },
+    { exchange: "bitunix", type: "cancel-order", symbol: "BTCUSDT", orderId },
     {},
     "bitunix",
   );
@@ -113,5 +114,55 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toBe("Order status error");
+  });
+
+  it("does not log the order body on failure (BUG-0779)", async () => {
+    const logSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
+
+    try {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        text: async () =>
+          JSON.stringify({
+            code: 0,
+            data: { successList: [], failureList: [{ orderId: "ord-sentinel-7f3", errorMsg: "Order status error", errorCode: 10013 }] },
+            msg: "Success",
+          }),
+      });
+
+      const { request, url } = await cancelOrderRequest("ord-sentinel-7f3");
+      const response = await POST({
+        request,
+        url,
+        getClientAddress,
+      } as unknown as Parameters<typeof POST>[0]);
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.error).toBe("Order status error");
+
+      const calls = logSpy.mock.calls.filter(([message]) =>
+        String(message).includes("[API] Order failed"),
+      );
+      expect(calls).toHaveLength(1);
+      const [message, context] = calls[0] as [string, Record<string, unknown>];
+
+      expect(message).toBe("[API] Order failed: cancel-order");
+      // The log keeps the failure diagnosable — Cachy code, venue code, error
+      // class — while carrying no request body or upstream message.
+      expect(context).toStrictEqual({
+        code: "10013",
+        venueCode: "10013",
+        name: "Error",
+        exchange: "bitunix",
+      });
+      expect(context).not.toHaveProperty("body");
+      expect(context).not.toHaveProperty("error");
+      const serialized = JSON.stringify(context);
+      expect(serialized).not.toContain("BTCUSDT");
+      expect(serialized).not.toContain("ord-sentinel-7f3");
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 });
