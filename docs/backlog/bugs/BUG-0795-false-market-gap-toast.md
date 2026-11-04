@@ -12,6 +12,7 @@ adr: none
 depends_on: []
 assignee: opencode
 branch: fix/alert-gap-signal
+shipped: PR #4523
 ---
 
 # BUG-0795 — "Market Data Gap Detected" is a flush-cadence alarm, not a data gap
