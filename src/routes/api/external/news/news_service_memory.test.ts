@@ -43,7 +43,6 @@ describe('News Service Cache Memory', () => {
                 headers: new Headers({ 'x-api-key': 'test-key' }),
                 json: async () => ({
                     source: 'newsapi',
-                    apiKey: 'test-key',
                     params: { q: `test-${i}` }
                 })
             };
@@ -54,11 +53,11 @@ describe('News Service Cache Memory', () => {
         // Optimization: Cache size should be capped at 50
         expect(_newsCache.size).toBe(50);
 
-        // Verify LRU: The last item (99) should exist, the first (0) should not
-        const cacheKeyLast = `newsapi:{"q":"test-99"}:default:test-key`;
-        expect(_newsCache.has(cacheKeyLast)).toBe(true);
-
-        const cacheKeyFirst = `newsapi:{"q":"test-0"}:default:test-key`;
-        expect(_newsCache.has(cacheKeyFirst)).toBe(false);
+        // Verify LRU: The last item (99) should exist, the first (0) should not.
+        // The trailing segment is a per-process keyed hash, so the test matches
+        // on the query part instead of recomputing it (BUG-0776).
+        const keys = [..._newsCache.keys()];
+        expect(keys.some((key) => key.includes('"q":"test-99"'))).toBe(true);
+        expect(keys.some((key) => key.includes('"q":"test-0"'))).toBe(false);
     });
 });

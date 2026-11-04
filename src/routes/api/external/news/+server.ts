@@ -12,7 +12,6 @@ import type { RequestHandler } from "./$types";
 import { checkClientToken, clientTokenKey, onClientTokenEvicted, TOKEN_MAP_CAP } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
 import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
-import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 
@@ -42,6 +41,21 @@ const pendingRequests = new Map<string, Promise<unknown>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)
 const MAX_CACHE_SIZE = 50;
 
+/**
+ * Removes the raw and the URL-encoded form of the key from a message. The
+ * CryptoPanic path carries the key in the query string, so transport errors
+ * can echo the encoded form.
+ */
+function redactKey(text: string, key: string): string {
+  if (!key || key.length <= 4) return text;
+  let redacted = text.split(key).join("***");
+  const encoded = encodeURIComponent(key);
+  if (encoded !== key && encoded.length > 4) {
+    redacted = redacted.split(encoded).join("***");
+  }
+  return redacted;
+}
+
 function setCache(key: string, data: unknown) {
   if (_newsCache.has(key)) {
     _newsCache.delete(key);
@@ -58,21 +72,38 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
 
   let cacheKey = "";
   let apiKey = "";
+  // The same key the rate limiter uses: the client token's SHA-256 hash, or
+  // the normalized address when the token is absent.
+  const limiterKey = clientTokenKey(request) ?? normalizeClientAddress(getClientAddress());
 
   try {
-    const body = await request.json();
-    const { source, params, plan } = body;
+    // News credentials travel in one header only (BUG-0776). The shared
+    // `extractApiCredentials` helper also accepts `x-api-secret`,
+    // `x-api-passphrase` and body fallbacks — credentials this route never
+    // needs and ADR-0013 forbids on any proxy route.
+    if (request.headers.has("x-api-secret") || request.headers.has("x-api-passphrase")) {
+      return json({ error: "Unsupported credential header" }, { status: 400 });
+    }
 
-    // Extract API Key from Header (primary) or Body (fallback)
-    const creds = extractApiCredentials(request, body);
-    apiKey = creds.apiKey || body.apiKey;
+    const body = await request.json();
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+      return json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const { source, params, plan } = body;
+    if ("apiKey" in body || "apiSecret" in body || "passphrase" in body) {
+      return json({ error: "Unsupported credential field" }, { status: 400 });
+    }
+
+    apiKey = (request.headers.get("x-api-key") ?? "").trim();
 
     if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    // Cache key needs apiKey to isolate user quotas/plans
-    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${apiKey}`;
+    // The cache is per client, not per API key: the response is public news
+    // and `plan` is already part of the key. The client token is a SHA-256
+    // hash (or the address fallback), so no credential enters the map key.
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${limiterKey}`;
     const now = Date.now();
 
     // Check Cache (before rate limiting so cached responses don't consume quota)
@@ -88,8 +119,6 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
     // apiKey strings would let one caller fill the tracked-key map, while a
     // token hash is bounded by the token store (BUG-0722). The address is a
     // fallback for the impossible case that the guard passed without a token.
-    const limiterKey =
-      clientTokenKey(request) ?? normalizeClientAddress(getClientAddress());
     if (!_rateLimits.consume(limiterKey)) {
       return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
     }
@@ -157,9 +186,7 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
             throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
           } catch (e) {
             let msg = e instanceof Error ? e.message : String(e);
-            if (apiKey && apiKey.length > 4) {
-              msg = msg.split(apiKey).join("***");
-            }
+            msg = redactKey(msg, apiKey);
             const is429 = msg.includes("429");
             msg = sanitizeErrorMessage(msg);
 
@@ -211,16 +238,17 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
 
   } catch (err) {
     let errorMsg = err instanceof Error ? err.message : String(err);
-    if (apiKey && apiKey.length > 4) {
-      errorMsg = errorMsg.split(apiKey).join("***");
-    }
+    errorMsg = redactKey(errorMsg, apiKey);
     const isQuotaError = errorMsg.includes("429") || errorMsg.includes("quota");
     errorMsg = sanitizeErrorMessage(errorMsg);
 
     // Safe logging: Don't log full URL if it has keys
     console.error(`[NewsProxy] Error processing request for ${request.url}:`, errorMsg);
 
-    if (err instanceof Error && err.cause) console.error("[NewsProxy] Cause:", err.cause);
+    if (err instanceof Error && err.cause) {
+      const cause = err.cause instanceof Error ? err.cause.message : String(err.cause);
+      console.error("[NewsProxy] Cause:", redactKey(cause, apiKey));
+    }
 
     if (isQuotaError) {
       const staleCache = _newsCache.get(cacheKey);
