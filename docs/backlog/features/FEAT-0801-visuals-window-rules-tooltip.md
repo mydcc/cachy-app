@@ -2,7 +2,7 @@
 id: FEAT-0801
 title: Move the window-rules explanation into a tooltip
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -65,4 +65,4 @@ None.
 - `src/components/settings/tabs/VisualsLayout.svelte`
 - `src/components/settings/tabs/VisualsLayout.component.test.ts`
 - `src/components/shared/InfoTip.svelte`
-- PR: (filled in when opened)
+- PR: #4535 (squash-merged into `develop`)
