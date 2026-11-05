@@ -176,7 +176,9 @@
   }
   .tooltip-content {
     width: max-content;
-    max-width: 240px;
+    /* Long explanations (risk-limit semantics, kill-switch scope) run to a few
+       hundred characters; 240 px turned them into a narrow column. */
+    max-width: 300px;
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     text-align: center;

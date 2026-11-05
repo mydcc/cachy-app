@@ -592,3 +592,35 @@ describe("FEAT-0526 — kill switch explanation and configuration", () => {
         }
     });
 });
+
+describe("FEAT-0800 — the guarantees stay visible, the explanations do not", () => {
+    it("keeps the closing guarantee as visible copy, not tooltip-only", () => {
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.limitsClosingNote"),
+        );
+    });
+
+    it("moves the limits explanation out of the visible copy", () => {
+        expect(host.textContent).not.toContain(
+            lookup(en, "settings.risk.limitsDescription"),
+        );
+        expect(host.querySelector(".info-tip")).not.toBeNull();
+    });
+
+    it("labels the scope list as the state that applies while engaged", () => {
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.scopeCaption"),
+        );
+    });
+
+    it("keeps the release-asks rule visible instead of tooltip-only", () => {
+        expect(host.textContent).toContain(
+            lookup(en, "settings.risk.killSwitch.confirmEngage.hint"),
+        );
+
+        const label = Array.from(host.querySelectorAll("label")).find(
+            (candidate) => candidate.getAttribute("for") === "kill-switch-confirm-engage",
+        );
+        expect(label?.querySelector(".info-tip")).toBeNull();
+    });
+});

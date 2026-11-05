@@ -124,7 +124,7 @@ const WARNING_LABEL_SITES: ReadonlyArray<
     ],
     [
         "src/components/settings/PaperTradingSettings.svelte",
-        "paper-mode description",
+        "paper-mode status label",
         /'text-\[var\(--text-on-warning\)\]'/,
     ],
 ];

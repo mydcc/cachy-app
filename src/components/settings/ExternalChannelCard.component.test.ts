@@ -76,4 +76,28 @@ describe("ExternalChannelCard grid (FEAT-0608)", () => {
     expect(grid).not.toBeNull();
     expect(grid?.className).toContain("grid-cols-1");
   });
+
+  it("carries the hint through the marker instead of a visible paragraph", () => {
+    const hint = "A browser cannot speak SMTP.";
+    const fields = createRawSnippet(() => ({
+      render: () => `<span>field</span>`,
+    }));
+
+    component = mount(ExternalChannelCard, {
+      target: host,
+      props: {
+        channel: "email" as never,
+        title: "E-mail",
+        hint,
+        enabled: false,
+        fields,
+        onEnabledChange: vi.fn(),
+        onClear: vi.fn(),
+      },
+    }) as never;
+    flushSync();
+
+    expect(host.textContent).not.toContain(hint);
+    expect(host.querySelector(".info-tip")).not.toBeNull();
+  });
 });

@@ -40,6 +40,7 @@
   import { externalChannelsStore } from "../../stores/externalChannels.svelte";
   import { externalDeliveryLog } from "../../stores/externalDeliveryLog.svelte";
   import { fetchTelegramChats } from "../../services/externalDelivery";
+  import InfoTip from "../shared/InfoTip.svelte";
   import Button from "../shared/Button.svelte";
 
   const config = $derived(externalChannelsStore.config);
@@ -83,17 +84,17 @@
 </script>
 
 <section class="settings-section">
-  <h3 class="section-title mb-3">{$_("settings.externalChannels.title")}</h3>
-
-  <p class="text-[11px] mb-2 text-[var(--text-secondary)]">
-    {$_("settings.externalChannels.intro")}
-  </p>
+  <div class="flex items-center gap-1.5 mb-3">
+    <h3 class="section-title">{$_("settings.externalChannels.title")}</h3>
+    <InfoTip text={$_("settings.externalChannels.intro")} />
+  </div>
 
   <p
     class="text-[11px] mb-3 rounded-lg border border-[var(--warning-color)] bg-[var(--bg-secondary)] p-3 font-semibold text-[var(--warning-color)]"
     data-testid="external-storage-warning"
   >
-    {$_("settings.externalChannels.storageWarning")}
+    {$_("settings.externalChannels.storageWarningShort")}
+    <InfoTip text={$_("settings.externalChannels.storageWarning")} />
   </p>
 
   {#if externalChannelsStore.persistFailed}

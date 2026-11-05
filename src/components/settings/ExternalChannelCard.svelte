@@ -33,6 +33,7 @@
   import SettingsGrid from "./shared/SettingsGrid.svelte";
   import type { Snippet } from "svelte";
   import { _ } from "../../locales/i18n";
+  import InfoTip from "../shared/InfoTip.svelte";
   import Toggle from "../shared/Toggle.svelte";
   import { externalChannelsStore } from "../../stores/externalChannels.svelte";
   import { externalDeliveryLog } from "../../stores/externalDeliveryLog.svelte";
@@ -104,8 +105,10 @@
 </script>
 
 <div class="mb-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3">
-  <span class="block text-sm font-semibold text-[var(--text-primary)]">{title}</span>
-  <p class="mt-1 text-[11px] text-[var(--text-secondary)]">{hint}</p>
+  <span class="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+    {title}
+    <InfoTip text={hint} />
+  </span>
 
   <SettingsGrid cols={2} gap="gap-2" extraClass="mt-2">
     {@render fields()}

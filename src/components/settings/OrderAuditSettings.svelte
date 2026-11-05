@@ -34,6 +34,7 @@
   import { modalState } from "../../stores/modal.svelte";
   import { translateRefusalField } from "../../services/orderGate";
   import type { TranslationKey } from "../../locales/schema";
+  import InfoTip from "../shared/InfoTip.svelte";
   import Button from "../shared/Button.svelte";
 
   let refreshToken = $state(0);
@@ -92,14 +93,23 @@
 
 <div class="space-y-4">
   <section class="settings-section">
-    <h3 class="section-title mb-2">{$_("settings.audit.title")}</h3>
+    <div class="flex items-center gap-1.5 mb-2">
+      <h3 class="section-title">{$_("settings.audit.title")}</h3>
+      <InfoTip text={$_("settings.audit.description")} />
+    </div>
+
+    <!--
+      The retention line is the Local-First promise on the screen that offers
+      a JSON export, so it stays visible. The full wording — including the
+      redaction of keys and signatures — remains one hover away.
+    -->
     <p class="text-[11px] text-[var(--text-secondary)]">
-      {$_("settings.audit.description")}
-    </p>
-    <p class="text-[11px] mt-1 text-[var(--text-secondary)]">
-      {$_("settings.audit.retention", {
-        values: { max: String(MAX_AUDIT_ENTRIES) },
-      })}
+      {$_("settings.audit.retentionShort")}
+      <InfoTip
+        text={$_("settings.audit.retention", {
+          values: { max: String(MAX_AUDIT_ENTRIES) },
+        })}
+      />
     </p>
 
     <div class="mt-3 flex flex-wrap gap-2">

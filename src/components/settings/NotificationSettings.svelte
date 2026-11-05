@@ -31,6 +31,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import Toggle from "../shared/Toggle.svelte";
+  import InfoTip from "../shared/InfoTip.svelte";
   import { notificationPolicyStore } from "../../stores/notifications.svelte";
   import { notificationService } from "../../services/notificationService.svelte";
   import { soundChannel } from "../../services/soundChannel.svelte";
@@ -150,6 +151,10 @@
     {$_("settings.notifications.intro")}
   </p>
 
+  <!--
+    Visible, not a tooltip: it explains why one event is missing from the list
+    below. An absence cannot be discovered by hovering over its explanation.
+  -->
   <p
     class="text-[11px] mb-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3 text-[var(--text-secondary)]"
   >
@@ -211,12 +216,10 @@
 
 
   <div class="mt-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3">
-    <span class="block text-sm font-semibold text-[var(--text-primary)]">
+    <span class="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
       {$_("settings.notifications.soundTitle")}
+      <InfoTip text={$_("settings.notifications.soundIntro")} />
     </span>
-    <p class="mt-1 text-[11px] text-[var(--text-secondary)]">
-      {$_("settings.notifications.soundIntro")}
-    </p>
 
     <!--
       The availability line is the acceptance criterion made visible: while the
