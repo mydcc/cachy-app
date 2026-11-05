@@ -1761,7 +1761,8 @@
         "active": "Active",
         "delete": "Delete provider",
         "relay": "Allow server relay",
-        "relayDesc": "Only needed when a provider blocks browser requests (CORS). Off (default): the browser talks to the provider directly and your key never reaches the Cachy server. On: your prompts and shared context travel via Cachy infrastructure to reach the provider."
+        "relayDesc": "Only needed when a provider blocks browser requests (CORS). Off (default): the browser talks to the provider directly and your key never reaches the Cachy server. On: your prompts and shared context travel via Cachy infrastructure to reach the provider.",
+        "relayNote": "Off: the browser talks to the provider directly. On: prompts travel via Cachy."
       },
       "provider": {
         "openai": "OpenAI",
@@ -2444,6 +2445,7 @@
       "debugModeDesc": "Show extended logs and developer features.",
       "telemetry": "Usage Statistics",
       "telemetryDesc": "Helps improve Cachy: anonymous usage events (window types, viewport, zoom level, app version) go to our self-hosted Matomo instance at s.cachy.app with IP anonymization — never your journal, settings or API keys. Turn off any time to stop all tracking.",
+      "telemetryNote": "Anonymous usage events only — never your journal, settings or API keys.",
       "factoryReset": "Factory Reset",
       "factoryResetDesc": "Delete everything and start fresh. Not reversible.",
       "networkLogs": "Network Logs",

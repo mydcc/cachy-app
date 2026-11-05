@@ -41,6 +41,7 @@
   import { isOpenCodeUrl } from "../../lib/ai/opencodeTarget";
   import AiModelPicker from "./AiModelPicker.svelte";
   import Button from "../shared/Button.svelte";
+  import InfoTip from "../shared/InfoTip.svelte";
 
   const FLAVOR_LABEL_KEYS: Record<AiApiFlavor, TranslationKey> = {
     "openai-chat": "settings.ai.customProviders.flavorOpenaiChat",
@@ -84,9 +85,12 @@
 
 <section class="settings-section mt-6">
   <div class="flex items-center justify-between mb-2">
-    <h3 class="section-title">
-      {$_("settings.ai.customProviders.title")}
-    </h3>
+    <div class="flex items-center gap-1.5">
+      <h3 class="section-title">
+        {$_("settings.ai.customProviders.title")}
+      </h3>
+      <InfoTip text={$_("settings.ai.customProviders.desc")} />
+    </div>
     <div class="flex items-center gap-2">
       <select
         bind:value={selectedPresetId}
@@ -110,9 +114,6 @@
       </Button>
     </div>
   </div>
-  <p class="text-[10px] text-[var(--text-secondary)] mb-3">
-    {$_("settings.ai.customProviders.desc")}
-  </p>
 
   {#if customProviders.length === 0}
     <p class="text-xs text-[var(--text-secondary)]">
@@ -246,9 +247,12 @@
                   >{$_("settings.ai.customProviders.relay")}</span
                 >
               </label>
-              <span class="text-[10px] text-[var(--text-secondary)]">
-                {$_("settings.ai.customProviders.relayDesc")}
-              </span>
+              <div class="flex items-start gap-1.5">
+                <span class="text-[10px] text-[var(--text-secondary)]">
+                  {$_("settings.ai.customProviders.relayNote")}
+                </span>
+                <InfoTip text={$_("settings.ai.customProviders.relayDesc")} />
+              </div>
             {/if}
           </div>
         </div>

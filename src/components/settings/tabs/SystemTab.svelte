@@ -20,6 +20,7 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import InfoTip from "../../shared/InfoTip.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import CalculationSettings from "../CalculationSettings.svelte";
     import CalculationDashboard from "../../shared/CalculationDashboard.svelte";
@@ -328,9 +329,10 @@
                                 {$_("settings.system.telemetry")}
                             </div>
                             <div
-                                class="text-[10px] text-[var(--text-secondary)]"
+                                class="flex items-start gap-1.5 text-[10px] text-[var(--text-secondary)]"
                             >
-                                {$_("settings.system.telemetryDesc")}
+                                <span>{$_("settings.system.telemetryNote")}</span>
+                                <InfoTip text={$_("settings.system.telemetryDesc")} />
                             </div>
                         </div>
                         <Toggle
