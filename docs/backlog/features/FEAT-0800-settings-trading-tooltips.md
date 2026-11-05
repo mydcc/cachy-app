@@ -103,3 +103,4 @@ None.
 - `src/components/settings/NotificationSettings.svelte`
 - `src/components/settings/ExternalChannelSettings.svelte`
 - `src/components/settings/OrderAuditSettings.svelte`
+- PR: #4533 (open, waiting for review)
