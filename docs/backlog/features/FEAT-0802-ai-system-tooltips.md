@@ -2,7 +2,7 @@
 id: FEAT-0802
 title: Move AI and System disclosure copy into tooltips
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -83,4 +83,4 @@ None.
 - `src/components/settings/tabs/SystemTab.svelte`
 - `src/components/settings/tabs/AiTab.svelte`
 - `src/components/shared/InfoTip.svelte`
-- PR: (filled in when opened)
+- PR: #4537 (squash-merged into `develop`)
