@@ -28,6 +28,7 @@
   import { paperTradingService } from "../../services/paperTradingService";
   import Button from "../shared/Button.svelte";
     import { modalState } from "../../stores/modal.svelte";
+    import InfoTip from "../shared/InfoTip.svelte";
     import SettingsGrid from "./shared/SettingsGrid.svelte";
 
   const failureModes: Array<{ id: PaperFailureMode; label: string }> = [
@@ -109,7 +110,10 @@
 <div class="space-y-6">
   <!-- Mode -->
   <section class="settings-section">
-    <h3 class="section-title mb-3">{$_("settings.paper.modeTitle")}</h3>
+    <div class="flex items-center gap-1.5 mb-3">
+      <h3 class="section-title">{$_("settings.paper.modeTitle")}</h3>
+      <InfoTip text={$_("settings.paper.modeDescription")} />
+    </div>
 
     <div
       class="rounded-xl border p-4 {paperState.enabled
@@ -120,13 +124,6 @@
         {paperState.enabled
           ? $_("settings.paper.modePaper")
           : $_("settings.paper.modeLive")}
-      </p>
-      <p
-        class="text-[11px] mt-1 {paperState.enabled
-          ? 'text-[var(--text-on-warning)]'
-          : 'text-[var(--text-secondary)]'}"
-      >
-        {$_("settings.paper.modeDescription")}
       </p>
 
       {#if paperState.enabled}
@@ -164,7 +161,10 @@
     <SettingsGrid gap="gap-4">
       {#each numericFields as field (field.key)}
         <div class="field-group">
-          <label for={`paper-${field.key}`}>{field.label}</label>
+          <div class="flex items-center gap-1.5">
+            <label for={`paper-${field.key}`}>{field.label}</label>
+            <InfoTip text={field.hint} />
+          </div>
           <div class="flex items-center gap-2">
             <input
               id={`paper-${field.key}`}
@@ -179,7 +179,6 @@
               >{field.unit}</span
             >
           </div>
-          <p class="text-[10px] text-[var(--text-secondary)]">{field.hint}</p>
         </div>
       {/each}
     </SettingsGrid>
@@ -193,10 +192,10 @@
 
   <!-- Failure injection -->
   <section class="settings-section">
-    <h3 class="section-title mb-3">{$_("settings.paper.failureTitle")}</h3>
-    <p class="text-[11px] mb-3 text-[var(--text-secondary)]">
-      {$_("settings.paper.failureDescription")}
-    </p>
+    <div class="flex items-center gap-1.5 mb-3">
+      <h3 class="section-title">{$_("settings.paper.failureTitle")}</h3>
+      <InfoTip text={$_("settings.paper.failureDescription")} />
+    </div>
     <div class="flex flex-wrap gap-2">
       {#each failureModes as mode (mode.id)}
         <!-- FEAT-0611 escape: segmented failure-mode selector with a selected state; FEAT-0607 owns the segmented pattern -->

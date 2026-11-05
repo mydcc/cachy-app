@@ -28,6 +28,7 @@
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import OrderAuditSettings from "../OrderAuditSettings.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
+    import InfoTip from "../../shared/InfoTip.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import TabBar from "../TabBar.svelte";
 
@@ -90,9 +91,12 @@
                     <div class="col-span-full flex flex-col gap-4">
                     <!-- Fee Preference -->
                     <div class="field-group">
-                        <label for="fee-pref"
-                            >{$_("settings.feePreference")}</label
-                        >
+                        <div class="flex items-center gap-1.5">
+                            <label for="fee-pref"
+                                >{$_("settings.feePreference")}</label
+                            >
+                            <InfoTip text={$_("settings.feePreferenceDesc")} />
+                        </div>
                         <div class="flex gap-2">
                             <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
@@ -117,9 +121,6 @@
                                 {$_("settings.trading.feeTaker")}
                             </button>
                         </div>
-                        <p class="text-[10px] text-[var(--text-secondary)]">
-                            {$_("settings.feePreferenceDesc")}
-                        </p>
                     </div>
 
                     <!--
@@ -129,11 +130,14 @@
                         prefilled from VENUE_DEFAULT_FEE_RATES.
                     -->
                     <div class="field-group border-t border-[var(--border-color)] pt-4">
-                        <label for="fee-rate-maker"
-                            >{$_("settings.feeRates", {
-                                values: { venue: venueName },
-                            })}</label
-                        >
+                        <div class="flex items-center gap-1.5">
+                            <label for="fee-rate-maker"
+                                >{$_("settings.feeRates", {
+                                    values: { venue: venueName },
+                                })}</label
+                            >
+                            <InfoTip text={$_("settings.feeRatesDesc")} />
+                        </div>
                         <div class="flex gap-3">
                             <div class="relative flex-1 min-w-0">
                                 <input
@@ -180,9 +184,6 @@
                                 >
                             </div>
                         </div>
-                        <p class="text-[10px] text-[var(--text-secondary)]">
-                            {$_("settings.feeRatesDesc")}
-                        </p>
                     </div>
                     </div>
 
@@ -216,9 +217,18 @@
 
                     <!-- FEAT-0028: alerts that can never fire -->
                     <div class="field-group">
-                        <label for="broken-alert-report"
-                            >{$_("settings.brokenAlertReport")}</label
-                        >
+                        <div class="flex items-center gap-1.5">
+                            <label for="broken-alert-report"
+                                >{$_("settings.brokenAlertReport")}</label
+                            >
+                            <InfoTip
+                                text={`${$_("settings.brokenAlertReportDesc")} ${
+                                    settingsState.brokenAlertReport === "notify"
+                                        ? $_("settings.brokenAlertReportNotifyDesc")
+                                        : $_("settings.brokenAlertReportLogDesc")
+                                }`}
+                            />
+                        </div>
                         <select
                             id="broken-alert-report"
                             bind:value={settingsState.brokenAlertReport}
@@ -235,26 +245,19 @@
                                 >{$_("settings.brokenAlertReportLog")}</option
                             >
                         </select>
-                        <p class="text-[10px] text-[var(--text-secondary)]">
-                            {$_("settings.brokenAlertReportDesc")}
-                            {settingsState.brokenAlertReport === "notify"
-                                ? $_("settings.brokenAlertReportNotifyDesc")
-                                : $_("settings.brokenAlertReportLogDesc")}
-                        </p>
                     </div>
 
                     <!-- Save paper trades to the journal -->
                     <label class="toggle-card gap-3">
                         <div class="flex flex-col min-w-0 flex-1">
-                            <span class="text-sm font-medium"
-                                >{$_("settings.trading.journalPaperTrades")}</span
-                            >
-                            <span
-                                class="text-[10px] text-[var(--text-secondary)]"
-                                >{$_(
-                                    "settings.trading.journalPaperTradesDesc",
-                                )}</span
-                            >
+                            <span class="flex items-center gap-1.5 text-sm font-medium"
+                                >{$_("settings.trading.journalPaperTrades")}
+                                <InfoTip
+                                    text={$_(
+                                        "settings.trading.journalPaperTradesDesc",
+                                    )}
+                                />
+                            </span>
                         </div>
                         <Toggle
                             bind:checked={settingsState.journalPaperTrades}
@@ -331,13 +334,10 @@
                     -->
                     <label class="toggle-card gap-3">
                         <div class="flex flex-col min-w-0 flex-1">
-                            <span class="text-sm font-medium"
-                                >{$_("settings.stalePriceBadge")}</span
-                            >
-                            <span
-                                class="text-[10px] text-[var(--text-secondary)]"
-                                >{$_("settings.stalePriceBadgeDesc")}</span
-                            >
+                            <span class="flex items-center gap-1.5 text-sm font-medium"
+                                >{$_("settings.stalePriceBadge")}
+                                <InfoTip text={$_("settings.stalePriceBadgeDesc")} />
+                            </span>
                         </div>
                         <Toggle
                             bind:checked={settingsState.showStalePriceBadge}

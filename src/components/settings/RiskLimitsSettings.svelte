@@ -33,6 +33,7 @@
   import { journalState } from "../../stores/journal.svelte";
   import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
   import Button from "../shared/Button.svelte";
+  import InfoTip from "../shared/InfoTip.svelte";
   import Toggle from "../shared/Toggle.svelte";
   import { onMount } from "svelte";
 
@@ -305,7 +306,10 @@
 <div class="space-y-6">
   <!-- Kill switch -->
   <section class="settings-section">
-    <h3 class="section-title mb-3">{$_("settings.risk.killSwitch.title")}</h3>
+    <div class="flex items-center gap-1.5 mb-3">
+      <h3 class="section-title">{$_("settings.risk.killSwitch.title")}</h3>
+      <InfoTip text={$_("settings.risk.killSwitch.description")} />
+    </div>
 
     <div
       class="rounded-xl border p-4 {riskState.isKillSwitchEngaged
@@ -316,9 +320,6 @@
         {riskState.isKillSwitchEngaged
           ? $_("settings.risk.killSwitch.engaged")
           : $_("settings.risk.killSwitch.disengaged")}
-      </p>
-      <p class="text-[11px] mt-1 text-[var(--text-secondary)]">
-        {$_("settings.risk.killSwitch.description")}
       </p>
 
       <!--
@@ -361,14 +362,14 @@
         </p>
 
         <div class="flex items-start justify-between gap-3">
-          <label class="cursor-pointer" for="kill-switch-block-adds">
-            <p class="text-xs font-semibold">
-              {$_("settings.risk.killSwitch.blockAdds.label")}
-            </p>
-            <p class="text-[10px] text-[var(--text-secondary)]">
-              {$_("settings.risk.killSwitch.blockAdds.hint")}
-            </p>
-          </label>
+          <div class="flex items-start gap-1.5">
+            <label class="cursor-pointer" for="kill-switch-block-adds">
+              <span class="text-xs font-semibold">
+                {$_("settings.risk.killSwitch.blockAdds.label")}
+              </span>
+            </label>
+            <InfoTip text={$_("settings.risk.killSwitch.blockAdds.hint")} />
+          </div>
           <Toggle
             id="kill-switch-block-adds"
             checked={config.blockAdds}
@@ -377,14 +378,14 @@
         </div>
 
         <div class="flex items-start justify-between gap-3">
-          <label class="cursor-pointer" for="kill-switch-block-modifies">
-            <p class="text-xs font-semibold">
-              {$_("settings.risk.killSwitch.blockModifies.label")}
-            </p>
-            <p class="text-[10px] text-[var(--text-secondary)]">
-              {$_("settings.risk.killSwitch.blockModifies.hint")}
-            </p>
-          </label>
+          <div class="flex items-start gap-1.5">
+            <label class="cursor-pointer" for="kill-switch-block-modifies">
+              <span class="text-xs font-semibold">
+                {$_("settings.risk.killSwitch.blockModifies.label")}
+              </span>
+            </label>
+            <InfoTip text={$_("settings.risk.killSwitch.blockModifies.hint")} />
+          </div>
           <Toggle
             id="kill-switch-block-modifies"
             checked={config.blockNonTpSlModifies}
@@ -393,14 +394,14 @@
         </div>
 
         <div class="flex items-start justify-between gap-3">
-          <label class="cursor-pointer" for="kill-switch-confirm-engage">
-            <p class="text-xs font-semibold">
-              {$_("settings.risk.killSwitch.confirmEngage.label")}
-            </p>
-            <p class="text-[10px] text-[var(--text-secondary)]">
-              {$_("settings.risk.killSwitch.confirmEngage.hint")}
-            </p>
-          </label>
+          <div class="flex items-start gap-1.5">
+            <label class="cursor-pointer" for="kill-switch-confirm-engage">
+              <span class="text-xs font-semibold">
+                {$_("settings.risk.killSwitch.confirmEngage.label")}
+              </span>
+            </label>
+            <InfoTip text={$_("settings.risk.killSwitch.confirmEngage.hint")} />
+          </div>
           <Toggle
             id="kill-switch-confirm-engage"
             checked={config.confirmEngage}
@@ -409,9 +410,12 @@
         </div>
 
         <div class="field-group">
-          <label for="kill-switch-auto-engage"
-            >{$_("settings.risk.killSwitch.autoEngage.label")}</label
-          >
+          <div class="flex items-center gap-1.5">
+            <label for="kill-switch-auto-engage"
+              >{$_("settings.risk.killSwitch.autoEngage.label")}</label
+            >
+            <InfoTip text={$_("settings.risk.killSwitch.autoEngage.hint")} />
+          </div>
           <div class="flex items-center gap-2">
             <input
               id="kill-switch-auto-engage"
@@ -429,9 +433,6 @@
               >USDT</span
             >
           </div>
-          <p class="text-[10px] text-[var(--text-secondary)]">
-            {$_("settings.risk.killSwitch.autoEngage.hint")}
-          </p>
           {#if autoEngageRejected}
             <p
               role="alert"
@@ -470,12 +471,15 @@
 
   <!-- Daily loss status -->
   <section class="settings-section">
-    <h3 class="section-title mb-3">{$_("settings.risk.closeAll.title")}</h3>
+    <div class="flex items-center gap-1.5 mb-3">
+      <h3 class="section-title">{$_("settings.risk.closeAll.title")}</h3>
+      <InfoTip text={$_("settings.risk.closeAll.description")} />
+    </div>
     <div
       class="rounded-xl border border-[var(--danger-color)] bg-danger-paired p-4"
     >
       <p class="text-[11px] mt-1 text-[var(--text-secondary)]">
-        {$_("settings.risk.closeAll.description")}
+        {$_("settings.risk.closeAll.descriptionShort")}
       </p>
       <div class="mt-3">
         <Button
@@ -514,15 +518,18 @@
 
   <!-- Limits -->
   <section class="settings-section">
-    <h3 class="section-title mb-3">{$_("settings.risk.limitsTitle")}</h3>
-    <p class="text-[11px] mb-3 text-[var(--text-secondary)]">
-      {$_("settings.risk.limitsDescription")}
-    </p>
+    <div class="flex items-center gap-1.5 mb-3">
+      <h3 class="section-title">{$_("settings.risk.limitsTitle")}</h3>
+      <InfoTip text={$_("settings.risk.limitsDescription")} />
+    </div>
 
     <SettingsGrid gap="gap-4">
       {#each fields as field (field.key)}
         <div class="field-group">
-          <label for={`risk-${field.key}`}>{field.label}</label>
+          <div class="flex items-center gap-1.5">
+            <label for={`risk-${field.key}`}>{field.label}</label>
+            <InfoTip text={field.hint} />
+          </div>
           <div class="flex items-center gap-2">
             <input
               id={`risk-${field.key}`}
@@ -542,7 +549,6 @@
               >{field.unit}</span
             >
           </div>
-          <p class="text-[10px] text-[var(--text-secondary)]">{field.hint}</p>
           {#if rejected[field.key] === true}
             <p
               id={`risk-${field.key}-error`}
@@ -556,9 +562,12 @@
       {/each}
 
       <div class="field-group">
-        <label for="risk-maxOpenPositions"
-          >{$_("settings.risk.maxOpenPositions")}</label
-        >
+        <div class="flex items-center gap-1.5">
+          <label for="risk-maxOpenPositions"
+            >{$_("settings.risk.maxOpenPositions")}</label
+          >
+          <InfoTip text={$_("settings.risk.maxOpenPositionsHint")} />
+        </div>
         <div class="flex items-center gap-2">
           <input
             id="risk-maxOpenPositions"
@@ -580,9 +589,6 @@
           />
           <span class="text-[11px] text-[var(--text-secondary)] w-10 shrink-0"></span>
         </div>
-        <p class="text-[10px] text-[var(--text-secondary)]">
-          {$_("settings.risk.maxOpenPositionsHint")}
-        </p>
         {#if riskState.hasInvalidMaxOpenPositions}
           <p
             id="risk-maxOpenPositions-stored-error"

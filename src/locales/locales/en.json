@@ -2636,6 +2636,7 @@
       "closeAll": {
         "title": "Close all positions",
         "description": "Flattens every open position at market after asking once, with the count and total notional stated. Works while the kill switch is engaged — closing is never blocked.",
+        "descriptionShort": "Closes every open position at market after one confirmation. Works while the kill switch is engaged.",
         "button": "Close all positions now"
       },
       "dailyStatusTitle": "Today",
@@ -2778,6 +2779,7 @@
       "title": "External channels",
       "intro": "Send alerts to email, Discord or Telegram. Each channel is optional and yours: Cachy talks to the service directly, never through a server of ours.",
       "storageWarning": "These credentials sit unencrypted in your browser storage. Encrypting them here would be obfuscation — the app would have to keep the key beside them in order to send without you. Use tokens you can revoke, and do not set this up on a device that is not yours.",
+      "storageWarningShort": "These credentials sit unencrypted in your browser storage. Use tokens you can revoke.",
       "enable": "Channel active",
       "test": "Send test",
       "testing": "Sending …",

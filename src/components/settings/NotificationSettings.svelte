@@ -31,6 +31,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import Toggle from "../shared/Toggle.svelte";
+  import InfoTip from "../shared/InfoTip.svelte";
   import { notificationPolicyStore } from "../../stores/notifications.svelte";
   import { notificationService } from "../../services/notificationService.svelte";
   import { soundChannel } from "../../services/soundChannel.svelte";
@@ -144,16 +145,13 @@
 </script>
 
 <section class="settings-section">
-  <h3 class="section-title mb-3">{$_("settings.notifications.title")}</h3>
+  <div class="flex items-center gap-1.5 mb-2">
+    <h3 class="section-title">{$_("settings.notifications.title")}</h3>
+    <InfoTip text={$_("settings.notifications.connectionNote")} />
+  </div>
 
-  <p class="text-[11px] mb-2 text-[var(--text-secondary)]">
+  <p class="text-[11px] mb-3 text-[var(--text-secondary)]">
     {$_("settings.notifications.intro")}
-  </p>
-
-  <p
-    class="text-[11px] mb-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3 text-[var(--text-secondary)]"
-  >
-    {$_("settings.notifications.connectionNote")}
   </p>
 
   {#if permissionNote}
@@ -211,12 +209,10 @@
 
 
   <div class="mt-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3">
-    <span class="block text-sm font-semibold text-[var(--text-primary)]">
+    <span class="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
       {$_("settings.notifications.soundTitle")}
+      <InfoTip text={$_("settings.notifications.soundIntro")} />
     </span>
-    <p class="mt-1 text-[11px] text-[var(--text-secondary)]">
-      {$_("settings.notifications.soundIntro")}
-    </p>
 
     <!--
       The availability line is the acceptance criterion made visible: while the
