@@ -2,7 +2,7 @@
 id: FEAT-0800
 title: Move Trading settings help text into tooltips
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -120,4 +120,4 @@ None.
 - `src/components/settings/NotificationSettings.svelte`
 - `src/components/settings/ExternalChannelSettings.svelte`
 - `src/components/settings/OrderAuditSettings.svelte`
-- PR: #4533 (open, CI green)
+- PR: #4533 (squash-merged into `develop`)
