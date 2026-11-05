@@ -327,7 +327,10 @@
         gate consults, so a toggle cannot leave the text describing the old
         rule. Permitted cases are stated, not merely omitted.
       -->
-      <ul class="mt-3 space-y-1 text-[11px] text-[var(--text-secondary)]">
+      <p class="mt-3 text-[11px] font-semibold text-[var(--text-secondary)]">
+        {$_("settings.risk.killSwitch.scopeCaption")}
+      </p>
+      <ul class="mt-1 space-y-1 text-[11px] text-[var(--text-secondary)]">
         <li>{$_("settings.risk.killSwitch.scope.opensBlocked")}</li>
         <li>
           {scope.addsBlocked
@@ -394,13 +397,15 @@
         </div>
 
         <div class="flex items-start justify-between gap-3">
-          <div class="flex items-start gap-1.5">
+          <div class="flex flex-col gap-0.5">
             <label class="cursor-pointer" for="kill-switch-confirm-engage">
               <span class="text-xs font-semibold">
                 {$_("settings.risk.killSwitch.confirmEngage.label")}
               </span>
             </label>
-            <InfoTip text={$_("settings.risk.killSwitch.confirmEngage.hint")} />
+            <p class="text-[10px] text-[var(--text-secondary)]">
+              {$_("settings.risk.killSwitch.confirmEngage.hint")}
+            </p>
           </div>
           <Toggle
             id="kill-switch-confirm-engage"
@@ -476,7 +481,7 @@
       <InfoTip text={$_("settings.risk.closeAll.description")} />
     </div>
     <div
-      class="rounded-xl border border-[var(--danger-color)] bg-danger-paired p-4"
+      class="rounded-xl border border-[var(--danger-color)] bg-[var(--bg-secondary)] p-4"
     >
       <p class="text-[11px] mt-1 text-[var(--text-secondary)]">
         {$_("settings.risk.closeAll.descriptionShort")}
@@ -609,6 +614,10 @@
         {/if}
       </div>
     </SettingsGrid>
+
+    <p class="text-[11px] mt-3 text-[var(--text-secondary)]">
+      {$_("settings.risk.limitsClosingNote")}
+    </p>
 
     <Button
       variant="outline"

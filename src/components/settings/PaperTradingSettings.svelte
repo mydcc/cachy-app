@@ -194,10 +194,10 @@
 
   <!-- Failure injection -->
   <section class="settings-section">
-    <div class="flex items-center gap-1.5 mb-3">
-      <h3 class="section-title">{$_("settings.paper.failureTitle")}</h3>
-      <InfoTip text={$_("settings.paper.failureDescription")} />
-    </div>
+    <h3 class="section-title mb-3">{$_("settings.paper.failureTitle")}</h3>
+    <p class="text-[11px] mb-3 text-[var(--text-secondary)]">
+      {$_("settings.paper.failureDescription")}
+    </p>
     <div class="flex flex-wrap gap-2">
       {#each failureModes as mode (mode.id)}
         <!-- FEAT-0611 escape: segmented failure-mode selector with a selected state; FEAT-0607 owns the segmented pattern -->

@@ -26,7 +26,7 @@ apart, and the actual values disappear between sentences. The explanations are
 useful once and noise afterwards.
 
 The same is true for the trading section of the Super-Alert panel and the Bots
-tab, which are tracked as separate waves (FEAT-0801, FEAT-0802).
+tab, which are separate waves; each gets its own backlog item when it starts.
 
 ## Proposal
 
@@ -38,31 +38,48 @@ modal component.
 - Texts longer than ~180 characters or more than two sentences are shortened
   to a visible one-line summary first; the full text stays available in the
   tooltip.
-- `settingsState.showTooltips` remains the single switch: with tooltips off,
-  every control is still labelled and usable.
+- `settingsState.showTooltips` remains the single switch. With tooltips off the
+  marker disappears instead of staying as a dead icon, and every control keeps
+  a visible label.
 - Safety, status, validation and destructive-confirmation text stays visible
   and is never moved behind a tooltip.
+- An `InfoTip` never sits inside a `<label>` that wraps a control: a click on
+  the marker would otherwise be forwarded to the control and flip the setting.
 
 ### Texts that move to a tooltip
 
 | File | Keys |
 |---|---|
 | `settings/tabs/TradingTab.svelte` | `settings.feePreferenceDesc`, `settings.feeRatesDesc`, `settings.stalePriceBadgeDesc`, `settings.brokenAlertReportDesc`, `settings.trading.journalPaperTradesDesc` |
-| `settings/RiskLimitsSettings.svelte` | `settings.risk.limitsDescription`, `settings.risk.maxDailyLossHint`, the four `*PercentHint` / `*LeverageHint` / `*LossPerTradeHint` / `*DailyLossHint` field hints, `settings.risk.killSwitch.description`, `blockAdds.hint`, `blockModifies.hint`, `confirmEngage.hint`, `autoEngage.hint` |
-| `settings/PaperTradingSettings.svelte` | `settings.paper.modeDescription`, `settings.paper.slippageHint`, `settings.paper.failureDescription`, `settings.paper.partialRatioHint` |
-| `settings/NotificationSettings.svelte` | `settings.notifications.soundIntro`, `settings.notifications.connectionNote` |
-| `settings/ExternalChannelSettings.svelte` | `settings.externalChannels.intro`, `email.hint`, `discord.hint`, `telegram.hint` |
+| `settings/RiskLimitsSettings.svelte` | `settings.risk.limitsDescription`, `settings.risk.maxPositionSizePercentHint`, `settings.risk.maxLeverageHint`, `settings.risk.maxLossPerTradeHint`, `settings.risk.maxDailyLossHint`, `settings.risk.maxOpenPositionsHint`, `settings.risk.killSwitch.description`, `blockAdds.hint`, `blockModifies.hint`, `autoEngage.hint`, `settings.risk.closeAll.description` |
+| `settings/PaperTradingSettings.svelte` | `settings.paper.modeDescription`, `settings.paper.slippageHint`, `settings.paper.partialRatioHint`, `settings.paper.startingBalanceHint`, `settings.paper.feeHint` |
+| `settings/NotificationSettings.svelte` | `settings.notifications.soundIntro` |
+| `settings/ExternalChannelSettings.svelte` / `ExternalChannelCard.svelte` | `settings.externalChannels.intro`, `settings.externalChannels.email.hint`, `discord.hint`, `telegram.hint` |
 | `settings/OrderAuditSettings.svelte` | `settings.audit.description`, `settings.audit.retention` |
 
 ### Texts that stay visible
 
 - `settings.paper.confirmOnMessage`, `settings.paper.confirmOffMessage`,
   `settings.paper.resetMessage` — money-moving consequences.
+- `settings.paper.failureDescription` — the only explanation that the chosen
+  failure applies to the next order; a tooltip would make the selector read
+  like a log filter.
 - `settings.notifications.soundLocked`, `settings.notifications.permissionDenied`
   — instructions the user has to act on.
-- `settings.externalChannels.storageWarning` — shortened to the security fact,
-  remainder in the tooltip.
-- `settings.risk.closeAll.description` — shortened, remainder in the tooltip.
+- `settings.notifications.connectionNote` — explains an intentional omission
+  from the list; an absence cannot be discovered by hovering its explanation.
+- `settings.externalChannels.storageWarningShort` — the security fact and the
+  device advice; the full wording stays in the tooltip.
+- `settings.risk.closeAll.descriptionShort` — shortened warning, full text in
+  the tooltip.
+- `settings.risk.limitsClosingNote` — limits never block closing or cancelling;
+  shortened out of `limitsDescription`.
+- `settings.risk.killSwitch.confirmEngage.hint` — "a release always asks".
+- `settings.risk.killSwitch.scopeCaption` — labels the scope list as the state
+  that applies while the switch is engaged.
+- `settings.audit.retentionShort` — the Local-First promise on the screen that
+  offers a JSON export.
+- `settings.feeRatesNote` — the instruction to use the broker's own rates.
 - `settings.confirmations.verificationNote`, `settings.confirmations.notWired`,
   `settings.audit.clearMessage` — security/status statements.
 - Every validation error, refusal and persisted-state warning.

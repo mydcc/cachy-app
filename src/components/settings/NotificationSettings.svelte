@@ -145,13 +145,20 @@
 </script>
 
 <section class="settings-section">
-  <div class="flex items-center gap-1.5 mb-2">
-    <h3 class="section-title">{$_("settings.notifications.title")}</h3>
-    <InfoTip text={$_("settings.notifications.connectionNote")} />
-  </div>
+  <h3 class="section-title mb-3">{$_("settings.notifications.title")}</h3>
 
-  <p class="text-[11px] mb-3 text-[var(--text-secondary)]">
+  <p class="text-[11px] mb-2 text-[var(--text-secondary)]">
     {$_("settings.notifications.intro")}
+  </p>
+
+  <!--
+    Visible, not a tooltip: it explains why one event is missing from the list
+    below. An absence cannot be discovered by hovering over its explanation.
+  -->
+  <p
+    class="text-[11px] mb-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3 text-[var(--text-secondary)]"
+  >
+    {$_("settings.notifications.connectionNote")}
   </p>
 
   {#if permissionNote}

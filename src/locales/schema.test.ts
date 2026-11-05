@@ -230,3 +230,16 @@ describe("dashboard.alerts rule actions (FEAT-0746)", () => {
         expect(pick(de, "dashboard.alerts.copyName")).toContain("{name}");
     });
 });
+
+describe("full DE/EN key parity", () => {
+    it("carries the same key set in both languages", () => {
+        // The per-prefix tests above cover the areas that broke historically.
+        // This holds the whole dictionary to the same rule, so a key added to
+        // one bundle and forgotten in the other fails here instead of
+        // rendering its raw path in whichever language was missed.
+        const enKeys = (flattenKeys(en as Record<string, unknown>) as string[]).sort();
+        const deKeys = (flattenKeys(de as Record<string, unknown>) as string[]).sort();
+        expect(enKeys.length).toBeGreaterThan(0);
+        expect(deKeys).toEqual(enKeys);
+    });
+});

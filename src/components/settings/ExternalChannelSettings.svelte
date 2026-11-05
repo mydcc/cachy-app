@@ -90,7 +90,7 @@
   </div>
 
   <p
-    class="flex items-center gap-1.5 text-[11px] mb-3 rounded-lg border border-[var(--warning-color)] bg-[var(--bg-secondary)] p-3 font-semibold text-[var(--warning-color)]"
+    class="text-[11px] mb-3 rounded-lg border border-[var(--warning-color)] bg-[var(--bg-secondary)] p-3 font-semibold text-[var(--warning-color)]"
     data-testid="external-storage-warning"
   >
     {$_("settings.externalChannels.storageWarningShort")}

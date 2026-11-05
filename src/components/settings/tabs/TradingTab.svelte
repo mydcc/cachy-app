@@ -184,6 +184,9 @@
                                 >
                             </div>
                         </div>
+                        <p class="text-[10px] text-[var(--text-secondary)]">
+                            {$_("settings.feeRatesNote")}
+                        </p>
                     </div>
                     </div>
 
@@ -248,21 +251,34 @@
                     </div>
 
                     <!-- Save paper trades to the journal -->
-                    <label class="toggle-card gap-3">
+                    <!--
+                        The info marker sits outside the label on purpose: a
+                        click on a `tabindex` span is not interactive content,
+                        so a label would forward it to the switch and flip the
+                        setting while the trader only wanted the explanation.
+                    -->
+                    <div class="toggle-card toggle-card-static gap-3">
                         <div class="flex flex-col min-w-0 flex-1">
-                            <span class="flex items-center gap-1.5 text-sm font-medium"
-                                >{$_("settings.trading.journalPaperTrades")}
+                            <div class="flex items-center gap-1.5">
+                                <label
+                                    class="text-sm font-medium"
+                                    for="trading-journal-paper-trades"
+                                    >{$_(
+                                        "settings.trading.journalPaperTrades",
+                                    )}</label
+                                >
                                 <InfoTip
                                     text={$_(
                                         "settings.trading.journalPaperTradesDesc",
                                     )}
                                 />
-                            </span>
+                            </div>
                         </div>
                         <Toggle
+                            id="trading-journal-paper-trades"
                             bind:checked={settingsState.journalPaperTrades}
                         />
-                    </label>
+                    </div>
 
                     <!-- Auto Update Input -->
                     <label class="toggle-card self-end gap-3">
@@ -332,17 +348,22 @@
                         price keeps showing with an unmissable STALE badge.
                         Off: the PnL cell honestly shows unpriced instead.
                     -->
-                    <label class="toggle-card gap-3">
+                    <div class="toggle-card toggle-card-static gap-3">
                         <div class="flex flex-col min-w-0 flex-1">
-                            <span class="flex items-center gap-1.5 text-sm font-medium"
-                                >{$_("settings.stalePriceBadge")}
+                            <div class="flex items-center gap-1.5">
+                                <label
+                                    class="text-sm font-medium"
+                                    for="trading-stale-price-badge"
+                                    >{$_("settings.stalePriceBadge")}</label
+                                >
                                 <InfoTip text={$_("settings.stalePriceBadgeDesc")} />
-                            </span>
+                            </div>
                         </div>
                         <Toggle
+                            id="trading-stale-price-badge"
                             bind:checked={settingsState.showStalePriceBadge}
                         />
-                    </label>
+                    </div>
 
                     <!-- Display: hide unfilled orders -->
                     <label class="toggle-card gap-3">
@@ -803,6 +824,14 @@
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-xl);
+        cursor: pointer;
+    }
+    /* A card whose marker needs its own click target: only the label and the
+       switch act, so the card itself stops advertising a click. */
+    .toggle-card-static {
+        cursor: default;
+    }
+    .toggle-card-static label {
         cursor: pointer;
     }
 </style>
