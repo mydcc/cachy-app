@@ -120,7 +120,9 @@
         ? 'bg-warning-paired border-[var(--warning-color)]'
         : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
     >
-      <p class="text-sm font-semibold">
+      <p class="text-sm font-semibold {paperState.enabled
+        ? 'text-[var(--text-on-warning)]'
+        : ''}">
         {paperState.enabled
           ? $_("settings.paper.modePaper")
           : $_("settings.paper.modeLive")}
