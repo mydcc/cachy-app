@@ -38,6 +38,7 @@
     import type { WindowRule, WindowRuleType } from "../../../stores/settings/settingsTypes";
     import type { TranslationKey } from "../../../locales/schema";
     import Toggle from "../../shared/Toggle.svelte";
+    import InfoTip from "../../shared/InfoTip.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
 
     type GeometryKey = "x" | "y" | "width" | "height";
@@ -527,12 +528,12 @@
              rule plus one per symbol. A rule applies on the next open, and
              only "Apply now" touches a window that is already open. -->
         <div class="col-span-full border-t border-[var(--border-color)] pt-4">
-            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-                {$_("settings.windowRulesTitle")}
-            </h4>
-            <p class="text-[10px] text-[var(--text-secondary)] mb-3">
-                {$_("settings.windowRulesDesc")}
-            </p>
+            <div class="flex items-center gap-1.5 mb-3">
+                <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
+                    {$_("settings.windowRulesTitle")}
+                </h4>
+                <InfoTip text={$_("settings.windowRulesDesc")} />
+            </div>
 
             <!-- No live region: the report exists before this section mounts, so
                  the text is part of the first render and would not be announced
