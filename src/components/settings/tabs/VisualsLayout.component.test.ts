@@ -58,6 +58,8 @@ vi.mock("../../../locales/i18n", async () => {
 });
 
 const settingsMock = vi.hoisted(() => ({
+    // InfoTip reads this; without it the marker renders nothing.
+    showTooltips: true,
     newsOpenBehavior: "smart",
     showSidebars: false,
     enableDockingCentered: true,
@@ -220,6 +222,22 @@ describe("FEAT-0346 — VisualsLayout writes through to the stores", () => {
 });
 
 describe("FEAT-0743 — window rules section", () => {
+    it("keeps the rules explanation behind the marker instead of a paragraph", () => {
+        render();
+
+        expect(host.textContent).not.toContain(
+            lookup("settings.windowRulesDesc"),
+        );
+
+        const title = [...host.querySelectorAll("h4")].find(
+            (heading) =>
+                heading.textContent?.trim() ===
+                lookup("settings.windowRulesTitle"),
+        );
+        expect(title, "no window-rules heading").toBeTruthy();
+        expect(title?.parentElement?.querySelector(".info-tip")).not.toBeNull();
+    });
+
     it("adds a rule for the first free type with one click", () => {
         render();
 
