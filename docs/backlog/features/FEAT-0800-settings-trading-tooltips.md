@@ -86,18 +86,18 @@ modal component.
 
 ## Acceptance criteria
 
-- [ ] Every key in the "move to a tooltip" table is no longer rendered as a
+- [x] Every key in the "move to a tooltip" table is no longer rendered as a
       permanently visible paragraph; it is reachable through an `InfoTip` or
       `Tooltip` attached to the field it explains.
-- [ ] Every key in the "stay visible" list is still rendered as visible text,
+- [x] Every key in the "stay visible" list is still rendered as visible text,
       shortened where the table says so, with the full text in the tooltip.
-- [ ] No new popover, modal or expandable component is introduced.
-- [ ] `de.json` and `en.json` carry the same keys; no unused tooltip keys are
-      left behind.
-- [ ] With `showTooltips` off, every control still has a visible label and the
-      tab is usable.
-- [ ] Targeted component tests for the touched components pass.
-- [ ] `npm run check` reports no new errors for the touched files.
+- [x] No new popover, modal or expandable component is introduced.
+- [x] `de.json` and `en.json` carry the same keys; no unused tooltip keys are
+      left behind. The whole dictionary is compared in `schema.test.ts`.
+- [x] With `showTooltips` off, the marker disappears and every control still
+      has a visible label; the guarantees are ordinary copy.
+- [x] Targeted component tests for the touched components pass.
+- [x] `npm run check` reports no new errors for the touched files.
 
 ## Out of scope
 
@@ -120,4 +120,4 @@ None.
 - `src/components/settings/NotificationSettings.svelte`
 - `src/components/settings/ExternalChannelSettings.svelte`
 - `src/components/settings/OrderAuditSettings.svelte`
-- PR: #4533 (open, waiting for review)
+- PR: #4533 (open, CI green)
