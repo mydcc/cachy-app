@@ -1786,7 +1786,8 @@
         "active": "Aktiv",
         "delete": "Provider löschen",
         "relay": "Server-Relay erlauben",
-        "relayDesc": "Nur nötig, wenn ein Provider Browser-Anfragen blockiert (CORS). Aus (Standard): Der Browser spricht direkt mit dem Provider, dein Schlüssel erreicht den Cachy-Server nie. An: Deine Prompts und der geteilte Kontext laufen über die Cachy-Infrastruktur, um den Provider zu erreichen."
+        "relayDesc": "Nur nötig, wenn ein Provider Browser-Anfragen blockiert (CORS). Aus (Standard): Der Browser spricht direkt mit dem Provider, dein Schlüssel erreicht den Cachy-Server nie. An: Deine Prompts und der geteilte Kontext laufen über die Cachy-Infrastruktur, um den Provider zu erreichen.",
+        "relayNote": "Aus: Der Browser spricht direkt mit dem Provider. An: Prompts laufen über Cachy."
       },
       "provider": {
         "openai": "OpenAI",
@@ -2186,6 +2187,7 @@
       "debugModeDesc": "Erweiterte Logs und Entwickler-Funktionen anzeigen.",
       "telemetry": "Nutzungsstatistiken",
       "telemetryDesc": "Hilft bei der Verbesserung von Cachy: Anonyme Nutzungsereignisse (Fensterarten, Viewport, Zoom-Stufe, App-Version) gehen an unsere selbst gehostete Matomo-Instanz unter s.cachy.app – mit IP-Anonymisierung, nie Journal, Einstellungen oder API-Schlüssel. Zum Stoppen des Trackings jederzeit deaktivierbar.",
+      "telemetryNote": "Nur anonyme Nutzungsereignisse — nie Journal, Einstellungen oder API-Schlüssel.",
       "clearCache": "Cache leeren",
       "reloadApp": "App neu laden",
       "cacheCleared": "Cache wurde geleert.",
