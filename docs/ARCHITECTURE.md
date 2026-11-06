@@ -270,10 +270,18 @@ ratcheted.
 ```bash
 npm run check:cycles                            # report, then check
 npm run check:cycles -- --update-baseline       # refuses to raise a value
+npm run check:cycles:baseline                   # the same, against the merge base
 ```
 
 The baseline only goes down. Lower it in the PR that removes the cycle or the
 edge — never in a PR that adds one.
+
+Both files travel in the same commit, so the test above cannot tell a burn-down
+from a baseline raised by hand to accommodate a regression: `--update-baseline`
+refuses a raise, editing the JSON does not. That is why CI's `arch-ratchet` job
+runs `scripts/arch-baseline-guard.mjs` as well: it reads the baseline from the
+**merge base** and fails if any frozen pair rose or the frozen cycle mass grew.
+It fails closed when the history is missing, so the job needs `fetch-depth: 0`.
 
 ---
 

@@ -12,7 +12,6 @@ adr: none
 depends_on: []
 assignee: opencode
 branch: chore/arch-cycle-ratchet
-shipped: PR #4532
 ---
 
 # BUG-0799 — The import graph has no ratchet (W1-02 / B4)
@@ -105,6 +104,35 @@ the ratchet".
 - [x] The self-tests are mutation-checked: disabling the uphill-growth branch,
       the anchor-gone branch, the refusal, or the inline-type detection each
       turns the suite red
+- [x] The baseline cannot be raised by hand: CI compares it against the merge
+      base (`scripts/arch-baseline-guard.mjs`, job `arch-ratchet`) and fails on
+      a raised pair, a new pair or grown cycle mass
+
+## Review follow-ups
+
+Raised by the code review of PR #4532 and fixed in the same branch:
+
+- **The baseline could be raised in the same PR** — the gate compared the tree
+  against a file that travelled with it, so "make the number match the
+  regression" passed. `scripts/arch-baseline-guard.mjs` closes that: it reads
+  the baseline from the merge base (not from `origin/develop`, so a branch that
+  is merely behind does not look like a regression), fails on any raised uphill
+  pair, on a pair that was absent there, and on grown cycle mass. Cycle *mass*
+  rather than anchors, because an anchor is the alphabetically first member and
+  a rename must not read as a regression. A missing history fails closed, which
+  is what the new job's `fetch-depth: 0` is for.
+- **An unresolved relative import failed open** — `import "./x.js"` for `x.ts`
+  resolved to nothing, because a specifier names the built file. `resolveSpecifier`
+  now rewrites `.js`/`.mjs`/`.svelte.js` to their TypeScript source, and an
+  unresolved specifier that points into `src/` at a module-shaped path is a
+  gate failure instead of an informational line. Assets (`.css`, `.json`,
+  `?raw`) stay informational.
+- **A computed `import()` was dropped silently** — the count is now reported
+  (`computedLazy`), and a template literal *without* substitutions is treated
+  as the static string it is, so `import(\`./x\`)` is a real edge.
+- **`localeCompare` ordering** — replaced by code-unit order, so the baseline
+  cannot differ between a laptop and CI for the same tree.
+- **`shipped:` before the merge** — removed; it is set when the PR lands.
 
 ## Out of scope
 
@@ -121,7 +149,7 @@ the ratchet".
 
 - `scripts/arch-cycles.mjs` (the reasoning lives in its header)
 - `scripts/arch-cycles.baseline.json`
-- `src/tests/architecture/cycle_ratchet.test.ts`
+- `src/tests/architecture/cycle_ratchet.test.ts`, `scripts/arch-baseline-guard.mjs`
 - `eslint.architecture.boundaries.js`
 - `docs/ARCHITECTURE.md` — "Rules with teeth"
 - `docs/backlog/bugs/BUG-0790-unreachable-modules-still-maintained.md` — the
