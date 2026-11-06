@@ -234,7 +234,9 @@ show_cachy_eater() {
 # interrupted attempt can never be extracted as if it were a valid archive.
 #
 # The budget is wall-clock, not attempt count, for the same reason the health
-# check uses one: a single slow attempt must not multiply the total wait.
+# check uses one: retries must not multiply the total wait. It bounds the time
+# between attempts, not a single transfer — one stalled connection is still
+# cut off by --max-time, which has to stay generous enough for a real download.
 download_ci_artifact() {
     local url="$1"
     local out="$2"
@@ -242,15 +244,21 @@ download_ci_artifact() {
     local max_wait="${CI_DOWNLOAD_MAX_WAIT:-75}"
     local delay="${CI_DOWNLOAD_DELAY:-10}"
     local part="${out}.part"
-    local start elapsed attempts=0 code outcome
+    local start elapsed remaining sleep_for attempts=0 code outcome last
+
+    # A non-numeric value aborts on the arithmetic below; a zero delay would
+    # hammer GitHub and invite the 429 this function then retries.
+    case "$delay" in ''|*[!0-9]*) delay=10 ;; esac
+    case "$max_wait" in ''|*[!0-9]*) max_wait=75 ;; esac
+    [[ "$delay" -ge 1 ]] || delay=1
 
     start=$(date +%s)
     while true; do
         attempts=$(( attempts + 1 ))
         rm -f "$part"
-        # Capture the HTTP status and curl's exit code separately so a transport
-        # failure is not mistaken for a server answer. The if-guard stops a
-        # failing curl from tripping `set -e`.
+        # Capture the HTTP status and curl's exit code separately: a transport
+        # failure has no status at all and must not be read as a server answer.
+        # The if-guard stops a failing curl from tripping `set -e`.
         if code=$(curl -sSL -o "$part" -w "%{http_code}" \
                 --connect-timeout 20 --max-time 600 "$url"); then
             outcome="ok"
@@ -265,29 +273,42 @@ download_ci_artifact() {
 
         elapsed=$(( $(date +%s) - start ))
 
-        case "$code" in
-            404|429|5??) ;;  # publish window, rate limit, server-side hiccup
-            *)
-                rm -f "$part"
-                echo "Artifact download failed: HTTP ${code:-none} ($outcome) from $url"
-                echo "This is not the publish window. Check CI_ARTIFACT_TAG ('$tag') and repository access."
-                return 1
-                ;;
-        esac
+        if [[ "$outcome" == "ok" ]]; then
+            case "$code" in
+                404|429|5??) ;;  # publish window, rate limit, server-side hiccup
+                *)
+                    rm -f "$part"
+                    echo "Artifact download failed: HTTP ${code:-none} from $url"
+                    echo "This is not the publish window. Check CI_ARTIFACT_TAG ('$tag') and repository access."
+                    return 1
+                    ;;
+            esac
+            last="HTTP $code"
+        else
+            # Timeout, refused connection, DNS, TLS, truncated transfer: all
+            # transient, and none of them carries a status code.
+            last="$outcome"
+        fi
 
-        if [[ $(( elapsed + delay )) -ge $max_wait ]]; then
+        remaining=$(( max_wait - elapsed ))
+        if [[ "$remaining" -le 0 ]]; then
             rm -f "$part"
             echo "Artifact download failed after ${elapsed}s and ${attempts} attempts."
             echo "  Tag: $tag"
             echo "  URL: $url"
-            echo "  Last attempt: HTTP ${code:-none} ($outcome)"
-            echo "The asset stayed unavailable longer than the publish window (${max_wait}s)."
-            echo "A wrong CI_ARTIFACT_TAG returns 404 too — verify the Deploy Build run published '$tag'."
+            echo "  Last attempt: $last"
+            echo "The asset stayed unavailable for the whole retry window (${max_wait}s)."
+            if [[ "$last" == "HTTP 404" ]]; then
+                echo "A wrong CI_ARTIFACT_TAG returns 404 too — verify the Deploy Build run published '$tag'."
+            fi
             return 1
         fi
 
-        echo "HTTP ${code:-none} for '$tag' (attempt $attempts, ${elapsed}s elapsed); retrying in ${delay}s ..."
-        sleep "$delay"
+        # Sleep the shorter of the configured delay and what is left of the
+        # budget, so a large delay cannot collapse the window to one attempt.
+        sleep_for=$(( delay < remaining ? delay : remaining ))
+        echo "$last for '$tag' (attempt $attempts, ${elapsed}s elapsed); retrying in ${sleep_for}s ..."
+        sleep "$sleep_for"
     done
 }
 

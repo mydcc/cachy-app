@@ -94,13 +94,14 @@ attempt count, so one slow attempt cannot multiply the total. The body is
 written to `<out>.part` and renamed only after a complete 200, so an
 interrupted attempt can never be extracted as a valid archive.
 
-Verification (run before the merge, not in CI — no CI job executes shell
-tests): the function was extracted from `deploy.sh` and driven against a local
-HTTP stub, four scenarios, 21 assertions — 404×2 → 200 succeeds and leaves no
-`.part`; persistent 404 fails inside the budget with tag, URL and status in the
-message; 403 fails on the first attempt and says it is not the window; 503×2 →
-200 succeeds. Removing `404` from the retry case makes the first scenario fail,
-which is what pins the behaviour.
+Verification is committed: `scripts/test-artifact-download.mjs` extracts the
+function from `deploy.sh` and drives it against a local HTTP stub (`npm run
+test:deploy`, 23 assertions). It covers 404×2 → 200, persistent 404 inside the
+budget with tag/URL/status in the message, 403 failing on the first attempt,
+503×2 → 200, a refused connection being retried (a transport failure has no
+status code, so it must not be classified by one), and a delay larger than the
+budget still retrying. Run against the first version of the fix, four of those
+assertions fail — that is what pins them.
 
 The larger alternative — publish to a staging tag and swap the tag after the
 upload, so the URL never points at nothing — stays unused. It would trade this

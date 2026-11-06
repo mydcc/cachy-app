@@ -255,14 +255,25 @@ edits).
 **A 404 is not always a failure.** The tag is moving, and the workflow replaces
 it by deleting and recreating the release, so the URL returns 404 for a few
 seconds while a fresh build is being published. The download therefore retries
-that window — about 75 s, bounded, and only for transient answers (404, 429,
-5xx, connection failures). A 401/403 or any other 4xx fails immediately, because
-those are not the window. If the 404 outlasts the wait, the deploy still fails
-and the message names the tag and the URL: at that point the tag is wrong or
-the build never ran, so check `CI_ARTIFACT_TAG` and the Deploy Build run.
+that window — about 75 s of waiting, and only for transient answers (404, 429,
+5xx, timeouts and dropped connections). A 401/403 or any other 4xx fails
+immediately, because those are not the window. If the 404 outlasts the wait, the
+deploy still fails and the message names the tag and the URL: at that point the
+tag is wrong or the build never ran, so check `CI_ARTIFACT_TAG` and the Deploy
+Build run.
+
+The budget covers the waiting between attempts, not the transfer itself: one
+stalled download is still cut off by curl's `--max-time` (600 s), which has to
+stay generous enough for a real transfer on a slow host.
 
 The wait is tunable through `CI_DOWNLOAD_MAX_WAIT` (default `75`) and
 `CI_DOWNLOAD_DELAY` (default `10`, seconds between attempts) in `.deploy.conf`.
+While it waits, the build spinner keeps running; the retry lines go to the
+build log.
+
+GitHub answers a rate-limited host with 403 as well as 429. A 403 during heavy
+redeploying may therefore be rate limiting rather than a permissions problem —
+a manual retry a few minutes later tells the two apart.
 
 **Rolling back a bad CI build.** Before the moving tag is overwritten, the
 workflow preserves the current artifact as `<tag>-previous`
