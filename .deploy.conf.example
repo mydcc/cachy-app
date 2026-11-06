@@ -121,6 +121,14 @@ CI_REPO="mydcc/cachy-app"
 CI_ARTIFACT_TAG_STABLE="deploy-stable"
 CI_ARTIFACT_TAG_BETA="deploy-beta"
 
+# The tag is replaced by deleting and recreating the release, so the download
+# URL 404s for a few seconds after each build. deploy.sh retries that window
+# (bug BUG-0797) and gives up after CI_DOWNLOAD_MAX_WAIT seconds, waiting
+# CI_DOWNLOAD_DELAY seconds between attempts. Raise the budget if a slow host
+# ever reports a 404 that a later manual deploy fixes.
+# CI_DOWNLOAD_MAX_WAIT=75
+# CI_DOWNLOAD_DELAY=10
+
 # ---------------------------------------------------------------------------
 # Discord notifications (optional)
 # ---------------------------------------------------------------------------

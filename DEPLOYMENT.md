@@ -250,8 +250,19 @@ a failed build.
 The URL is `https://github.com/<CI_REPO>/releases/download/<tag>/cachy-build.tar.gz`
 with `<CI_REPO>` and the tags coming from `.deploy.conf` (defaults
 `mydcc/cachy-app`, `deploy-stable`, `deploy-beta` — existing configs need no
-edits). If the workflow has not run yet for the pushed commit, the download
-fails fast and the deploy reports a build failure.
+edits).
+
+**A 404 is not always a failure.** The tag is moving, and the workflow replaces
+it by deleting and recreating the release, so the URL returns 404 for a few
+seconds while a fresh build is being published. The download therefore retries
+that window — about 75 s, bounded, and only for transient answers (404, 429,
+5xx, connection failures). A 401/403 or any other 4xx fails immediately, because
+those are not the window. If the 404 outlasts the wait, the deploy still fails
+and the message names the tag and the URL: at that point the tag is wrong or
+the build never ran, so check `CI_ARTIFACT_TAG` and the Deploy Build run.
+
+The wait is tunable through `CI_DOWNLOAD_MAX_WAIT` (default `75`) and
+`CI_DOWNLOAD_DELAY` (default `10`, seconds between attempts) in `.deploy.conf`.
 
 **Rolling back a bad CI build.** Before the moving tag is overwritten, the
 workflow preserves the current artifact as `<tag>-previous`

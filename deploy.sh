@@ -219,6 +219,78 @@ show_cachy_eater() {
     printf "                                                                        \r"
 }
 
+# BUG-0797 — the artifact URL 404s while a build is being republished.
+#
+# deploy-build.yml replaces the moving release tag by deleting and recreating
+# it, so the fixed download URL points at nothing for the length of that window
+# (seconds; up to about a minute when the create is retried). curl treats a 404
+# as a final answer and `--retry` does not repeat it, so the wait has to live
+# here.
+#
+# Retried: 404 (publish window), 429 (rate limit), 5xx and connection failures
+# — all plausibly transient. Everything else fails at once, so a wrong
+# CI_ARTIFACT_TAG or a missing token is not hidden behind a minute of silence.
+# The body goes to "<out>.part" and is renamed only after a complete 200, so an
+# interrupted attempt can never be extracted as if it were a valid archive.
+#
+# The budget is wall-clock, not attempt count, for the same reason the health
+# check uses one: a single slow attempt must not multiply the total wait.
+download_ci_artifact() {
+    local url="$1"
+    local out="$2"
+    local tag="$3"
+    local max_wait="${CI_DOWNLOAD_MAX_WAIT:-75}"
+    local delay="${CI_DOWNLOAD_DELAY:-10}"
+    local part="${out}.part"
+    local start elapsed attempts=0 code outcome
+
+    start=$(date +%s)
+    while true; do
+        attempts=$(( attempts + 1 ))
+        rm -f "$part"
+        # Capture the HTTP status and curl's exit code separately so a transport
+        # failure is not mistaken for a server answer. The if-guard stops a
+        # failing curl from tripping `set -e`.
+        if code=$(curl -sSL -o "$part" -w "%{http_code}" \
+                --connect-timeout 20 --max-time 600 "$url"); then
+            outcome="ok"
+        else
+            outcome="curl exit $?"
+        fi
+
+        if [[ "$outcome" == "ok" && "$code" == "200" ]]; then
+            mv -f "$part" "$out"
+            return 0
+        fi
+
+        elapsed=$(( $(date +%s) - start ))
+
+        case "$code" in
+            404|429|5??) ;;  # publish window, rate limit, server-side hiccup
+            *)
+                rm -f "$part"
+                echo "Artifact download failed: HTTP ${code:-none} ($outcome) from $url"
+                echo "This is not the publish window. Check CI_ARTIFACT_TAG ('$tag') and repository access."
+                return 1
+                ;;
+        esac
+
+        if [[ $(( elapsed + delay )) -ge $max_wait ]]; then
+            rm -f "$part"
+            echo "Artifact download failed after ${elapsed}s and ${attempts} attempts."
+            echo "  Tag: $tag"
+            echo "  URL: $url"
+            echo "  Last attempt: HTTP ${code:-none} ($outcome)"
+            echo "The asset stayed unavailable longer than the publish window (${max_wait}s)."
+            echo "A wrong CI_ARTIFACT_TAG returns 404 too — verify the Deploy Build run published '$tag'."
+            return 1
+        fi
+
+        echo "HTTP ${code:-none} for '$tag' (attempt $attempts, ${elapsed}s elapsed); retrying in ${delay}s ..."
+        sleep "$delay"
+    done
+}
+
 create_backup() {
     local env_name="$1"
     local backup_path="$BACKUP_DIR/$env_name/$(date +%Y%m%d_%H%M%S)"
@@ -766,8 +838,7 @@ if [[ "$CI_MODE" == "1" ]]; then
     (
         set -e
         echo "Downloading $CI_ARTIFACT_URL ..."
-        curl -fL --retry 3 --connect-timeout 20 --max-time 600 \
-            -o "$WORK_DIR_TMP/cachy-build.tar.gz" "$CI_ARTIFACT_URL"
+        download_ci_artifact "$CI_ARTIFACT_URL" "$WORK_DIR_TMP/cachy-build.tar.gz" "$CI_ARTIFACT_TAG"
         echo "Extracting artifact ..."
         tar -xzf "$WORK_DIR_TMP/cachy-build.tar.gz" -C "$WORK_DIR_TMP"
         echo "Done."
