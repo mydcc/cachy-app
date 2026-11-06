@@ -689,7 +689,8 @@
         "thresholdLabel": "Wert",
         "emptyHint": "Wähle einen Indikator, um eine Bedingung zu bauen.",
         "dimensionHint": "Angeboten werden nur Vergleiche in derselben Einheit — ein Prozentwert wird nie gegen einen Preis verglichen.",
-        "closedCandleHint": "Wird einmal pro geschlossener Kerze des Trigger-Zeitrahmens ausgewertet."
+        "closedCandleHint": "Wird einmal pro geschlossener Kerze des Trigger-Zeitrahmens ausgewertet.",
+        "windowHintShort": "Das Fenster schließt die aktuelle Kerze ein."
       },
       "firedWithNote": "{message} — {note}",
       "firedIntrabar": "{message} (Zwischenstand: Die Kerze läuft noch, der Wert kann sich bis zum Close wieder ändern.)",
@@ -2926,7 +2927,10 @@
       "orderRefusedStaleAnchor": "„{name}“ hat ausgelöst, aber nichts platziert: Der Markt hat sich zu weit von der ausgelösten Kerze entfernt.",
       "orderRefusedInFlight": "„{name}“ hat ausgelöst, aber nichts platziert: Die vorherige Order dieser Regel ist noch nicht abgeschlossen.",
       "orderRefusedPositionOpen": "„{name}“ hat ausgelöst, aber nichts platziert: Auf diesem Symbol ist bereits eine Position in derselben Richtung offen.",
-      "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert."
+      "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert.",
+      "introShort": "Ein Alarm, hochgestuft vom Melden zum Handeln.",
+      "simulateOnlyShort": "Bots simulieren nur — nichts von dieser Seite erreicht eine Börse.",
+      "promoteHintShort": "Der Alarm bleibt scharf; Hochstufen legt einen Bot an."
     },
     "densityTitle": "Dichte",
     "densityLabel": "Steuerungsdichte",

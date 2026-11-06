@@ -50,6 +50,7 @@
     import { logger } from "../../../services/logger";
     import { alertState } from "../../../stores/alerts.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import InfoTip from "../../shared/InfoTip.svelte";
     import BotIntentEditor from "./BotIntentEditor.svelte";
 
     /**
@@ -245,12 +246,19 @@
     {/if}
 
     <header class="flex flex-col gap-2">
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl">
-            {$_("settings.automation.intro")}
-        </p>
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl">
-            {$_("settings.automation.simulateOnly")}
-        </p>
+        <div class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-intro">
+            {$_("settings.automation.introShort")}
+            <InfoTip text={$_("settings.automation.intro")} />
+        </div>
+        <!--
+            The simulated-only fact stays as a sentence, not behind the marker:
+            it is the one line a trader must read before trusting anything on
+            this page. Only its explanation moves behind the marker.
+        -->
+        <div class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-simulate-only">
+            {$_("settings.automation.simulateOnlyShort")}
+            <InfoTip text={$_("settings.automation.simulateOnly")} />
+        </div>
     </header>
 
     <section class="flex flex-col gap-3">
@@ -344,9 +352,10 @@
         <h3 class="text-sm font-semibold text-[var(--text-primary)]">
             {$_("settings.automation.promoteTitle")}
         </h3>
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl">
-            {$_("settings.automation.promoteHint")}
-        </p>
+        <div class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="promote-hint">
+            {$_("settings.automation.promoteHintShort")}
+            <InfoTip text={$_("settings.automation.promoteHint")} />
+        </div>
 
         {#if alerts.length === 0}
             <p class="text-sm text-[var(--text-secondary)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
