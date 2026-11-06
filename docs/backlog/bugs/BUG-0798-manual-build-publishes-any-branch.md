@@ -88,13 +88,18 @@ never had a legitimate use.
 
 The publish step no longer treats "not main" as beta: it refuses any other ref
 with an `::error::` and a non-zero exit, so a future trigger cannot bypass the
-job guard.
+job guard. The ref reaches the script through `env: DEPLOY_REF` rather than a
+`${{ }}` interpolation, because a branch name may contain shell metacharacters
+and the step holds `contents: write`.
 
 ```bash
-case "${{ github.ref }}" in
+case "$DEPLOY_REF" in
   refs/heads/main)    TAG="deploy-stable" ;;
   refs/heads/develop) TAG="deploy-beta" ;;
-  *) echo "::error::refusing to publish ${{ github.ref }} to a deploy tag"; exit 1 ;;
+  *)
+    echo "::error::refusing to publish '$DEPLOY_REF' to a deploy tag"
+    exit 1
+    ;;
 esac
 ```
 

@@ -82,16 +82,19 @@ jobs:
       - name: Publish artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Passed as data, not interpolated into the script: a ref name can
+          # contain shell metacharacters, and this step holds `contents: write`.
+          DEPLOY_REF: ${{ github.ref }}
         run: |
           # BUG-0798: the job guard already restricts the ref, but the tag
           # choice must not depend on it alone — a future trigger could reach
           # this step from a ref the guard does not know about, and the old
           # "not main -> beta" fallback would publish it. Refuse instead.
-          case "${{ github.ref }}" in
+          case "$DEPLOY_REF" in
             refs/heads/main)    TAG="deploy-stable" ;;
             refs/heads/develop) TAG="deploy-beta" ;;
             *)
-              echo "::error::refusing to publish ${{ github.ref }} to a deploy tag"
+              echo "::error::refusing to publish '$DEPLOY_REF' to a deploy tag"
               exit 1
               ;;
           esac
@@ -153,7 +156,7 @@ jobs:
             if gh release create "$TAG" \
                  --target "${{ github.sha }}" \
                  --title "Deploy artifact ($TAG)" \
-                 --notes "Automated build artifact for ${{ github.ref }} @ ${{ github.sha }}." \
+                 --notes "Automated build artifact for '$DEPLOY_REF' @ $GITHUB_SHA." \
                  cachy-build.tar.gz 2>"$RUNNER_TEMP/gh-create-$attempt.err"; then
               break
             fi
