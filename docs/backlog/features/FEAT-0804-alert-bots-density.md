@@ -3,6 +3,7 @@ id: FEAT-0804
 title: The alert builder and the bots tab lead with sentences, not paragraphs
 type: feature
 status: done
+shipped: v1.6.0-beta.527 (PR #4542)
 priority: P3
 milestone: none
 editions: [community, pro, private]

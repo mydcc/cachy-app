@@ -3,6 +3,7 @@ id: FEAT-0802
 title: Move AI and System disclosure copy into tooltips
 type: feature
 status: done
+shipped: v1.6.0-beta.525 (PR #4537)
 priority: P2
 milestone: none
 editions: [community, pro, private]
