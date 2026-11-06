@@ -240,6 +240,13 @@ Everything else — concurrency lock, backup, atomic swap, graceful shutdown,
 health check — is shared with the local-build path. A failed download aborts
 before the live deployment is touched, exactly like a failed local build.
 
+The workflow can also be started by hand (`workflow_dispatch`) to re-publish
+from a branch, but only from `main` or `develop`. Any other ref is refused: the
+build job is skipped, and the publish step would abort rather than fall back to
+`deploy-beta`. A skipped run still shows as a green workflow, so if a manual
+run leaves `deploy-beta` untouched, check its *branch* — that is the guard, not
+a failed build.
+
 The URL is `https://github.com/<CI_REPO>/releases/download/<tag>/cachy-build.tar.gz`
 with `<CI_REPO>` and the tags coming from `.deploy.conf` (defaults
 `mydcc/cachy-app`, `deploy-stable`, `deploy-beta` — existing configs need no
