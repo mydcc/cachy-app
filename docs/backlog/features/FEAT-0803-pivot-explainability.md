@@ -1,5 +1,5 @@
 ---
-id: FEAT-0797
+id: FEAT-0803
 title: The pivot section names its type, timeframe and basis candle
 type: feature
 status: done
@@ -14,7 +14,7 @@ assignee: opencode
 branch: feature/feat-0776-pivot-explainability
 ---
 
-# FEAT-0797 — Make the pivot levels checkable against the chart
+# FEAT-0803 — Make the pivot levels checkable against the chart
 
 ## Problem
 
@@ -97,8 +97,12 @@ Raised by the code review of PR #4525 and fixed in the same branch:
 
 - BUG-0796 — the dead controls removed first
 - Branch slug keeps the number it was created with (`feat-0776`); the item was
-  renumbered to 0797 because BUG-0776 already owns 0776 — numbers are shared
-  across types.
+  renumbered twice because numbers are shared across types: 0776 is taken by
+  BUG-0776, and 0797 by BUG-0797 (which landed on `develop` through PR #4529
+  after this branch forked, so the collision only appears once the branch is
+  rebased — `backlog:check` fails on it).
+- `src/utils/pivotBasis.ts` — the basis-candle lookup, kept import-free so it
+  adds no edge to the import graph (BUG-0799 ratchets it).
 - `src/components/shared/TechnicalsPanel.svelte`
 - `src/utils/indicators.ts` (`calculatePivotsFromValues`), `technicals-wasm/src/lib.rs` (`compute_pivot_levels`)
 - FEAT-0766 — the context block that already names its own timeframes

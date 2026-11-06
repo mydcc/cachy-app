@@ -16,7 +16,7 @@
  */
 
 /*
- * FEAT-0797 — the panel labels the pivot levels with the candle they were
+ * FEAT-0803 — the panel labels the pivot levels with the candle they were
  * computed from. `pivotBasis` carries H/L/C but no timestamp, so the time is
  * read back out of the series by matching those three values. These tests pin
  * that match: exact enough to identify the bar, tolerant enough to survive a

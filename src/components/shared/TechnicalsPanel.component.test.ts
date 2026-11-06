@@ -363,7 +363,7 @@ describe("FEAT-0766 — the market-context check", () => {
 });
 
 /*
- * FEAT-0797 — pivot explainability.
+ * FEAT-0803 — pivot explainability.
  *
  * The panel printed R3…S3 as bare numbers. A pivot level is a formula applied
  * to the *previous closed candle*, so without that candle, the formula and the
@@ -421,7 +421,7 @@ function seedPivotMarket(): void {
     marketState.data["BTCUSDT"].technicals["1h"] = pivotTechnicals();
 }
 
-describe("FEAT-0797 — pivot explainability", () => {
+describe("FEAT-0803 — pivot explainability", () => {
     let previousSymbol: string;
     let previousType: typeof indicatorState.pivots.type;
     let previousTooltips: boolean;

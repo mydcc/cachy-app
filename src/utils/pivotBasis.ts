@@ -16,7 +16,7 @@
  */
 
 /*
- * FEAT-0797 — matching the displayed pivot levels back to the candle they came
+ * FEAT-0803 — matching the displayed pivot levels back to the candle they came
  * from.
  *
  * The calculator builds the levels from the second-newest bar

@@ -64,7 +64,7 @@
   );
 
   /*
-   * FEAT-0797 — the pivot section says what it computed and from what.
+   * FEAT-0803 — the pivot section says what it computed and from what.
    *
    * The seven levels are a formula applied to one candle, so a bare number
    * cannot be checked against the chart. The header names the type and the
