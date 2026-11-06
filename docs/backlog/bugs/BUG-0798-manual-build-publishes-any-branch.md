@@ -2,7 +2,7 @@
 id: BUG-0798
 title: The manual Deploy Build trigger can publish any branch to the shared deploy tags
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ci
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0798-deploy-dispatch-guard
 ---
 
 # BUG-0798 — A workflow_dispatch run from a feature branch overwrites deploy-beta
@@ -68,7 +70,7 @@ workflow builds".
 
 ## Fix
 
-Guard the job on the refs the workflow actually serves:
+Both guards landed (BUG-0798):
 
 ```yaml
   build:
@@ -80,26 +82,34 @@ Guard the job on the refs the workflow actually serves:
 ```
 
 `workflow_dispatch` remains usable for re-publishing from either branch, which
-is its actual purpose; it just cannot be pointed at anything else.
+is its actual purpose; it just cannot be pointed at anything else. `push` was
+already limited to the two branches, so the guard only removes a path that
+never had a legitimate use.
 
-Consider also refusing in the publish step, so a future trigger cannot bypass
-the guard:
+The publish step no longer treats "not main" as beta: it refuses any other ref
+with an `::error::` and a non-zero exit, so a future trigger cannot bypass the
+job guard.
 
 ```bash
 case "${{ github.ref }}" in
-  refs/heads/main)   TAG="deploy-stable" ;;
+  refs/heads/main)    TAG="deploy-stable" ;;
   refs/heads/develop) TAG="deploy-beta" ;;
   *) echo "::error::refusing to publish ${{ github.ref }} to a deploy tag"; exit 1 ;;
 esac
 ```
 
+A skipped dispatch produces a workflow run that `deploy-staging.yml` ignores:
+it gates on `workflow_run.head_branch == 'develop'`, which a feature branch
+never satisfies, so nothing reaches staging even though GitHub reports the run
+as successful.
+
 ## Acceptance criteria
 
-- [ ] A `workflow_dispatch` run started from a feature branch is skipped, not
+- [x] A `workflow_dispatch` run started from a feature branch is skipped, not
       published
-- [ ] Dispatch from `develop` and `main` still publishes to `deploy-beta` and
+- [x] Dispatch from `develop` and `main` still publishes to `deploy-beta` and
       `deploy-stable` respectively
-- [ ] The publish step refuses an unexpected ref instead of defaulting to beta
+- [x] The publish step refuses an unexpected ref instead of defaulting to beta
 
 ## Out of scope
 

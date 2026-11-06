@@ -24,7 +24,14 @@ jobs:
   build:
     name: Build artifact
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    # BUG-0798: `workflow_dispatch` has no branch filter of its own, so the
+    # ref has to be checked here. Without it, a dispatch from a feature branch
+    # falls through to the "not main" branch below and overwrites deploy-beta
+    # with a build nobody reviewed. Dispatch stays usable for re-publishing
+    # from main or develop, which is what it is for.
+    if: >
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') &&
+      !contains(github.event.head_commit.message, '[skip ci]')
     permissions:
       contents: write # create tags, releases and upload the build asset
     steps:
@@ -76,11 +83,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            TAG="deploy-stable"
-          else
-            TAG="deploy-beta"
-          fi
+          # BUG-0798: the job guard already restricts the ref, but the tag
+          # choice must not depend on it alone — a future trigger could reach
+          # this step from a ref the guard does not know about, and the old
+          # "not main -> beta" fallback would publish it. Refuse instead.
+          case "${{ github.ref }}" in
+            refs/heads/main)    TAG="deploy-stable" ;;
+            refs/heads/develop) TAG="deploy-beta" ;;
+            *)
+              echo "::error::refusing to publish ${{ github.ref }} to a deploy tag"
+              exit 1
+              ;;
+          esac
           PREV="${TAG}-previous"
           # Preserve the current artifact as <tag>-previous before overwriting,
           # so a failing deploy can roll back to the last known-good build
