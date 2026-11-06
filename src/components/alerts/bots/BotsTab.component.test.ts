@@ -309,3 +309,42 @@ describe("BotsTab order intent", () => {
     expect(translation(de as Record<string, unknown>, "settings.automation.noStop")).not.toBe("");
   });
 });
+
+/*
+ * FEAT-0804 — the tab opened with three paragraphs of help above the first
+ * control. The one line a trader must read before trusting the page stays a
+ * sentence; the explanations moved behind the marker.
+ */
+describe("FEAT-0804 — the tab leads with sentences, not paragraphs", () => {
+  const text = (key: string) => translation(en as Record<string, unknown>, key);
+
+  it("keeps the simulated-only fact visible and its explanation behind the marker", () => {
+    render();
+
+    const line = host.querySelector<HTMLElement>('[data-testid="bots-simulate-only"]');
+    expect(line, "the simulated-only line is gone").not.toBeNull();
+    expect(line!.textContent).toContain(text("settings.automation.simulateOnlyShort"));
+    // The paragraph itself is not on the page until the marker is opened.
+    expect(host.textContent).not.toContain(text("settings.automation.simulateOnly"));
+    expect(line!.querySelector(".info-tip")?.getAttribute("aria-label")).toBe(
+      text("settings.automation.simulateOnly"),
+    );
+  });
+
+  it("moves the intro and the promotion semantics behind the marker", () => {
+    render();
+
+    const cases = [
+      ["bots-intro", "settings.automation.intro", "settings.automation.introShort"],
+      ["promote-hint", "settings.automation.promoteHint", "settings.automation.promoteHintShort"],
+    ] as const;
+
+    for (const [testId, fullKey, shortKey] of cases) {
+      const line = host.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+      expect(line, testId).not.toBeNull();
+      expect(line!.textContent).toContain(text(shortKey));
+      expect(host.textContent).not.toContain(text(fullKey));
+      expect(line!.querySelector(".info-tip")?.getAttribute("aria-label")).toBe(text(fullKey));
+    }
+  });
+});

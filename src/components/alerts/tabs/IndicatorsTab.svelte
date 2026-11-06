@@ -28,6 +28,7 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+    import InfoTip from "../../shared/InfoTip.svelte";
     import { alertPanelState, refusalsForField } from "../../../stores/alertPanel.svelte";
     import {
         INDICATOR_CATALOGUE,
@@ -406,7 +407,15 @@
         </label>
 
         {#if reference.kind === "window"}
-            <p class="hint">{$_("dashboard.alerts.indicators.windowHint")}</p>
+            <!--
+                "Does the current candle count?" changes the reading of the
+                number, so that half stays visible; what the operators mean and
+                what this is *not* (divergence) move behind the marker.
+            -->
+            <p class="hint" data-testid="window-hint">
+                {$_("dashboard.alerts.indicators.windowHintShort")}
+                <InfoTip text={$_("dashboard.alerts.indicators.windowHint")} />
+            </p>
         {/if}
         <p class="hint">{$_("dashboard.alerts.indicators.dimensionHint")}</p>
         <p class="hint">{$_("dashboard.alerts.indicators.closedCandleHint")}</p>

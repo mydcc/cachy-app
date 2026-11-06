@@ -220,7 +220,15 @@ describe("FEAT-0028: IndicatorsTab", () => {
         right: { kind: "window", of: rsi, agg: "max", lookback: 20 },
         timeframe: alertPanelState.draft.trigger_timeframe,
       });
-      expect(target.textContent).toContain(en.dashboard.alerts.indicators.windowHint);
+      // The visible half is the one that changes the reading of the number
+      // ("does the current candle count?"). The operator semantics and the
+      // "not divergence" note moved behind the marker.
+      const hint = el.querySelector<HTMLElement>('[data-testid="window-hint"]')!;
+      expect(hint.textContent).toContain(en.dashboard.alerts.indicators.windowHintShort);
+      expect(hint.textContent).not.toContain(en.dashboard.alerts.indicators.windowHint);
+      expect(hint.querySelector(".info-tip")?.getAttribute("aria-label")).toBe(
+        en.dashboard.alerts.indicators.windowHint,
+      );
     });
 
     it("offers only the comparisons that can fire, and follows the extreme", () => {

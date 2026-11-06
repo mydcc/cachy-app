@@ -50,6 +50,7 @@
     import { logger } from "../../../services/logger";
     import { alertState } from "../../../stores/alerts.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import InfoTip from "../../shared/InfoTip.svelte";
     import BotIntentEditor from "./BotIntentEditor.svelte";
 
     /**
@@ -245,11 +246,18 @@
     {/if}
 
     <header class="flex flex-col gap-2">
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl">
-            {$_("settings.automation.intro")}
+        <p class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-intro">
+            {$_("settings.automation.introShort")}
+            <InfoTip text={$_("settings.automation.intro")} />
         </p>
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl">
-            {$_("settings.automation.simulateOnly")}
+        <!--
+            The simulated-only fact stays as a sentence, not behind the marker:
+            it is the one line a trader must read before trusting anything on
+            this page. Only its explanation moves behind the marker.
+        -->
+        <p class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-simulate-only">
+            {$_("settings.automation.simulateOnlyShort")}
+            <InfoTip text={$_("settings.automation.simulateOnly")} />
         </p>
     </header>
 
@@ -344,8 +352,9 @@
         <h3 class="text-sm font-semibold text-[var(--text-primary)]">
             {$_("settings.automation.promoteTitle")}
         </h3>
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl">
-            {$_("settings.automation.promoteHint")}
+        <p class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="promote-hint">
+            {$_("settings.automation.promoteHintShort")}
+            <InfoTip text={$_("settings.automation.promoteHint")} />
         </p>
 
         {#if alerts.length === 0}
