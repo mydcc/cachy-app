@@ -281,7 +281,7 @@ describe("FEAT-0743 — window rules section", () => {
             "iframe",
             "channel",
             "settings",
-            "news",
+            "chatbox",
         ]) {
             expect(values, unsupported).not.toContain(unsupported);
         }

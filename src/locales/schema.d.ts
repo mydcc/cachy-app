@@ -1509,7 +1509,6 @@ export type TranslationKey =
   | "settings.windowRulesApplyNothing"
   | "settings.windowRulesApplyRefused"
   | "settings.windowRulesTypes.chart"
-  | "settings.windowRulesTypes.chatbox"
   | "settings.windowRulesTypes.journal"
   | "settings.windowRulesTypes.academy"
   | "settings.windowRulesTypes.assistant"

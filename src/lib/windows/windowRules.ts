@@ -51,8 +51,8 @@ import type {
  * blur. A rule could still place, resize or maximize it through the same
  * programmatic path as any window, but the editor is not a workspace the user
  * is arranging, and keep-above is meaningless for a window that closes on
- * blur. `news` is the market-news reader: a content surface opened from the
- * dashboard, not a tool whose place in the workspace a rule should fix.
+ * blur. The market-news reader is an `iframe` window as well, so it is covered
+ * by the paragraph below rather than by a type of its own.
  *
  * `iframe` and `channel` are excluded for a different reason: the picker can
  * only name a *type*, and neither type has an identity a user recognises.
@@ -69,7 +69,6 @@ export const WINDOW_RULE_TYPES: readonly WindowRuleType[] = Object.freeze([
   "assistant",
   "alertpanel",
   "controlcenter",
-  "chatbox",
 ]);
 
 /**

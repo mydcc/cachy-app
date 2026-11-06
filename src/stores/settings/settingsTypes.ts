@@ -280,8 +280,9 @@ export type DensityMode = "compact" | "default" | "wide";
 /**
  * Window types a rule may target (FEAT-0743). A subset of `WindowType`:
  * modals, dialogs, the symbol picker and the unused generic `window` have no
- * layout worth restoring; readers, `settings`, `news`, `iframe` and `channel`
- * were removed for product reasons. `WINDOW_RULE_TYPES` in
+ * layout worth restoring; readers, `settings`, `iframe` and `channel` were
+ * removed for product reasons, and `chatbox` left the union with BUG-0793.
+ * `WINDOW_RULE_TYPES` in
  * `lib/windows/windowRules.ts` is the authoritative list and carries the
  * reasoning. Kept as an `Extract` so a removed `WindowType` fails the build
  * instead of leaving a dead literal.
@@ -294,7 +295,6 @@ export type WindowRuleType = Extract<
   | "assistant"
   | "alertpanel"
   | "controlcenter"
-  | "chatbox"
 >;
 
 /**

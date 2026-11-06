@@ -89,17 +89,33 @@ describe("FEAT-0743 — rule matching", () => {
     });
 
     it("does not offer rules for content surfaces with no user-facing identity", () => {
-        // `news` is the market-news reader; `iframe` article readers share the
-        // `news_article` snapshot key; `channel` ids are developer-supplied.
-        // A type-wide rule would cover every article or 3D surface under an
-        // internal label.
-        for (const type of ["iframe", "channel", "news"] as const) {
+        // `iframe` article readers share the `news_article` snapshot key and
+        // `channel` ids are developer-supplied, so a type-wide rule would
+        // cover every article or 3D surface under an internal label.
+        for (const type of ["iframe", "channel"] as const) {
             expect(isRuleTarget(type), type).toBe(false);
             expect(
                 sanitizeWindowRule({ windowType: type, enabled: true, x: 10 }),
                 type,
             ).toBeNull();
         }
+    });
+
+    it("drops a rule stored for a window type that no longer exists", () => {
+        // BUG-0793: `chatbox` was removed from `WindowType` and the registry.
+        // A settings file written before that still carries the rule; the load
+        // path must drop it and report it instead of accepting a rule that can
+        // never match.
+        expect(
+            sanitizeWindowRule({ windowType: "chatbox", enabled: true, x: 10 }),
+        ).toBeNull();
+
+        const report = inspectWindowRules([
+            { windowType: "chatbox", enabled: true },
+        ]);
+        expect(report.rules).toEqual([]);
+        expect(report.droppedTypes).toEqual(["chatbox"]);
+        expect(report.droppedCount).toBe(1);
     });
 
     it("preselects a type that a real window is constructed with", () => {
@@ -468,7 +484,7 @@ describe("FEAT-0771 — the load sanitizer reports what it dropped", () => {
         const report = inspectWindowRules([
             { windowType: "journal", enabled: true, x: 10 },
             { windowType: "guide", enabled: true },
-            { windowType: "news", enabled: true },
+            { windowType: "changelog", enabled: true },
             { windowType: "guide", enabled: false },
         ]);
 
@@ -476,7 +492,7 @@ describe("FEAT-0771 — the load sanitizer reports what it dropped", () => {
             { windowType: "journal", enabled: true, x: 10 },
         ]);
         // Unique and in first-seen order: the notice names a type once.
-        expect(report.droppedTypes).toEqual(["guide", "news"]);
+        expect(report.droppedTypes).toEqual(["guide", "changelog"]);
         // ... but it counts rules, not types: two guide rules are two rules.
         expect(report.droppedCount).toBe(3);
     });

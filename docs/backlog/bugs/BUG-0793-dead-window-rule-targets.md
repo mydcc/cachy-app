@@ -2,7 +2,7 @@
 id: BUG-0793
 title: Window rules offer a chatbox target that no window can ever carry
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,8 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
-assignee: none
-branch: none
+assignee: opencode
+branch: fix/bug-0793-dead-window-types
 ---
 
 # BUG-0793 — Dead window types in the rule picker and the registry (W1-12 follow-up)
@@ -48,22 +48,29 @@ type-complete while no code path ever produces it; the rule picker filters
 
 ## Fix
 
-Decide per type, then do it in one pass:
+Landed as the first option for `chatbox` and the first for `news`:
 
-1. `chatbox` — either drop it from `WindowRuleType`, `WINDOW_RULE_TYPES`,
-   `TYPE_LABEL_KEYS` and both locale files **with** a migration for rules
-   already stored in `settingsState.windowRules`, or keep the type and hide it
-   from the picker (`availableRuleTypes`) while stored rules keep rendering.
-2. `news` — remove the registry entry and the `WindowType` member, or make
-   something actually open it.
+1. `chatbox` — removed from `WindowType`, `WindowRuleType`,
+   `WINDOW_RULE_TYPES`, `TYPE_LABEL_KEYS`, the registry, the burning-border
+   switch and both locale files. Stored rules are handled by the existing
+   FEAT-0771 load sanitizer: `inspectWindowRules` drops them and the settings
+   section shows the "saved rules were removed" notice naming the type, so no
+   separate migration was needed.
+2. `news` — removed from `WindowType` and the registry. The reader was already
+   an `iframe` window with the shared `news_article` snapshot key, and the
+   six-window cap in `WindowManager` already keyed on `iframe`.
+
+`window` is the one remaining member without its own implementation; it is the
+base class's default type and `getConfig()`'s fallback, now documented in
+`WindowRegistry.svelte.ts`.
 
 ## Acceptance criteria
 
-- [ ] The rule picker offers only window types a `WindowManager` path can
+- [x] The rule picker offers only window types a `WindowManager` path can
       produce
-- [ ] A settings file that already contains a `chatbox` rule loads without
+- [x] A settings file that already contains a `chatbox` rule loads without
       error and keeps rendering (or the migration removes the rule explicitly)
-- [ ] No `WindowType` member exists without a constructible path, or the
+- [x] No `WindowType` member exists without a constructible path, or the
       remaining exception is documented in the registry file
 
 ## Out of scope
