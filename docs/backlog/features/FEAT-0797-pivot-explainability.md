@@ -73,6 +73,26 @@ look checkable while pointing at the wrong bar.
 - Aligning the panel's analysis timeframe with the chart window's timeframe.
 - Renaming the four pivot types in Settings.
 
+## Review follow-ups
+
+Raised by the code review of PR #4525 and fixed in the same branch:
+
+- The basis-candle match moved to `src/utils/pivotBasis.ts` and compares with a
+  relative tolerance instead of `===`. One bit of f64 noise between
+  `pivotBasis` and the series used to drop the timestamp silently — the same
+  thing a genuinely missing candle looks like. `pivotBasis.test.ts` pins it (the
+  tolerance case is red against `===`).
+- `projection` no longer claims "the last closed candle". The calculator reads
+  `closesNum.length - 2`, so the string says "the second-newest candle — usually
+  the last closed one"; the Fibonacci formula says "basis candle" for the same
+  reason.
+- The help moved from a `title` attribute to the shared `InfoTip` marker:
+  `title` was mouse-only. The basis time is formatted in the app locale rather
+  than the browser's, and the hardcoded `|| "Pivot Points"` fallback is gone.
+- File size: the panel is ~1085 lines, above the 800-line soft ceiling. Not
+  split here — the extraction would touch the whole render tree, and the util
+  above is the first piece a later split can grow from.
+
 ## Links
 
 - BUG-0796 — the dead controls removed first

@@ -74,6 +74,7 @@ import { settingsState } from "../../stores/settings.svelte";
 import { indicatorState } from "../../stores/indicator.svelte";
 import { marketState } from "../../stores/market.svelte";
 import type { Kline, TechnicalsData } from "../../services/technicalsTypes";
+import { Decimal } from "decimal.js";
 import type { MarketData } from "../../stores/market/types";
 import { marketWatcher } from "../../services/marketWatcher";
 import { LESSON_HISTORY_TARGET } from "../../lib/academy/lessonSettings";
@@ -374,23 +375,25 @@ const PIVOT_BASIS_TIME = 1_700_000_000_000 + 62 * 3_600_000;
 
 function pivotKlines(): Kline[] {
     const bars = contextKlines();
-    // Second-to-last = the closed basis candle, last = the forming one.
+    // Second-to-last = the closed basis candle, last = the forming one. Built
+    // with real `Decimal`s: a fixture that only satisfies the type through a
+    // cast would stop exercising `Number(kline.high)` in the panel.
     bars.push({
-        open: 100.1,
-        high: 100.4,
-        low: 100.0,
-        close: 100.3,
-        volume: 0,
+        open: new Decimal(100.1),
+        high: new Decimal(100.4),
+        low: new Decimal(100.0),
+        close: new Decimal(100.3),
+        volume: new Decimal(0),
         time: PIVOT_BASIS_TIME,
-    } as unknown as Kline);
+    });
     bars.push({
-        open: 100.3,
-        high: 100.5,
-        low: 100.2,
-        close: 100.4,
-        volume: 0,
+        open: new Decimal(100.3),
+        high: new Decimal(100.5),
+        low: new Decimal(100.2),
+        close: new Decimal(100.4),
+        volume: new Decimal(0),
         time: PIVOT_BASIS_TIME + 3_600_000,
-    } as unknown as Kline);
+    });
     return bars;
 }
 
@@ -413,39 +416,47 @@ function pivotTechnicals(): TechnicalsData {
 }
 
 function seedPivotMarket(): void {
-    tradeState.update((state) => ({ ...state, symbol: "BTCUSDT" }));
-    marketState.data["BTCUSDT"] = {
-        klines: { "1h": pivotKlines(), "4h": biasKlines() },
-        klinesLastUpdated: {},
-        technicals: { "1h": pivotTechnicals() },
-    } as unknown as MarketData;
+    seedMarket();
+    marketState.data["BTCUSDT"].klines["1h"] = pivotKlines();
+    marketState.data["BTCUSDT"].technicals["1h"] = pivotTechnicals();
 }
 
 describe("FEAT-0797 — pivot explainability", () => {
     let previousSymbol: string;
     let previousType: typeof indicatorState.pivots.type;
+    let previousTooltips: boolean;
 
     beforeEach(() => {
         previousSymbol = tradeState.symbol;
         previousType = indicatorState.pivots.type;
+        previousTooltips = settingsState.showTooltips;
         indicatorState.pivots.type = "classic";
         indicatorState.panelSections.pivots = true;
+        // The formula lives behind the help marker, and the marker only exists
+        // while help is switched on.
+        settingsState.showTooltips = true;
     });
 
     afterEach(() => {
         indicatorState.pivots.type = previousType;
         indicatorState.panelSections.pivots = true;
+        settingsState.showTooltips = previousTooltips;
         tradeState.update((state) => ({ ...state, symbol: previousSymbol }));
         delete (marketState.data as Record<string, unknown>)["BTCUSDT"];
     });
 
     it("names the pivot type and the timeframe it was computed on", () => {
         seedPivotMarket();
-        const header = rowText(renderPanel(), "pivot-header");
+        const view = renderPanel();
 
-        expect(header).toContain(lookup("settings.technicals.pivotsTitle"));
-        expect(header).toContain(lookup("settings.technicals.pivotClassic"));
-        expect(header).toContain("1h");
+        // The heading is the section; the chip is the reading, and it is
+        // asserted in full so a swap of type and timeframe cannot stay green.
+        expect(rowText(view, "pivot-header")).toContain(
+            lookup("settings.technicals.pivotsTitle"),
+        );
+        expect(rowText(view, "pivot-type")).toBe(
+            `${lookup("settings.technicals.pivotClassic")} · 1h`,
+        );
     });
 
     it("shows the candle the levels were derived from", () => {
@@ -461,15 +472,24 @@ describe("FEAT-0797 — pivot explainability", () => {
         expect(basis).toMatch(/\d{1,2}:\d{2}/);
     });
 
-    it("explains the formula of the selected type", () => {
+    it("puts the formula behind a marker instead of padding the panel", () => {
         seedPivotMarket();
-        const header = renderPanel().querySelector('[data-testid="pivot-header"]')!;
-        expect(header.getAttribute("title")).toContain("(H+L+C)/3");
+        const chip = renderPanel().querySelector<HTMLElement>('[data-testid="pivot-type"]')!;
 
+        const marker = chip.querySelector<HTMLElement>(".info-tip");
+        expect(marker, "the pivot header rendered no help marker").not.toBeNull();
+        expect(marker!.getAttribute("aria-label")).toContain("(H+L+C)/3");
+        // Help, not data: the formula is not part of the visible row.
+        expect(chip.textContent).not.toContain("(H+L+C)/3");
+    });
+
+    it("follows the selected pivot type", () => {
+        seedPivotMarket();
         indicatorState.pivots.type = "fibonacci";
-        const fib = renderPanel().querySelector('[data-testid="pivot-header"]')!;
-        expect(fib.textContent).toContain(lookup("settings.technicals.pivotFibonacci"));
-        expect(fib.getAttribute("title")).toContain("0.382");
+        const chip = renderPanel().querySelector<HTMLElement>('[data-testid="pivot-type"]')!;
+
+        expect(chip.textContent).toContain(lookup("settings.technicals.pivotFibonacci"));
+        expect(chip.querySelector(".info-tip")?.getAttribute("aria-label")).toContain("0.382");
     });
 
     it("drops the time instead of labelling the levels with the wrong candle", () => {

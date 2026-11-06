@@ -23,7 +23,7 @@
   import { uiState } from "../../stores/ui.svelte";
   import { marketState } from "../../stores/market.svelte";
   import type { TechnicalsData } from "../../services/technicalsTypes";
-  import { _ } from "../../locales/i18n";
+  import { _, locale } from "../../locales/i18n";
   import type { TranslationKey } from "../../locales/schema";
   import { TIMEFRAME_QUICK_PICKS } from "../../lib/constants";
   import TimeframeDropdown from "./TimeframeDropdown.svelte";
@@ -37,6 +37,8 @@
   import { computeStructureRead, type StructureBar } from "../../lib/academy/structureRead";
   import { higherTimeframe, recentLevels } from "../../lib/academy/structureSignals";
   import { timeframeDurationMs } from "../../utils/chartDisplay";
+  import { findBasisCandleTime } from "../../utils/pivotBasis";
+  import InfoTip from "./InfoTip.svelte";
 
   interface Props {
     isVisible?: boolean;
@@ -64,9 +66,9 @@
   /*
    * FEAT-0797 — the pivot section says what it computed and from what.
    *
-   * The seven levels are a formula applied to the previous closed candle, so a
-   * bare number cannot be checked against the chart. The header names the type
-   * and the timeframe, the tooltip carries the formula for that type, and the
+   * The seven levels are a formula applied to one candle, so a bare number
+   * cannot be checked against the chart. The header names the type and the
+   * timeframe, the marker next to it carries the formula for that type, and the
    * basis row prints the candle the calculator actually used.
    */
   const PIVOT_TYPE_KEY: Record<string, TranslationKey> = {
@@ -97,38 +99,28 @@
    *
    * `pivotBasis` is authoritative for H/L/C — it is exactly what the
    * calculator consumed. The timestamp is read back from the analysis series by
-   * matching those three values. If the series no longer holds that candle (a
-   * new candle arrived before the next calculation), the time is dropped
-   * rather than guessed: a wrong timestamp is worse than none.
+   * matching those three values (`findBasisCandleTime`). If the series no longer
+   * holds that candle (a new candle arrived before the next calculation), the
+   * time is dropped rather than guessed: a wrong timestamp is worse than none.
    */
   let pivotBasisCandle = $derived.by(() => {
     const basis = data?.pivotBasis;
     if (!basis) return null;
     const klines = marketState.data[symbol]?.klines?.[timeframe] ?? [];
-    let time: number | null = null;
-    for (let i = klines.length - 1; i >= 0 && i >= klines.length - 5; i--) {
-      const kline = klines[i];
-      // Display-only match against f64 indicator outputs (ADR-0021); the basis
-      // values are not money and never feed a calculation.
-      const high = Number(kline.high); // audit: safe — f64 indicator display value (ADR-0021)
-      const low = Number(kline.low); // audit: safe — f64 indicator display value (ADR-0021)
-      const close = Number(kline.close); // audit: safe — f64 indicator display value (ADR-0021)
-      if (high === basis.high && low === basis.low && close === basis.close) {
-        time = Number(kline.time); // audit: safe — epoch-ms timestamp
-        break;
-      }
-    }
-    return { ...basis, time };
+    return { ...basis, time: findBasisCandleTime(klines, basis) };
   });
 
   /** Clock for intraday timeframes, date for daily and longer ones. */
   function formatBasisTime(ms: number): string {
     const date = new Date(ms);
     const duration = timeframeDurationMs(timeframe);
+    // The app's locale, not the browser's: the panel already renders every
+    // other string in the language the user picked.
+    const tag = $locale ?? "en-US";
     if (duration === null || duration >= 86_400_000) {
-      return date.toLocaleDateString();
+      return date.toLocaleDateString(tag);
     }
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" });
   }
 
   let pivotBasisLabel = $derived.by(() => {
@@ -637,14 +629,21 @@
               <div
                 class="flex items-baseline justify-between gap-2 text-[10px] uppercase text-[var(--text-secondary)] px-1"
                 data-testid="pivot-header"
-                title={pivotHelp}
               >
+                <span>{$_("settings.technicals.pivotsTitle")}</span>
                 <span
-                  >{$_("settings.technicals.pivotsTitle") || "Pivot Points"}</span
+                  class="flex shrink-0 items-baseline gap-1 text-right normal-case text-[var(--text-tertiary)]"
+                  data-testid="pivot-type"
                 >
-                <span class="shrink-0 text-right normal-case text-[var(--text-tertiary)]"
-                  >{pivotTypeLabel} · {timeframe}</span
-                >
+                  <span>{pivotTypeLabel} · {timeframe}</span>
+                  <!--
+                    The formula is help, not data, so it sits behind the marker
+                    instead of padding the panel — and the marker is the one
+                    surface that `title` could not give: a tooltip on hover
+                    leaves keyboard users and screen readers with nothing.
+                  -->
+                  <InfoTip text={pivotHelp} />
+                </span>
               </div>
               <div class="grid grid-cols-1 gap-y-0.5">
                 {#each pivotsArray as pivot (pivot.label)}
@@ -665,7 +664,6 @@
                 <div
                   class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-1 pt-0.5 text-[10px] text-[var(--text-tertiary)]"
                   data-testid="pivot-basis"
-                  title={pivotHelp}
                 >
                   <span class="shrink-0">{pivotBasisLabel}</span>
                   <span class="font-mono text-right">
