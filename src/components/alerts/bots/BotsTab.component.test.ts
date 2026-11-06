@@ -82,6 +82,7 @@ vi.mock("../../../locales/i18n", async () => {
 
 import BotsTab from "./BotsTab.svelte";
 import { alertState } from "../../../stores/alerts.svelte";
+import { settingsState } from "../../../stores/settings.svelte";
 
 const alert: RuleDocument = {
   schema_version: 2,
@@ -318,6 +319,19 @@ describe("BotsTab order intent", () => {
 describe("FEAT-0804 — the tab leads with sentences, not paragraphs", () => {
   const text = (key: string) => translation(en as Record<string, unknown>, key);
 
+  /** The keyboard path: focus the marker and read what it reveals. */
+  function revealedHelp(testId: string): string {
+    const line = host.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+    expect(line, testId).not.toBeNull();
+    const trigger = line!.querySelector<HTMLElement>(".tooltip-container");
+    expect(trigger, `${testId} has no focusable help trigger`).not.toBeNull();
+    trigger!.focus();
+    flushSync();
+    const tooltip = line!.querySelector<HTMLElement>('[role="tooltip"]');
+    expect(tooltip, `${testId} revealed nothing on focus`).not.toBeNull();
+    return (tooltip!.textContent ?? "").trim();
+  }
+
   it("keeps the simulated-only fact visible and its explanation behind the marker", () => {
     render();
 
@@ -326,9 +340,7 @@ describe("FEAT-0804 — the tab leads with sentences, not paragraphs", () => {
     expect(line!.textContent).toContain(text("settings.automation.simulateOnlyShort"));
     // The paragraph itself is not on the page until the marker is opened.
     expect(host.textContent).not.toContain(text("settings.automation.simulateOnly"));
-    expect(line!.querySelector(".info-tip")?.getAttribute("aria-label")).toBe(
-      text("settings.automation.simulateOnly"),
-    );
+    expect(revealedHelp("bots-simulate-only")).toContain(text("settings.automation.simulateOnly"));
   });
 
   it("moves the intro and the promotion semantics behind the marker", () => {
@@ -344,7 +356,24 @@ describe("FEAT-0804 — the tab leads with sentences, not paragraphs", () => {
       expect(line, testId).not.toBeNull();
       expect(line!.textContent).toContain(text(shortKey));
       expect(host.textContent).not.toContain(text(fullKey));
-      expect(line!.querySelector(".info-tip")?.getAttribute("aria-label")).toBe(text(fullKey));
+      expect(revealedHelp(testId)).toContain(text(fullKey));
+    }
+  });
+
+  it("keeps the simulated-only sentence when help is switched off", () => {
+    // `InfoTip` renders nothing without tooltips, by design. The safety claim is
+    // a plain sentence for exactly that reason, and this is what notices if
+    // someone folds it into the marker later.
+    const previous = settingsState.showTooltips;
+    settingsState.showTooltips = false;
+    try {
+      render();
+      const line = host.querySelector<HTMLElement>('[data-testid="bots-simulate-only"]');
+      expect(line, "the simulated-only line disappears without tooltips").not.toBeNull();
+      expect(line!.textContent).toContain(text("settings.automation.simulateOnlyShort"));
+      expect(host.querySelector(".info-tip")).toBeNull();
+    } finally {
+      settingsState.showTooltips = previous;
     }
   });
 });

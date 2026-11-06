@@ -412,10 +412,10 @@
                 number, so that half stays visible; what the operators mean and
                 what this is *not* (divergence) move behind the marker.
             -->
-            <p class="hint" data-testid="window-hint">
+            <div class="hint" data-testid="window-hint">
                 {$_("dashboard.alerts.indicators.windowHintShort")}
                 <InfoTip text={$_("dashboard.alerts.indicators.windowHint")} />
-            </p>
+            </div>
         {/if}
         <p class="hint">{$_("dashboard.alerts.indicators.dimensionHint")}</p>
         <p class="hint">{$_("dashboard.alerts.indicators.closedCandleHint")}</p>

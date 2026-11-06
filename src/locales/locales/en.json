@@ -2929,8 +2929,8 @@
       "orderRefusedPositionOpen": "“{name}” fired, but placed nothing: a position in the same direction is already open on this symbol.",
       "orderRefusedOther": "“{name}” fired, but placed nothing.",
       "introShort": "An alert promoted to act instead of announce.",
-      "simulateOnlyShort": "Simulated account only — nothing reaches an exchange.",
-      "promoteHintShort": "The alert stays armed; the bot is a copy."
+      "simulateOnlyShort": "Bots simulate only — nothing from this page reaches an exchange.",
+      "promoteHintShort": "The alert stays armed; promoting adds a bot."
     },
     "densityTitle": "Density",
     "densityLabel": "Control density",

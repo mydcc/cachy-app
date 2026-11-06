@@ -246,19 +246,19 @@
     {/if}
 
     <header class="flex flex-col gap-2">
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-intro">
+        <div class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-intro">
             {$_("settings.automation.introShort")}
             <InfoTip text={$_("settings.automation.intro")} />
-        </p>
+        </div>
         <!--
             The simulated-only fact stays as a sentence, not behind the marker:
             it is the one line a trader must read before trusting anything on
             this page. Only its explanation moves behind the marker.
         -->
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-simulate-only">
+        <div class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="bots-simulate-only">
             {$_("settings.automation.simulateOnlyShort")}
             <InfoTip text={$_("settings.automation.simulateOnly")} />
-        </p>
+        </div>
     </header>
 
     <section class="flex flex-col gap-3">
@@ -352,10 +352,10 @@
         <h3 class="text-sm font-semibold text-[var(--text-primary)]">
             {$_("settings.automation.promoteTitle")}
         </h3>
-        <p class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="promote-hint">
+        <div class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="promote-hint">
             {$_("settings.automation.promoteHintShort")}
             <InfoTip text={$_("settings.automation.promoteHint")} />
-        </p>
+        </div>
 
         {#if alerts.length === 0}
             <p class="text-sm text-[var(--text-secondary)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">

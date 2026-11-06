@@ -226,7 +226,12 @@ describe("FEAT-0028: IndicatorsTab", () => {
       const hint = el.querySelector<HTMLElement>('[data-testid="window-hint"]')!;
       expect(hint.textContent).toContain(en.dashboard.alerts.indicators.windowHintShort);
       expect(hint.textContent).not.toContain(en.dashboard.alerts.indicators.windowHint);
-      expect(hint.querySelector(".info-tip")?.getAttribute("aria-label")).toBe(
+      // Reachable the way a keyboard user reaches it: focus the marker.
+      const trigger = hint.querySelector<HTMLElement>(".tooltip-container");
+      expect(trigger, "no focusable help trigger").not.toBeNull();
+      trigger!.focus();
+      flushSync();
+      expect(hint.querySelector<HTMLElement>('[role="tooltip"]')?.textContent).toContain(
         en.dashboard.alerts.indicators.windowHint,
       );
     });

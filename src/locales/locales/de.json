@@ -2929,8 +2929,8 @@
       "orderRefusedPositionOpen": "„{name}“ hat ausgelöst, aber nichts platziert: Auf diesem Symbol ist bereits eine Position in derselben Richtung offen.",
       "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert.",
       "introShort": "Ein Alarm, hochgestuft vom Melden zum Handeln.",
-      "simulateOnlyShort": "Nur simuliertes Konto — nichts erreicht eine Börse.",
-      "promoteHintShort": "Der Alarm bleibt scharf, der Bot ist eine Kopie."
+      "simulateOnlyShort": "Bots simulieren nur — nichts von dieser Seite erreicht eine Börse.",
+      "promoteHintShort": "Der Alarm bleibt scharf; Hochstufen legt einen Bot an."
     },
     "densityTitle": "Dichte",
     "densityLabel": "Steuerungsdichte",

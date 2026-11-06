@@ -61,11 +61,36 @@ marker next to a sentence that fits on one line is worse than the sentence.
       semantics behind the marker.
 - [x] The four new strings exist in `de.json` and `en.json`, and
       `schema.d.ts` is regenerated.
-- [x] Each site keeps its long text as the marker's `aria-label`, so the
-      explanation is reachable by hover, focus and screen reader.
+- [x] With tooltips enabled, each long text is reachable by hover, focus and
+      screen reader through the marker. **With tooltips off the three
+      explanations are gone** — that is `InfoTip`'s contract, not an oversight;
+      the visible sentence is what remains.
+- [x] The simulated-only sentence is rendered as plain copy, so it survives
+      `showTooltips: false`; a test pins that configuration.
 - [x] Component tests pin both halves: the short line is rendered, the long
-      paragraph is not, and the marker carries it. Removing the short key from
-      either component turns the suite red.
+      paragraph is not, and focusing the marker reveals it. Removing the short
+      key from either component, or the marker itself, turns the suite red.
+
+## Review follow-ups
+
+Raised by the code review of PR #4542 and fixed in the same branch:
+
+- **The short safety line overstated its scope.** "Nothing reaches an exchange"
+  read as a product-wide guarantee, and `src/services/alertEngine/botOrders.ts:423`
+  does handle `consequence_level: "send"`. It now says "nothing from this page",
+  which is what the tab can promise.
+- **"the bot is a copy" invited a wrong reading** — a live duplicate beside the
+  alert. It now says "promoting adds a bot".
+- **The tests pinned `aria-label` on a non-focusable span**, which is not how
+  the text is announced. They now focus the marker and read the revealed
+  tooltip, so removing the marker fails the test for the right reason.
+- **Invalid nesting:** `<div role="tooltip">` inside a `<p>`. The three new
+  lines are `<div>`/`.hint` containers instead, so the markup stays valid for a
+  future SSR pass.
+- Left as they are: `introShort` drops the "same conditions, same data, same
+  engine" detail (the marker carries it), and `windowHintShort` sits above
+  `closedCandleHint` without a bridging clause — the second line already says
+  when evaluation happens, and a bridge would repeat it.
 
 ## Out of scope
 
