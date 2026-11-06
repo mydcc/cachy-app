@@ -179,6 +179,29 @@ jobs:
       - name: Check relative links in Markdown
         run: node scripts/check-doc-links.mjs
 
+  # The unit test proves the tree matches its own baseline. Both travel in the
+  # same commit, so on its own that test cannot tell a burn-down from a baseline
+  # raised by hand to accommodate a regression — `--update-baseline` refuses a
+  # raise, editing the JSON does not. This job reads the baseline from the merge
+  # base and fails if any frozen value rose. `fetch-depth: 0` is required: the
+  # script reports a missing history as a failure, not as a pass (BUG-0799).
+  arch-ratchet:
+    name: Import Graph Ratchet
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check the baseline only ratchets downward
+        run: node scripts/arch-baseline-guard.mjs "origin/${{ github.base_ref || 'develop' }}"
+
   node-version:
     name: Node.js Version Pin
     runs-on: ubuntu-latest

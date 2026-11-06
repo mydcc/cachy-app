@@ -246,6 +246,42 @@ Each of these is enforced by something, not just written down.
 | Backlog front matter is valid and the index is current | `npm run backlog:check` |
 | The position mode is written only through its stamping setter | `scripts/audit-account-state.mjs` in CI, and private fields in `account.svelte.ts` |
 | Account state is read under an ordering ticket, and two values are never paired across time | [ADR-0015](adr/0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md) — the ticket is branded, the pairing rule is review |
+| The import graph does not get more entangled | `scripts/arch-cycles.mjs` and `src/tests/architecture/cycle_ratchet.test.ts`, against a burn-down baseline in `scripts/arch-cycles.baseline.json` |
+
+### The cycle ratchet
+
+The ESLint boundaries judge one file at a time. Whether module A and module B
+can still reach each other is a graph property, so it is measured separately:
+`scripts/arch-cycles.mjs` walks the static import graph, and
+`src/tests/architecture/cycle_ratchet.test.ts` fails when a cycle grows, a new
+cycle appears, or a layer pair gains edges.
+
+It measures two graphs — value imports, and those plus runtime `import()` — and
+freezes only the uphill layer pairs and the cycles. Type imports are erased by
+the compiler and are not counted, which is why the 2026-11 audit's "237 files"
+is larger than the 197 reported here: reproducing 237 needs
+`import("./x").Member` type references counted as edges as well. The reasoning
+is in the script's header; read it before changing the baseline.
+
+A component importing from a service is what the layering wants, so downhill
+counts are reported but never gated. Only the direction that is a violation is
+ratcheted.
+
+```bash
+npm run check:cycles                            # report, then check
+npm run check:cycles -- --update-baseline       # refuses to raise a value
+npm run check:cycles:baseline                   # the same, against the merge base
+```
+
+The baseline only goes down. Lower it in the PR that removes the cycle or the
+edge — never in a PR that adds one.
+
+Both files travel in the same commit, so the test above cannot tell a burn-down
+from a baseline raised by hand to accommodate a regression: `--update-baseline`
+refuses a raise, editing the JSON does not. That is why CI's `arch-ratchet` job
+runs `scripts/arch-baseline-guard.mjs` as well: it reads the baseline from the
+**merge base** and fails if any frozen pair rose or the frozen cycle mass grew.
+It fails closed when the history is missing, so the job needs `fetch-depth: 0`.
 
 ---
 

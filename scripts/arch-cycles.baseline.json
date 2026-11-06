@@ -1,0 +1,46 @@
+{
+  "note": "Burn-down only. Regenerate with `npm run check:cycles -- --update-baseline`, which refuses to raise a value and refuses every cycle change. `static` counts value imports, `combined` adds runtime import(), and only uphill layer pairs are frozen — see the header of scripts/arch-cycles.mjs for why.",
+  "static": {
+    "sccs": [
+      {
+        "size": 8,
+        "sample": "src/lib/appAuth.ts"
+      },
+      {
+        "size": 8,
+        "sample": "src/services/bitunixWs.ts"
+      },
+      {
+        "size": 4,
+        "sample": "src/lib/windows/implementations/SymbolPickerView.svelte"
+      },
+      {
+        "size": 4,
+        "sample": "src/services/activeTechnicals/calculationExecutor.ts"
+      }
+    ],
+    "uphillPairs": {
+      "lib->components": 6,
+      "lib->services": 15,
+      "lib->stores": 41,
+      "services->stores": 113,
+      "utils->lib": 2,
+      "utils->services": 7
+    }
+  },
+  "lazy": {
+    "uphillPairs": {
+      "lib->services": 1,
+      "stores->components": 2,
+      "utils->stores": 1
+    }
+  },
+  "combined": {
+    "sccs": [
+      {
+        "size": 197,
+        "sample": "src/components/alerts/bots/BotIntentEditor.svelte"
+      }
+    ]
+  }
+}
