@@ -36,11 +36,6 @@ def verify_technicals(page):
 
     settings = {
         "showTechnicals": True,
-        "showTechnicalsSignals": True,
-        "showTechnicalsSummary": True,
-        "showTechnicalsOscillators": True,
-        "showTechnicalsMAs": True,
-        "showTechnicalsAdvanced": True,
         "apiProvider": "bitunix",
         "favoriteSymbols": ["BTCUSDT"],
         "analysisTimeframes": ["1h"],
@@ -85,7 +80,8 @@ def verify_technicals(page):
         signals_header.scroll_into_view_if_needed()
     else:
         # If not rendered yet, wait?
-        # But wait, Signals section is conditional on settingsState.showTechnicalsSignals
+        # But wait, the Signals section is conditional on
+        # indicatorState.panelSections.signals.
         pass
 
     try:

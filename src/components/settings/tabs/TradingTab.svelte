@@ -686,61 +686,6 @@
                         <Toggle bind:checked={settingsState.showTechnicals} />
                     </label>
 
-                    {#if settingsState.showTechnicals}
-                        <SettingsGrid
-                            gap="gap-2"
-                            extraClass="col-span-full mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg"
-                        >
-                            <!-- Summary -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={settingsState.showTechnicalsSummary}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.summaryAction")}
-                                </span>
-                            </label>
-
-                            <!-- Oscillators -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={settingsState.showTechnicalsOscillators}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.oscillators")}
-                                </span>
-                            </label>
-
-                            <!-- Moving Averages -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={settingsState.showTechnicalsMAs}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.movingAverages")}
-                                </span>
-                            </label>
-
-                            <!-- Pivots (Syncs with Calculation) -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={settingsState.showTechnicalsPivots}
-                                    onchange={(e) => {
-                                        const val = e.currentTarget.checked;
-                                        settingsState.showTechnicalsPivots = val;
-                                    }}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.pivots")}
-                                </span>
-                            </label>
-                        </SettingsGrid>
-                    {/if}
-
                     <!-- Granular Settings (moved to the Chart tab; single home for all indicator settings) -->
                 </SettingsGrid>
             </section>

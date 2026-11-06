@@ -2048,8 +2048,6 @@
       "atrStopBuy": "ATR-Stop (Kauf)",
       "vpPoc": "VP (POC)",
       "vaHighLow": "VA Hoch/Tief",
-      "marketStructureHigh": "Marktstruktur-Hoch",
-      "marketStructureLow": "Marktstruktur-Tief",
       "customTimeframePlaceholder": "z.B. 3m, 1W",
       "subTabLabel": "Indikatorbereiche"
     },
