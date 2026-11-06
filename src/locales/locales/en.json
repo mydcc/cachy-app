@@ -5190,6 +5190,14 @@
       "noBreak": "no break",
       "candlesAgoZero": "this candle",
       "candlesAgoOne": "1 candle"
+    },
+    "pivots": {
+      "basis": "Basis",
+      "formulaClassic": "P = (H+L+C)/3 · R1 = 2P-L · S1 = 2P-H · R2 = P+(H-L) · S2 = P-(H-L) · R3 = H+2(P-L) · S3 = L-2(H-P)",
+      "formulaWoodie": "P = (H+L+2C)/4 · R1 = 2P-L · S1 = 2P-H · R2 = P+H-L · S2 = P-H+L · R3 = H+2(P-L) · S3 = L-2(H-P)",
+      "formulaCamarilla": "P = C · R1 = C+1.1(H-L)/12 · S1 = C-1.1(H-L)/12 · R2 = C+1.1(H-L)/6 · S2 = C-1.1(H-L)/6 · R3 = C+1.1(H-L)/4 · S3 = C-1.1(H-L)/4",
+      "formulaFibonacci": "P = (H+L+C)/3 · R1 = P+0.382(H-L) · S1 = P-0.382(H-L) · R2 = P+0.618(H-L) · S2 = P-0.618(H-L) · R3 = P+(H-L) · S3 = P-(H-L) — the H-L range is the basis candle's, not a swing retracement.",
+      "projection": "H, L and C are the high, low and close of the second-newest candle — usually the last closed one. R2/R3 and S2/S3 lie outside its range: projections, not observed prices."
     }
   }
 }
