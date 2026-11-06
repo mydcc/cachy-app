@@ -25,7 +25,7 @@ import type { WindowType, WindowConfig } from "./types";
 /**
  * WindowRegistry acts as a central configuration store for all window types.
  * It defines default flags, layouts, and behavioral traits for categories like
- * charts, news, settings, modals, and internal tools.
+ * charts, readers, settings, modals, and internal tools.
  * 
  * When a window is instantiated, it retrieves its base configuration from this 
  * registry to ensure visual and functional consistency.
@@ -61,8 +61,15 @@ class WindowRegistry {
      * Includes categories for:
      * - System: window, modal, dialog, settings, iframe
      * - Trading: chart, symbolpicker
-     * - Communication: news, chatbox, assistant
+     * - Communication: assistant
      * - Content: journal, guide, whitepaper, etc.
+     *
+     * Every member here is reachable from a constructor (BUG-0793): `news` and
+     * `chatbox` outlived their implementations and were removed rather than
+     * kept type-complete. The one member without its own implementation is
+     * `window`, the base class's default type and `getConfig()`'s fallback —
+     * it exists so a window whose type is unregistered still has a config, not
+     * so a feature can open one.
      */
     private static buildDefaultConfigs(): Record<WindowType, WindowConfig> {
         /**
@@ -320,32 +327,6 @@ class WindowRegistry {
             },
 
             // --- COMMUNICATION & UTILITY ---
-
-            news: {
-                type: 'news',
-                flags: {
-                    ...baseFlags,
-                    enableBurningBorders: false,
-                },
-                layout: {
-                    ...baseLayout,
-                    width: 600,
-                    height: 500
-                }
-            },
-
-            chatbox: {
-                type: 'chatbox',
-                flags: {
-                    ...baseFlags,
-                    canMinimizeToPanel: true
-                },
-                layout: {
-                    ...baseLayout,
-                    width: 400,
-                    height: 500
-                }
-            },
 
             /** Settings pane with auto-close on blur. */
             settings: {

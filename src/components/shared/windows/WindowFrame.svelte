@@ -885,7 +885,6 @@
             case "symbolpicker":
                 return settingsState.burnModals;
             case "channel":
-            case "news":
             case "iframe":
                 return settingsState.burnChannels;
             case "journal":

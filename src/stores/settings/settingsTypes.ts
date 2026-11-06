@@ -294,7 +294,6 @@ export type WindowRuleType = Extract<
   | "assistant"
   | "alertpanel"
   | "controlcenter"
-  | "chatbox"
 >;
 
 /**

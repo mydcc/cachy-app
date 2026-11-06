@@ -282,6 +282,7 @@ describe("FEAT-0743 — window rules section", () => {
             "channel",
             "settings",
             "news",
+            "chatbox",
         ]) {
             expect(values, unsupported).not.toContain(unsupported);
         }

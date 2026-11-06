@@ -71,7 +71,6 @@
         assistant: "settings.windowRulesTypes.assistant",
         alertpanel: "settings.windowRulesTypes.alertpanel",
         controlcenter: "settings.windowRulesTypes.controlcenter",
-        chatbox: "settings.windowRulesTypes.chatbox",
     };
 
     const availableTypes = $derived(availableRuleTypes(settingsState.windowRules));
