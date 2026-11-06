@@ -52,12 +52,15 @@ import {
 	analyse,
 	compareToBaseline,
 	decide,
+	extractSpecifiers,
+	isInTreeSpecifier,
 	isUphill,
 	layerOf,
 	readSources,
 	resolveSpecifier,
 	toBaseline,
 } from "../../../scripts/arch-cycles.mjs";
+import { compareBaselineRatchet } from "../../../scripts/arch-baseline-guard.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const BASELINE = JSON.parse(
@@ -464,5 +467,77 @@ describe("the CLI only writes when the ratchet allows it", () => {
 		expect(decide({ result: clean, baseline: frozen, wantsInit: true, wantsUpdate: false }).action).toBe(
 			"refuse",
 		);
+	});
+});
+
+describe("the analyser does not lose an edge it could have counted", () => {
+	it("resolves an ESM `.js` specifier to its TypeScript source", () => {
+		// A specifier names the built file; the source sits next to it under a
+		// different extension. Without the rewrite the edge resolves to nothing
+		// and the graph is simply missing a link.
+		const tree = new Set(["src/lib/x.ts", "src/lib/store.svelte.ts"]);
+		expect(resolveSpecifier("src/lib/a.ts", "./x.js", tree)).toBe("src/lib/x.ts");
+		expect(resolveSpecifier("src/lib/a.ts", "./store.svelte.js", tree)).toBe(
+			"src/lib/store.svelte.ts",
+		);
+	});
+
+	it("treats a written-out `import()` of a plain string as the edge it is", () => {
+		// A template literal with no substitution loads exactly one module, so
+		// calling it "dynamic" and dropping it loses a real edge.
+		const { lazySpecifiers, computedSpecifiers } = extractSpecifiers(
+			"src/lib/a.ts",
+			"export const load = () => import(`./b`);",
+		);
+
+		expect(lazySpecifiers).toEqual(["./b"]);
+		expect(computedSpecifiers).toEqual([]);
+	});
+
+	it("records a computed `import()` instead of dropping it", () => {
+		const { lazySpecifiers, computedSpecifiers } = extractSpecifiers(
+			"src/lib/a.ts",
+			"export const load = (name) => import(`./tabs/${name}`);",
+		);
+
+		expect(lazySpecifiers).toEqual([]);
+		expect(computedSpecifiers).toEqual(["`./tabs/${name}`"]);
+	});
+
+	it("fails an import that points into src/ and matches no scanned module", () => {
+		// A dropped edge is worse than a cycle: the graph silently gets smaller
+		// and every later measurement inherits the hole.
+		const probe = analyse(
+			sourcesOf({
+				"src/lib/a.ts": 'import { b } from "./missing";\nimport { c } from "./c";\nexport const a = b + c;',
+				"src/lib/c.ts": "export const c = 1;",
+			}),
+		);
+
+		const { failures } = compareToBaseline(probe, toBaseline(probe));
+		expect(failures.some((line: string) => line.includes("the edge is missing from the graph"))).toBe(
+			true,
+		);
+	});
+
+	it("leaves an asset import alone", () => {
+		// `?raw` and a `.css` import are not modules, so not finding them in the
+		// file set is correct and says nothing about the graph.
+		const probe = analyse(
+			sourcesOf({
+				"src/lib/a.ts":
+					'import icon from "./icon.svg?raw";\nimport "../app.css";\nimport { b } from "./b";\nexport const a = icon + b;',
+				"src/lib/b.ts": "export const b = 1;",
+			}),
+		);
+
+		expect(probe.unresolved.map((entry: { specifier: string }) => entry.specifier)).toEqual([
+			"./icon.svg?raw",
+			"../app.css",
+		]);
+		expect(probe.unresolved.filter((entry: { specifier: string; from: string }) =>
+			isInTreeSpecifier(entry.specifier, entry.from),
+		)).toEqual([]);
+		expect(compareToBaseline(probe, toBaseline(probe)).failures).toEqual([]);
 	});
 });

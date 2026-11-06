@@ -75,10 +75,21 @@
  * KNOWN LIMITATIONS
  *
  *   - `import()` with a computed specifier (`import(\`./tabs/${name}\`)`) cannot
- *     be resolved statically and is invisible here. The tree has none today.
+ *     be resolved statically. It is not silently dropped: the count is reported
+ *     (`computedLazy`) so the blind spot stays visible, and a template literal
+ *     with no substitution is treated as the static string it is.
  *   - Only `.svelte` `<script>` blocks are read. Markup is not analysed, which
  *     is correct: markup cannot import.
  *   - `require()` is not an edge. The tree is ESM.
+ *
+ * WHAT THE FILE CANNOT DO BY ITSELF
+ *
+ * The gate compares the tree against `scripts/arch-cycles.baseline.json`, and
+ * that file lives in the same commits. A change that adds an uphill edge and
+ * raises the baseline to match passes — `--update-baseline` refuses a raise, a
+ * hand edit does not. `scripts/arch-baseline-guard.mjs` closes that: CI reads
+ * the baseline from the merge base and fails if any frozen value rose, so the
+ * number this file is measured against can only move down.
  *
  * CLI
  *
@@ -91,12 +102,28 @@
  * `--update-baseline` refuses to raise any value and refuses every cycle
  * change. `--init` is separate on purpose: "the file is missing" must not be
  * indistinguishable from "reset the ratchet".
+ *
+ * The base-branch half of the ratchet lives in `scripts/arch-baseline-guard.mjs`
+ * (run by CI); this file only ever knows about one baseline.
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+
+/**
+ * Order two strings by code unit, never by locale.
+ *
+ * `localeCompare` was the obvious choice and the wrong one here: its result
+ * depends on the ICU data of the machine, so `pairs` order — and with it the
+ * baseline file — could differ between a contributor's laptop and CI for the
+ * same tree. Everything compared here is an ASCII path or layer name, where
+ * byte order is the only order that is the same everywhere.
+ */
+function byCodeUnit(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 
 /* ------------------------------------------------------------------ layers */
 
@@ -170,19 +197,24 @@ export function scriptText(filePath, source) {
  *   - `import { type A } from "x"`      -> every named binding isTypeOnly
  *   - `export { type A } from "x"`      -> every export specifier isTypeOnly
  *   - `import("x").A` in a type         -> an ImportTypeNode, never a call
+ *
+ * `computedSpecifiers` are the `import()` calls whose argument is a template
+ * with substitutions. They cannot be resolved here, so they are reported rather
+ * than dropped: an edge nobody can see is worse than one nobody can resolve.
  */
 export function extractSpecifiers(filePath, source) {
   const text = scriptText(filePath, source);
   // Most files settle the question with a substring check; parsing them anyway
   // would double the cost of the gate for no answer.
   if (!text.includes("import") && !text.includes("export")) {
-    return { staticSpecifiers: [], lazySpecifiers: [] };
+    return { staticSpecifiers: [], lazySpecifiers: [], computedSpecifiers: [] };
   }
 
   const file = ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
 
   const staticSpecifiers = [];
   const lazySpecifiers = [];
+  const computedSpecifiers = [];
 
   const namedBindingsAreTypeOnly = (clause) => {
     const bindings = clause?.namedBindings;
@@ -213,10 +245,19 @@ export function extractSpecifiers(filePath, source) {
     if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteral(node.arguments[0])
+      node.arguments.length === 1
     ) {
-      lazySpecifiers.push(node.arguments[0].text);
+      const [argument] = node.arguments;
+      // A template literal without substitutions is a string with a different
+      // syntax: `import(`./x`)` loads exactly `./x`, so dropping it as
+      // "dynamic" lost a real edge.
+      if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
+        lazySpecifiers.push(argument.text);
+      } else if (ts.isTemplateExpression(argument)) {
+        // Genuinely computed — `import(`./tabs/${id}`)`. Not resolvable here,
+        // but counted so the blind spot is visible instead of absent.
+        computedSpecifiers.push(argument.getText(file));
+      }
     }
 
     ts.forEachChild(node, visit);
@@ -224,7 +265,7 @@ export function extractSpecifiers(filePath, source) {
 
   visit(file);
 
-  return { staticSpecifiers, lazySpecifiers };
+  return { staticSpecifiers, lazySpecifiers, computedSpecifiers };
 }
 
 /* -------------------------------------------------------------- resolving */
@@ -239,9 +280,29 @@ const RESOLVE_SUFFIXES = Object.freeze([
   "/index.svelte",
 ]);
 
+/**
+ * An ESM specifier names the *built* file, so `import "./x.js"` refers to
+ * `x.ts` in this tree. Without the rewrite the edge resolves to nothing, and a
+ * missing edge is invisible in a graph whose whole purpose is counting edges.
+ */
+const JS_TO_TS_SUFFIXES = Object.freeze([
+  [".svelte.js", ".svelte.ts"],
+  [".js", ".ts"],
+  [".mjs", ".mts"],
+]);
+
 function resolveCandidate(base, fileSet) {
   for (const suffix of RESOLVE_SUFFIXES) {
     const candidate = base + suffix;
+    if (fileSet.has(candidate)) return candidate;
+  }
+  return null;
+}
+
+function resolveEmittedExtension(base, fileSet) {
+  for (const [from, to] of JS_TO_TS_SUFFIXES) {
+    if (!base.endsWith(from)) continue;
+    const candidate = `${base.slice(0, -from.length)}${to}`;
     if (fileSet.has(candidate)) return candidate;
   }
   return null;
@@ -256,16 +317,52 @@ export function resolveSpecifier(fromFile, specifier, fileSet) {
   const clean = specifier.split(/[?#]/)[0];
 
   if (clean.startsWith("$lib/")) {
-    return resolveCandidate(`src/lib/${clean.slice("$lib/".length)}`, fileSet);
+    const base = `src/lib/${clean.slice("$lib/".length)}`;
+    return resolveCandidate(base, fileSet) ?? resolveEmittedExtension(base, fileSet);
   }
   if (!clean.startsWith("./") && !clean.startsWith("../")) return null;
 
   const base = path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), clean));
-  return resolveCandidate(base, fileSet);
+  return resolveCandidate(base, fileSet) ?? resolveEmittedExtension(base, fileSet);
 }
 
 function isRelativeSpecifier(specifier) {
   return specifier.startsWith("./") || specifier.startsWith("../");
+}
+
+/**
+ * Specifiers that are meant to point into the scanned tree — the ones whose
+ * failure to resolve means a dropped edge rather than a package or an asset.
+ */
+function isGraphSpecifier(specifier) {
+  return isRelativeSpecifier(specifier) || specifier.startsWith("$lib/");
+}
+
+/**
+ * The tree-relative path a specifier aims at, before resolution. Used to tell
+ * "a file we failed to find" (`src/…`) from "deliberately outside" (`../server
+ * -headers.js`, an asset, a package).
+ */
+export function specifierTarget(specifier, fromFile) {
+  const clean = specifier.split(/[?#]/)[0];
+  if (clean.startsWith("$lib/")) return `src/lib/${clean.slice("$lib/".length)}`;
+  return path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), clean));
+}
+
+/**
+ * True when an unresolved specifier aims at a scanned module inside the tree —
+ * i.e. a dropped edge, the one failure mode a cycle graph must not have.
+ *
+ * Only module-shaped paths qualify. `./icon.svg?raw` and `./styles.css` are
+ * assets: they are not modules, so failing to find them in the file set is
+ * correct and says nothing about the graph.
+ */
+export function isInTreeSpecifier(specifier, fromFile) {
+  if (!isGraphSpecifier(specifier)) return false;
+  const clean = specifier.split(/[?#]/)[0];
+  const hasExtension = /\.[a-z0-9]+$/i.test(clean);
+  if (hasExtension && !/\.(ts|mts|js|mjs|svelte)$/.test(clean)) return false;
+  return specifierTarget(specifier, fromFile).startsWith("src/");
 }
 
 /* ---------------------------------------------------------------- sources */
@@ -301,7 +398,7 @@ export function readSources(srcDir, { exclude = DEFAULT_EXCLUDE } = {}) {
   };
 
   walk(srcDir);
-  sources.sort((a, b) => a.path.localeCompare(b.path));
+  sources.sort((a, b) => byCodeUnit(a.path, b.path));
   return sources;
 }
 
@@ -316,30 +413,44 @@ export function buildImportGraph(sources) {
   const staticEdges = new Map();
   const lazyEdges = new Map();
   const unresolved = [];
+  const computed = [];
 
   for (const { path: file, source } of sources) {
-    const { staticSpecifiers, lazySpecifiers } = extractSpecifiers(file, source);
+    const { staticSpecifiers, lazySpecifiers, computedSpecifiers } = extractSpecifiers(file, source);
     const staticTargets = new Set();
     const lazyTargets = new Set();
 
     for (const specifier of staticSpecifiers) {
       const target = resolveSpecifier(file, specifier, fileSet);
       if (target && target !== file) staticTargets.add(target);
-      else if (!target && isRelativeSpecifier(specifier)) {
-        unresolved.push({ from: file, specifier });
+      else if (!target && isGraphSpecifier(specifier)) {
+        unresolved.push({ from: file, specifier, kind: "static" });
       }
     }
 
     for (const specifier of lazySpecifiers) {
       const target = resolveSpecifier(file, specifier, fileSet);
       if (target && target !== file) lazyTargets.add(target);
+      else if (!target && isGraphSpecifier(specifier)) {
+        unresolved.push({ from: file, specifier, kind: "lazy" });
+      }
     }
 
-    staticEdges.set(file, [...staticTargets].sort());
-    lazyEdges.set(file, [...lazyTargets].sort());
+    for (const specifier of computedSpecifiers) {
+      computed.push({ from: file, specifier });
+    }
+
+    staticEdges.set(file, [...staticTargets].sort(byCodeUnit));
+    lazyEdges.set(file, [...lazyTargets].sort(byCodeUnit));
   }
 
-  return { files: sources.map((entry) => entry.path), staticEdges, lazyEdges, unresolved };
+  return {
+    files: sources.map((entry) => entry.path),
+    staticEdges,
+    lazyEdges,
+    unresolved,
+    computed,
+  };
 }
 
 function mergeAdjacency(files, ...maps) {
@@ -426,7 +537,7 @@ export function layerPairCounts(adjacency) {
     }
   }
 
-  return Object.fromEntries([...counts.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+  return Object.fromEntries([...counts.entries()].sort((a, b) => byCodeUnit(a[0], b[0])));
 }
 
 /** Only the pairs that cross a boundary against the target chain. */
@@ -447,7 +558,7 @@ function layerBreakdown(members) {
     counts.set(layer, (counts.get(layer) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .sort((a, b) => b[1] - a[1] || byCodeUnit(a[0], b[0]))
     .map(([layer, count]) => `${layer}=${count}`);
 }
 
@@ -459,7 +570,7 @@ function describeCycles(files, adjacency) {
       layers: layerBreakdown(members),
       members,
     }))
-    .sort((a, b) => b.size - a.size || a.sample.localeCompare(b.sample));
+    .sort((a, b) => b.size - a.size || byCodeUnit(a.sample, b.sample));
 }
 
 /* ---------------------------------------------------------------- analyse */
@@ -488,6 +599,7 @@ export function analyse(sources) {
       sccs: describeCycles(graph.files, combined),
     },
     unresolved: graph.unresolved,
+    computedLazy: graph.computed,
   };
 }
 
@@ -589,6 +701,17 @@ export function compareToBaseline(result, baseline) {
     failures.push("the analyser found no files or no static edges — a graph that empty proves nothing");
   }
 
+  // A specifier that points into `src/` and resolves to no scanned module is a
+  // dropped edge, not a package and not an asset. Left as a warning it would
+  // let a cycle form invisibly: the graph would simply be missing a link.
+  for (const { from, specifier, kind } of result.unresolved ?? []) {
+    if (!isInTreeSpecifier(specifier, from)) continue;
+    failures.push(
+      `[graph] ${from} has a ${kind ?? "static"} import "${specifier}" that points into src/ ` +
+        `but matches no scanned module — the edge is missing from the graph`,
+    );
+  }
+
   compareCycles(result.static.sccs, baseline.static?.sccs, "static", failures, improvements);
   compareUphillPairs(result.static.uphillPairs, baseline.static?.uphillPairs, "static", failures, improvements);
   compareCycles(result.combined.sccs, baseline.combined?.sccs, "combined", failures, improvements);
@@ -655,15 +778,35 @@ function printReport(result) {
   printUphill(result.lazy.uphillPairs, "Uphill lazy import pairs (gated)");
 
   if (result.unresolved.length > 0) {
-    console.log(
-      `\nUnresolved relative specifiers (${result.unresolved.length}) — assets and out-of-tree ` +
-        `files; informational only:`,
-    );
-    for (const { from, specifier } of result.unresolved.slice(0, 6)) {
-      console.log(`  ${from} -> ${specifier}`);
+    const dropped = result.unresolved.filter(({ from, specifier }) => isInTreeSpecifier(specifier, from));
+    const external = result.unresolved.length - dropped.length;
+
+    if (dropped.length > 0) {
+      console.log(`\nUnresolved in-tree imports (${dropped.length}) — dropped edges, these fail the gate:`);
+      for (const { from, specifier, kind } of dropped) {
+        console.log(`  ${from} -> ${specifier} (${kind})`);
+      }
     }
-    if (result.unresolved.length > 6) {
-      console.log(`  … ${result.unresolved.length - 6} more`);
+    if (external > 0) {
+      console.log(
+        `\nUnresolved non-module specifiers (${external}) — assets, JSON, CSS and files outside ` +
+          `src/, informational only:`,
+      );
+      for (const { from, specifier } of result.unresolved.filter(
+        (entry) => !isInTreeSpecifier(entry.specifier, entry.from),
+      ).slice(0, 6)) {
+        console.log(`  ${from} -> ${specifier}`);
+      }
+    }
+  }
+
+  if (result.computedLazy.length > 0) {
+    console.log(
+      `\nComputed import() specifiers (${result.computedLazy.length}) — not resolvable statically, ` +
+        `so not in the graph. Kept visible on purpose:`,
+    );
+    for (const { from, specifier } of result.computedLazy.slice(0, 6)) {
+      console.log(`  ${from} -> ${specifier}`);
     }
   }
 }
