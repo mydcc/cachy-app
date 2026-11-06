@@ -36,11 +36,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-// DEPLOY_SCRIPT exists so the guard can be pointed at a modified copy — that is
-// how the scenarios were shown to fail before the fix.
-const DEPLOY = process.env.DEPLOY_SCRIPT
-    ? resolve(process.env.DEPLOY_SCRIPT)
-    : join(ROOT, "deploy.sh");
+const DEPLOY = join(ROOT, "deploy.sh");
 const PAYLOAD = Buffer.from("PAYLOAD-" + "x".repeat(4096));
 
 const attempts = {};
