@@ -3,6 +3,7 @@ id: FEAT-0800
 title: Move Trading settings help text into tooltips
 type: feature
 status: done
+shipped: v1.6.0-beta.523 (PR #4533)
 priority: P2
 milestone: none
 editions: [community, pro, private]

@@ -3,6 +3,7 @@ id: BUG-0799
 title: Nothing stops the import graph from tangling further than it already is
 type: bug
 status: done
+shipped: v1.6.0-beta.526 (PR #4532)
 priority: P2
 milestone: none
 editions: [community, pro, private]

@@ -3,6 +3,7 @@ id: FEAT-0803
 title: The pivot section names its type, timeframe and basis candle
 type: feature
 status: done
+shipped: v1.6.0-beta.526 (PR #4525)
 priority: P3
 milestone: none
 editions: [community, pro, private]

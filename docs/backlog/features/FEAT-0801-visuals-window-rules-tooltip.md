@@ -3,6 +3,7 @@ id: FEAT-0801
 title: Move the window-rules explanation into a tooltip
 type: feature
 status: done
+shipped: v1.6.0-beta.524 (PR #4535)
 priority: P2
 milestone: none
 editions: [community, pro, private]
