@@ -1276,3 +1276,84 @@ and **Pull requests: Write** to the fine-grained PAT stored as `RELEASE_TOKEN`
 (the current minimum is Contents: Read and write, Metadata: Read-only).
 **Workflows: Write** only if a release commit ever touches
 `.github/workflows/**`; unlikely, recorded for the confusion it would cause.
+
+## 32. Take profit and exit semantics
+
+**From:** [`FEAT-0809`](backlog/features/FEAT-0809-rule-exit-conditions-in-the-strategy-document.md),
+[`FEAT-0810`](backlog/features/FEAT-0810-execute-bot-exits-through-the-order-gate.md),
+[`FEAT-0811`](backlog/features/FEAT-0811-superbot-editor-for-exit-conditions.md).
+
+A bot can only leave through its fixed stop today. The epic adds exits; three
+choices shape them:
+
+1. **Take profit**: a distance field mirroring `stop`, an exit condition on
+   `unrealised_pnl_percent`, or both.
+2. **Cadence**: exits only on candle close, or intrabar when the rule's
+   `evaluation_mode` says so.
+3. **Pause**: does a paused bot keep evaluating its exits?
+
+**Proposal:** a distance field (no stale price, matches the stop); close first,
+intrabar later; pause stops entries while exits keep protecting.
+
+## 33. AI-assisted rule authoring: scope and egress
+
+**From:** [`FEAT-0817`](backlog/features/FEAT-0817-ai-assisted-rule-authoring.md).
+
+A model that turns prose into a rule document is useful at build time and
+forbidden at execution time (ADR-0012). The blocking choice is the transport: a
+local model (no egress, heavier client) or a hosted model — in which case the
+trader's strategy text and symbols leave the device as user-directed Class A
+egress and need their own ADR. The second choice is whether the model may
+propose exits and a stop, or conditions only.
+
+**Proposal:** hosted behind explicit consent plus an ADR; conditions and exits,
+with the stop still required before arming; a draft is never armed
+automatically.
+
+## 34. Grid bots: paper-first, netting and edition
+
+**From:** [`ADR-0027`](adr/0027-a-grid-bot-owns-an-order-set-and-its-position.md),
+[`FEAT-0819`](backlog/features/FEAT-0819-grid-bot-runtime-on-the-paper-account.md).
+
+Three decisions before the grid leaves `specced`:
+
+1. **Paper-only first** — proposal: yes, live grids stay behind FEAT-0035.
+2. **Netting** — one-way net against existing exposure, or hedge-style separate
+   positions; and what a grid does when a manual position already exists.
+3. **Edition** — community, pro or private. Proposal: community, because the
+   grid is local and paper-only.
+
+## 35. Condition builder: limit and nesting
+
+**From:** [`FEAT-0813`](backlog/features/FEAT-0813-condition-builder-v2-more-conditions-and-nested-groups.md).
+
+The UI stops at five flat conditions; the core allows eight levels of nesting
+and any number of members. Choose the new UI cap (12, 16, or unlimited with a
+warmup warning) and whether `none`/NOR is exposed.
+
+**Proposal:** 16, with nested groups two levels deep in the UI (the core stays
+deeper); NOR stays out until the sentence renderer can say it without
+ambiguity.
+
+## 36. Public naming for the bot stages
+
+**From:** [`FEAT-0805`](backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md),
+[`FEAT-0808`](backlog/features/FEAT-0808-show-bots-in-the-positions-sidebar.md).
+
+"Bot" and "Superbot" are working names. The same object appears in the sidebar,
+the control center and the journal; one name must fit all three and both
+locales. Options: Bot / Strategy Bot, Bot / Managed Bot, keep Superbot.
+
+**Proposal:** "Bot" for the conditional order, "Strategy Bot" for the owned
+lifecycle, with German equivalents.
+
+## 37. Literature template library: scope and citations
+
+**From:** [`FEAT-0818`](backlog/features/FEAT-0818-curated-literature-strategy-templates.md).
+
+Choose the initial source list (one canonical book per pattern family), the
+citation style (chapter, not page), and whether templates ship entries only or
+entries plus exits.
+
+**Proposal:** 8–12 templates, chapter citations, entries first, exits once
+FEAT-0809 lands. No performance claims anywhere in the library.
