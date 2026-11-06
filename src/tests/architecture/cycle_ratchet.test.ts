@@ -60,8 +60,6 @@ import {
 	resolveSpecifier,
 	toBaseline,
 } from "../../../scripts/arch-cycles.mjs";
-import { compareBaselineRatchet } from "../../../scripts/arch-baseline-guard.mjs";
-
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const BASELINE = JSON.parse(
 	readFileSync(path.join(REPO_ROOT, "scripts", "arch-cycles.baseline.json"), "utf-8"),
