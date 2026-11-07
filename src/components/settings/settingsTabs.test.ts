@@ -173,11 +173,40 @@ describe("settings rail registry (FEAT-0735)", () => {
     expect(ids).toEqual(getSettingsTabEntries().map(getSettingsTabId));
   });
 
+  it("every id that can reach the store names a registered tab", () => {
+    // The window falls back quietly when an id names no tab, so the call sites
+    // that write one have to be checked here: a stale `openSettings("…")` is
+    // the realistic way a removed tab survives in code.
+    const ids = getSettingsTabEntries().map(getSettingsTabId);
+    const files = [
+      CONTENT,
+      "src/stores/ui.svelte.ts",
+      TRADING,
+      "src/components/shared/TechnicalsPanel.svelte",
+      "src/components/shared/OfflineBanner.svelte",
+    ];
+
+    const named = files.flatMap((file) =>
+      [
+        ...read(file).matchAll(
+          /(?:openSettings\(\s*|settingsTab\s*=\s*(?:\$state\()?)"([a-z]+)"/g,
+        ),
+      ].map((match) => match[1]),
+    );
+
+    expect(named.length).toBeGreaterThan(0);
+    expect(named.filter((id) => !ids.includes(id))).toEqual([]);
+  });
+
   it("resolves a remembered tab id through the rail instead of trusting it", () => {
     // FEAT-0821. Without this the fallback can be perfectly tested and never
     // called: the window would render nothing for an id no tab answers to.
     const source = read(CONTENT);
-    expect(source).toMatch(/resolveSettingsTabId\(\s*uiState\.settingsTab/);
-    expect(source).not.toMatch(/uiState\.settingsTab\s*\|\|/);
+    // Anchored: a call that survives only in a comment, or a different
+    // expression feeding `activeTab`, must not satisfy this.
+    expect(source).toMatch(
+      /const activeTab\s*=\s*\$derived\(\s*resolveSettingsTabId\(\s*uiState\.settingsTab\s*,\s*tabIds,?\s*\)\s*\)/,
+    );
+    expect(source).not.toMatch(/settingsTab\s*\|\|/);
   });
 });

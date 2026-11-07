@@ -72,6 +72,7 @@ describe("FEAT-0821: resolveSettingsTabId", () => {
     it("falls back to the first tab when the remembered id no longer exists", () => {
         // The window keeps its current tab in session state. `automation` was
         // removed by FEAT-0821, and a window still on it must render a panel.
+        expect(ids).not.toContain("automation");
         expect(resolveSettingsTabId("automation", ids)).toBe(ids[0]);
     });
 

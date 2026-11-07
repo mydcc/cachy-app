@@ -31,6 +31,7 @@
     import InfoTip from "../../shared/InfoTip.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import TabBar from "../TabBar.svelte";
+    import { logger } from "../../../services/logger";
 
     const exchange = $derived(settingsState.apiProvider);
     const venueName = $derived(
@@ -72,6 +73,20 @@
             ? uiState.settingsTradingSubTab
             : subTabs[0].id,
     );
+
+    // The same silence applies here, and this one has already happened once:
+    // `hotkeys` moved out and a remembered id kept pointing at it. Forced for
+    // the same reason as the settings-tab warning — `ui` logs are off by default.
+    $effect(() => {
+        if (!validSubTabs.includes(uiState.settingsTradingSubTab)) {
+            logger.warn(
+                "ui",
+                "no such trading sub-tab; showing the first one",
+                { requested: uiState.settingsTradingSubTab, activeTab: activeSubTab },
+                true,
+            );
+        }
+    });
 </script>
 
 <div class="trading-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-trading">

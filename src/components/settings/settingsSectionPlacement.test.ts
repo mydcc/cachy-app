@@ -28,8 +28,9 @@
  * the Automation tab and from Trading → Paper Trading, and `RiskLimitsSettings`
  * from the Automation tab and from Trading → Risk & Kill Switch.
  *
- * The scan counts the component *identifier*, not a literal tag. Any way to
- * render a second door — a plain tag, an import, a component map
+ * The scan counts the component *identifier*, not a literal tag, in every
+ * `.svelte` and `.ts` file under `src/components` (test files excluded). Any way
+ * to render a second door — a plain tag, an import, a component map
  * (`paper: PaperTradingSettings`), `<svelte:component>` — has to name the
  * component in the file that builds it, so one scan covers all of them. The
  * root is `src/components` rather than the settings directory: a second door
@@ -62,16 +63,23 @@ const SINGLE_HOME: Array<{ component: string; home: string }> = [
   },
 ];
 
-function svelteFiles(dir: string): string[] {
+/**
+ * Every component source under the root. Tests are skipped on purpose: they
+ * name the components in assertions, which is not a render site.
+ */
+function scannedFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return svelteFiles(path);
-    return entry.name.endsWith(".svelte") ? [path] : [];
+    if (entry.isDirectory()) return scannedFiles(path);
+    if (/[.](test|spec)[.]ts$/.test(entry.name)) return [];
+    return entry.name.endsWith(".svelte") || entry.name.endsWith(".ts")
+      ? [path]
+      : [];
   });
 }
 
 describe("settings sections have exactly one home", () => {
-  const files = svelteFiles(COMPONENTS_ROOT);
+  const files = scannedFiles(COMPONENTS_ROOT);
 
   it("scans the component tree", () => {
     // A wrong root would make every case below pass with zero sites.

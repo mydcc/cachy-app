@@ -67,12 +67,16 @@
     const activeTab = $derived(resolveSettingsTabId(uiState.settingsTab, tabIds));
 
     // An id no tab answers to is a wiring mistake, not a normal state: say so
-    // instead of showing Trading as if it had been asked for.
+    // instead of showing Trading as if it had been asked for. Forced, because
+    // the `ui` log category is off by default and a warning nobody can turn on
+    // is the same silence this exists to remove.
     $effect(() => {
         if (!tabIds.includes(uiState.settingsTab)) {
             logger.warn(
                 "ui",
-                `no settings tab "${uiState.settingsTab}", showing "${activeTab}"`,
+                "no such settings tab; showing the first one",
+                { requested: uiState.settingsTab, activeTab, registered: tabIds },
+                true,
             );
         }
     });
