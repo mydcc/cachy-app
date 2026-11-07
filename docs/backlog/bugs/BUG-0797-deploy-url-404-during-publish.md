@@ -3,6 +3,7 @@ id: BUG-0797
 title: The deploy URL returns 404 while the artifact is being republished
 type: bug
 status: done
+shipped: v1.6.0-beta.530 (PR #4564)
 priority: P3
 milestone: none
 editions: [community, pro, private]

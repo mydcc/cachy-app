@@ -3,6 +3,7 @@ id: BUG-0798
 title: The manual Deploy Build trigger can publish any branch to the shared deploy tags
 type: bug
 status: done
+shipped: v1.6.0-beta.529 (PR #4563)
 priority: P2
 milestone: none
 editions: [community, pro, private]
