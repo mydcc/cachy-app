@@ -22,8 +22,10 @@
   The move is one of surface, not of system: a bot is still a `RuleDocument` at
   `consequence_level: "simulate"`, created by promoting an alert rather than
   built from scratch. What changes is where it lives — beside the alerts that
-  produce it, not three settings tabs away from them. `AutomationTab` keeps the
-  account and the risk limits those bots trade under.
+  produce it, not three settings tabs away from them. The account those bots
+  trade into and the risk limits they trade under stay where the rest of the
+  account settings live: Handel & Markt, under Paper Trading and Risiko & Kill
+  Switch.
 
   Nothing here can author a `send` document: this tab writes `simulate`, and
   `authorise(Send)` refuses a `simulate` document in the core, pinned by a test.

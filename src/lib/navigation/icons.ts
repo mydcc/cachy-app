@@ -46,9 +46,6 @@ const SETTINGS_ICONS: Record<string, string> = {
     "settings-trading": settingsIcon(
         `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07"/>`,
     ),
-    "settings-automation": settingsIcon(
-        `<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>`,
-    ),
     "settings-chart": settingsIcon(
         `<path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-6"/>`,
     ),

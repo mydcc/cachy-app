@@ -26,16 +26,12 @@
 
     // New Tab Components
     import TradingTab from "./tabs/TradingTab.svelte";
-    import AutomationTab from "./tabs/AutomationTab.svelte";
     import ChartTab from "./tabs/ChartTab.svelte";
     import VisualsTab from "./tabs/VisualsTab.svelte";
     import AiTab from "./tabs/AiTab.svelte";
     import ConnectionsTab from "./tabs/ConnectionsTab.svelte";
     import SystemTab from "./tabs/SystemTab.svelte";
     import CloudTab from "./tabs/CloudTab.svelte";
-
-    // Tab State
-    const activeTab = $derived(uiState.settingsTab || "trading");
 
     /**
      * The rail's destinations (ids, labels, icons) come from the registry
@@ -48,7 +44,6 @@
      */
     const SETTINGS_TAB_CONTENT: Record<string, Component> = {
         trading: TradingTab,
-        automation: AutomationTab,
         chart: ChartTab,
         visuals: VisualsTab,
         ai: AiTab,
@@ -63,6 +58,19 @@
         if (!component) throw new Error(`No settings content for ${id}`);
         return { id, component };
     });
+
+    // Tab State
+    /**
+     * A remembered id can name a tab that no longer exists — this window keeps
+     * the last one opened, so a removed tab would otherwise render nothing at
+     * all. The first tab is the fallback: it is always registered, and it beats
+     * a migration for a value that costs nothing to re-pick.
+     */
+    const activeTab = $derived(
+        tabs.some((tab) => tab.id === uiState.settingsTab)
+            ? uiState.settingsTab
+            : tabs[0].id,
+    );
 
 </script>
 

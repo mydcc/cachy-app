@@ -21,12 +21,11 @@ import { resolveEntryIcon } from "./icons";
 import { getSettingsTabEntries, getSettingsTabId } from "./settings-tabs";
 
 describe("FEAT-0735: settings tab entries", () => {
-    it("returns the eight registry tabs in order", () => {
+    it("returns the seven registry tabs in order", () => {
         const tabs = getSettingsTabEntries();
 
         expect(tabs.map((entry) => entry.id)).toEqual([
             "settings.trading",
-            "settings.automation",
             "settings.chart",
             "settings.visuals",
             "settings.ai",
@@ -36,7 +35,6 @@ describe("FEAT-0735: settings tab entries", () => {
         ]);
         expect(tabs.map(getSettingsTabId)).toEqual([
             "trading",
-            "automation",
             "chart",
             "visuals",
             "ai",

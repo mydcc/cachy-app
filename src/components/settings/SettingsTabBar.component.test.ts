@@ -73,13 +73,12 @@ afterEach(() => {
 });
 
 describe("FEAT-0735: SettingsTabBar", () => {
-    it("renders the eight registry tabs in order with icons", () => {
+    it("renders the seven registry tabs in order with icons", () => {
         const el = render("trading");
         const tabs = Array.from(el.querySelectorAll('[role="tab"]'));
 
         expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([
             lookup("settings.tabs.trading"),
-            lookup("settings.tabs.automation"),
             lookup("settings.tabs.chart"),
             lookup("settings.tabs.visuals"),
             lookup("settings.tabs.ai"),
@@ -102,7 +101,7 @@ describe("FEAT-0735: SettingsTabBar", () => {
             .map((tab) => tab.textContent?.trim());
         expect(selected).toEqual([lookup("settings.tabs.chart")]);
 
-        (tabs[3] as HTMLElement).click();
+        (tabs[2] as HTMLElement).click();
         flushSync();
 
         expect(onSelect).toHaveBeenCalledWith("visuals");
