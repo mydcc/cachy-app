@@ -108,7 +108,7 @@ html {
 /* Custom Fonts */
 @font-face {
   font-family: "Inter";
-  src: url("/fonts/Inter/Inter-VariableFont_opsz,wght.ttf") format("truetype");
+  src: url("/fonts/Inter/Inter-VariableFont_opsz,wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -116,7 +116,7 @@ html {
 
 @font-face {
   font-family: "Inter";
-  src: url("/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf") format("truetype");
+  src: url("/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -125,7 +125,7 @@ html {
 /* Variable Fonts */
 @font-face {
   font-family: "IBM Plex Sans";
-  src: url("/fonts/IBM_Plex_Sans/IBMPlexSans-VariableFont_wdth,wght.ttf") format("truetype");
+  src: url("/fonts/IBM_Plex_Sans/IBMPlexSans-VariableFont_wdth,wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -133,7 +133,7 @@ html {
 
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -141,7 +141,7 @@ html {
 
 @font-face {
   font-family: "Roboto Mono";
-  src: url("/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -149,7 +149,7 @@ html {
 
 @font-face {
   font-family: "Source Sans 3";
-  src: url("/fonts/Source_Sans_3/SourceSans3-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Source_Sans_3/SourceSans3-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -157,7 +157,7 @@ html {
 
 @font-face {
   font-family: "Manrope";
-  src: url("/fonts/Manrope/Manrope-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Manrope/Manrope-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -165,7 +165,7 @@ html {
 
 @font-face {
   font-family: "Nunito Sans";
-  src: url("/fonts/Nunito_Sans/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf") format("truetype");
+  src: url("/fonts/Nunito_Sans/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -173,7 +173,7 @@ html {
 
 @font-face {
   font-family: "Nunito Sans";
-  src: url("/fonts/Nunito_Sans/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.ttf") format("truetype");
+  src: url("/fonts/Nunito_Sans/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -181,7 +181,7 @@ html {
 
 @font-face {
   font-family: "Red Hat Display";
-  src: url("/fonts/Red_Hat_Display/RedHatDisplay-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Red_Hat_Display/RedHatDisplay-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -189,7 +189,7 @@ html {
 
 @font-face {
   font-family: "Red Hat Display";
-  src: url("/fonts/Red_Hat_Display/RedHatDisplay-Italic-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Red_Hat_Display/RedHatDisplay-Italic-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -197,7 +197,7 @@ html {
 
 @font-face {
   font-family: "Schibsted Grotesk";
-  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -205,7 +205,7 @@ html {
 
 @font-face {
   font-family: "Schibsted Grotesk";
-  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-Italic-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-Italic-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -213,7 +213,7 @@ html {
 
 @font-face {
   font-family: "Space Grotesk";
-  src: url("/fonts/Space_Grotesk/SpaceGrotesk-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/Space_Grotesk/SpaceGrotesk-VariableFont_wght.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
