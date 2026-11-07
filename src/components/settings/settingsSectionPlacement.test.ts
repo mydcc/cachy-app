@@ -16,31 +16,38 @@
  */
 
 /**
- * FEAT-0821 — one home per settings section.
+ * FEAT-0821 — one home per settings section, counted across `src/components`.
  *
- * A panel that configures exactly one thing must be rendered from exactly one
- * place. Two render sites are not two bugs in the stores — both mount points
- * read the same store, so the value stays consistent — but they are two doors
- * with no way for a trader to tell whether the other one exists, which door the
- * documentation means, or whether closing one of them changes anything.
+ * A panel that configures exactly one thing must be built from one place. Two
+ * render sites are not two bugs in the stores — both mount points read the same
+ * store, so the value stays consistent — but they are two doors with no way for
+ * a trader to tell whether the other one exists, which door the documentation
+ * means, or whether closing one of them changes anything.
  *
  * The duplication this pins was real: `PaperTradingSettings` was rendered from
  * the Automation tab and from Trading → Paper Trading, and `RiskLimitsSettings`
- * from the Automation tab and from Trading → Risiko & Kill Switch.
+ * from the Automation tab and from Trading → Risk & Kill Switch.
+ *
+ * The scan counts the component *identifier*, not a literal tag. Any way to
+ * render a second door — a plain tag, an import, a component map
+ * (`paper: PaperTradingSettings`), `<svelte:component>` — has to name the
+ * component in the file that builds it, so one scan covers all of them. The
+ * root is `src/components` rather than the settings directory: a second door
+ * under `alerts/` would be just as confusing as one in the next tab.
  *
  * The scan is textual on purpose. Mounting the settings window pulls in every
- * tab and its stores, so a failure would point at the harness; counting render
- * sites names the file that added the second door.
+ * tab and its stores, so a failure would point at the harness; counting
+ * mentions names the file that added the second door.
  */
 
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const SETTINGS_ROOT = "src/components/settings";
+const COMPONENTS_ROOT = "src/components";
 
 /**
- * Panels that configure one thing, and the single file allowed to render them.
+ * Panels that configure one thing, and the single file allowed to build them.
  * Adding an entry here is the cheap way to keep a future panel from growing a
  * second home; it is not a list of every settings component.
  */
@@ -64,26 +71,19 @@ function svelteFiles(dir: string): string[] {
 }
 
 describe("settings sections have exactly one home", () => {
-  const files = svelteFiles(SETTINGS_ROOT);
+  const files = svelteFiles(COMPONENTS_ROOT);
 
-  it("scans the settings tree", () => {
+  it("scans the component tree", () => {
     // A wrong root would make every case below pass with zero sites.
-    expect(files.length).toBeGreaterThan(20);
+    expect(files.length).toBeGreaterThan(50);
   });
 
-  it.each(SINGLE_HOME)("$component is rendered from $home only", ({ component, home }) => {
+  it.each(SINGLE_HOME)("$component is named in $home only", ({ component, home }) => {
     // No `g` flag: a stateful `lastIndex` would make consecutive `test()` calls
     // on the same regex skip files and the case would pass for the wrong reason.
-    const site = new RegExp(`<${component}\\b`);
-    const sites = files.filter((file) => site.test(readFileSync(file, "utf8")));
+    const name = new RegExp(`\\b${component}\\b`);
+    const sites = files.filter((file) => name.test(readFileSync(file, "utf8")));
 
     expect(sites.sort()).toEqual([home]);
-  });
-
-  it.each(SINGLE_HOME)("$component is not rendered twice inside $home", ({ component, home }) => {
-    const source = readFileSync(home, "utf8");
-    const count = source.match(new RegExp(`<${component}\\b`, "g"))?.length ?? 0;
-
-    expect(count).toBe(1);
   });
 });

@@ -62,16 +62,17 @@ describe("FEAT-0735: settings tab entries", () => {
 });
 
 describe("FEAT-0821: resolveSettingsTabId", () => {
-    const ids = ["trading", "chart", "visuals"];
+    /** The real rail, so the cases follow the registry instead of a fixture. */
+    const ids = getSettingsTabEntries().map(getSettingsTabId);
 
     it("keeps a requested tab that is still registered", () => {
-        expect(resolveSettingsTabId("chart", ids)).toBe("chart");
+        expect(resolveSettingsTabId(ids[1], ids)).toBe(ids[1]);
     });
 
     it("falls back to the first tab when the remembered id no longer exists", () => {
-        // The window remembers its last tab. FEAT-0821 removed `automation`,
-        // and a window that was on it must still render a panel.
-        expect(resolveSettingsTabId("automation", ids)).toBe("trading");
+        // The window keeps its current tab in session state. `automation` was
+        // removed by FEAT-0821, and a window still on it must render a panel.
+        expect(resolveSettingsTabId("automation", ids)).toBe(ids[0]);
     });
 
     it("fails loudly when the rail has no tabs at all", () => {

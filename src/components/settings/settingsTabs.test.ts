@@ -172,4 +172,12 @@ describe("settings rail registry (FEAT-0735)", () => {
 
     expect(ids).toEqual(getSettingsTabEntries().map(getSettingsTabId));
   });
+
+  it("resolves a remembered tab id through the rail instead of trusting it", () => {
+    // FEAT-0821. Without this the fallback can be perfectly tested and never
+    // called: the window would render nothing for an id no tab answers to.
+    const source = read(CONTENT);
+    expect(source).toMatch(/resolveSettingsTabId\(\s*uiState\.settingsTab/);
+    expect(source).not.toMatch(/uiState\.settingsTab\s*\|\|/);
+  });
 });

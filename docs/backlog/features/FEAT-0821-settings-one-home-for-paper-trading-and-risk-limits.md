@@ -18,11 +18,11 @@ branch: refactor/settings-remove-automation-tab
 
 ## Problem
 
-The Automation tab repeats two settings that another tab already owns, and opens
-with a paragraph that describes history rather than a setting:
+The Automation tab repeated two settings that another tab already owns, and
+opened with a paragraph that describes history rather than a setting:
 
 - `AutomationTab` rendered `<PaperTradingSettings />` (`AutomationTab.svelte:80`)
-  while Handel & Markt → Paper Trading renders the same component
+  while Trading & Market → Paper Trading renders the same component
   (`TradingTab.svelte:773`).
 - It rendered `<RiskLimitsSettings />` (`AutomationTab.svelte:81`) while
   Risiko & Kill Switch renders the same component (`TradingTab.svelte:752`).
@@ -39,9 +39,9 @@ of its own left, because the bots themselves already left it in FEAT-0749.
 
 ## Proposal
 
-Delete the Automation rail tab. Paper trading stays under Handel & Markt → Paper
-Trading, the risk limits under Handel & Markt → Risiko & Kill Switch, and the
-bots under Alerts & Bots in the rail.
+Delete the Automation rail tab. Paper trading stays under Trading & Market →
+Paper Trading, the risk limits under Trading & Market → Risk & Kill Switch, and
+the bots under Alerts & Bots in the rail.
 
 Concretely:
 
@@ -82,9 +82,9 @@ Concretely:
 Three other structural findings from the same review are deliberately not part
 of this item; each needs its own decision:
 
-- Risiko & Kill Switch bundles risk limits, confirmations, notifications and
+- "Risk & Kill Switch" bundles risk limits, confirmations, notifications and
   external channels in one sub-tab (rationale in FEAT-0024/FEAT-0025).
-- "Daten & Markt" holds the technicals display toggles
+- "Data & Market" holds the technicals display toggles
   (`showTechnicalsSummary`/`Oscillators`/`MAs`/`Pivots`) next to data limits.
 - Settings have no search box (FEAT-0022, still an idea).
 

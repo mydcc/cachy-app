@@ -32,15 +32,6 @@
     import { uiState } from "../../../stores/ui.svelte";
     import TabBar from "../TabBar.svelte";
 
-    // "hotkeys" lived here until it moved to System → Controls; unknown
-    // persisted values fall back to "market" so the tab never renders blank.
-    const validSubTabs = ["market", "chart", "risk", "paper", "audit"];
-    const activeSubTab = $derived(
-        validSubTabs.includes(uiState.settingsTradingSubTab)
-            ? uiState.settingsTradingSubTab
-            : "market",
-    );
-
     const exchange = $derived(settingsState.apiProvider);
     const venueName = $derived(
         exchange.charAt(0).toUpperCase() + exchange.slice(1),
@@ -69,6 +60,18 @@
             label: $_("settings.audit.subTab"),
         },
     ];
+
+    // "hotkeys" lived here until it moved to System → Controls; unknown kept
+    // values fall back to the first sub-tab so the panel never renders blank.
+    // Derived from the list above rather than repeated: this tab is the only
+    // home for paper trading and the risk limits, so a sub-tab missing from a
+    // second list would make them unreachable with every test still green.
+    const validSubTabs = subTabs.map((tab) => tab.id);
+    const activeSubTab = $derived(
+        validSubTabs.includes(uiState.settingsTradingSubTab)
+            ? uiState.settingsTradingSubTab
+            : subTabs[0].id,
+    );
 </script>
 
 <div class="trading-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-trading">

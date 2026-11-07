@@ -26,7 +26,7 @@
  * or if an uphill layer pair gained edges.
  *
  * Two axes on purpose. A new `services -> stores` import *inside* the existing
- * 197-module blob changes the SCC size by exactly zero, so a size-only gate
+ * blob changes the SCC size by exactly zero, so a size-only gate
  * would stay green while the layering eroded further. The per-pair count is
  * the leading indicator; the SCC size is the one that catches a cycle forming
  * where there was none.

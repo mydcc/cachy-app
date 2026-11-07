@@ -20,7 +20,7 @@
  * FEAT-0735 -- the settings rail.
  *
  * The rail used to be a local array in `SettingsContent`. It now reads the
- * registry, so these cases pin what a reader sees: eight tabs in registry
+ * registry, so these cases pin what a reader sees: seven tabs in registry
  * order, the same labels and icons, one selected tab, and the tab id the host
  * receives through the opener adapter.
  */

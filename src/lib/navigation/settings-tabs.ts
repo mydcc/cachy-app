@@ -21,7 +21,7 @@ import {
     type Entry,
 } from "./entry-points";
 
-/** The settings window's eight rail tabs, in registry order. */
+/** The settings rail's entries, in registry order. */
 export function getSettingsTabEntries(): Entry[] {
     return getSurfaceEntries("settings-rail", STATIC_ENTRY_CONTEXT).map(
         ({ entry }) => entry,
@@ -39,11 +39,11 @@ export function getSettingsTabId(entry: Entry): string {
 /**
  * The tab a settings window should show for a requested id.
  *
- * The window remembers the tab it was last on, so the id can name one that no
- * longer exists — a removed rail entry, or a layout restored from an older
- * build. Falling back to the first registered tab keeps the window usable
- * without a migration, and the missing registry is a loud failure: a settings
- * window with no tabs has nothing to fall back to.
+ * The window keeps its current tab in session state, so the id can name an
+ * entry that has since been removed — a rename, or a rail entry deleted in a
+ * later build. Falling back to the first registered tab keeps the window
+ * usable, and an empty registry is a loud failure: a settings window with no
+ * tabs has nothing to fall back to.
  */
 export function resolveSettingsTabId(
     requested: string,

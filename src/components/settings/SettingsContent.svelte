@@ -19,6 +19,7 @@
     import { uiState } from "../../stores/ui.svelte";
     import type { Component } from "svelte";
     import SettingsTabBar from "./SettingsTabBar.svelte";
+    import { logger } from "../../services/logger";
     import {
         getSettingsTabEntries,
         getSettingsTabId,
@@ -60,14 +61,21 @@
         return { id, component };
     });
 
-    // Tab State: a remembered id can name a tab that no longer exists, and the
-    // picker falls back to the first one instead of rendering nothing.
-    const activeTab = $derived(
-        resolveSettingsTabId(
-            uiState.settingsTab,
-            tabs.map((tab) => tab.id),
-        ),
-    );
+    // Tab State: a remembered id can name a tab that no longer exists, so the
+    // resolution falls back to the first one instead of rendering nothing.
+    const tabIds = $derived(tabs.map((tab) => tab.id));
+    const activeTab = $derived(resolveSettingsTabId(uiState.settingsTab, tabIds));
+
+    // An id no tab answers to is a wiring mistake, not a normal state: say so
+    // instead of showing Trading as if it had been asked for.
+    $effect(() => {
+        if (!tabIds.includes(uiState.settingsTab)) {
+            logger.warn(
+                "ui",
+                `no settings tab "${uiState.settingsTab}", showing "${activeTab}"`,
+            );
+        }
+    });
 
 </script>
 
