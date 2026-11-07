@@ -3,6 +3,7 @@ id: BUG-0793
 title: Window rules offer a chatbox target that no window can ever carry
 type: bug
 status: done
+shipped: v1.6.0-beta.528 (PR #4545)
 priority: P3
 milestone: none
 editions: [community, pro, private]
