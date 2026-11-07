@@ -413,7 +413,7 @@ export function withBotOrders(
   return (firing) => {
     inner(firing);
     if (!isBot(firing.rule)) {
-      // BUG-0487 — `isBot` answers "does this belong on the Automation tab",
+      // BUG-0487 — `isBot` answers "does this belong on the bots surface",
       // not "does this submit". A `send` document carries a fully-formed order
       // intent the core validated, but there is no `send` path until FEAT-0035
       // builds one. Dropping it silently reads as a strategy that found no

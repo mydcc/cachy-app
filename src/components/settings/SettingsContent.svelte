@@ -22,6 +22,7 @@
     import {
         getSettingsTabEntries,
         getSettingsTabId,
+        resolveSettingsTabId,
     } from "../../lib/navigation/settings-tabs";
 
     // New Tab Components
@@ -59,17 +60,13 @@
         return { id, component };
     });
 
-    // Tab State
-    /**
-     * A remembered id can name a tab that no longer exists — this window keeps
-     * the last one opened, so a removed tab would otherwise render nothing at
-     * all. The first tab is the fallback: it is always registered, and it beats
-     * a migration for a value that costs nothing to re-pick.
-     */
+    // Tab State: a remembered id can name a tab that no longer exists, and the
+    // picker falls back to the first one instead of rendering nothing.
     const activeTab = $derived(
-        tabs.some((tab) => tab.id === uiState.settingsTab)
-            ? uiState.settingsTab
-            : tabs[0].id,
+        resolveSettingsTabId(
+            uiState.settingsTab,
+            tabs.map((tab) => tab.id),
+        ),
     );
 
 </script>

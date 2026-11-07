@@ -16,8 +16,8 @@
 -->
 
 <!--
-  FEAT-0749 — the bots half of the control center, moved out of
-  `settings/tabs/AutomationTab.svelte` (FEAT-0396).
+  FEAT-0749 — the bots half of the control center, moved out of the former
+  Automation settings tab (FEAT-0396; the tab was removed in FEAT-0821).
 
   The move is one of surface, not of system: a bot is still a `RuleDocument` at
   `consequence_level: "simulate"`, created by promoting an alert rather than

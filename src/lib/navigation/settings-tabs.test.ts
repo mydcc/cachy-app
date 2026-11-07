@@ -18,7 +18,11 @@
 import { describe, expect, it } from "vitest";
 import { ENTRY_POINTS } from "./entry-points";
 import { resolveEntryIcon } from "./icons";
-import { getSettingsTabEntries, getSettingsTabId } from "./settings-tabs";
+import {
+    getSettingsTabEntries,
+    getSettingsTabId,
+    resolveSettingsTabId,
+} from "./settings-tabs";
 
 describe("FEAT-0735: settings tab entries", () => {
     it("returns the seven registry tabs in order", () => {
@@ -54,5 +58,23 @@ describe("FEAT-0735: settings tab entries", () => {
         const journal = ENTRY_POINTS.find((entry) => entry.id === "journal")!;
 
         expect(() => getSettingsTabId(journal)).toThrow(/no tab opener/);
+    });
+});
+
+describe("FEAT-0821: resolveSettingsTabId", () => {
+    const ids = ["trading", "chart", "visuals"];
+
+    it("keeps a requested tab that is still registered", () => {
+        expect(resolveSettingsTabId("chart", ids)).toBe("chart");
+    });
+
+    it("falls back to the first tab when the remembered id no longer exists", () => {
+        // The window remembers its last tab. FEAT-0821 removed `automation`,
+        // and a window that was on it must still render a panel.
+        expect(resolveSettingsTabId("automation", ids)).toBe("trading");
+    });
+
+    it("fails loudly when the rail has no tabs at all", () => {
+        expect(() => resolveSettingsTabId("trading", [])).toThrow(/no tabs/);
     });
 });

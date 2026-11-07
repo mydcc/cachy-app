@@ -26,7 +26,7 @@
  *      are components render them from the array instead of an `{#if}` chain.
  *
  * The cases read source and locale files rather than mounting the components:
- * mounting `SettingsContent` pulls in all eight tabs and their stores, which
+ * mounting `SettingsContent` pulls in every tab and its stores, which
  * makes a failure point at the harness instead of the rule. The label keys are
  * read from the source, not derived from the ids — a copy-paste that points
  * every label at one key has to fail here.

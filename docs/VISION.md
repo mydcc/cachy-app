@@ -112,7 +112,7 @@ stay comparable. The model proposes; a person arms; the execution gate is the
 same one a manual click passes through. See
 [ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md).
 Since 1.6.0 the first half of that path is built: an armed alert promotes to a
-simulated bot in the Automation tab without being rewritten, and the bot's order
+simulated bot in Alerts & Bots without being rewritten, and the bot's order
 passes the same gate as a manual click — see
 [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md). Live
 sending stays a separate, undecided step.

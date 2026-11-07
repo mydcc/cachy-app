@@ -16,9 +16,9 @@
 -->
 
 <!--
-  FEAT-0749 — the intent editor for one bot, extracted from
-  `settings/tabs/AutomationTab.svelte` (FEAT-0396) so the bot list and its
-  editor can live in the control center without dragging a 576-line file along.
+  FEAT-0749 — the intent editor for one bot, extracted from the former
+  Automation settings tab (FEAT-0396) so the bot list and its editor can live
+  in the control center without dragging a 576-line file along.
 
   It edits the *order intent* only — side, size basis, size, stop — and
   re-validates the whole document under the same id, so the conditions the bot

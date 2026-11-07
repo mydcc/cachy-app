@@ -2,7 +2,7 @@
 id: FEAT-0821
 title: Give paper trading and the risk limits one home in Settings
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

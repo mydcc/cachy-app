@@ -35,3 +35,23 @@ export function getSettingsTabId(entry: Entry): string {
     }
     return entry.opener.tabId;
 }
+
+/**
+ * The tab a settings window should show for a requested id.
+ *
+ * The window remembers the tab it was last on, so the id can name one that no
+ * longer exists — a removed rail entry, or a layout restored from an older
+ * build. Falling back to the first registered tab keeps the window usable
+ * without a migration, and the missing registry is a loud failure: a settings
+ * window with no tabs has nothing to fall back to.
+ */
+export function resolveSettingsTabId(
+    requested: string,
+    ids: readonly string[],
+): string {
+    if (ids.includes(requested)) return requested;
+
+    const first = ids[0];
+    if (first === undefined) throw new Error("the settings rail has no tabs");
+    return first;
+}
