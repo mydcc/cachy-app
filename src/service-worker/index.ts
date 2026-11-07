@@ -36,10 +36,27 @@ const CACHE = `cache-${version}`;
 // which would make `includes(url.pathname)` a type error. The `immutable` cast
 // is needed because Kit types those Vite output paths as plain `string` while
 // `asset()` only accepts the `AssetPath` union of files in `static`.
+// FEAT-0775: files that are never requested by the app itself — only by
+// crawlers (`og:image`, `twitter:image`, schema.org) or by someone following an
+// external link. They stay reachable over the network; removing them from the
+// precache is not deleting them. Precaching them made every install download
+// ~2.3 MiB that no offline view can show.
+//
+// `static/knowledge/` is not linked from `src/` at all, and its two file names
+// contain spaces, which `url.pathname` reports percent-encoded — so they were
+// cached under a key the fetch handler never looks up.
+const NOT_PRECACHED = [
+  "/og-image.jpg", // social preview, referenced from <meta> only
+  "/twitter-image.jpg", // byte-identical to og-image.jpg
+  "/seo-banner.png", // byte-identical to og-image.jpg
+  "/knowledge/Tutorial_ RSI.pdf", // not linked from the app
+  "/knowledge/setups/Dolphin Strategy PDF.pdf", // not linked from the app
+];
+
 const ASSETS: string[] = [
   ...immutable.map((entry) => asset(entry.path as AssetPath)), // the app itself
   ...assets.map((entry) => asset(entry.path)), // everything in `static`
-];
+].filter((path) => !NOT_PRECACHED.includes(path));
 
 self.addEventListener("install", (event) => {
   // PA-07: cache assets one by one so a single failing request (flaky

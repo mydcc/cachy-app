@@ -28,7 +28,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const serviceWorkerPath = fileURLToPath(
@@ -60,5 +60,21 @@ describe("service worker precache list (FEAT-0629)", () => {
   it("still matches the asset list against url.pathname", () => {
     // The comparison the whole cache-first branch hangs on.
     expect(source).toMatch(/ASSETS\.includes\(\s*url\.pathname\s*\)/);
+  });
+
+  it("applies the not-precached list and only names files that exist", () => {
+    // FEAT-0775: an exclusion is invisible when it is wrong — a typo'd path
+    // excludes nothing, the install keeps downloading the file, and no test
+    // notices. Tie every entry to a real file in static/.
+    const block = source.match(/const NOT_PRECACHED = \[([\s\S]*?)\];/)?.[1] ?? "";
+    const listed = [...block.matchAll(/"(\/[^"]+)"/g)].map((match) => match[1]);
+    expect(listed.length).toBeGreaterThan(0);
+    for (const path of listed) {
+      const file = fileURLToPath(new URL(`../static${path}`, import.meta.url));
+      expect(existsSync(file), `${path} does not exist under static/`).toBe(true);
+    }
+    expect(source).toMatch(
+      /const ASSETS:[\s\S]*?\.filter\(\(path\) => !NOT_PRECACHED\.includes\(path\)\)/,
+    );
   });
 });

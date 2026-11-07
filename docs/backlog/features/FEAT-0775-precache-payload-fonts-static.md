@@ -2,7 +2,7 @@
 id: FEAT-0775
 title: Cut the service-worker precache payload — fonts and static files
 type: feature
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: pwa
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: feature/feat-0775-font-subset
 ---
 
 # FEAT-0775 — Cut the service-worker precache payload — fonts and static files
@@ -84,24 +86,84 @@ to be narrower than the declared range, tighten the axis and the files shrink
 again. If it is not, subsetting alone carries the size target. Nothing blocks
 the start either way.
 
+## Result
+
+Landed. `scripts/subset-fonts.sh` regenerates the files from a Google Fonts
+download and documents the ranges, the feature list and the fontTools version;
+the repository ships only the result, next to the unchanged `OFL.txt` and
+`README.txt`.
+
+| Face | TTF | WOFF2 | |
+| --- | --- | --- | --- |
+| `Inter-Italic-VariableFont_opsz,wght` | 883 KiB | 128 KiB | −86% |
+| `Inter-VariableFont_opsz,wght` | 854 KiB | 116 KiB | −86% |
+| `SourceSans3-VariableFont_wght` | 627 KiB | 47 KiB | −92% |
+| `NunitoSans-VariableFont_YTLC,opsz,wdth,wght` | 556 KiB | 99 KiB | −82% |
+| `NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght` | 543 KiB | 107 KiB | −80% |
+| `IBMPlexSans-VariableFont_wdth,wght` | 520 KiB | 76 KiB | −85% |
+| `JetBrainsMono-VariableFont_wght` | 185 KiB | 43 KiB | −77% |
+| `SchibstedGrotesk-Italic-VariableFont_wght` | 178 KiB | 54 KiB | −70% |
+| `RobotoMono-VariableFont_wght` | 177 KiB | 42 KiB | −76% |
+| `SchibstedGrotesk-VariableFont_wght` | 173 KiB | 50 KiB | −71% |
+| `Manrope-VariableFont_wght` | 163 KiB | 30 KiB | −82% |
+| `SpaceGrotesk-VariableFont_wght` | 131 KiB | 30 KiB | −77% |
+| `RedHatDisplay-Italic-VariableFont_wght` | 97 KiB | 36 KiB | −63% |
+| `RedHatDisplay-VariableFont_wght` | 95 KiB | 34 KiB | −64% |
+
+**6.44 MiB → 0.87 MiB.** The largest file went from 883 KiB to 128 KiB. All
+fourteen keep their variable axes, so the `@font-face` weight ranges and
+`font-optical-sizing` behave as before. The four unreferenced italics are
+deleted (1.32 MiB of bytes no browser ever requested).
+
+Subset: latin + latin-ext, plus the OpenType features a UI can reach — `ccmp`,
+`locl`, `kern`, `liga`, `clig`, `calt`, `case`, `tnum`, `zero`. The stylistic
+sets (`ss01`–`ss08`, `cv01`–`cv14`, `salt`, `aalt`) are dropped: nothing in
+`src/` sets `font-feature-settings` or `font-variant-alternates`, so no code
+path can request them. `tnum` stays because tables and price fields use
+`font-variant-numeric: tabular-nums`.
+
+Precache, measured on the production build of 2026-11-07:
+
+| | before | after |
+| --- | --- | --- |
+| precache entries | 341 | 336 |
+| precache bytes | 18.24 MiB (2026-10-28 baseline) / 12.87 MiB with the new fonts in place | **10.59 MiB** |
+| font bytes | 6.44 MiB | **0.87 MiB** |
+
+### The four largest remaining `static` files
+
+| File | Size | Decision |
+| --- | --- | --- |
+| `wasm/technicals_wasm_bg.wasm` | 741 KiB | **Precached.** Every indicator runs through it; the Calculator is the reason the app has an offline mode. |
+| `ammo/ammo.wasm.wasm` | 636 KiB | **Precached for now.** Only the stress calculation needs it, and dropping it is FEAT-0265's decision, not this item's. |
+| `knowledge/setups/Dolphin Strategy PDF.pdf` | 566 KiB | **Removed from the precache.** No link to `knowledge/` exists in `src/`. |
+| `twitter-image.jpg` | 481 KiB | **Removed from the precache.** Social preview only, referenced from `<meta>`; `og-image.jpg` and `seo-banner.png` are byte-identical copies and are removed with it. |
+
+The exclusion lives in the service worker as `NOT_PRECACHED`, applied to the
+assembled list. `src/serviceWorkerPrecache.test.ts` ties every entry to a file
+that exists under `static/` — a typo would otherwise exclude nothing and no one
+would notice. Both PDFs were also cached under a key the fetch handler could
+never match: `url.pathname` reports spaces percent-encoded while `asset()`
+returns them raw.
+
 ## Acceptance criteria
 
-- [ ] No `.ttf` under `static/fonts/`; every `@font-face` and the `src/app.html`
+- [x] No `.ttf` under `static/fonts/`; every `@font-face` and the `src/app.html`
       preload resolve to a `.woff2` that exists.
-- [ ] Total font bytes in the precache ≤ 2.0 MiB (baseline 6.44 MiB) **and** no
+- [x] Total font bytes in the precache ≤ 2.0 MiB (baseline 6.44 MiB) **and** no
       single font file above 170 KiB — plain re-encoding alone gets near 2.1
       MiB, so the second bound is what proves the subsetting step. Per-file
       before/after table in the PR.
-- [ ] Glyphs come from the subset, observably: with the `.woff2` files blocked
+- [x] Glyphs come from the subset, observably: with the `.woff2` files blocked
       in DevTools the German `ä ö ü ß` and the latin-ext set (`ą ć ę ł ń ó ś ź
       ż`, `č š ž`) fall back, and with them unblocked DevTools names the
       `.woff2` as the winning face.
-- [ ] Offline cold start is unaffected: app shell, Calculator and Journal work
+- [x] Offline cold start is unaffected: app shell, Calculator and Journal work
       with the network disabled.
-- [ ] Each of the four largest remaining `static` files is either justified in
+- [x] Each of the four largest remaining `static` files is either justified in
       the PR as offline-relevant or removed from the precache.
-- [ ] No COEP, CSP or `Permissions-Policy` change.
-- [ ] CI is green on `npm run check`; locally,
+- [x] No COEP, CSP or `Permissions-Policy` change.
+- [x] CI is green on `npm run check`; locally,
       `bash scripts/run-lowpri.sh npx vitest run --project=unit src/serviceWorkerPrecache.test.ts`
       passes.
 
