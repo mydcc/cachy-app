@@ -53,9 +53,9 @@ function ids(surface: SurfaceId, ctx = context()): string[] {
 }
 
 describe("entry-point registry data", () => {
-    it("contains 23 unique entries", () => {
-        expect(ENTRY_POINTS).toHaveLength(23);
-        expect(new Set(ENTRY_POINTS.map((entry) => entry.id)).size).toBe(23);
+    it("contains 22 unique entries", () => {
+        expect(ENTRY_POINTS).toHaveLength(22);
+        expect(new Set(ENTRY_POINTS.map((entry) => entry.id)).size).toBe(22);
     });
 
     it("uses translation keys that exist in both locales", () => {
@@ -132,7 +132,7 @@ describe("entry-point registry data", () => {
     it("keeps the four surface inventories pinned", () => {
         expect(ids("header")).toEqual(["journal"]);
         expect(ids("journal-tabs")).toHaveLength(5);
-        expect(ids("settings-rail")).toHaveLength(8);
+        expect(ids("settings-rail")).toHaveLength(7);
         expect(ids("rail")).toHaveLength(9);
         expect(
             ids(
@@ -165,7 +165,7 @@ describe("surface resolver", () => {
         const isContextFree = (condition: { kind: string } | undefined) =>
             condition === undefined || condition.kind === "always";
 
-        expect(placements).toHaveLength(14);
+        expect(placements).toHaveLength(13);
         for (const placement of placements) {
             expect(isContextFree(placement.visibleWhen)).toBe(true);
             expect(isContextFree(placement.enabledWhen)).toBe(true);

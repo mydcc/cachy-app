@@ -96,7 +96,7 @@ export type AlertLifecycleStatus = "armed" | "expired" | "fired" | "suspended";
  *
  * Bots are the one thing filtered out, because a bot is not an alarm. FEAT-0396
  * stores them in this same key as rules with `consequence_level: "simulate"`,
- * and the Automation tab is where they are managed — a bot listed here would
+ * and the bots surface is where they are managed — a bot listed here would
  * carry a delete button that removes a strategy from the wrong surface. The
  * test is `!isBot`, never a positive test for `"notify"`: a migrated legacy
  * alert has no `action` at all, so asking what a rule *is* would hide it.

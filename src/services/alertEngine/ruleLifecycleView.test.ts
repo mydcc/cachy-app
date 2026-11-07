@@ -214,7 +214,7 @@ describe("alarmRows", () => {
    * here would carry a delete button that removes a strategy from the tab meant
    * for alarms.
    */
-  it("leaves a bot to the Automation tab", () => {
+  it("leaves a bot to the bots surface", () => {
     seed([
       ruleDoc({ id: "alarm" }),
       ruleDoc({ id: "bot", action: { consequence_level: "simulate" } as RuleDocument["action"] }),

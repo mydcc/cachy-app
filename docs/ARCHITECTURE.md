@@ -147,8 +147,8 @@ There is a second logger at `src/services/logger.ts`, distinct from
 ### `src/components/` — UI
 
 `inputs/` (trade parameters), `results/` (calculation output), `layout/`,
-`alerts/` (alert definitions), `settings/` (eight tabs: AI, Automation, Chart,
-Cloud, Connections, System, Trading, Visuals, plus indicator configuration),
+`alerts/` (alert definitions), `settings/` (seven tabs: AI, Chart, Cloud,
+Connections, System, Trading, Visuals, plus indicator configuration),
 `shared/`.
 
 ### `src/routes/`

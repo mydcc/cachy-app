@@ -26,7 +26,7 @@
  *      are components render them from the array instead of an `{#if}` chain.
  *
  * The cases read source and locale files rather than mounting the components:
- * mounting `SettingsContent` pulls in all eight tabs and their stores, which
+ * mounting `SettingsContent` pulls in every tab and its stores, which
  * makes a failure point at the harness instead of the rule. The label keys are
  * read from the source, not derived from the ids — a copy-paste that points
  * every label at one key has to fail here.
@@ -171,5 +171,42 @@ describe("settings rail registry (FEAT-0735)", () => {
     );
 
     expect(ids).toEqual(getSettingsTabEntries().map(getSettingsTabId));
+  });
+
+  it("every id that can reach the store names a registered tab", () => {
+    // The window falls back quietly when an id names no tab, so the call sites
+    // that write one have to be checked here: a stale `openSettings("…")` is
+    // the realistic way a removed tab survives in code.
+    const ids = getSettingsTabEntries().map(getSettingsTabId);
+    const files = [
+      CONTENT,
+      "src/stores/ui.svelte.ts",
+      TRADING,
+      "src/components/shared/TechnicalsPanel.svelte",
+      "src/components/shared/OfflineBanner.svelte",
+    ];
+
+    const named = files.flatMap((file) =>
+      [
+        ...read(file).matchAll(
+          /(?:openSettings\(\s*|settingsTab\s*=\s*(?:\$state\()?)"([a-z]+)"/g,
+        ),
+      ].map((match) => match[1]),
+    );
+
+    expect(named.length).toBeGreaterThan(0);
+    expect(named.filter((id) => !ids.includes(id))).toEqual([]);
+  });
+
+  it("resolves a remembered tab id through the rail instead of trusting it", () => {
+    // FEAT-0821. Without this the fallback can be perfectly tested and never
+    // called: the window would render nothing for an id no tab answers to.
+    const source = read(CONTENT);
+    // Anchored: a call that survives only in a comment, or a different
+    // expression feeding `activeTab`, must not satisfy this.
+    expect(source).toMatch(
+      /const activeTab\s*=\s*\$derived\(\s*resolveSettingsTabId\(\s*uiState\.settingsTab\s*,\s*tabIds,?\s*\)\s*\)/,
+    );
+    expect(source).not.toMatch(/settingsTab\s*\|\|/);
   });
 });

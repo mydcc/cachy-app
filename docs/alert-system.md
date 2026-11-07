@@ -28,8 +28,8 @@ That is why alerts and bots are not two systems:
 | Surface | Shows rules with | Where | Status |
 |---|---|---|---|
 | **Super-Alert panel** | `notify` | Bell in the left control panel, chart right-click, indicator settings | Shipped — FEAT-0389 (the panel), FEAT-0395 (chart and indicator entry points) |
-| **Automation tab** | `simulate` | Settings → Automation (paper bots) | Shipped — FEAT-0396 |
-| **Automation tab** | `send` | Settings → Automation, behind the order gate | Planned — [`FEAT-0035`](backlog/features/FEAT-0035-autonomous-execution-agent.md) |
+| **Alerts & Bots → Bots** | `simulate` | Control center, beside the alerts the bot was promoted from | Shipped — FEAT-0396 (moved there by FEAT-0749) |
+| **Alerts & Bots → Bots** | `send` | Control center, behind the order gate | Planned — [`FEAT-0035`](backlog/features/FEAT-0035-autonomous-execution-agent.md) |
 
 One condition language, one evaluator, one set of tests. A backtest and a live alarm
 cannot disagree about what "RSI(14) below 30 on the 4h close" means, because there is
@@ -37,7 +37,7 @@ only one implementation of it.
 
 ### From alert to bot: promotion derives, never mutates
 
-The Automation tab does not upgrade an alert in place — it derives a **new**
+Promoting an alert does not upgrade it in place — it derives a **new**
 document with a new `id` and records the source's content hash in
 `provenance.derived_from_hash`. Raising `consequence_level` changes the
 content hash, and the hash is the strategy's identity: mutating it would
@@ -133,7 +133,7 @@ not alter `symbol` or threshold (see `FEAT-0388`'s acceptance criteria).
 | Indicator settings | "Alert on this indicator", parameters carried over as they are configured |
 | Persistent chart drawing → bell | Opens the panel's Drawing tab, bound to the drawing's level (FEAT-0029, FEAT-0480, FEAT-0752) |
 | Manage row → pencil | The stored rule back in its builder (or Drawing/Combo), same id (FEAT-0542) |
-| Settings → Automation | Bots, one document each |
+| Alerts & Bots → Bots | Bots, one document each |
 
 A drawing-bound alert follows the drawing, not the price it was created at.
 If the drawing's anchor is lost (deleted or unresolvable series), the alert
@@ -209,7 +209,7 @@ Above `notify`, the verdict instead becomes an order intent, and every existing
 guard — the order gate, the risk limits, the confirmation settings — applies
 unchanged. The rule engine proposes; it does not send.
 
-No UI can author a `send` document today: the Automation tab writes `simulate`
+No UI can author a `send` document today: the bots surface writes `simulate`
 only, and `authorise(Send)` on a `simulate` document refuses. Should a `send`
 rule fire anyway, it is refused with `level-not-supported` through the normal
 refusal channel (BUG-0487) — never silently dropped, never submitted.

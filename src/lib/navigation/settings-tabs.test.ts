@@ -18,15 +18,18 @@
 import { describe, expect, it } from "vitest";
 import { ENTRY_POINTS } from "./entry-points";
 import { resolveEntryIcon } from "./icons";
-import { getSettingsTabEntries, getSettingsTabId } from "./settings-tabs";
+import {
+    getSettingsTabEntries,
+    getSettingsTabId,
+    resolveSettingsTabId,
+} from "./settings-tabs";
 
 describe("FEAT-0735: settings tab entries", () => {
-    it("returns the eight registry tabs in order", () => {
+    it("returns the seven registry tabs in order", () => {
         const tabs = getSettingsTabEntries();
 
         expect(tabs.map((entry) => entry.id)).toEqual([
             "settings.trading",
-            "settings.automation",
             "settings.chart",
             "settings.visuals",
             "settings.ai",
@@ -36,7 +39,6 @@ describe("FEAT-0735: settings tab entries", () => {
         ]);
         expect(tabs.map(getSettingsTabId)).toEqual([
             "trading",
-            "automation",
             "chart",
             "visuals",
             "ai",
@@ -56,5 +58,25 @@ describe("FEAT-0735: settings tab entries", () => {
         const journal = ENTRY_POINTS.find((entry) => entry.id === "journal")!;
 
         expect(() => getSettingsTabId(journal)).toThrow(/no tab opener/);
+    });
+});
+
+describe("FEAT-0821: resolveSettingsTabId", () => {
+    /** The real rail, so the cases follow the registry instead of a fixture. */
+    const ids = getSettingsTabEntries().map(getSettingsTabId);
+
+    it("keeps a requested tab that is still registered", () => {
+        expect(resolveSettingsTabId(ids[1], ids)).toBe(ids[1]);
+    });
+
+    it("falls back to the first tab when the remembered id no longer exists", () => {
+        // The window keeps its current tab in session state. `automation` was
+        // removed by FEAT-0821, and a window still on it must render a panel.
+        expect(ids).not.toContain("automation");
+        expect(resolveSettingsTabId("automation", ids)).toBe(ids[0]);
+    });
+
+    it("fails loudly when the rail has no tabs at all", () => {
+        expect(() => resolveSettingsTabId("trading", [])).toThrow(/no tabs/);
     });
 });

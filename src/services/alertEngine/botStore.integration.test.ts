@@ -16,7 +16,7 @@
  */
 
 /**
- * FEAT-0396 — what the Automation tab is allowed to do to the rule store.
+ * FEAT-0396 — what the bots surface is allowed to do to the rule store.
  *
  * Against the real core, because the load-bearing claim here is a claim about
  * the *hash*: switching a bot on and off must move nothing a journal entry
@@ -92,7 +92,7 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-describe("the bots the Automation tab manages", () => {
+describe("the bots botStore manages", () => {
   it("lists simulate rules and leaves the alerts to the alert panel", () => {
     const { alert, bot } = seedAlertAndBot();
 
@@ -141,7 +141,7 @@ describe("the bots the Automation tab manages", () => {
   it("deletes a bot and refuses to delete an alert", () => {
     const { bot } = seedAlertAndBot();
 
-    // The Automation tab must not be able to delete an alert the trader armed
+    // The bots surface must not be able to delete an alert the trader armed
     // from the panel, so the function cannot express it.
     expect(deleteBot("alert-1")).toBe(false);
     expect(stored().map((r) => r.id).sort()).toEqual(["alert-1", bot.id].sort());

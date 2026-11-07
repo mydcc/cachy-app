@@ -64,7 +64,6 @@ const JOURNAL_TAB_KEYS = [
 
 const SETTINGS_TAB_KEYS = [
     "settings.tabs.trading",
-    "settings.tabs.automation",
     "settings.tabs.chart",
     "settings.tabs.visuals",
     "settings.tabs.ai",

@@ -25,7 +25,7 @@
  * promoted without being rewritten, and it is why this module is a *filter* and
  * not a store of its own.
  *
- * The separation the Automation tab provides is one of surface: the alert panel
+ * The separation the bots surface provides is one of surface: the alert panel
  * shows what announces, this shows what acts. A second storage key would make
  * them two systems that drift.
  *
@@ -47,7 +47,7 @@ import { readRuleStates } from "./ruleStateStore";
  */
 export const BOT_CONSEQUENCE_LEVEL: ConsequenceLevel = "simulate";
 
-/** Whether a stored rule belongs on the Automation tab. */
+/** Whether a stored rule belongs on the bots surface. */
 export function isBot(rule: RuleDocument): boolean {
   return rule.action?.consequence_level === BOT_CONSEQUENCE_LEVEL;
 }
@@ -137,7 +137,7 @@ export function setBotEnabled(botId: string, enabled: boolean): RuleDocument | u
  * Remove a bot from the store.
  *
  * Only a bot: an id naming a `notify` rule is left alone and reported as not
- * found. The Automation tab must not be able to delete an alert the trader
+ * found. The bots surface must not be able to delete an alert the trader
  * armed from the panel, and the cheapest way to guarantee that is to make this
  * function unable to express it.
  */

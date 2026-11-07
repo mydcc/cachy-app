@@ -464,7 +464,7 @@ describe("the sink that wraps a firing", () => {
     // A `send` document is fully formed by the time it reaches this gate, but
     // there is no `send` path until FEAT-0035. The old code took the silent
     // `return` branch, indistinguishable from an alert that never meant to
-    // trade. `isBot` stays the Automation-tab predicate; the submission gate
+    // trade. `isBot` stays the bots-surface predicate; the submission gate
     // asks its own question.
     const send = botDocument();
     send.action = {

@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-09-23
 - **Deciders:** mydcc
+- **Amended:** 2026-11-07 — FEAT-0821 removed the Settings → Automation tab; simulate bots are managed in Alerts & Bots, paper trading and the risk limits under Trading & Market. The decisions below are unchanged.
 
 ## Context
 

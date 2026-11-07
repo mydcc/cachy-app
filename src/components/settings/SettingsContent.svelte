@@ -19,23 +19,21 @@
     import { uiState } from "../../stores/ui.svelte";
     import type { Component } from "svelte";
     import SettingsTabBar from "./SettingsTabBar.svelte";
+    import { logger } from "../../services/logger";
     import {
         getSettingsTabEntries,
         getSettingsTabId,
+        resolveSettingsTabId,
     } from "../../lib/navigation/settings-tabs";
 
     // New Tab Components
     import TradingTab from "./tabs/TradingTab.svelte";
-    import AutomationTab from "./tabs/AutomationTab.svelte";
     import ChartTab from "./tabs/ChartTab.svelte";
     import VisualsTab from "./tabs/VisualsTab.svelte";
     import AiTab from "./tabs/AiTab.svelte";
     import ConnectionsTab from "./tabs/ConnectionsTab.svelte";
     import SystemTab from "./tabs/SystemTab.svelte";
     import CloudTab from "./tabs/CloudTab.svelte";
-
-    // Tab State
-    const activeTab = $derived(uiState.settingsTab || "trading");
 
     /**
      * The rail's destinations (ids, labels, icons) come from the registry
@@ -48,7 +46,6 @@
      */
     const SETTINGS_TAB_CONTENT: Record<string, Component> = {
         trading: TradingTab,
-        automation: AutomationTab,
         chart: ChartTab,
         visuals: VisualsTab,
         ai: AiTab,
@@ -62,6 +59,26 @@
         const component = SETTINGS_TAB_CONTENT[id];
         if (!component) throw new Error(`No settings content for ${id}`);
         return { id, component };
+    });
+
+    // Tab State: a remembered id can name a tab that no longer exists, so the
+    // resolution falls back to the first one instead of rendering nothing.
+    const tabIds = $derived(tabs.map((tab) => tab.id));
+    const activeTab = $derived(resolveSettingsTabId(uiState.settingsTab, tabIds));
+
+    // An id no tab answers to is a wiring mistake, not a normal state: say so
+    // instead of showing Trading as if it had been asked for. Forced, because
+    // the `ui` log category is off by default and a warning nobody can turn on
+    // is the same silence this exists to remove.
+    $effect(() => {
+        if (!tabIds.includes(uiState.settingsTab)) {
+            logger.warn(
+                "ui",
+                "no such settings tab; showing the first one",
+                { requested: uiState.settingsTab, activeTab, registered: tabIds },
+                true,
+            );
+        }
     });
 
 </script>

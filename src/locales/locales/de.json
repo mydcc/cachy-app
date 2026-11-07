@@ -2174,7 +2174,6 @@
       "maintenance": "Wartung",
       "profile": "Profil & Design",
       "workspace": "Workspace & Seitenleiste",
-      "automation": "Automation",
       "cloud": "Cloud"
     },
     "system": {
@@ -2889,9 +2888,6 @@
     "brokenAlertReportLog": "Nur protokollieren",
     "brokenAlertReportLogDesc": "Keine Meldung. Das Alarm-Panel zeigt weiterhin, welche Alarme betroffen sind.",
     "automation": {
-      "title": "Automation",
-      "botsMoved": "Deine Bots sind umgezogen: Sie leben jetzt in „Alerts & Bots“, direkt neben den Alarmen, aus denen sie entstanden sind. Hier bleiben das simulierte Konto und die Risiko-Limits, unter denen sie handeln.",
-      "openBots": "Bots öffnen",
       "intro": "Ein Bot ist einer deiner Alarme, hochgestuft vom Melden zum Handeln. Er beobachtet dieselben Bedingungen, auf denselben Daten, ausgewertet von derselben Engine.",
       "simulateOnly": "Bots schlagen Orders ausschließlich im simulierten Konto vor. Nichts davon erreicht eine Börse — echtes Senden ist eine eigene Funktion mit eigenem Order-Gate und eigener Bestätigung.",
       "yourBots": "Deine Bots",
@@ -2917,7 +2913,6 @@
       "promoteFailed": "Der Bot konnte nicht erstellt werden.",
       "editFailed": "Der Bot konnte nicht aktualisiert werden.",
       "botChanged": "Dieser Bot wurde in einem anderen Tab geändert oder gelöscht. Lade ihn vor dem Bearbeiten neu.",
-      "account": "Das simulierte Konto",
       "orderRefusedPaperOff": "„{name}“ hat ausgelöst, aber nichts platziert: Paper-Trading ist ausgeschaltet.",
       "orderRefusedNoStop": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot braucht einen Stop, um eine Position zu dimensionieren.",
       "orderRefusedReduceOnly": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot, der nur eine Position schließt, kann noch nicht platziert werden.",

@@ -580,14 +580,6 @@ const SETTINGS_TABS: Entry[] = [
         placements: [tabPlacement("settings-rail", "settings", 10)],
     },
     {
-        id: "settings.automation",
-        parent: "settings",
-        labels: { label: "settings.tabs.automation" },
-        icon: "settings-automation",
-        opener: { kind: "tab", tabId: "automation" },
-        placements: [tabPlacement("settings-rail", "settings", 20)],
-    },
-    {
         id: "settings.chart",
         parent: "settings",
         labels: { label: "settings.tabs.chart" },
