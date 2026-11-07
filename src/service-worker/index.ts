@@ -45,6 +45,8 @@ const CACHE = `cache-${version}`;
 // `static/knowledge/` is not linked from `src/` at all, and its two file names
 // contain spaces, which `url.pathname` reports percent-encoded — so they were
 // cached under a key the fetch handler never looks up.
+// Matched with endsWith rather than equality: asset() prefixes the base path,
+// so with a base configured the assembled entry would not equal the literal.
 const NOT_PRECACHED = [
   "/og-image.jpg", // social preview, referenced from <meta> only
   "/twitter-image.jpg", // byte-identical to og-image.jpg
@@ -56,7 +58,7 @@ const NOT_PRECACHED = [
 const ASSETS: string[] = [
   ...immutable.map((entry) => asset(entry.path as AssetPath)), // the app itself
   ...assets.map((entry) => asset(entry.path)), // everything in `static`
-].filter((path) => !NOT_PRECACHED.includes(path));
+].filter((path) => !NOT_PRECACHED.some((skip) => path.endsWith(skip)));
 
 self.addEventListener("install", (event) => {
   // PA-07: cache assets one by one so a single failing request (flaky

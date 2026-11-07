@@ -31,17 +31,25 @@
 #
 # Why these two axes of the subset:
 #
-#   unicode-range — the app ships de and en only, so latin + latin-ext covers
-#                   every character either locale can render. The ranges are
-#                   the ones Google Fonts uses for the same two subsets.
-#   features      — ccmp/locl for correct locale forms, kern/liga/clig/calt for
-#                   normal text shaping, case for all-caps runs, tnum/zero for
-#                   the tabular numbers used in tables and price fields. The
-#                   stylistic sets (ss01-ss08, cv01-cv14, salt, aalt) are
-#                   dropped: nothing in src/ sets font-feature-settings or
-#                   font-variant-alternates, so no UI path can reach them.
-#                   Variable axes are kept — the @font-face weight ranges and
-#                   font-optical-sizing depend on them.
+#   unicode-range — latin + latin-ext, as Google Fonts defines them for these
+#                   two subsets, plus the symbols the UI actually renders in
+#                   text: arrows (→ ↔ ↗ ↳), comparisons (≤ ≥ ≈), marks
+#                   (✓ ✗ ✕ ❌ ★ ▲ ▶ ▼ ▸), the warning/bolt pair (⚠ ⚡), Σ, ₿,
+#                   ╱ and the lock. Those were in the original files and are
+#                   used by de.json/en.json and the .svelte sources; without
+#                   them the subset silently falls back to a system font for a
+#                   glyph the design already had. Emoji beyond that set are not
+#                   in these fonts and always fell back.
+#   features      — ccmp/locl for correct locale forms, mark/mkmk so combining
+#                   accents keep their position in decomposed text,
+#                   kern/liga/clig/calt for normal shaping, case for all-caps
+#                   runs, tnum/zero for the tabular numbers used in tables and
+#                   price fields. The stylistic sets (ss01-ss08, cv01-cv14,
+#                   salt, aalt) are dropped: nothing in src/ sets
+#                   font-feature-settings or font-variant-alternates, so no UI
+#                   path can reach them. Variable axes are kept — the
+#                   @font-face weight ranges and font-optical-sizing depend on
+#                   them.
 #
 # Nothing here is size-optimal by accident: re-measure and adjust the numbers in
 # the item if a font release changes the glyph set.
@@ -57,8 +65,8 @@ if ! command -v pyftsubset >/dev/null 2>&1; then
 fi
 
 # latin + latin-ext, as Google Fonts defines them for these two subsets.
-UNICODES="U+0000-00FF,U+0100-024F,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2000-206F,U+20A0-20AB,U+20AC,U+2113,U+2122,U+2191,U+2193,U+2212,U+2215,U+A720-A7FF,U+FEFF,U+FFFD"
-FEATURES="ccmp,locl,kern,liga,clig,calt,case,tnum,zero"
+UNICODES="U+0000-00FF,U+0100-024F,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2000-206F,U+20A0-20AB,U+20AC,U+2113,U+2122,U+2190-2197,U+21B3,U+2212,U+2215,U+2248,U+2264-2265,U+2571,U+25B2-25BE,U+2605,U+26A0-26A1,U+2713-2717,U+274C,U+03A3,U+20BF,U+1F512,U+A720-A7FF,U+FEFF,U+FFFD"
+FEATURES="ccmp,locl,mark,mkmk,kern,liga,clig,calt,case,tnum,zero"
 
 # Every face referenced by a @font-face in src/app.css. Keep the two lists in
 # step: a face added there without a line here ships no file and 404s at
@@ -80,15 +88,23 @@ FACES=(
     "Space_Grotesk/SpaceGrotesk-VariableFont_wght"
 )
 
+# Check every source before writing anything: a half-converted directory that
+# reports the mistake only at the end is a trap for the next reader.
 missing=0
+for face in "${FACES[@]}"; do
+    if [[ ! -f "$SRC/$face.ttf" ]]; then
+        echo "missing source: $SRC/$face.ttf" >&2
+        missing=$((missing + 1))
+    fi
+done
+if [[ "$missing" -gt 0 ]]; then
+    echo "$missing source file(s) missing under $SRC — nothing was written." >&2
+    exit 1
+fi
+
 total=0
 for face in "${FACES[@]}"; do
     src="$SRC/$face.ttf"
-    if [[ ! -f "$src" ]]; then
-        echo "missing source: $src" >&2
-        missing=$((missing + 1))
-        continue
-    fi
     dst="$OUT/$face.woff2"
     mkdir -p "$(dirname "$dst")"
     pyftsubset "$src" \
@@ -102,10 +118,22 @@ for face in "${FACES[@]}"; do
     printf '%7d  %s\n' "$size" "$dst"
 done
 
-if [[ "$missing" -gt 0 ]]; then
-    echo "$missing source file(s) missing under $SRC — nothing was deleted, fix the input and re-run." >&2
-    exit 1
-fi
+# A face removed from FACES must not keep its old file alive: it would still be
+# in static/ and still be precached. Only files under $OUT are pruned.
+stale=0
+while IFS= read -r -d '' existing; do
+    rel="${existing#"$OUT"/}"
+    rel="${rel%.woff2}"
+    keep=0
+    for face in "${FACES[@]}"; do
+        [[ "$face" == "$rel" ]] && { keep=1; break; }
+    done
+    if [[ "$keep" -eq 0 ]]; then
+        echo "pruning stale output: $existing" >&2
+        rm -f "$existing"
+        stale=$((stale + 1))
+    fi
+done < <(find "$OUT" -name '*.woff2' -print0)
 
 awk -v total="$total" -v faces="${#FACES[@]}" \
     'BEGIN { printf "\ntotal: %d bytes across %d faces (%.2f MiB)\n", total, faces, total / 1048576 }'

@@ -74,7 +74,7 @@ describe("service worker precache list (FEAT-0629)", () => {
       expect(existsSync(file), `${path} does not exist under static/`).toBe(true);
     }
     expect(source).toMatch(
-      /const ASSETS:[\s\S]*?\.filter\(\(path\) => !NOT_PRECACHED\.includes\(path\)\)/,
+      /const ASSETS:[\s\S]*?\.filter\(\(path\) => !NOT_PRECACHED\.some\(\(skip\) => path\.endsWith\(skip\)\)\)/,
     );
   });
 });

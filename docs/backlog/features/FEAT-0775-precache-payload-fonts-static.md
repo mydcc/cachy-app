@@ -2,7 +2,7 @@
 id: FEAT-0775
 title: Cut the service-worker precache payload — fonts and static files
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -95,32 +95,38 @@ the repository ships only the result, next to the unchanged `OFL.txt` and
 
 | Face | TTF | WOFF2 | |
 | --- | --- | --- | --- |
-| `Inter-Italic-VariableFont_opsz,wght` | 883 KiB | 128 KiB | −86% |
-| `Inter-VariableFont_opsz,wght` | 854 KiB | 116 KiB | −86% |
-| `SourceSans3-VariableFont_wght` | 627 KiB | 47 KiB | −92% |
-| `NunitoSans-VariableFont_YTLC,opsz,wdth,wght` | 556 KiB | 99 KiB | −82% |
-| `NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght` | 543 KiB | 107 KiB | −80% |
-| `IBMPlexSans-VariableFont_wdth,wght` | 520 KiB | 76 KiB | −85% |
-| `JetBrainsMono-VariableFont_wght` | 185 KiB | 43 KiB | −77% |
-| `SchibstedGrotesk-Italic-VariableFont_wght` | 178 KiB | 54 KiB | −70% |
+| `Inter-Italic-VariableFont_opsz,wght` | 883 KiB | 136 KiB | −85% |
+| `Inter-VariableFont_opsz,wght` | 854 KiB | 123 KiB | −86% |
+| `SourceSans3-VariableFont_wght` | 627 KiB | 53 KiB | −92% |
+| `NunitoSans-VariableFont_YTLC,opsz,wdth,wght` | 556 KiB | 102 KiB | −82% |
+| `NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght` | 543 KiB | 111 KiB | −80% |
+| `IBMPlexSans-VariableFont_wdth,wght` | 520 KiB | 80 KiB | −85% |
+| `JetBrainsMono-VariableFont_wght` | 185 KiB | 44 KiB | −76% |
+| `SchibstedGrotesk-Italic-VariableFont_wght` | 178 KiB | 57 KiB | −68% |
 | `RobotoMono-VariableFont_wght` | 177 KiB | 42 KiB | −76% |
-| `SchibstedGrotesk-VariableFont_wght` | 173 KiB | 50 KiB | −71% |
-| `Manrope-VariableFont_wght` | 163 KiB | 30 KiB | −82% |
-| `SpaceGrotesk-VariableFont_wght` | 131 KiB | 30 KiB | −77% |
-| `RedHatDisplay-Italic-VariableFont_wght` | 97 KiB | 36 KiB | −63% |
-| `RedHatDisplay-VariableFont_wght` | 95 KiB | 34 KiB | −64% |
+| `SchibstedGrotesk-VariableFont_wght` | 173 KiB | 53 KiB | −69% |
+| `Manrope-VariableFont_wght` | 163 KiB | 30 KiB | −81% |
+| `SpaceGrotesk-VariableFont_wght` | 131 KiB | 31 KiB | −76% |
+| `RedHatDisplay-Italic-VariableFont_wght` | 97 KiB | 36 KiB | −62% |
+| `RedHatDisplay-VariableFont_wght` | 95 KiB | 35 KiB | −63% |
 
-**6.44 MiB → 0.87 MiB.** The largest file went from 883 KiB to 128 KiB. All
+**6.44 MiB → 0.91 MiB.** The largest file went from 883 KiB to 136 KiB. All
 fourteen keep their variable axes, so the `@font-face` weight ranges and
 `font-optical-sizing` behave as before. The four unreferenced italics are
 deleted (1.32 MiB of bytes no browser ever requested).
 
-Subset: latin + latin-ext, plus the OpenType features a UI can reach — `ccmp`,
-`locl`, `kern`, `liga`, `clig`, `calt`, `case`, `tnum`, `zero`. The stylistic
-sets (`ss01`–`ss08`, `cv01`–`cv14`, `salt`, `aalt`) are dropped: nothing in
-`src/` sets `font-feature-settings` or `font-variant-alternates`, so no code
-path can request them. `tnum` stays because tables and price fields use
-`font-variant-numeric: tabular-nums`.
+Subset: latin + latin-ext, plus every symbol the UI renders as text — arrows
+(`→ ↔ ↗ ↳`), comparisons (`≤ ≥ ≈`), marks (`✓ ✗ ✕ ❌ ★ ▲ ▶ ▼ ▸`),
+`⚠ ⚡ Σ ₿ ╱` and the lock. Those were in the original files; leaving them out
+would push a glyph the design already had onto a system fallback. Emoji outside
+that set were never in these fonts and always fell back. The kept OpenType
+features are the ones a UI can reach: `ccmp`, `locl`, `mark`, `mkmk`, `kern`,
+`liga`, `clig`, `calt`, `case`, `tnum`, `zero`. The stylistic sets (`ss01`–`ss08`,
+`cv01`–`cv14`, `salt`, `aalt`) are dropped: nothing in `src/` sets
+`font-feature-settings` or `font-variant-alternates`, so no code path can
+request them. `tnum` stays because tables and price fields use
+`font-variant-numeric: tabular-nums`; `mark`/`mkmk` keep decomposed accents
+positioned.
 
 Precache, measured on the production build of 2026-11-07:
 
