@@ -2,7 +2,7 @@
 id: BUG-0797
 title: The deploy URL returns 404 while the artifact is being republished
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ci
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0797-artifact-download-retry
 ---
 
 # BUG-0797 — A deploy started during the publish window fails on a 404
@@ -61,28 +63,57 @@ Delete-then-create on a moving tag, plus a client that treats 404 as final.
 
 ## Fix
 
-Primary, small: make the download outlast the window.
+Landed: a `download_ci_artifact` helper in `deploy.sh` that waits out the
+window and classifies the failure.
+
+The card originally proposed the `--retry-all-errors` one-liner. It was not
+used, for two reasons: `curl --retry-all-errors` retries *every* error, so a
+401/403 (wrong token, private repo) would also sit for a minute before saying
+anything; and it needs curl ≥ 7.71, which turns a missing option on an older
+host into an immediate `exit 2`.
+
+The helper instead retries only transient answers — 404 (the publish window),
+429, 5xx and transport failures — and fails at once on anything else:
 
 ```bash
-curl -fL --retry 6 --retry-delay 10 --retry-all-errors \
-    --connect-timeout 20 --max-time 600 \
-    -o "$WORK_DIR_TMP/cachy-build.tar.gz" "$CI_ARTIFACT_URL"
+download_ci_artifact() {
+    local url="$1" out="$2" tag="$3"
+    local max_wait="${CI_DOWNLOAD_MAX_WAIT:-75}"
+    local delay="${CI_DOWNLOAD_DELAY:-10}"
+    local part="${out}.part"
+    ...
+    case "$code" in
+        404|429|5??) ;;  # publish window, rate limit, server-side hiccup
+        *) ... return 1 ;;
+    esac
+}
 ```
 
-`--retry-all-errors` is what makes a 404 retryable, and `--retry-delay 10` with
-6 attempts covers roughly a minute. Keep `--max-time 600` per attempt so a hung
-connection still fails.
+The wait budget is wall-clock (`CI_DOWNLOAD_MAX_WAIT`, default 75 s), not an
+attempt count, so one slow attempt cannot multiply the total. The body is
+written to `<out>.part` and renamed only after a complete 200, so an
+interrupted attempt can never be extracted as a valid archive.
 
-Alternative, larger: publish to a staging tag and swap the tag after the upload,
-so the download URL never points at nothing. Only worth it if the window causes
-real trouble; the retry above costs one line.
+Verification is committed: `scripts/test-artifact-download.mjs` extracts the
+function from `deploy.sh` and drives it against a local HTTP stub (`npm run
+test:deploy`, 23 assertions). It covers 404×2 → 200, persistent 404 inside the
+budget with tag/URL/status in the message, 403 failing on the first attempt,
+503×2 → 200, a refused connection being retried (a transport failure has no
+status code, so it must not be classified by one), and a delay larger than the
+budget still retrying. Run against the first version of the fix, four of those
+assertions fail — that is what pins them.
+
+The larger alternative — publish to a staging tag and swap the tag after the
+upload, so the URL never points at nothing — stays unused. It would trade this
+window for a different one inside the workflow, which is exactly what BUG-0796
+fixes.
 
 ## Acceptance criteria
 
-- [ ] A 404 on the artifact URL is retried for at least ~60 s in total
-- [ ] A genuinely missing artifact still fails with the current message, after
+- [x] A 404 on the artifact URL is retried for at least ~60 s in total
+- [x] A genuinely missing artifact still fails with the current message, after
       the retries rather than immediately
-- [ ] The failure text names the tag and the URL, so a real 404 from a wrong
+- [x] The failure text names the tag and the URL, so a real 404 from a wrong
       `CI_ARTIFACT_TAG` is not mistaken for the publish window
 
 ## Out of scope
