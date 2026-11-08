@@ -111,6 +111,8 @@ Do not delete code of unclear purpose. Leave copyright headers and metadata unto
 
 Gortex and jCodeMunch are the two required MCP servers for this project. **Both are required, not optional.** Every agent must use them. If one cannot answer, that is an integration failure to report — not a route to a workaround. (`opencode.json` also registers the `svelte` documentation server; it is useful, not mandatory.)
 
+**A server that will not start is an environment problem, not a config one.** MCP servers are spawned by the OpenCode *server* process, not by your shell, so they inherit that service's `PATH` — under systemd often only `/usr/local/bin:/usr/bin`. `NotFound: ChildProcess.spawn` for `gortex`, `svelte-mcp` or `jcodemunch-mcp` means the binary is missing *there*. Fix the launch environment (a drop-in with `Environment="PATH=%h/.local/bin:%h/.npm-global/bin:/usr/local/bin:/usr/bin"`, then `daemon-reload` and restart) and keep bare commands in `opencode.json`: an absolute path only moves the failure to every other machine and publishes a contributor's home layout (#4569). Verify by reading `PATH` from `/proc/<server-pid>/environ`, not from your own shell.
+
 ### Gortex
 Use for all code navigation, exploration, impact analysis, and graph queries.
 - **Session start:** call `gortex__onboarding` (or `/gortex-guide`) to orient to the indexed codebase.
