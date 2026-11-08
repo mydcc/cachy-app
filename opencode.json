@@ -22,7 +22,7 @@
   "mcp": {
     "gortex": {
       "command": [
-        "/home/pat/.local/bin/gortex",
+        "gortex",
         "mcp",
         "--proxy"
       ],
