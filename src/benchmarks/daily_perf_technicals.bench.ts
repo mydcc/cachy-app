@@ -58,7 +58,7 @@ const settings = {
     },
     // ... add large unused config
     ichimoku: { conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52, displacement: 26 },
-    pivots: { type: "classic", viewMode: "integrated" },
+    pivots: { type: "classic" },
     atr: { length: 14 },
     bollingerBands: { length: 20, stdDev: 2 },
     choppiness: { length: 14 },

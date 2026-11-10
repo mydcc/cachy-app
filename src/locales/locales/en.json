@@ -2022,8 +2022,6 @@
       "atrStopBuy": "ATR Stop (Buy)",
       "vpPoc": "VP (POC)",
       "vaHighLow": "VA High/Low",
-      "marketStructureHigh": "Market Structure High",
-      "marketStructureLow": "Market Structure Low",
       "customTimeframePlaceholder": "e.g. 3m, 1W",
       "subTabLabel": "Indicator sections"
     },

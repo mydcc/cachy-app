@@ -1776,8 +1776,6 @@ export type TranslationKey =
   | "settings.technicals.atrStopBuy"
   | "settings.technicals.vpPoc"
   | "settings.technicals.vaHighLow"
-  | "settings.technicals.marketStructureHigh"
-  | "settings.technicals.marketStructureLow"
   | "settings.technicals.customTimeframePlaceholder"
   | "settings.technicals.subTabLabel"
   | "settings.candlestickPatterns.title"

@@ -76,7 +76,7 @@ const mockSettings = {
     vwma: { length: 20 },
     hma: { length: 9 },
     ichimoku: { conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52, displacement: 26 },
-    pivots: { type: 'classic', viewMode: 'integrated' },
+    pivots: { type: 'classic' },
     atr: { length: 14 },
     choppiness: { length: 14 },
     superTrend: { factor: 3, period: 10 },

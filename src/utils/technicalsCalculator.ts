@@ -102,7 +102,7 @@ export function calculateIndicatorsFromArrays(
   const currentPrice = closesNum[closesNum.length - 1];
   const oscillators: IndicatorResult[] = [];
   const divergences: DivergenceItem[] = [];
-  const advancedInfo: NonNullable<TechnicalsData["advanced"]> = { marketStructure: { highs: [], lows: [] } };
+  const advancedInfo: NonNullable<TechnicalsData["advanced"]> = {};
 
   const shouldCalculate = (key: keyof IndicatorSettings): boolean => {
     if (!settings) return true;

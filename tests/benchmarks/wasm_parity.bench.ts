@@ -111,7 +111,7 @@ function buildTsSettings(): IndicatorSettings {
     s.mfi = { enabled: true, length: 14 };
     s.vwap = { enabled: true, length: 0, anchor: 'session' };
     s.parabolicSar = { enabled: true, start: 0.02, increment: 0.02, max: 0.2 };
-    s.pivots = { enabled: true, type: 'classic', viewMode: 'integrated' };
+    s.pivots = { enabled: true, type: 'classic' };
     s.bollingerBands = { enabled: true, length: 20, stdDev: 2, source: 'close' };
     // Disable everything not in SETTINGS.
     s.stochRsi.enabled = false;
