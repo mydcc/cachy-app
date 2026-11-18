@@ -21,6 +21,10 @@ import { browser } from "$app/env";
 import { _ } from "../locales/i18n";
 import { migrateAlertsToRuleDocuments } from "../services/alertEngine/migrateAlertsToRules";
 import {
+    clearBotSubmissions,
+    notifyBotSubmissions,
+} from "../services/alertEngine/botSubmissionBus";
+import {
     reconcileStoredRules,
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
@@ -647,11 +651,6 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // Bots ride the same sink the alerts do, so they load with it rather than
     // at module scope: a session with no bot never pays for the order path.
     const { closeAtAnchor, livePriceAt, withBotOrders } = await import("../services/alertEngine/botOrders");
-    // FEAT-0807 — the lifecycle projection reads the sink's in-flight guard
-    // through the observer below. Loaded here, beside the order path, for
-    // the same reason — and dynamically so neither store imports the other
-    // at module scope.
-    const { botsState } = await import("./botsState.svelte");
 
     // FEAT-0406: one read, and every later tick re-decides from its own.
     const ready = ruleSchema.isReady();
@@ -670,7 +669,7 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         alertState.engineStatus = "failed";
         // FEAT-0807 — no new sink will observe the guard, so the projection
         // must not keep whatever the last one left.
-        botsState.setSubmitting(new Set());
+        clearBotSubmissions();
         return;
     }
 
@@ -686,9 +685,12 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // the observer checks the generation, so a retired sink settling late
     // cannot overwrite it. Shadow mode arms the ledger sink — an order is a
     // consequence, even a simulated one — so nothing observes the guard
-    // and the projection is reset instead of left stale.
+    // and the projection is reset instead of left stale. The notify channel
+    // carries both across: the wiring may not import the projection store,
+    // because that edge would grow the cycle the architecture ratchet
+    // freezes.
     const botsGeneration = botsSinkGeneration;
-    if (mode !== "live") botsState.setSubmitting(new Set());
+    if (mode !== "live") clearBotSubmissions();
 
     disarmRuleLoop = startRuleEvaluationLoop(
         mode === "live"
@@ -698,7 +700,7 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
                   reportBotOrderRefusal,
                   (ids) => {
                       if (botsGeneration !== botsSinkGeneration) return;
-                      botsState.setSubmitting(ids);
+                      notifyBotSubmissions(ids);
                   },
               )
             : ledgerSink,

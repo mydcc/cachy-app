@@ -39,6 +39,7 @@
 import type { RuleDocument } from "../lib/rules/types";
 import { readBots } from "../services/alertEngine/botStore";
 import { readRuleStates } from "../services/alertEngine/ruleStateStore";
+import { setBotSubmissionsListener } from "../services/alertEngine/botSubmissionBus";
 import {
     deriveBotState,
     ownedSlots,
@@ -68,6 +69,15 @@ function readBotsOrRefusal(): { bots: RuleDocument[]; unreadable: boolean } {
 }
 
 class BotsStateManager {
+    constructor() {
+        // The engine wiring notifies through the submission channel, and
+        // the store subscribes — the division the evaluation loop uses for
+        // its panel-side readers. A direct import from the wiring would
+        // grow the dependency cycle the architecture ratchet freezes, so
+        // the channel is the only edge either side holds.
+        setBotSubmissionsListener((ids) => this.setSubmitting(ids));
+    }
+
     /**
      * The order sink's in-flight snapshot (FEAT-0488's guard), observed.
      * Copied on the way in — the set belongs to the sink, and a live
