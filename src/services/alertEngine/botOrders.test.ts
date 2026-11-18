@@ -51,7 +51,7 @@ import {
   withBotOrders,
   type BotOrderEnvironment,
 } from "./botOrders";
-import type { RuleFiring } from "./ruleEvaluationLoop";
+import type { FiringSink, RuleFiring } from "./ruleEvaluationLoop";
 import { BOT_PAPER_ONLY_MESSAGE_KEY } from "../orderGate";
 
 // BUG-0491: the composition below drives the real gate, so the real core
@@ -827,5 +827,63 @@ describe("no second order on the same candle after a reload — BUG-0491", () =>
     expectFiring(later);
     sink({ rule, verdict: later, anchorMs: next.anchorMs });
     await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("FEAT-0807 — the in-flight observer", () => {
+  function placementResult() {
+    return {
+      entryPlaced: true,
+      stopLoss: "attached" as const,
+      takeProfit: "none" as const,
+      unprotected: false,
+    };
+  }
+
+  it("notifies with the empty set at sink creation, so a re-init resets the projection", () => {
+    const inner: FiringSink = vi.fn();
+    const onInFlight = vi.fn();
+    withBotOrders(inner, environment().env, vi.fn(), onInFlight);
+
+    expect(onInFlight).toHaveBeenCalledTimes(1);
+    expect(onInFlight.mock.calls[0][0]).toEqual(new Set());
+  });
+
+  it("notifies with the rule id while the submission travels, and again when it settles", async () => {
+    const result = placementResult();
+    let release: () => void = () => {};
+    const place = vi.fn(
+      () =>
+        new Promise<typeof result>((resolve) => {
+          release = () => resolve(result);
+        }),
+    );
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const onInFlight = vi.fn();
+    const sink = withBotOrders(vi.fn() as unknown as FiringSink, env, vi.fn(), onInFlight);
+
+    sink(firingOf(botDocument()));
+    expect(onInFlight.mock.calls.at(-1)?.[0]).toEqual(new Set(["bot-1"]));
+
+    release();
+    await settle();
+    expect(onInFlight.mock.calls.at(-1)?.[0]).toEqual(new Set());
+  });
+
+  it("releases the slot — and notifies — even when the order path throws", async () => {
+    const place = vi.fn(async () => {
+      throw new Error("gate refused");
+    });
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const onInFlight = vi.fn();
+    const sink = withBotOrders(vi.fn() as unknown as FiringSink, env, vi.fn(), onInFlight);
+
+    sink(firingOf(botDocument()));
+    await settle();
+
+    // A throw that leaked the slot would leave a phantom "submitting" in
+    // the projection for the rest of the session — FEAT-0488's failure
+    // direction, now observed instead of assumed.
+    expect(onInFlight.mock.calls.at(-1)?.[0]).toEqual(new Set());
   });
 });

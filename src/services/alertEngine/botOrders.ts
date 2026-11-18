@@ -405,6 +405,14 @@ export function withBotOrders(
   inner: FiringSink,
   env: BotOrderEnvironment,
   onRefusal: (firing: RuleFiring, refusal: BotOrderRefusal) => void = logRefusal,
+  /**
+   * FEAT-0807 — receives the in-flight ids after every change and once at
+   * sink creation, so a fresh engine resets whatever the previous one left
+   * in the projection. The guard stays owned by this closure; the observer
+   * only ever sees it. Optional so every pre-0807 caller keeps its exact
+   * shape.
+   */
+  onInFlight?: (ids: ReadonlySet<string>) => void,
 ): FiringSink {
   const reported = new Set<string>();
 
@@ -434,6 +442,7 @@ export function withBotOrders(
    * it — the failure direction is the safe one.
    */
   const inFlight = new Set<string>();
+  onInFlight?.(inFlight);
 
   return (firing) => {
     inner(firing);
@@ -460,6 +469,7 @@ export function withBotOrders(
       return;
     }
     inFlight.add(firing.rule.id);
+    onInFlight?.(inFlight);
 
     void submitBotOrder(firing, env)
       .then((refusal) => {
@@ -477,6 +487,7 @@ export function withBotOrders(
       })
       .finally(() => {
         inFlight.delete(firing.rule.id);
+        onInFlight?.(inFlight);
       });
   };
 }
