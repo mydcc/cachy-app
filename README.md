@@ -1,4 +1,4 @@
-# Cachy - Position Size & Risk Management
+# Cachy - Position Sizing, Risk Management & Your Own Bots
 
 [![Version](https://img.shields.io/github/v/release/mydcc/cachy-app?style=for-the-badge&color=blue)](https://github.com/mydcc/cachy-app/releases)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
 
-Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and supports real-time market data from Bitunix and Bitget.
+Cachy is a comprehensive web application for crypto traders: a position-size calculator, a risk engine, a trade journal, live market data from Bitunix and Bitget — and a local rule engine through which a trader builds his own bots, from a plain alarm to a strategy with exits. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and every bot order passes the same verification gate as a manual click.
 
 ![Cachy Dashboard](docs/dashboard-preview.png)
 
@@ -35,11 +35,11 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Auto-Balancing:** Percentage distribution automatically adjusts to always total 100%.
 - **Detailed Metrics:** Calculates profit, R/R (Risk/Reward), and net return per target and in total.
 
-### 🔔 Super-Alerts & Automation
+### 🔔 Super-Alerts, Bots & Automation
 
 - **Super-Alert side panel:** price, indicator and candlestick-pattern alerts built on one rule language, evaluated on candle close by a local rule engine (Rust/WASM) — no server ever sees the definition. See [`docs/alert-system.md`](docs/alert-system.md).
 - **Alert entry points:** arm from the panel, from a right-click on the chart, from indicator settings, or bind an alert to a persistent chart drawing.
-- **Automation tab:** promote an armed alert to a bot without rewriting it; simulated bots trade the paper account through the same order gate as a manual click. Live sending stays off by design — see [`docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md`](docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md).
+- **Alerts & Bots (control center):** promote an armed alert to a bot without rewriting it; simulated bots trade the paper account through the same order gate as a manual click — mandatory stop, precision limits and the kill switch included ([`docs/bot-parity.md`](docs/bot-parity.md)). The direction is any bot the trader wants, with the complete overview including bots that have not yet acted. Live sending stays off by design — see [`docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md`](docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md).
 - **Notifications:** in-app, browser and sound built in; Email, Discord and Telegram are opt-in with your own credentials.
 
 ### 📓 Integrated Journal, Notes & Presets

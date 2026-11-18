@@ -2,7 +2,7 @@
 id: FEAT-0826
 title: Overhaul the public documentation for the bot era
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -69,20 +69,20 @@ material is distilled, not quoted by URL.
 
 ## Acceptance criteria
 
-- [ ] VISION/whitepaper state the bot-era goal in the agreed wording (EN,
+- [x] VISION/whitepaper state the bot-era goal in the agreed wording (EN,
       with the German locale consistent where translated).
-- [ ] No public page still claims Cachy is *only* a position-size and
+- [x] No public page still claims Cachy is *only* a position-size and
       risk tool; the calculator/risk story remains intact alongside.
-- [ ] Public pages reference the existing
+- [x] Public pages reference the existing
       ["Bot vs. order" section](../../alert-system.md#bot-vs-order-where-the-trigger-order-metaphor-ends)
       of `docs/alert-system.md` instead of re-defining the boundary, and the
       alert/bot vocabulary is used consistently across docs.
-- [ ] The manual-vs-bot parity matrix exists in the docs and is linked from
+- [x] The manual-vs-bot parity matrix exists in the docs and is linked from
       the bot editor's documentation (FEAT-0811).
-- [ ] `docs/MILESTONES.md`/ROADMAP list the bot epic and its milestones.
-- [ ] Zero performance or profitability claims in the touched pages;
+- [x] `docs/MILESTONES.md`/ROADMAP list the bot epic and its milestones.
+- [x] Zero performance or profitability claims in the touched pages;
       template citations follow FEAT-0818's format.
-- [ ] Links resolve (`npm run docs:links` green).
+- [x] Links resolve (`npm run docs:links` green).
 
 ## Out of scope
 

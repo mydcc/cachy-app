@@ -224,7 +224,9 @@ blendet das Panel ein/aus.
 ### Über dieses Handbuch hinaus
 
 Paper Trading (Einstellungen → Handel & Markt) simuliert Orders ohne echtes
-Geld. Preis-Alarme melden Kursbedingungen. Die Academy bietet Quizze zu
+Geld. Preis-Alarme melden Kursbedingungen — und ein bewaffneter Alarm lässt
+sich zu einem Bot promovieren, der über dasselbe Order-Gate wie ein manueller
+Klick das Paper-Konto handelt. Die Academy bietet Quizze zu
 Candlestick-Mustern. News unterstützen bis zu 5 eigene RSS-Feeds.
 
 ---

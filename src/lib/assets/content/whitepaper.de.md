@@ -1,13 +1,19 @@
 # Cachy Technisches Whitepaper
 
-**Letzte Aktualisierung:** September 2026
+**Letzte Aktualisierung:** November 2026
 **Abgleich mit dem Code:** Architektur-, Mathematik- und Sicherheitskapitel wurden gegen die Implementierung geprüft, das Rechenbeispiel in Kapitel 3 ist durch einen ausführbaren Test abgedeckt (`src/lib/whitepaper-claims.test.ts`). Datei-, Pfad- und Befehlsverweise unten werden best-effort gepflegt; bekannte Abweichungen sind in `docs/REPO-AUDIT.md`, Abschnitt 6, festgehalten.
 
 ---
 
 ## Executive Summary
 
-Cachy ist ein hochleistungsfähiger, datenschutzorientierter Krypto-Trading-Begleiter, der entwickelt wurde, um die Lücke zwischen professionellen Trading-Terminals und benutzerfreundlichen Portfolio-Trackern zu schließen. Im Gegensatz zu herkömmlichen Cloud-basierten Plattformen, die sensible Benutzerdaten (API-Schlüssel, Handelshistorie) auf zentralen Servern speichern, setzt Cachy auf eine **Local-First**-Architektur. Dies stellt sicher, dass der Benutzer die absolute Kontrolle über seine Daten behält, während er von Analysen auf institutionellem Niveau, Echtzeit-Risikomanagement und nahtloser Börsenintegration profitiert.
+Cachy ist ein datenschutzorientierter, local-first Krypto-Trading-Begleiter, der entwickelt wurde, um die Lücke zwischen professionellen Trading-Terminals und benutzerfreundlichen Portfolio-Trackern zu schließen. Im Gegensatz zu herkömmlichen Cloud-basierten Plattformen, die sensible Benutzerdaten (API-Schlüssel, Handelshistorie) auf zentralen Servern speichern, setzt Cachy auf eine **Local-First**-Architektur. Dies stellt sicher, dass der Benutzer die absolute Kontrolle über seine Daten behält, während er von Analysen auf institutionellem Niveau, Echtzeit-Risikomanagement und nahtloser Börsenintegration profitiert.
+
+Cachy ist nicht mehr ausschließlich Positionsgrößen-Rechner und Risikomanager. Derselbe Local-First-Kern trägt inzwischen eine Regel-Engine, über die der Trader seine eigenen Bots baut:
+
+> Der Trader kann **jeden Bot erstellen, den er will** — von einem simplen Alarm bis zu einer Strategie mit eigenen Exits. Er behält die **vollständige Übersicht** über alles Laufende, einschließlich der Bots, die noch nicht gehandelt haben, und kann **jede laufende Strategie jederzeit ändern, ohne den Track Record zu verlieren**.
+
+Ein Bot ist die eigene Regel des Traders, von einer Person bewaffnet und auf dem Gerät ausgewertet — niemals ein Signal, das Cachy verkauft.
 
 Die Plattform basiert auf einem modernen, reaktiven Tech-Stack (SvelteKit, TailwindCSS, WebSocket), um ein "Desktop-Klasse"-Erlebnis im Browser zu bieten. Sie priorisiert **Kapitalschutz ("Money First")**, **Benutzererfahrung ("User First")** und **Datensouveränität ("Community First")**.
 
@@ -55,6 +61,20 @@ In einer Ära von Datenlecks bezieht Cachy eine radikale Position: **Wir wollen 
 - **Keine Benutzerdatenbank**: Es gibt kein "Registrieren"-Formular. Keine E-Mail-Sammlung. Keine Passwortdatenbank, die gehackt werden kann.
 - **Lokaler Speicher**: Alle Einstellungen, Handelsjournale und API-Schlüssel werden verschlüsselt oder roh (nach Wahl des Benutzers) im \`localStorage\` des Browsers gespeichert.
 - **Transparenter Code**: Die Codebasis ist zur Inspektion offen. Standard-Nutzungsanalysen sind per Default aktiviert und lassen sich unter Einstellungen → System → Performance („Nutzungsstatistiken") abschalten.
+
+### Die Bot-Ära: Deine eigenen Bots, lokal
+
+Die nächste Stufe von Cachy, mit dem Product Owner abgestimmt. Drei Tradertypen messen sie, und alle drei sind gleichberechtigt:
+
+- **Der Alarm-Trader** bewaffnet einen Alarm und will, dass er meldet — niemals handelt.
+- **Der Promoter** startet mit dem Alarm und lässt später eine abgeleitete Kopie handeln — als simulierter Bot auf dem Paper-Konto — wenn der Alarm sich bewährt hat.
+- **Der Strategist** schreibt den Bot direkt: Einstiegsbedingungen, Größe, Stop, Exits. Kein Umweg über einen Alarm.
+
+Was ein Bot ist, in einem Satz: eine Regel, die der Trader geschrieben hat — Daten, beim Einlesen validiert, niemals ausführbarer Code (`docs/adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md`) — von einer Person bewaffnet, lokal auf dem Gerät ausgewertet, standardmäßig auf Kerzenschluss. Ein Bot handelt heute ausschließlich das Paper-Konto, und seine Order durchläuft dasselbe Verifikations-Gate wie ein manueller Klick (`docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md`): ein Pflicht-Stop, die Präzisionsgrenzen der Börse, die harten Risikolimits des Kontos, der Kill-Schalter. Die Schutz-Parität zwischen dem manuellen Trade-Formular und Bots wird in `docs/bot-parity.md` nachgehalten.
+
+Eine Anmerkung zur Begrifflichkeit, weil sie eine kostspielige Erwartung verhindert: Ein wartender Bot **verhält** sich wie eine liegende bedingte Order — aber er **ist keine Order**. Wo diese Metapher endet, ist an genau einem Ort dokumentiert: `docs/alert-system.md`, Abschnitt „Bot vs. order".
+
+Cachy macht keinerlei Performance- oder Profitabilitätsaussage über Bots, Templates oder Strategien. Ownership (ein Bot besitzt die Position, die er eröffnet), Rekurrenz (wie oft ein Bot handeln darf — mit Limits) und Versionierung (eine laufende Strategie ändern, ohne den Track Record zu verlieren) sind als Bot-Epic in Lieferung — geplante Fähigkeiten, kein ausgeliefertes Verhalten.
 
 ---
 
@@ -557,6 +577,21 @@ const decrypted = await cryptoService.decrypt(blob, userPassword);
 ## 7. Skalierbarkeit & Zukunfts-Roadmap
 
 Während das aktuelle Local-First-Modell für einzelne Trader robust ist, umfasst die Roadmap die Skalierung zur Unterstützung von Teams und institutionellen Anforderungen.
+
+### Das Bot-System: Von bedingten Orders zu Strategien
+
+_Ziel: Der Trader baut seinen eigenen Bot — lokal, mit Pflicht-Stop und genau einer Ausführungs-Gate — und Cachy bleibt, was es ist: local-first, verifizierbar, still über Performance._
+
+Der heute ausgelieferte Stand: Ein bewaffneter Alarm lässt sich zu einem simulierten Bot promovieren, der über dasselbe Order-Gate wie ein manueller Klick das Paper-Konto handelt. In Lieferung als Bot-Epic (`docs/backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md`):
+
+- **Direkte Erstellung** — ein Bot wird im Editor geschrieben, nicht nur von einem Alarm promoted.
+- **Exits** — Take-Profit und Exit-Bedingungen als Teil der Strategie, ausgeführt über dasselbe Gate, ausschließlich risikoreduzierend.
+- **Auslöse-Regeln mit Limits pro Bot** und die vollständige Übersicht, einschließlich der Bots, die noch nicht gehandelt haben.
+- **Reichere Bedingungen** — verschachtelte Gruppen, Veto-Bedingungen mit Audit-Trail, Volatilitäts- und Session-Kontext.
+- **Kuratierte, zitierte Strategie-Templates** und User-Templates mit Export und Import.
+- **Ein Grid-Modus auf dem Paper-Konto**, mit den Budget- und Stop-Out-Regeln, die ein Grid braucht.
+
+Live-Versand ist nicht Teil dieses Plans: Ein Bot handelt das simulierte Konto, und jeder Schritt Richtung Live-Ausführung ist eine eigene Entscheidung mit eigenen Schutzmaßnahmen (siehe `docs/MILESTONES.md`, M9). Backtesting ist eine offene Idee, kein versprochenes Feature.
 
 ### Phase 2: Hintergrund-Alarme auf Android
 
