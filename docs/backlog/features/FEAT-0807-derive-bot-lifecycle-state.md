@@ -2,7 +2,7 @@
 id: FEAT-0807
 title: Derive bot lifecycle state from the rule and the paper book
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [FEAT-0806]
+assignee: opencode
+branch: feature/feat-0807-derive-bot-lifecycle
 parent: FEAT-0805
 size: M
 estimate: 5
