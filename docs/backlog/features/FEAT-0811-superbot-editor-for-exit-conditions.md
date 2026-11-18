@@ -110,6 +110,6 @@ protection cannot ship without its bot equivalent.
 - [`FEAT-0810`](FEAT-0810-execute-bot-exits-through-the-order-gate.md)
 - [`FEAT-0822`](FEAT-0822-bot-firing-policy-and-guards.md)
 - [`FEAT-0823`](FEAT-0823-confirmation-candle-as-an-entry-trigger-mode.md)
-- [`FEAT-0826`](FEAT-0826-overhaul-the-public-documentation-for-the-bot-era.md) — the parity matrix lives in the docs.
+- [`FEAT-0826`](FEAT-0826-overhaul-the-public-documentation-for-the-bot-era.md) — the parity matrix lives in [`docs/bot-parity.md`](../../bot-parity.md).
 - Code: `src/components/alerts/bots/BotIntentEditor.svelte`,
   `src/components/alerts/tabs/*`

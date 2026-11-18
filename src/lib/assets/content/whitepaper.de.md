@@ -64,11 +64,11 @@ In einer Ära von Datenlecks bezieht Cachy eine radikale Position: **Wir wollen 
 
 ### Die Bot-Ära: Deine eigenen Bots, lokal
 
-Die nächste Stufe von Cachy, mit dem Product Owner abgestimmt. Drei Tradertypen messen sie, und alle drei sind gleichberechtigt:
+Die Richtung des Bot-Epics (`docs/backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md`), jetzt in Lieferung — der Plan behandelt alle drei Tradertypen als gleichberechtigt:
 
-- **Der Alarm-Trader** bewaffnet einen Alarm und will, dass er meldet — niemals handelt.
-- **Der Promoter** startet mit dem Alarm und lässt später eine abgeleitete Kopie handeln — als simulierter Bot auf dem Paper-Konto — wenn der Alarm sich bewährt hat.
-- **Der Strategist** schreibt den Bot direkt: Einstiegsbedingungen, Größe, Stop, Exits. Kein Umweg über einen Alarm.
+- **Der Alarm-Trader** bewaffnet einen Alarm und will, dass er meldet — niemals handelt (ausgeliefert).
+- **Der Promoter** startet mit dem Alarm und lässt später eine abgeleitete Kopie handeln — als simulierter Bot auf dem Paper-Konto —, wenn der Alarm sich bewährt hat (ausgeliefert).
+- **Der Strategist** schreibt den Bot direkt: Einstiegsbedingungen, Größe, Stop, Exits — kein Umweg über einen Alarm (geplant: direkte Erstellung und Exits sind Teil der Lieferung des Epics, `FEAT-0811`, `FEAT-0809`/`FEAT-0810`).
 
 Was ein Bot ist, in einem Satz: eine Regel, die der Trader geschrieben hat — Daten, beim Einlesen validiert, niemals ausführbarer Code (`docs/adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md`) — von einer Person bewaffnet, lokal auf dem Gerät ausgewertet, standardmäßig auf Kerzenschluss. Ein Bot handelt heute ausschließlich das Paper-Konto, und seine Order durchläuft dasselbe Verifikations-Gate wie ein manueller Klick (`docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md`): ein Pflicht-Stop, die Präzisionsgrenzen der Börse, die harten Risikolimits des Kontos, der Kill-Schalter. Die Schutz-Parität zwischen dem manuellen Trade-Formular und Bots wird in `docs/bot-parity.md` nachgehalten.
 

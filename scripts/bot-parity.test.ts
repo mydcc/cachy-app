@@ -35,12 +35,21 @@ const DOC_PATH = "docs/bot-parity.md";
 const VOCABULARY_ANCHOR =
   "alert-system.md#bot-vs-order-where-the-trigger-order-metaphor-ends";
 
-/** The four protections FEAT-0811 §4 names as the minimum parity set. */
-const REQUIRED_PROTECTIONS = [
-  "stop-loss",
-  "take-profit",
+/**
+ * Every protection the matrix has committed to answer, by row name. The
+ * first four are the ones FEAT-0811 §4 names; the rest are rows this
+ * document has added and must keep answering. Pinning the full set is what
+ * makes "parity cannot silently erode" true: a guard that only checks a
+ * minimum of four rows does not even see a deleted row.
+ */
+const EXPECTED_PROTECTIONS = [
+  "auto stop-loss",
+  "auto take-profit",
   "size basis",
-  "precision",
+  "precision limits",
+  "pre-flight verification",
+  "hard risk limits & kill switch",
+  "confirmation before acting",
 ] as const;
 
 interface MatrixRow {
@@ -101,18 +110,18 @@ function parseMatrix(text: string): MatrixRow[] {
 }
 
 describe("docs/bot-parity.md — the manual-vs-bot protection parity matrix", () => {
-  it("lists the four protections FEAT-0811 names as the minimum set", () => {
+  it("answers the full committed protection set, row by row", () => {
     const rows = parseMatrix(readDoc());
-    expect(rows.length, `${DOC_PATH} must contain at least the four required rows`).toBeGreaterThanOrEqual(
-      REQUIRED_PROTECTIONS.length,
+    expect(rows.length, `${DOC_PATH} must contain at least the committed rows`).toBeGreaterThanOrEqual(
+      EXPECTED_PROTECTIONS.length,
     );
-    for (const protection of REQUIRED_PROTECTIONS) {
+    for (const protection of EXPECTED_PROTECTIONS) {
       const found = rows.some((row) =>
         row.protection.toLowerCase().includes(protection),
       );
       expect(
         found,
-        `${DOC_PATH} is missing the "${protection}" row — FEAT-0811 §4 names it as a protection the bot path must answer.`,
+        `${DOC_PATH} is missing the "${protection}" row — deleting a protection row is exactly the silent erosion this guard exists to stop.`,
       ).toBe(true);
     }
   });

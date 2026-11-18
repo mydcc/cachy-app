@@ -64,11 +64,11 @@ In an era of data breaches, Cachy takes a radical stance: **We don't want your d
 
 ### The Bot Era: Your Own Bots, Locally
 
-The next stage of Cachy, agreed with the product owner. Three kinds of trader measure it, and all three are first-class:
+The direction of the bot epic (`docs/backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md`), in delivery now — the plan treats all three of these traders as first-class:
 
-- **The alarm trader** arms an alert and wants it to announce, never act.
-- **The promoter** starts with the alarm, then lets a derived copy act — as a simulated bot on the paper account — once the alarm has proven itself.
-- **The strategist** writes the bot directly: entry conditions, size, stop, exits. No detour through an alert.
+- **The alert trader** arms an alert and wants it to announce, never act (shipped).
+- **The promoter** starts with the alert, then lets a derived copy act — as a simulated bot on the paper account — once the alert has proven itself (shipped).
+- **The strategist** writes the bot directly: entry conditions, size, stop, exits — no detour through an alert (planned: direct creation and exits are part of the epic's delivery, `FEAT-0811`, `FEAT-0809`/`FEAT-0810`).
 
 What a bot is, in one sentence: a rule the trader wrote — data, validated on the way in, never executable code (`docs/adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md`) — armed by a person, evaluated locally on the device, on candle close by default. A bot today trades the paper account only, and its order passes through the same verification gate as a manual click (`docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md`): a mandatory stop, the venue's precision limits, the account's hard risk limits, the kill switch. The protection parity between the manual trade form and bots is tracked in `docs/bot-parity.md`.
 

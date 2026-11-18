@@ -1336,9 +1336,9 @@
     "staleQuoteRefused": "{symbol} ohne Preis übernommen: Der Kurs ist veraltet. Der Rechner behält den bisherigen Einstiegspreis."
   },
   "seo": {
-    "title": "Cachy - Positionsgröße & Risikomanagement",
-    "pageTitle": "Cachy - Positionsgröße & Risikomanagement",
-    "description": "Cachy ist ein umfassender Trading-Rechner für Positionsgrößenbestimmung, Risikomanagement und Take-Profit-Ziele. Optimiere deine Trades mit Echtzeitberechnungen und visueller Analyse.",
+    "title": "Cachy - Positionsgrößen, Risikomanagement & deine eigenen Bots",
+    "pageTitle": "Cachy - Positionsgrößen, Risikomanagement & deine eigenen Bots",
+    "description": "Cachy ist eine Local-First-App für Krypto-Trading: Positionsgrößen, Risikomanagement, Trading-Journal, Live-Marktdaten — und Bots, die du selbst baust, von einem simplen Alarm bis zu einem simulierten Einstieg mit Pflicht-Stop. Strategie-Exits sind geplant.",
     "keywords": "Trading Rechner, Positionsgröße, Risikomanagement, Take Profit, Krypto Trading, Forex Trading, Aktien Trading, Trading Tools, Finanzrechner, Trade Optimierer"
   },
   "languages": {

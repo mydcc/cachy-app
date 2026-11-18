@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
 
-Cachy is a comprehensive web application for crypto traders: a position-size calculator, a risk engine, a trade journal, live market data from Bitunix and Bitget — and a local rule engine through which a trader builds his own bots, from a plain alarm to a strategy with exits. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and every bot order passes the same verification gate as a manual click.
+Cachy is a comprehensive web application for crypto traders: a position-size calculator, a risk engine, a trade journal, live market data from Bitunix and Bitget — and a local rule engine through which the trader builds his own bots, from a plain alert to a simulated entry with a mandatory stop. Strategy exits are the next step on the roadmap ([`docs/ROADMAP.md`](docs/ROADMAP.md), Release 1.7+). It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and every bot order passes the same verification gate as a manual click.
 
 ![Cachy Dashboard](docs/dashboard-preview.png)
 
