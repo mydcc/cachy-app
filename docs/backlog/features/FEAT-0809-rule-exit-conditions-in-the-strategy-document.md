@@ -2,7 +2,7 @@
 id: FEAT-0809
 title: Add exit conditions and a take-profit distance to the strategy document
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: ADR-0026
 depends_on: [FEAT-0806]
+assignee: opencode
+branch: feature/feat-0809-exit-conditions-and-take-profit
 parent: FEAT-0805
 size: L
 estimate: 8
