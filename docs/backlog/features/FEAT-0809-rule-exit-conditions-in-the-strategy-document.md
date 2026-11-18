@@ -67,12 +67,14 @@ Rules:
   so it cannot go stale between arming and filling. The alternative — a price
   written at authoring time — is rejected for the same reason ADR-0020 rejected
   a stored stop price.
-- The condition language gains `unrealised_pnl_percent` as an exit-side
-  operand, decided with the owner (2026-11-18) alongside the distance field:
-  a PnL-shaped exit ("close when down 2 %") needs no distance and no new
-  signal. It is legal only inside `exits` — an entry evaluation has no owned
-  position to have an unrealised PnL. Trailing and further operands stay with
-  FEAT-0815.
+- PnL-shaped exits need no new operand: `unrealised_pnl_percent` already
+  ships as an account condition (FEAT-0303), a percentage of the position's
+  margin, legal in the trigger from `simulate` up. Decided with the owner
+  (2026-11-18): `exits` carry the same condition language, this operand
+  included — the validation site refuses only `external_feed` inside exits,
+  as in the trigger. Inside `exits` the operand reads the position the bot
+  owns (ADR-0026 decisions 2 and 5); in the trigger it keeps its shipped
+  account-state meaning. Trailing stays with FEAT-0335.
 
 The content-hash tests for pre-field documents are the guard that this does not
 rewrite history.
@@ -92,23 +94,28 @@ rewrite history.
       refused; `close: "all"` with a fraction is refused.
 - [ ] A tree deeper than `MAX_CONDITION_DEPTH` is refused at the exit site.
 - [ ] Every refusal has an i18n key and a test that asserts the field path.
+- [ ] An exit condition on `unrealised_pnl_percent` validates and is hashed;
+      it is refused nowhere except by the general exit rules above — the
+      operand stays legal inside `exits`, reading the owned position.
 - [ ] No UI is added in this item; the editor is FEAT-0811.
 
 ## Out of scope
 
 - Executing the exits (FEAT-0810).
 - The editor (FEAT-0811).
-- Trailing stops as a separate field; a trailing rule can be expressed as an
-  exit condition once the operand exists (FEAT-0815), and a dedicated
-  `trailing` field is a later decision.
+- Trailing stops as a separate field; trailing as a stop feature is
+  [FEAT-0335](FEAT-0335-trailing-stop.md), and a dedicated `trailing` field
+  inside this document is a later decision.
 - Time-based exits beyond what `valid_until_ms` already means for triggers.
 
 ## Decided questions
 
-- Take profit is **both**: the distance field above and the
-  `unrealised_pnl_percent` operand. Decided with the owner (2026-11-18) in
-  [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics); the operand
-  is the scope extension the Rules section above records.
+- Take profit is **both**: the distance field above and PnL-shaped exit
+  conditions through the shipped `unrealised_pnl_percent` account operand
+  (FEAT-0303) — no new operand, no wasm or TypeScript extension. Decided with
+  the owner (2026-11-18) in
+  [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics); the Rules
+  section above records what that means for the validation site.
 - A paused bot's exits keep evaluating; pause stops entries, exits keep
   protecting. Same decision, same entry.
 

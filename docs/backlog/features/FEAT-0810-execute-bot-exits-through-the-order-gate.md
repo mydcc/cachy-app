@@ -92,7 +92,7 @@ An exit evaluator runs while a bot owns a position:
 - When the owning rule is deleted while a position is open, the position
   turns unattributed and must be closed manually; deleting a rule with an open
   position requires an explicit warning. Decided with the owner (2026-11-18);
-  FEAT-0808's lingering-row rendering covers the case this produces.
+  FEAT-0808's lingering-row rendering will cover the case this produces.
 
 ## Links
 

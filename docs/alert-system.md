@@ -81,12 +81,11 @@ line:
    [shipped](backlog/features/FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md):
    the position, its entry metadata, the opening fill and the journal entry
    carry the bot's origin, rule id and strategy hash, so a trade stays
-   attributed even after its rule is deleted. Exits evaluated against its
-   own position, a lifecycle and a version history remain planned
-   ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md), Proposed;
+   attributed even after its rule is deleted. A derived lifecycle is
+   [shipped](backlog/features/FEAT-0807-derive-bot-lifecycle-state.md); exits
+   evaluated against its own position and a version history remain planned
+   ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md), Accepted;
    delivery tracked as
-   [FEAT-0807](backlog/features/FEAT-0807-derive-bot-lifecycle-state.md)
-   and
    [FEAT-0810](backlog/features/FEAT-0810-execute-bot-exits-through-the-order-gate.md)).
 
 So: *behaves like a resting conditional entry — is a strategy with a
