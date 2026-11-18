@@ -1,13 +1,19 @@
 # Cachy Technical Whitepaper
 
-**Last Updated:** September 2026
+**Last Updated:** November 2026
 **Verified Against Code:** The architecture, mathematics and security chapters have been checked against the implementation, and the worked example in chapter 3 is covered by an executable test (`src/lib/whitepaper-claims.test.ts`). File, path and command references below are maintained best-effort; known deviations are recorded in `docs/REPO-AUDIT.md`, section 6.
 
 ---
 
 ## Executive Summary
 
-Cachy is a high-performance, privacy-centric crypto trading companion designed to bridge the gap between professional trading terminals and user-friendly portfolio trackers. Unlike traditional cloud-based platforms that store sensitive user data (API keys, trade history) on centralized servers, Cachy adopts a **Local-First** architecture. This ensures that the user retains absolute control over their data while benefiting from institutional-grade analytics, real-time risk management, and seamless exchange integration.
+Cachy is a privacy-centric, local-first crypto trading companion designed to bridge the gap between professional trading terminals and user-friendly portfolio trackers. Unlike traditional cloud-based platforms that store sensitive user data (API keys, trade history) on centralized servers, Cachy adopts a **Local-First** architecture. This ensures that the user retains absolute control over their data while benefiting from institutional-grade analytics, real-time risk management, and seamless exchange integration.
+
+Cachy is no longer purely a position-size and risk manager. The same local-first core now carries a rule engine, and through it the trader builds his own bots:
+
+> The trader can create **any bot he wants** — from a plain alarm to a strategy with his own exits. He keeps the **complete overview** of everything running, including bots that have not yet acted, and can **change any running strategy at any time without losing the track record**.
+
+A bot is the trader's own rule, armed by a person and evaluated on the device — never a signal Cachy sells.
 
 The platform is built on a modern, reactive tech stack (SvelteKit, TailwindCSS, WebSocket) to deliver a "desktop-class" experience in the browser. It prioritizes **Capital Protection ("Money First")**, **User Experience ("User First")**, and **Data Sovereignty ("Community First")**.
 
@@ -55,6 +61,20 @@ In an era of data breaches, Cachy takes a radical stance: **We don't want your d
 - **No User Database**: There is no "Sign Up" form. No email collection. No password database to hack.
 - **Local Storage**: All settings, trade journals, and API keys are stored encrypted or raw (user choice) in the browser's `localStorage`.
 - **Transparent Code**: The codebase is open for inspection. Standard usage analytics are enabled by default and can be switched off under Settings → System → Performance ("Usage Statistics").
+
+### The Bot Era: Your Own Bots, Locally
+
+The direction of the bot epic (`docs/backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md`), in delivery now — the plan treats all three of these traders as first-class:
+
+- **The alert trader** arms an alert and wants it to announce, never act (shipped).
+- **The promoter** starts with the alert, then lets a derived copy act — as a simulated bot on the paper account — once the alert has proven itself (shipped).
+- **The strategist** writes the bot directly: entry conditions, size, stop, exits — no detour through an alert (planned: direct creation and exits are part of the epic's delivery, `FEAT-0811`, `FEAT-0809`/`FEAT-0810`).
+
+What a bot is, in one sentence: a rule the trader wrote — data, validated on the way in, never executable code (`docs/adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md`) — armed by a person, evaluated locally on the device, on candle close by default. A bot today trades the paper account only, and its order passes through the same verification gate as a manual click (`docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md`): a mandatory stop, the venue's precision limits, the account's hard risk limits, the kill switch. The protection parity between the manual trade form and bots is tracked in `docs/bot-parity.md`.
+
+One vocabulary note, because it prevents a costly expectation: a waiting bot **behaves** like a resting conditional entry — but it is **not an order**. Where that metaphor ends is documented in exactly one place: `docs/alert-system.md`, section "Bot vs. order".
+
+Cachy makes no performance or profitability claim about any bot, template or strategy. Ownership (a bot owning the position it opens), recurrence (a firing policy with limits) and versioning (changing a running strategy without losing the track record) are in delivery as the bot epic — planned capabilities, not shipped behavior.
 
 ---
 
@@ -536,6 +556,21 @@ The binding version of this boundary — including the conditions under which fu
 ## 7. Scalability & Future Roadmap
 
 While the current Local-First model is robust for individual traders, the roadmap includes scaling to support teams and institutional requirements.
+
+### The Bot System: From Conditional Orders to Strategies
+
+_Objective: the trader builds his own bot — locally, with a mandatory stop and one execution gate — and Cachy stays what it is: local-first, verifiable, silent about performance._
+
+The shipped state today: an armed alert can be promoted to a simulated bot that trades the paper account through the same order gate as a manual click. In delivery as the bot epic (`docs/backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md`):
+
+- **Direct creation** — a bot is written in an editor, not only promoted from an alert.
+- **Exits** — take-profit and exit conditions as part of the strategy, executed through the same gate, exposure-reducing only.
+- **A firing policy with per-bot limits**, and the complete overview, including bots that have not yet acted.
+- **Richer conditions** — nested groups, veto conditions with an audit trail, volatility and session context.
+- **Curated, cited strategy templates** and user templates with export and import.
+- **A grid mode on the paper account**, with the budget and stop-out rules a grid requires.
+
+Live sending is not part of this plan: a bot trades the simulated account, and any step toward live execution is a separate decision with its own safeguards (see `docs/MILESTONES.md`, M9). Backtesting is an open idea, not a promised feature.
 
 ### Phase 2: Background Alerting on Android
 

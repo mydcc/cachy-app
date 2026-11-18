@@ -222,7 +222,9 @@ shows/hides the panel.
 ### Beyond This Guide
 
 Paper Trading (Settings → Trading) simulates orders without real money.
-Price Alerts notify you on price conditions. The Academy offers quizzes on
+Price Alerts notify you on price conditions — and an armed alert can be
+promoted to a bot that trades the paper account through the same order gate
+as a manual click. The Academy offers quizzes on
 candlestick patterns. News supports up to 5 custom RSS feeds.
 
 ---

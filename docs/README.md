@@ -52,6 +52,7 @@ and this repository has already paid for that once — see
 | [`adr/`](adr/README.md) | Architecture Decision Records — the boundaries |
 | [`BRAND.md`](BRAND.md) | Palette, typography, logo. Verified against `src/themes.css` |
 | [`alert-system.md`](alert-system.md) | The alert and rule system: the consequence ladder, evaluation on candle close, where a trader arms a rule; bots and promotion in [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md) |
+| [`bot-parity.md`](bot-parity.md) | The manual trade form vs. bot protection parity matrix, guarded by a test so a manual protection cannot ship without its bot equivalent |
 | [`GLOBAL-CHAT.md`](GLOBAL-CHAT.md) | What the chat stores, how tokens are issued, retention and erasure |
 | [`wire-format.md`](wire-format.md) | GCX1 compact wire format referenced by the generated gortex skill docs |
 | [`calculation-engine.md`](calculation-engine.md), [`calculation-engine-dev.md`](calculation-engine-dev.md) | The technicals indicator engine: engine selection, degradation, and how to add an indicator |

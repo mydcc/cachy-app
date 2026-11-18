@@ -6,7 +6,8 @@ machinery serves both an alarm and a bot.
 This document describes the **system**. The decision behind it lives in
 [`adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md`](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md);
 the work is tracked in `docs/backlog/` under `area: alerts`. Neither
-is repeated here.
+is repeated here. The protection parity between the manual trade form and
+bots has its own document, [`bot-parity.md`](bot-parity.md).
 
 ## One document, three surfaces
 

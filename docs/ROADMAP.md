@@ -224,6 +224,52 @@ does not fire twice for one crossing.
 
 ---
 
+## Release 1.7+ — the bot system
+
+**Milestone [M4.5](MILESTONES.md#m45--bot-system-v2-from-conditional-orders-to-strategies).**
+The epic [`FEAT-0805`](backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md)
+turns the promoted-alert bot into a strategy the trader authors directly.
+Built in the epic's own stages, in this order — Foundation, then Exits, safety, scale, then Conditions, then Awareness, then Grid, with account binding
+last as its own decision. Inside a stage, the engine items are sequential:
+they share the rule document and the automation envelope, so the order is
+part of the epic, not a scheduling choice. The docs item runs parallel
+from day one — goal and vocabulary land early so docs and UI tell one
+story. Nothing here touches live execution: bots trade the paper account,
+and `send` stays with
+[Release 3.0](#release-30--autonomous-execution).
+
+| Stage | Item | Prio | What |
+| --- | --- | --- | --- |
+| Foundation | [FEAT-0806](backlog/features/FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md) | P2 | Attribute paper trades and journal entries to their bot |
+| Foundation | [FEAT-0807](backlog/features/FEAT-0807-derive-bot-lifecycle-state.md) | P2 | Derive the bot lifecycle state from rule and position |
+| Foundation | [FEAT-0808](backlog/features/FEAT-0808-show-bots-in-the-positions-sidebar.md) | P2 | Show waiting bots in the positions sidebar |
+| Foundation | [FEAT-0826](backlog/features/FEAT-0826-overhaul-the-public-documentation-for-the-bot-era.md) | P2 | Overhaul the public documentation for the bot era |
+| Exits, safety, scale | [FEAT-0809](backlog/features/FEAT-0809-rule-exit-conditions-in-the-strategy-document.md) | P2 | Exit conditions as checkable data in the strategy document |
+| Exits, safety, scale | [FEAT-0810](backlog/features/FEAT-0810-execute-bot-exits-through-the-order-gate.md) | P2 | Execute bot exits through the one order gate |
+| Exits, safety, scale | [FEAT-0822](backlog/features/FEAT-0822-bot-firing-policy-and-guards.md) | P2 | Firing policy, per-bot limits and guard history |
+| Exits, safety, scale | [FEAT-0823](backlog/features/FEAT-0823-confirmation-candle-as-an-entry-trigger-mode.md) | P3 | Confirmation candle as an entry trigger mode |
+| Exits, safety, scale | [FEAT-0811](backlog/features/FEAT-0811-superbot-editor-for-exit-conditions.md) | P2 | The bot editor: exits, firing policy, limits, direct creation |
+| Exits, safety, scale | [FEAT-0812](backlog/features/FEAT-0812-per-bot-journal-analytics.md) | P2 | Per-bot analytics in the journal |
+| Exits, safety, scale | [FEAT-0824](backlog/features/FEAT-0824-show-n-concurrent-positions-in-the-trading-frontend.md) | P2 | Show N concurrent positions in the trading frontend |
+| Conditions | [FEAT-0813](backlog/features/FEAT-0813-condition-builder-v2-more-conditions-and-nested-groups.md) | P2 | Condition builder v2: more conditions, nested groups |
+| Conditions | [FEAT-0814](backlog/features/FEAT-0814-author-and-audit-veto-conditions.md) | P2 | Author and audit veto conditions |
+| Awareness | [FEAT-0815](backlog/features/FEAT-0815-volatility-regime-and-session-operands.md) | P2 | Volatility-regime and session operands |
+| Awareness | [FEAT-0816](backlog/features/FEAT-0816-external-market-context-as-a-veto-feed.md) | P3 | External market context as a veto feed |
+| Awareness | [FEAT-0817](backlog/features/FEAT-0817-ai-assisted-rule-authoring.md) | P3 | AI-assisted rule authoring, audited by a human |
+| Awareness | [FEAT-0818](backlog/features/FEAT-0818-curated-literature-strategy-templates.md) | P3 | Curated literature strategy templates, user templates |
+| Grid | [FEAT-0819](backlog/features/FEAT-0819-grid-bot-runtime-on-the-paper-account.md) | P3 | Grid runtime on the paper account (ADR-0027) |
+| Grid | [FEAT-0820](backlog/features/FEAT-0820-grid-bot-controls-and-chart-visualisation.md) | P3 | Grid controls and chart visualisation |
+| Own decision | [FEAT-0825](backlog/features/FEAT-0825-bind-every-bot-to-one-account-and-show-only-the-active-account.md) | P2 | Bind every bot to one account, show the active one |
+
+The manual-vs-bot protection parity is
+[`docs/bot-parity.md`](bot-parity.md), guarded by a test — a manual
+protection cannot ship without its bot equivalent being answered.
+
+**Exit:** the milestone's exit criterion, in
+[MILESTONES.md](MILESTONES.md#m45--bot-system-v2-from-conditional-orders-to-strategies).
+
+---
+
 ## Release 1.8 — Community & whitelabel edition
 
 **Milestone [M5](MILESTONES.md#m5--community--whitelabel-edition).** Blocked by

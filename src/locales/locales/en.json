@@ -1336,9 +1336,9 @@
     "staleQuoteRefused": "{symbol} loaded without a price: the quote is stale. The calculator kept its previous entry price."
   },
   "seo": {
-    "title": "Cachy - Position Size & Risk Management",
-    "pageTitle": "Cachy - Position Size & Risk Management",
-    "description": "Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis.",
+    "title": "Cachy - Position Sizing, Risk Management & Your Own Bots",
+    "pageTitle": "Cachy - Position Sizing, Risk Management & Your Own Bots",
+    "description": "Cachy is a local-first crypto trading app: position sizing, risk management, trade journal, live market data — and bots you build yourself, from a plain alert to a simulated entry with a mandatory stop. Strategy exits are on the roadmap.",
     "keywords": "Trading Calculator, Position Sizing, Risk Management, Take Profit, Crypto Trading, Forex Trading, Stock Trading, Trading Tools, Financial Calculator, Trade Optimizer"
   },
   "languages": {

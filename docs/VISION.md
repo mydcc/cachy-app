@@ -17,6 +17,28 @@ router. That last one is the reason the rest of this document is careful: the
 moment software can place an order, every unclear requirement becomes a way to
 lose money.
 
+Since the rule engine shipped, the promise has a second half, and it is the one
+the roadmap now builds toward. The agreed goal:
+
+> The trader can create **any bot he wants** — from a plain alarm to a
+> strategy with his own exits. He keeps the **complete overview** of
+> everything running, including bots that have not yet acted, and can
+> **change any running strategy at any time without losing the track
+> record**.
+
+A bot is the trader's own rule, armed by the trader, evaluated locally on the
+device — never a signal Cachy sells. A waiting bot behaves like a resting
+conditional entry but is not an order; that boundary is defined in exactly one
+place,
+[`alert-system.md`](alert-system.md#bot-vs-order-where-the-trigger-order-metaphor-ends)
+("Bot vs. order"), and every other document references it rather than
+restating it. What makes the goal safe to keep — a bot owning the position it
+opens, exits through the same gate, a firing policy with limits — is in
+delivery as the bot epic
+([`FEAT-0805`](backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md)),
+planned rather than shipped, and is stated as plan wherever these documents
+mention it.
+
 ## Who it is for
 
 Traders who size positions deliberately rather than by feel, and who care where
@@ -115,7 +137,11 @@ Since 1.6.0 the first half of that path is built: an armed alert promotes to a
 simulated bot in Alerts & Bots without being rewritten, and the bot's order
 passes the same gate as a manual click — see
 [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md). Live
-sending stays a separate, undecided step.
+sending stays a separate, undecided step. The stretch in between — direct
+creation, exits a bot owns, a firing policy with limits, the complete
+overview — is the bot epic
+([`FEAT-0805`](backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md)),
+scheduled as [M4.5](MILESTONES.md#m45--bot-system-v2-from-conditional-orders-to-strategies).
 
 Collaboration features (chat, copy trading) sit alongside these rather than
 between them: they are optional modules, they never gate the core, and each one
@@ -156,7 +182,9 @@ model, it is what makes the privacy claim credible.
 
 ## Product boundaries
 
-- **User-decided trading.** Users decide what to trade; Cachy provides position sizing, risk management and journaling.
+- **User-decided trading.** Users decide what to trade; Cachy provides position sizing, risk management and journaling. Since the bot era, the trader's own armed rule may act as a bot on the paper account, through the same order gate as a manual click
+  ([ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md)) —
+  automation is the trader's rule, never the software's initiative.
 - **Non-custodial by design.** It never holds funds. Credentials are the
   user's and stay on the device.
 - **Live-state tool.** Historical strategy research is a different

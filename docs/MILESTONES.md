@@ -47,6 +47,7 @@ delivered (the 1.5–1.6 trade-panel group). Item-level truth lives in
 `backlog/INDEX.md` (generated on demand, not tracked); a milestone is only marked ✅ here once
 its exit criterion is proven, not when its items are ticked. Gate status: M0 gate (no open P0, check + suite + lint green) — pending proof; M1 gate (order gate + kill switch + audit trail) — pending proof.
 | **M4** | Alerting | `~1.7` → landed in `1.6.0` | 🟢 | Price, indicator and combined alerts fire locally and reliably |
+| **M4.5** | Bot system v2 | `~1.7+` | 🟡 | Any bot the trader wants — with a mandatory stop, one gate, and nothing acting unseen |
 | **M5** | Community & whitelabel edition | `~1.8` | 🔒 M1–M3 | A serverless build is produced by CI and deployable without a database |
 | **M6** | Extensions & Pro modules | `~2.0` | 🔒 M5 | A user-written indicator runs isolated and traceable; a paid module installs and revokes |
 | **M7** | Collaboration | `~2.x` | 🔒 M5 | Chat and copy trading run as optional modules within ADR-0004 |
@@ -247,6 +248,83 @@ to fire when the browser is closed, but it is neither blocking M4 nor required f
 M0–M3. The scope is alert-only (calculator, journal and UI stay PWA), the platform
 is Android (iOS cannot hold background WebSockets), and the timeline is unspecified.
 This carries no risk to the core product and costs nothing elsewhere in the app.
+
+---
+
+## M4.5 — Bot system v2: from conditional orders to strategies
+
+**Goal.** The owner-confirmed goal in [`VISION.md`](VISION.md) ("What Cachy
+is"): any bot the trader wants, the complete overview including bots that
+have not yet acted, and changes to a running strategy without losing the
+track record.
+
+**Why here.** [M4](#m4--alerting) shipped the rule engine and the promotion
+detour: an armed alert becomes a simulated bot that enters once, with a
+stop. The epic turns that into a strategy the trader can author directly —
+without touching live execution, which stays in
+[M9](#m9--autonomous-execution) behind its own ADR.
+
+**What it contains,** in the epic's own stages
+([`FEAT-0805`](backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md)).
+The stage names are work-plan labels, not product names — per
+[`TODO.md`](TODO.md#36--public-naming-for-the-bot-stages) the product says
+"Bot", full stop:
+
+- **Foundation** — attribution of bot trades in the paper book and journal
+  ([`FEAT-0806`](backlog/features/FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md)),
+  the bot lifecycle state
+  ([`FEAT-0807`](backlog/features/FEAT-0807-derive-bot-lifecycle-state.md)),
+  bots visible in the sidebar
+  ([`FEAT-0808`](backlog/features/FEAT-0808-show-bots-in-the-positions-sidebar.md)),
+  the public docs
+  ([`FEAT-0826`](backlog/features/FEAT-0826-overhaul-the-public-documentation-for-the-bot-era.md)).
+- **Exits, safety, scale** — exit conditions in the strategy document
+  ([`FEAT-0809`](backlog/features/FEAT-0809-rule-exit-conditions-in-the-strategy-document.md)),
+  exits through the same gate
+  ([`FEAT-0810`](backlog/features/FEAT-0810-execute-bot-exits-through-the-order-gate.md),
+  `area: execution`), firing policy and limits
+  ([`FEAT-0822`](backlog/features/FEAT-0822-bot-firing-policy-and-guards.md),
+  `area: execution`), confirmation-candle mode
+  ([`FEAT-0823`](backlog/features/FEAT-0823-confirmation-candle-as-an-entry-trigger-mode.md)),
+  the bot editor with direct creation
+  ([`FEAT-0811`](backlog/features/FEAT-0811-superbot-editor-for-exit-conditions.md)),
+  per-bot journal analytics
+  ([`FEAT-0812`](backlog/features/FEAT-0812-per-bot-journal-analytics.md)), N
+  concurrent positions
+  ([`FEAT-0824`](backlog/features/FEAT-0824-show-n-concurrent-positions-in-the-trading-frontend.md)).
+- **Conditions** — nested groups
+  ([`FEAT-0813`](backlog/features/FEAT-0813-condition-builder-v2-more-conditions-and-nested-groups.md)),
+  veto conditions with an audit trail
+  ([`FEAT-0814`](backlog/features/FEAT-0814-author-and-audit-veto-conditions.md)).
+- **Awareness** — volatility and session operands
+  ([`FEAT-0815`](backlog/features/FEAT-0815-volatility-regime-and-session-operands.md)),
+  external market context as a veto feed
+  ([`FEAT-0816`](backlog/features/FEAT-0816-external-market-context-as-a-veto-feed.md)),
+  AI-assisted authoring
+  ([`FEAT-0817`](backlog/features/FEAT-0817-ai-assisted-rule-authoring.md)),
+  curated literature templates
+  ([`FEAT-0818`](backlog/features/FEAT-0818-curated-literature-strategy-templates.md)).
+- **Grid** — the runtime on the paper account
+  ([`FEAT-0819`](backlog/features/FEAT-0819-grid-bot-runtime-on-the-paper-account.md),
+  `area: execution`), controls and chart
+  ([`FEAT-0820`](backlog/features/FEAT-0820-grid-bot-controls-and-chart-visualisation.md)).
+- **Account binding** — its own decision, last
+  ([`FEAT-0825`](backlog/features/FEAT-0825-bind-every-bot-to-one-account-and-show-only-the-active-account.md)).
+
+**The safety floor is fixed, not configurable:** every bot carries a
+mandatory stop, enters through the one `OrderGate` a manual click uses, and
+no exit increases exposure. The vocabulary boundary ("Bot vs. order") is
+defined in
+[`alert-system.md`](alert-system.md#bot-vs-order-where-the-trigger-order-metaphor-ends);
+the manual-vs-bot protection parity lives in
+[`bot-parity.md`](bot-parity.md), guarded by a test.
+
+**Exit criterion.** A trader creates a bot directly — promotion from an
+alert is a shortcut, never the only path; every bot order passes the same
+`OrderGate` as a manual click, proven by the gate's own tests; a waiting
+bot is visible before it acts; every manual trade-form protection has a
+shipped or planned bot equivalent in [`bot-parity.md`](bot-parity.md); and
+no live execution ships — that remains M9's decision.
 
 ---
 
