@@ -57,9 +57,13 @@ the orders view is planned to read as a "conditional entry"
 phase B). But a bot is **not** an order, and three differences draw the
 line:
 
-1. An order is one-shot and stateless; a bot today is armed until it fires
-   once — the shipped `frequency: "once"` default spends the rule — and
-   configurable recurrence (fire again, per limits) is planned as
+1. An order is one-shot and stateless; a bot's repetition follows its
+   rule's `frequency` — promotion copies it unchanged. A fresh draft
+   defaults to `once` (fire, then disarm), but repeating values
+   (`every_time`, `once_per_candle_close`) are shipped too, so a promoted
+   bot *can* act again on later candles today. What no bot has today is a
+   firing policy around that repetition: per-bot limits and visibility
+   are planned as
    [FEAT-0822](backlog/features/FEAT-0822-bot-firing-policy-and-guards.md),
    not shipped behavior.
 2. An order fills at its trigger price the moment the market touches it; a

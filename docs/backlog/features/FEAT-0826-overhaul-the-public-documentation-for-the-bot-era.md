@@ -45,9 +45,13 @@ material is distilled, not quoted by URL.
   added).
 - **Vocabulary section** ("Bot vs. alarm vs. order"): the boundary of the
   trigger-order metaphor — a waiting bot *behaves* like a resting
-  conditional entry; a bot is not an order (it owns a position, recurs,
-  versions). `docs/alert-system.md` gains the short "Bot vs. Order" section;
-  marketing-level pages reference it instead of re-defining.
+  conditional entry and is not an order. That boundary is documented in
+  exactly one place,
+  [`docs/alert-system.md`](../../alert-system.md#bot-vs-order-where-the-trigger-order-metaphor-ends)
+  ("Bot vs. order"); the public docs and marketing-level pages reference
+  that section instead of re-defining it. Ownership, recurrence and
+  versioning are this epic's deliverables (FEAT-0806/0810/0822), not
+  shipped behavior.
 - **Parity matrix**: the docs gain the manual-vs-bot capability matrix —
   every protection the manual trade form offers (auto stop-loss, auto
   take-profit, size basis, precision limits) against its bot equivalent —

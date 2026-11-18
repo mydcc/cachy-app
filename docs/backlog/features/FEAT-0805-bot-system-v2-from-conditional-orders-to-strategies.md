@@ -17,8 +17,11 @@ size: XL
 
 ## Problem
 
-Today a bot is an alert with `consequence_level: "simulate"`: it fires once
-per evaluation, submits a market entry with a fixed stop, and is finished.
+Today a bot is an alert with `consequence_level: "simulate"`: it fires at
+most once per evaluation and submits a market entry with a fixed stop. Under
+the default `once` frequency it is then finished; a repeating frequency
+(`every_time`, `once_per_candle_close`) can fire again on later candles —
+with no firing policy, limits or visibility around that repetition.
 It does not own the position it creates, cannot close it on a thesis change,
 cannot take profit, and does not appear anywhere until it has already acted.
 The paper book and the journal cannot say which bot produced a trade, so a
