@@ -638,6 +638,11 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // Bots ride the same sink the alerts do, so they load with it rather than
     // at module scope: a session with no bot never pays for the order path.
     const { closeAtAnchor, livePriceAt, withBotOrders } = await import("../services/alertEngine/botOrders");
+    // FEAT-0807 — the lifecycle projection reads the sink's in-flight guard
+    // through the observer below. Loaded here, beside the order path, for
+    // the same reason — and dynamically so neither store imports the other
+    // at module scope.
+    const { botsState } = await import("./botsState.svelte");
 
     // FEAT-0406: one read, and every later tick re-decides from its own.
     const ready = ruleSchema.isReady();
@@ -668,6 +673,11 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
                   notifyingRuleSink,
                   botOrderEnvironment(closeAtAnchor, livePriceAt),
                   reportBotOrderRefusal,
+                  // FEAT-0807 — "submitting" is the sink's guard, observed.
+                  // The observer fires once at sink creation, so a re-init
+                  // resets the projection instead of stranding the previous
+                  // engine's snapshot in it.
+                  (ids) => botsState.setSubmitting(ids),
               )
             : ledgerSink,
         // FEAT-0406: a core that stops being ready mid-session must stop the

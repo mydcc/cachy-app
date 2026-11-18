@@ -369,6 +369,13 @@ class PaperTradingManager {
     private _journalLinks = $state<Record<string, string>>({});
     private _positionMetadata = $state<Record<string, PositionMetadata>>({});
     private _nextId = $state(1);
+    /**
+     * FEAT-0807 — whether the last storage read could produce a book at
+     * all. Held as state so projections (botsState) can degrade to
+     * "blocked with a notice" instead of claiming "armed" over inputs the
+     * app cannot see. Never persisted; it describes this session's read.
+     */
+    private _bookUnreadable = $state(false);
 
     constructor() {
         if (browser) this.load();
@@ -376,6 +383,10 @@ class PaperTradingManager {
 
     get enabled(): boolean {
         return this._enabled;
+    }
+
+    get bookUnreadable(): boolean {
+        return this._bookUnreadable;
     }
 
     get config(): Readonly<PaperConfig> {
@@ -550,6 +561,11 @@ class PaperTradingManager {
             const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY);
             if (!stored) return;
             const parsed = PaperStateSchema.safeParse(safeJsonParse(stored));
+            // FEAT-0807 — surfaced, not swallowed: the per-field catches
+            // (origin's enum) get first say, so an unknown future value
+            // reads as unattributed and the book stays readable. Only a blob
+            // the schema cannot accept at all flags the book as unreadable.
+            this._bookUnreadable = !parsed.success;
             if (!parsed.success) return;
             this._enabled = parsed.data.enabled;
             this._config = { ...DEFAULT_PAPER_CONFIG, ...parsed.data.config };
@@ -561,6 +577,7 @@ class PaperTradingManager {
             this._positionMetadata = parsed.data.positionMetadata || {};
             this._nextId = parsed.data.nextId;
         } catch {
+            this._bookUnreadable = true;
             // Corrupt blob leaves paper mode off, which is the safe default:
             // the dangerous direction is believing you are simulating.
         }
@@ -591,6 +608,7 @@ class PaperTradingManager {
         this._journalLinks = {};
         this._positionMetadata = {};
         this._nextId = 1;
+        this._bookUnreadable = false;
         if (browser) this.load();
     }
 }
