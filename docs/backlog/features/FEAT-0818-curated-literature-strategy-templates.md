@@ -46,6 +46,21 @@ Extend the template library with a curated, cited set of strategy patterns:
 The library is also the grounding material for FEAT-0817: a model that proposes
 a rule can point at the template it started from.
 
+**User templates (owner decision, 2026-11-18).** The library also holds the
+trader's own work, not only curated literature:
+
+- Any authored bot can be **saved as a template** — same versioned schema,
+  provenance recorded, `derived_from_hash` linked, never armed by saving.
+- Templates **export and import as validated drafts**: the same Rust-core
+  validation as a live document, so a broken or tampered file refuses to
+  load with a named reason instead of failing later.
+- Templates are part of the **local backup in full** — they are strategy
+  data (Class A, ADR-0001) and must survive a backup/restore cycle with
+  provenance intact.
+- Sharing templates beyond the device is deliberately parked as
+  [`IDEA-0831`](../ideas/IDEA-0831-community-template-exchange.md) — it is
+  user-directed egress and gets its own decision, not a checkbox here.
+
 ## Acceptance criteria
 
 - [ ] At least eight templates across trend, mean-reversion and breakout, each
@@ -59,6 +74,12 @@ a rule can point at the template it started from.
 - [ ] Template text makes no performance claim and passes the docs review for
       that rule.
 - [ ] The library works offline and adds no network call.
+- [ ] "Save as template" stores an authored bot under the versioned schema
+      with provenance and `derived_from_hash`; saving never arms it.
+- [ ] Export/import round-trips through the same validation as a live
+      document; an invalid or tampered file is refused with a named reason.
+- [ ] The local backup includes user templates in full; a restore returns
+      them with provenance intact.
 - [ ] Tests: every template validates, every template imports, and an edited
       template no longer claims the citation.
 
@@ -67,7 +88,8 @@ a rule can point at the template it started from.
 - AI-generated templates (FEAT-0817 may draft them later).
 - Backtests or expected-return figures.
 - Paid or licensed material; only public-domain or properly cited ideas.
-- A marketplace for user-published templates.
+- A marketplace for user-published templates
+  ([`IDEA-0831`](../ideas/IDEA-0831-community-template-exchange.md), parked).
 
 ## Open questions
 

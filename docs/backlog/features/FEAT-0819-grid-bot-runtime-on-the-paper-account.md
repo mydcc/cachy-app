@@ -8,7 +8,7 @@ milestone: none
 editions: [community, pro, private]
 area: execution
 data_class: A
-adr: required
+adr: ADR-0027
 depends_on: [FEAT-0810]
 parent: FEAT-0805
 size: XL
@@ -71,6 +71,18 @@ Implement the grid as its own bot kind, per
       document is refused as today.
 - [ ] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
       restart, and the two-grid collision case.
+- [ ] The editor warns when the level spacing does not exceed the round-trip
+      fee and names the minimum viable spacing derived from the paper fee
+      schedule (fees apply on both legs of every level cycle).
+- [ ] The stop-out rule is a required field — empty is refused, with no
+      opt-out (ADR-0027: grid budget and stop-out limits are not optional).
+- [ ] The grid's review surfaces show mark-to-market equity alongside
+      realized closed trades, never closed-trade-only curves.
+- [ ] The editor offers an ATR-derived spacing suggestion from existing
+      indicator data — a suggestion the trader accepts, never silently
+      applied.
+- [ ] The estimated budget (levels × size plus a fee buffer) is displayed
+      before the grid starts.
 
 ## Out of scope
 
@@ -88,6 +100,15 @@ Implement the grid as its own bot kind, per
   pause new levels, keep the ladder and the exits.
 - Whether a grid may use `percent_risk` sizing; a ladder has no single stop, so
   the basis may need to be `quote_notional` or a per-level size.
+
+**Provenance.** The grid requirements above that are not plain engineering —
+fee-vs-spacing, the mandatory stop-out, mark-to-market reporting,
+volatility-derived spacing, the budget display — are derived from industry
+literature the product owner supplied and curated (trading-academy articles
+and the studies they cite, including the finding that a classical grid's
+expected value sits around zero before fees). Per the owner's instruction
+those sources are distilled into the agent's local knowledge base and are
+intentionally not cited by URL in this repository.
 
 ## Links
 
