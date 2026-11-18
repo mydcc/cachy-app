@@ -263,6 +263,13 @@ export const MAX_ANCHOR_PRICE_DRIFT = 0.01;
  * Returns the refusal rather than throwing it: the caller is a sink on the
  * market hot path, and a bot whose size cannot be computed must not cost every
  * other rule its evaluation.
+ *
+ * One exception, added with FEAT-0806: the plan's `strategyHash` comes from
+ * `ruleSchema.contentHash`, which can throw when the core is unavailable or
+ * refuses the document. That is unreachable for a real firing — evaluation
+ * ran through the same core a whole loop earlier, and the loader swap is
+ * test-only — and the hot path's `.catch` still contains it, as a log line
+ * rather than a trader-facing refusal.
  */
 export async function submitBotOrder(
   firing: RuleFiring,
@@ -339,15 +346,24 @@ export async function submitBotOrder(
     // this to the real venue. Stamped `bot`, the gate and the transport
     // refuse it while paper trading is off instead of falling through.
     origin: "bot",
-    // FEAT-0806 — identity travels with the provenance, in origin's lane.
+    // FEAT-0806 — identity travels with the provenance, in origin's lane,
+    // as one shape (BotAttribution) rather than three loose fields.
     // botId and ruleId carry the acting rule's id (a bot is its rule —
     // botStore); strategyHash is the version the rule fired under. If the
     // core were down, no firing could have reached this line, so the hash is
     // computed rather than defaulted.
-    botId: firing.rule.id,
-    ruleId: firing.rule.id,
-    strategyHash: ruleSchema.contentHash(firing.rule),
+    attribution: {
+        botId: firing.rule.id,
+        ruleId: firing.rule.id,
+        strategyHash: ruleSchema.contentHash(firing.rule),
+    },
     tradeType: order.side === "buy" ? "long" : "short",
+    // Market only, and not by accident: attribution is stamped on the fill
+    // that opens the book row, and a resting order carries none (`PaperOrder`
+    // has no attribution fields), so a bot limit entry would silently lose
+    // its owner at fill time and read as manual. Extending bots to resting
+    // entries means threading the stamp onto `PaperOrder` first (FEAT-0806
+    // review finding).
     entryType: "market",
     qty: quantity,
     entryPrice,

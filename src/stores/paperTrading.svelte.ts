@@ -114,8 +114,10 @@ export interface PaperPosition {
      * attributed after its rule is deleted, and a position written before
      * this field is absent, which reads as "manual or unknown".
      *
-     * `botId` is the grouping key the journal and the sidebar consume;
-     * `ruleId` is the rule-store lookup key. Today a bot is its rule
+     * `botId` is the grouping key the bots overview (FEAT-0808) and the
+     * per-bot journal analytics (FEAT-0812) will consume — no reader exists
+     * yet, the book records the fact first; `ruleId` is the rule-store
+     * lookup key. Today a bot is its rule
      * (botStore: "a bot is not a second kind of thing"), so both carry the
      * rule's id — they split apart only when a bot becomes an entity of its
      * own (ADR-0026's lifecycle).
@@ -265,9 +267,11 @@ const PaperPositionSchema = z.object({
     realizedPnl: decimalString.catch("0"),
     openedAt: z.number().catch(0),
     accountSizeAtEntry: decimalString.optional(),
-    // FEAT-0806 — optional so an older blob parses without them and a newer
-    // blob keeps its attribution through a reload.
-    origin: z.enum(["bot", "manual"]).optional(),
+    // FEAT-0806 — caught, not merely optional: a value this build does not
+    // know (a future "grid" from ADR-0027, a hand-edited blob) reads as
+    // "manual or unknown" instead of failing the whole book and leaving the
+    // next persist() to overwrite the saved history.
+    origin: z.enum(["bot", "manual"]).optional().catch(undefined),
     botId: z.string().optional(),
     ruleId: z.string().optional(),
     strategyHash: z.string().optional(),
@@ -286,7 +290,8 @@ const PaperFillSchema = z.object({
     realizedPnl: decimalString.catch("0"),
     positionId: z.string().catch(""),
     createdAt: z.number().catch(0),
-    origin: z.enum(["bot", "manual"]).optional(),
+    // FEAT-0806 — see PaperPositionSchema's origin note on the catch.
+    origin: z.enum(["bot", "manual"]).optional().catch(undefined),
     botId: z.string().optional(),
     ruleId: z.string().optional(),
     strategyHash: z.string().optional(),
@@ -320,7 +325,8 @@ const PositionMetadataSchema = z.object({
     accountSize: decimalString,
     risk: decimalString,
     createdAt: z.number(),
-    origin: z.enum(["bot", "manual"]).optional(),
+    // FEAT-0806 — see PaperPositionSchema's origin note on the catch.
+    origin: z.enum(["bot", "manual"]).optional().catch(undefined),
     botId: z.string().optional(),
     ruleId: z.string().optional(),
     strategyHash: z.string().optional(),

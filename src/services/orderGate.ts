@@ -200,11 +200,16 @@ export type OrderOrigin = "manual" | "bot";
  *
  * Rides the intent beside `origin` (BUG-0494's lane) and never the wire
  * payload: a rule id is Class A strategy (ADR-0001) and does not leave the
- * device. Only the bot entry path sets it; every other call site keeps its
- * exact behaviour.
+ * device. Only the bot entry path sets it, and only beside
+ * `origin: "bot"` — the simulator's payload parse is the single guard that
+ * enforces the pairing; every other call site keeps its exact behaviour.
  */
 export interface BotAttribution {
-    /** The grouping key the journal and the sidebar consume. */
+    /**
+     * The grouping key for the bots overview (FEAT-0808) and the per-bot
+     * journal analytics (FEAT-0812). No reader exists yet — the book records
+     * the fact first; the readers are this epic's next items.
+     */
     botId: string;
     /**
      * The rule-store lookup key — the same id as `botId` while a bot is its

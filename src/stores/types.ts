@@ -251,8 +251,10 @@ export interface JournalEntry {
    * this field means "manual or unknown", which is the honest answer —
    * nothing back-fills a guess.
    *
-   * `botId` is the grouping key ("which bot works?"), `ruleId` the
-   * rule-store lookup key; today a bot is its rule, so both carry the
+   * `botId` is the grouping key the per-bot analytics (FEAT-0812) will
+   * answer "which bot works?" with — no reader exists yet, the entry
+   * records the fact first; `ruleId` the rule-store lookup key; today a
+   * bot is its rule, so both carry the
    * rule's id. `strategyHash` is the 64-hex version the rule fired under.
    */
   origin?: "bot" | "manual";

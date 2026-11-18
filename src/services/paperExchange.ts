@@ -37,6 +37,7 @@
 import { Decimal } from "decimal.js";
 import { validateTpSlPrice, normalizePositionSide } from "../lib/calculators/tpsl";
 import { paperState, type PaperFill, type PaperOrder } from "../stores/paperTrading.svelte";
+import type { BotAttribution } from "./orderGate";
 
 export class PaperExchangeError extends Error {
     constructor(
@@ -685,7 +686,13 @@ class PaperExchange {
             payload.origin === "bot" || payload.origin === "manual"
                 ? payload.origin
                 : undefined;
-        const attribution =
+        // FEAT-0806 — the single attribution guard, at the trust boundary:
+        // identity is a fact of a bot entry, so it exists only when the
+        // payload says `origin: "bot"` and all three fields are strings.
+        // Anything else reads as manual-or-unknown, never as a mis-stamped
+        // bot — a manual order cannot smuggle identity in late.
+        const attribution: BotAttribution | undefined =
+            origin === "bot" &&
             typeof payload.botId === "string" &&
             typeof payload.ruleId === "string" &&
             typeof payload.strategyHash === "string"
@@ -789,7 +796,7 @@ class PaperExchange {
             tradeSide: "OPEN" | "CLOSE";
             /** FEAT-0806 — stamped on opening fills only. */
             origin?: "bot" | "manual";
-            attribution?: { botId: string; ruleId: string; strategyHash: string };
+            attribution?: BotAttribution;
         },
     ): void {
         if (fill.qty.lte(0)) return;
@@ -908,7 +915,7 @@ class PaperExchange {
         leverage: Decimal,
         /** FEAT-0806 — who opened this position; stamped only on a new one. */
         origin?: "bot" | "manual",
-        attribution?: { botId: string; ruleId: string; strategyHash: string },
+        attribution?: BotAttribution,
     ): FillResult {
         const price = this.fillPrice(reference, side);
         const notional = price.times(qty);

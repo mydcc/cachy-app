@@ -40,6 +40,7 @@ vi.mock("../stores/settings.svelte", () => ({ settingsState: settings }));
 import { paperExchange, setPaperPriceFeed } from "./paperExchange";
 import { paperJournalService } from "./paperJournalService";
 import { paperState } from "../stores/paperTrading.svelte";
+import { CONSTANTS } from "../lib/constants";
 import { journalState } from "../stores/journal.svelte";
 import { normalizeJournalEntry } from "../utils/utils";
 
@@ -157,6 +158,27 @@ describe("FEAT-0806 — attribution in the simulated book", () => {
         expect(closing.origin).toBeUndefined();
         expect(closing.botId).toBeUndefined();
     });
+
+    it("refuses bot identity on a manual order — nothing mis-stamps as a bot", async () => {
+        // The paranoid case a boundary has to answer: identity without the
+        // matching origin. The guard drops it, so the book reads a manual
+        // trade, never a manual-looking bot.
+        await open({
+            origin: "manual",
+            botId: "rule-bot-1",
+            ruleId: "rule-bot-1",
+            strategyHash: HASH,
+        });
+
+        const position = paperState.positions[0];
+        expect(position.origin).toBe("manual");
+        expect(position.botId).toBeUndefined();
+        expect(position.strategyHash).toBeUndefined();
+
+        const fill = paperState.fills[0];
+        expect(fill.origin).toBe("manual");
+        expect(fill.botId).toBeUndefined();
+    });
 });
 
 describe("FEAT-0806 — the journal carries attribution", () => {
@@ -195,9 +217,8 @@ describe("FEAT-0806 — the journal carries attribution", () => {
         expect(entry?.strategyHash).toBe(HASH);
 
         // The persisted blob parses back through normalizeJournalEntry with
-        // the attribution intact — and an older build strips the unknown
-        // fields instead of failing, which is the "absent means manual or
-        // unknown" honesty the item promises.
+        // the attribution intact. The other direction — a blob written
+        // before this change — is pinned by the legacy-blob tests below.
         const normalized = normalizeJournalEntry(JSON.parse(JSON.stringify(entry)));
         expect(normalized.origin).toBe("bot");
         expect(normalized.strategyHash).toBe(HASH);
@@ -212,5 +233,60 @@ describe("FEAT-0806 — the journal carries attribution", () => {
         const entry = lastEntry();
         expect(entry?.ruleId).toBe("rule-bot-1");
         expect(entry?.botId).toBe("rule-bot-1");
+    });
+});
+
+describe("FEAT-0806 — blobs from other builds", () => {
+    /** The same book a pre-0806 build would have written: minus every key. */
+    function stripAttribution(raw: string): string {
+        const blob = JSON.parse(raw) as {
+            positions?: Record<string, unknown>[];
+            fills?: Record<string, unknown>[];
+            positionMetadata?: Record<string, Record<string, unknown>>;
+        };
+        const keys = ["origin", "botId", "ruleId", "strategyHash"] as const;
+        for (const row of blob.positions ?? []) for (const key of keys) delete row[key];
+        for (const row of blob.fills ?? []) for (const key of keys) delete row[key];
+        for (const meta of Object.values(blob.positionMetadata ?? {}))
+            for (const key of keys) delete meta[key];
+        return JSON.stringify(blob);
+    }
+
+    it("loads a pre-field blob: the book survives and reads unattributed", async () => {
+        await open(BOT_STAMP);
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_PAPER_KEY,
+            stripAttribution(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY) as string),
+        );
+        paperState.reloadFromStorage();
+
+        expect(paperState.positions).toHaveLength(1);
+        expect(paperState.positions[0].origin).toBeUndefined();
+        expect(paperState.fills[0].origin).toBeUndefined();
+        expect(
+            paperState.getPositionMetadata(paperState.positions[0].positionId)?.botId,
+        ).toBeUndefined();
+    });
+
+    it("reads an unknown origin value as unattributed instead of wiping the book", async () => {
+        await open(BOT_STAMP);
+        const blob = JSON.parse(
+            localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY) as string,
+        ) as { positions: Record<string, unknown>[]; fills: Record<string, unknown>[] };
+        // A value a later build may know (ADR-0027's grid bot) but this one
+        // does not. The catch is per-field: the row survives, the unknown
+        // value reads as "manual or unknown", and the next persist() has a
+        // book to write instead of an empty one over the saved history.
+        blob.positions[0].origin = "grid";
+        blob.fills[0].origin = "grid";
+        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, JSON.stringify(blob));
+        paperState.reloadFromStorage();
+
+        expect(paperState.positions).toHaveLength(1);
+        expect(paperState.positions[0].origin).toBeUndefined();
+        expect(paperState.positions[0].botId).toBe("rule-bot-1");
+        expect(paperState.fills).toHaveLength(1);
+        expect(paperState.fills[0].origin).toBeUndefined();
+        expect(paperState.fills[0].botId).toBe("rule-bot-1");
     });
 });

@@ -210,16 +210,24 @@ describe("what a fired bot submits", () => {
 
     expect(await submitBotOrder(firingOf(doc), env)).toBeNull();
 
-    // Identity travels in origin's lane (BUG-0494). Today a bot is its rule
-    // (botStore), so botId and ruleId carry the same id under the name the
-    // journal groups by and the name the store looks up; they split apart
-    // only when a bot becomes an entity of its own (ADR-0026's lifecycle).
-    expect(place.mock.calls[0][0]).toMatchObject({
+    // Identity travels in origin's lane (BUG-0494), as one shape. Today a
+    // bot is its rule (botStore), so botId and ruleId carry the same id
+    // under the name the overview will group by and the name the store
+    // looks up; they split apart only when a bot becomes an entity of its
+    // own (ADR-0026's lifecycle).
+    const plan = place.mock.calls[0][0];
+    expect(plan).toMatchObject({
       origin: "bot",
-      botId: doc.id,
-      ruleId: doc.id,
-      strategyHash: "c0ffee".padEnd(64, "0"),
+      attribution: {
+        botId: doc.id,
+        ruleId: doc.id,
+        strategyHash: "c0ffee".padEnd(64, "0"),
+      },
     });
+    // The book's contract for a strategy hash is 64 lowercase hex (the core
+    // pins the real one); the fake honors it, so the plan-level shape is
+    // asserted here too.
+    expect(plan.attribution.strategyHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("takes the side from the intent", async () => {

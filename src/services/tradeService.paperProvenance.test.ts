@@ -204,9 +204,7 @@ describe("BUG-0494 — paper provenance", () => {
 
         await tradeService.placeOrder({
             ...entryParams("bot"),
-            botId: "rule-1",
-            ruleId: "rule-1",
-            strategyHash: "ab".repeat(32),
+            attribution: { botId: "rule-1", ruleId: "rule-1", strategyHash: "ab".repeat(32) },
         });
 
         const position = paperState.positions[0];
@@ -224,11 +222,12 @@ describe("BUG-0494 — paper provenance", () => {
             text: async () => JSON.stringify({ code: "0", data: {} }),
         });
 
+        // Manual origin with a stamped attribution is the paranoid case:
+        // the boundary guard drops the identity in paper mode, and the live
+        // wire never sees it either way.
         await tradeService.placeOrder({
             ...entryParams("manual"),
-            botId: "rule-1",
-            ruleId: "rule-1",
-            strategyHash: "ab".repeat(32),
+            attribution: { botId: "rule-1", ruleId: "rule-1", strategyHash: "ab".repeat(32) },
         });
 
         expect(exchangeSignedFetchMock).toHaveBeenCalledTimes(1);
