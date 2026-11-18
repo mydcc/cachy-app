@@ -47,6 +47,32 @@ then let it act while the alarm keeps watching". The full envelope,
 including why a bot's order goes through `OrderGate` instead of around it,
 is [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md).
 
+### Bot vs. order: where the trigger-order metaphor ends
+
+A waiting bot *presents* like a resting conditional order — it lies there
+until its condition holds, then it acts exactly once for that signal. That
+is a presentation truth, and the UI leans on it deliberately: a bot row in
+the orders view reads as a "conditional entry" (FEAT-0805, phase B). But a
+bot is **not** an order, and three differences draw the line:
+
+1. An order is one-shot and stateless; a bot is **recurring** — it stays
+   armed after firing (per its firing policy, FEAT-0822) and can act again.
+2. An order fills at its trigger price the moment the market touches it; a
+   bot **evaluates on candle close** and enters at that close, because a
+   condition like "RSI(14) below 30" only has a deterministic value on a
+   closed candle ([ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md)).
+   Protection is the exception: stops rest in the book tick-accurately, as
+   they do for manual trades.
+3. An order owns nothing after it fills; a bot **owns the position it
+   opens** — it is attributed in the book and the journal, evaluates exits
+   against its own position, and has a lifecycle and a version history
+   ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md)).
+
+So: *behaves like a resting conditional entry — is a strategy with a
+lifecycle.* Both halves are documented because a trader who conflates them
+will expect fills at trigger prices the evaluation model cannot honestly
+give.
+
 ## The data
 
 `RuleDocument` is **Class A** — it lives in `localStorage` and never leaves the

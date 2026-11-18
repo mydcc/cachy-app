@@ -42,6 +42,15 @@ Add a **Bots** tab to the sidebar and make ownership visible in both directions:
 
 The tab is a projection over FEAT-0807; it does not add state.
 
+**Phased placement (owner decision, 2026-11-18).** Phase A ships this tab —
+the first-class Bots overview. Phase B (long-term, see
+[`FEAT-0805`](FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md))
+moves waiting bots among the open orders as *conditional entries*: a bot row
+there is recognizable by a state-colored frame (theme tokens only, no
+hardcoded colors), because from the outside a waiting bot behaves like a
+resting conditional order. Both phases read the same derived store; nothing
+is duplicated or re-owned.
+
 ## Acceptance criteria
 
 - [ ] Every bot rule appears in the Bots tab, including one that has never fired,
@@ -55,6 +64,19 @@ The tab is a projection over FEAT-0807; it does not add state.
       pretending to be flat.
 - [ ] The tab is reachable by keyboard, every control has an accessible name,
       and the labels exist in both locales.
+- [ ] Placement is phased and recorded: phase A ships this tab; phase B
+      (long-term, see FEAT-0805) shows waiting bots among open orders as
+      conditional entries with a state-colored frame — theme tokens only,
+      no hardcoded colors.
+- [ ] A bot row carries position-like information density: symbol, side, size
+      basis, condition sentence, trigger timeframe, stop/take-profit
+      distance — and, once it owns a position, entry, holding time and a PnL
+      link that resolves to the owning position row.
+- [ ] The lifecycle is visible with timestamps: when the bot was created,
+      when it fired, why it is paused or blocked — including a
+      `limit reached` state fed by FEAT-0822.
+- [ ] Every surface names what it edits — alarm, bot or position — so a
+      trader never edits the wrong object by accident.
 - [ ] Component tests cover: waiting bot visible, bot-opened position badge,
       paused-with-position, empty state.
 
@@ -79,5 +101,7 @@ The tab is a projection over FEAT-0807; it does not add state.
 - [`FEAT-0806`](FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md)
 - [`FEAT-0807`](FEAT-0807-derive-bot-lifecycle-state.md)
 - [`FEAT-0749`](FEAT-0749-control-center-window-for-alerts-and-bots.md) — the control center Bots tab this mirrors.
+- [`FEAT-0822`](FEAT-0822-bot-firing-policy-and-guards.md) — feeds the `limit reached` and guard states.
+- [`FEAT-0824`](FEAT-0824-show-n-concurrent-positions-in-the-trading-frontend.md) — the N-position frontend this tab lives in.
 - Code: `src/components/shared/PositionsSidebar.svelte`,
   `src/components/alerts/bots/BotsTab.svelte`

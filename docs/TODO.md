@@ -1342,10 +1342,16 @@ ambiguity.
 
 "Bot" and "Superbot" are working names. The same object appears in the sidebar,
 the control center and the journal; one name must fit all three and both
-locales. Options: Bot / Strategy Bot, Bot / Managed Bot, keep Superbot.
+locales.
 
-**Proposal:** "Bot" for the conditional order, "Strategy Bot" for the owned
-lifecycle, with German equivalents.
+**Decision, 2026-11-18.** One concept, no stages: the UI says **"Bot"**, full
+stop — what a bot can do follows from what the trader fills in (notify only,
+trade with a stop, trade with exits, run a grid). "Superbot" and the stage
+ladder remain internal model vocabulary ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md),
+[ADR-0027](adr/0027-a-grid-bot-owns-an-order-set-and-its-position.md)) and
+never appear in UI strings or public docs; de/en strings both use "Bot". The
+workshop window carries the working title "Automatisierung" / "Automation"
+until a naming pass says otherwise.
 
 ## 37. Literature template library: scope and citations
 

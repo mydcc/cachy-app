@@ -17,92 +17,144 @@ size: XL
 
 ## Problem
 
-Today a bot is an alert with `consequence_level: "simulate"`: it fires once per
-evaluation, submits a market entry with a fixed stop, and is finished. It does
-not own the position it creates, cannot close it on a thesis change, cannot take
-profit, and does not appear anywhere until it has already acted. The paper book
-and the journal cannot say which bot produced a trade, so a bot cannot be
-reviewed, compared or trusted.
+Today a bot is an alert with `consequence_level: "simulate"`: it fires once
+per evaluation, submits a market entry with a fixed stop, and is finished.
+It does not own the position it creates, cannot close it on a thesis change,
+cannot take profit, and does not appear anywhere until it has already acted.
+The paper book and the journal cannot say which bot produced a trade, so a
+bot cannot be reviewed, compared or trusted.
 
-At the same time the condition builder stops at five flat conditions while the
-core can nest eight levels, and there is no way to express the context that a
-professional trader expects a bot to respect (volatility regime, session,
-external aggregates) — or to see why a bot did *not* act.
+At the same time the condition builder stops at five flat conditions while
+the core can nest eight levels, a bot only exists through the promotion
+detour from an alert, and there is no way to express the context a
+professional trader expects — or to see why a bot did *not* act.
 
-This is not a one-PR fix. It is a second rung on the ladder that keeps the first
-rung intact.
+## Goal (final, owner-confirmed 2026-11-18)
+
+> The trader can create **any bot he wants** — from a plain alarm to a
+> strategy with his own exits. He keeps the **complete overview** of
+> everything running, including bots that have not yet acted, and can
+> **change any running strategy at any time without losing the track
+> record**.
+
+Three trader types measure every item (owner framing):
+**A** — wants an alarm only. **B** — creates an alarm, promotes it later.
+**C** — wants to trade a strategy directly, no detour.
+
+One concept in the UI: **"Bot"**. No stage taxonomy ("Superbot" is an
+internal word and never appears in the UI); the workshop window carries the
+working title "Automatisierung". The waiting bot *behaves* like a resting
+conditional entry — and the docs say precisely where that metaphor ends
+(see FEAT-0826, "Bot vs. Order"): a bot recurs, owns a position and
+versions, an order does not.
+
+## Structure decision
+
+The new window is the **workshop** (create · review · templates); the
+**live overview lives in the trading sidebar** where the money already
+lives — no second monitoring monolith. The existing alert and bots windows
+keep running **in parallel short-term** and are replaced by the workshop
+when it covers them.
 
 ## Proposal
 
-Keep the current conditional market order as **stage 2** and add the rungs above
-it. All stages share one condition language, one evaluator and one `OrderGate`:
+All stages share one condition language, one evaluator and one `OrderGate`:
 
 | Stage | What it is | Status |
 | --- | --- | --- |
 | 1 — Alert | A `notify` rule: announces, does not act | today |
 | 2 — Bot | A `simulate` rule: conditional market entry + stop | today, unchanged |
-| 3 — Superbot | Stage 2 plus position ownership: exits, take profit, journal identity, sidebar presence | this epic |
+| 3 — Strategy bot | Stage 2 plus position ownership: exits, take profit, journal identity, firing policy | this epic |
 | 4 — Grid bot | An order set plus the position it accumulates | this epic |
 
-Work is split into child items by milestone:
+Work is split into milestones:
 
 - **M1 — Foundation:** [`FEAT-0806`](FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md),
   [`FEAT-0807`](FEAT-0807-derive-bot-lifecycle-state.md),
-  [`FEAT-0808`](FEAT-0808-show-bots-in-the-positions-sidebar.md).
-- **M2 — Exits:** [`FEAT-0809`](FEAT-0809-rule-exit-conditions-in-the-strategy-document.md),
+  [`FEAT-0808`](FEAT-0808-show-bots-in-the-positions-sidebar.md),
+  [`FEAT-0826`](FEAT-0826-overhaul-the-public-documentation-for-the-bot-era.md)
+  (goal + vocabulary land early so docs and UI tell one story).
+- **M2 — Exits, safety, scale:** [`FEAT-0809`](FEAT-0809-rule-exit-conditions-in-the-strategy-document.md),
   [`FEAT-0810`](FEAT-0810-execute-bot-exits-through-the-order-gate.md),
-  [`FEAT-0811`](FEAT-0811-superbot-editor-for-exit-conditions.md),
-  [`FEAT-0812`](FEAT-0812-per-bot-journal-analytics.md).
+  [`FEAT-0811`](FEAT-0811-superbot-editor-for-exit-conditions.md) (now incl. direct creation and the firing-and-limits section),
+  [`FEAT-0822`](FEAT-0822-bot-firing-policy-and-guards.md),
+  [`FEAT-0823`](FEAT-0823-confirmation-candle-as-an-entry-trigger-mode.md),
+  [`FEAT-0812`](FEAT-0812-per-bot-journal-analytics.md),
+  [`FEAT-0824`](FEAT-0824-show-n-concurrent-positions-in-the-trading-frontend.md).
 - **M3 — Conditions:** [`FEAT-0813`](FEAT-0813-condition-builder-v2-more-conditions-and-nested-groups.md),
   [`FEAT-0814`](FEAT-0814-author-and-audit-veto-conditions.md).
 - **M4 — Awareness:** [`FEAT-0815`](FEAT-0815-volatility-regime-and-session-operands.md),
   [`FEAT-0816`](FEAT-0816-external-market-context-as-a-veto-feed.md),
   [`FEAT-0817`](FEAT-0817-ai-assisted-rule-authoring.md),
-  [`FEAT-0818`](FEAT-0818-curated-literature-strategy-templates.md).
+  [`FEAT-0818`](FEAT-0818-curated-literature-strategy-templates.md) (now incl. user templates with schema, export/import, backup).
 - **M5 — Grid:** [`FEAT-0819`](FEAT-0819-grid-bot-runtime-on-the-paper-account.md),
   [`FEAT-0820`](FEAT-0820-grid-bot-controls-and-chart-visualisation.md).
+- **M6 — Later, each its own decision:** [`FEAT-0825`](FEAT-0825-bind-every-bot-to-one-account-and-show-only-the-active-account.md);
+  ideas parked so they cannot dilute the epic:
+  [`IDEA-0827`](../ideas/IDEA-0827-backtesting-engine.md),
+  [`IDEA-0828`](../ideas/IDEA-0828-node-based-strategy-editor.md),
+  [`IDEA-0829`](../ideas/IDEA-0829-ai-agent-bot-authoring-and-audit.md),
+  [`IDEA-0830`](../ideas/IDEA-0830-open-extension-architecture.md),
+  [`IDEA-0831`](../ideas/IDEA-0831-community-template-exchange.md).
 
 The ownership decision is [`ADR-0026`](../../adr/0026-a-bot-owns-the-position-it-opens.md);
 the grid shape is [`ADR-0027`](../../adr/0027-a-grid-bot-owns-an-order-set-and-its-position.md).
 
+## Implementation process (owner-ordered, binding for every item)
+
+After each finished section, **two reviews** run before the section counts
+as done: ① a code review of the section itself, and ② a **compatibility
+review against the previously implemented item** — while the implementing
+agent simultaneously plans whether everything will stay compatible with the
+*next* feature. A section is not "done" when its own tests pass; it is done
+when it is proven to fit what came before and what is planned after.
+
 ## Acceptance criteria
 
-- [ ] `ADR-0026` is accepted before any exit execution merges.
-- [ ] `ADR-0027` is accepted before any grid runtime merges.
-- [ ] Every stage uses one condition language, one evaluator and one `OrderGate`;
-      no second execution path exists (ADR-0012 decision 5).
-- [ ] Paper positions, fills and journal entries attribute a bot trade to the
-      bot that opened it, and a manual trade is distinguishable.
-- [ ] A waiting bot is visible before it acts, and an open bot position names
-      its owner.
-- [ ] The current conditional market order keeps working unchanged; stage 3 is
-      an addition, not a replacement.
-- [ ] No new server call and no new Class B feature: rules, positions and the
+- [ ] `ADR-0026` is accepted before any exit execution merges; `ADR-0027`
+      before any grid runtime merges.
+- [ ] Every stage uses one condition language, one evaluator and one
+      `OrderGate`; no second execution path exists (ADR-0012 decision 5).
+- [ ] The trader can create a bot directly in the workshop — promotion from
+      an alert remains a shortcut, never the only path (trader types B, C).
+- [ ] Paper positions, fills and journal entries attribute a bot trade to
+      the bot that opened it; a manual trade is distinguishable.
+- [ ] A waiting bot is visible before it acts — in the sidebar first
+      (FEAT-0808 phase A: its own tab; long-term phase B: among open orders
+      as a state-colored conditional entry).
+- [ ] Every firing policy and limit is user-settable and visible; the
+      safety floor (mandatory stop, one gate, no exposure-increasing
+      exits) is fixed and cannot be configured away (FEAT-0822).
+- [ ] The current conditional market order keeps working unchanged; stage 3
+      is an addition, not a replacement.
+- [ ] The public docs carry the goal and the "Bot vs. Order" vocabulary
+      (FEAT-0826); no stage names leak into UI strings.
+- [ ] No new server call, no new Class B feature: rules, positions and the
       journal stay on the device (ADR-0001).
 - [ ] Every new string exists in both `src/locales/locales/de.json` and
       `src/locales/locales/en.json`.
-- [ ] Each child item's acceptance criteria are met, or the item records why it
-      was dropped.
+- [ ] Each child item's acceptance criteria are met, or the item records
+      why it was dropped.
 
 ## Out of scope
 
 - Live execution (`send`) and [`FEAT-0035`](FEAT-0035-autonomous-execution-agent.md).
-- A backtesting engine.
+- A backtesting engine ([`IDEA-0827`](../ideas/IDEA-0827-backtesting-engine.md) — deliberately its own idea).
 - Cloud sync of rules, positions or journal entries.
 - New venues or exchange adapters.
-- An AI decision at execution time; AI is an authoring aid only (ADR-0012).
-- Portfolio-level allocation across bots, correlation limits and a shared risk
-  budget beyond the existing gate limits.
+- An AI decision at execution time; AI is an authoring aid only (ADR-0012,
+  [`IDEA-0829`](../ideas/IDEA-0829-ai-agent-bot-authoring-and-audit.md)).
+- Portfolio-level allocation across bots beyond per-bot limits (FEAT-0822).
 
 ## Open questions
 
-- Whether a superbot and a grid may run on the same symbol and side at the same
-  time. Proposal: no, one owner per `(symbol, side)` (ADR-0026).
-- Whether a paused bot keeps evaluating its exits. Proposal: yes — pause stops
-  entries, exits keep protecting. Tracked in
+- Whether a strategy bot and a grid may run on the same symbol and side at
+  the same time. Proposal: no, one owner per `(symbol, side)` (ADR-0026).
+- Whether a paused bot keeps evaluating its exits. Proposal: yes — pause
+  stops entries, exits keep protecting. Tracked in
   [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics).
-- Public naming of the stages: "Bot" and "Superbot" are working names. Tracked
-  in [`TODO.md`](../../TODO.md#36-public-naming-for-the-bot-stages).
+- Grid netting and edition questions remain open in
+  [`TODO.md`](../../TODO.md#34-grid-bots-paper-first-netting-and-edition).
 
 ## Links
 
@@ -111,6 +163,4 @@ the grid shape is [`ADR-0027`](../../adr/0027-a-grid-bot-owns-an-order-set-and-i
 - [`ADR-0012`](../../adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) — strategy is data, not a model opinion.
 - [`ADR-0020`](../../adr/0020-automation-envelope-promotion-and-simulate-bots.md) — promotion derives a bot; simulate bots go through the gate.
 - [`FEAT-0396`](FEAT-0396-automation-settings-tab.md) — the current bot envelope.
-- [`FEAT-0391`](FEAT-0391-alert-template-library.md) — template library, extended by FEAT-0818.
-- [`IDEA-0305`](../ideas/IDEA-0305-external-market-context-as-veto.md) — external context as a veto, built out by FEAT-0816.
 - [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics) — the decisions this epic waits on.
