@@ -2,7 +2,7 @@
 id: FEAT-0806
 title: Attribute paper trades and journal entries to their bot
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: feature/feat-0806-attribute-bot-trades
 parent: FEAT-0805
 size: S
 estimate: 3
