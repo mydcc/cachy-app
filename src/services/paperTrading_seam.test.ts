@@ -196,7 +196,11 @@ describe("FEAT-0012 — one seam", () => {
         // the rest of that lane, and it reads the mode through its port, so it
         // no longer matches this spelling. It is named where it now lives
         // below; the domain-wide backstop still counts all three together.
-        const branches = source.match(/if \(paperState\.enabled\)[\s\S]{0,220}/g) ?? [];
+        // FEAT-0806 widened the window from 220: the seam now merges origin
+        // and bot attribution into the simulator's payload before the
+        // handoff, so the branch body is longer. One branch and one
+        // `paperExchange.handle` remain the guarantee, not the byte count.
+        const branches = source.match(/if \(paperState\.enabled\)[\s\S]{0,800}/g) ?? [];
         expect(branches).toHaveLength(1);
         expect(branches.filter((b) => b.includes("paperExchange.handle"))).toHaveLength(1);
 
