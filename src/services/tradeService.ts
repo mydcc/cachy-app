@@ -794,14 +794,27 @@ class TradeService {
         const full = completeIntent(intent, this.displayedAccount());
         try {
             const result = await orderGate.submit<T>(full, (pass) =>
-                this.signedRequest<T>(
-                    full.endpoint,
-                    full.payload,
-                    pass,
-                    undefined,
-                    full.origin,
-                    full.attribution,
-                ),
+                // FEAT-0806 — attribution rides as the optional tail
+                // argument. Every lane that does not carry it (closes,
+                // cancels, modifies, TP/SL) keeps its exact five-argument
+                // call shape, which those lanes' tests pin — BUG-0494's
+                // "keeps its exact behaviour" promise, extended here.
+                full.attribution === undefined
+                    ? this.signedRequest<T>(
+                          full.endpoint,
+                          full.payload,
+                          pass,
+                          undefined,
+                          full.origin,
+                      )
+                    : this.signedRequest<T>(
+                          full.endpoint,
+                          full.payload,
+                          pass,
+                          undefined,
+                          full.origin,
+                          full.attribution,
+                      ),
             );
             // Eager post-action reconciliation on success.
             try {
