@@ -20,7 +20,14 @@ import { describe, expect, it } from "vitest";
 import de from "../../locales/locales/de.json";
 import en from "../../locales/locales/en.json";
 import { PRICE_FIELDS } from "./alertPathIndicators";
-import { formatIndicator, renderRuleSentence, type SentenceTranslator } from "./ruleSentence";
+import {
+    formatIndicator,
+    renderConditionClause,
+    renderConditionSentence,
+    renderOrderSentence,
+    renderRuleSentence,
+    type SentenceTranslator,
+} from "./ruleSentence";
 import type { Condition, PriceField, RuleDocument } from "./types";
 
 /**
@@ -549,5 +556,85 @@ describe("the instant the trigger candle is read (FEAT-0477)", () => {
         });
         expect(renderRuleSentence(vetoed, et)).toContain("inside the forming 4h candle");
         expect(renderRuleSentence(vetoed, et)).toContain("— unless a long position is open.");
+    });
+});
+
+describe("renderOrderSentence", () => {
+    it("renders the order clause alone, with the stop (FEAT-0808)", () => {
+        // The sidebar row splits the sentence into its two clauses: the
+        // condition names what the bot waits for, the order names what it
+        // will do. This pins that the split keeps the exact fragments the
+        // full sentence renders — one renderer, so a later clause (exits,
+        // FEAT-0809) changes both surfaces at once.
+        const bot = ruleWith(rsiBelow30, {
+            action: {
+                consequence_level: "simulate",
+                order: {
+                    side: "sell",
+                    size_basis: "percent_of_equity",
+                    size: "2.5",
+                    stop: { basis: "percent_of_entry", distance: "2" },
+                },
+            },
+        });
+        expect(renderOrderSentence(bot, et)).toBe(
+            "Simulates a sell order for 2.5 % of equity with a stop 2% from the entry",
+        );
+        expect(renderOrderSentence(bot, dt)).toBe(
+            "Simuliert eine Verkauf-Order über 2.5 % des Kontokapitals mit einem Stopp 2 % vom Einstieg",
+        );
+    });
+
+    it("keeps the bare lead for a rule that submits nothing", () => {
+        expect(renderOrderSentence(ruleWith(rsiBelow30), et)).toBe("Notifies");
+    });
+});
+
+describe("renderConditionClause", () => {
+    it("keeps the veto in the clause, reusing the frame's own fragment", () => {
+        const plain = ruleWith(rsiBelow30);
+        const vetoed = ruleWith(rsiBelow30, {
+            veto: { kind: "position", side: "long", open: true },
+        });
+        expect(renderConditionClause(vetoed, et)).toBe(
+            "RSI(14) is below 30 — unless a long position is open.",
+        );
+        expect(renderConditionClause(vetoed, dt)).toContain("— außer wenn");
+        // And it stays distinguishable from the unqualified rule.
+        expect(renderConditionClause(vetoed, et)).not.toBe(renderConditionClause(plain, et));
+        expect(renderConditionClause(vetoed, dt)).not.toBe(renderConditionClause(plain, dt));
+    });
+
+    it("marks an intrabar rule so the clause cannot read as a close rule", () => {
+        const closed = ruleWith(rsiBelow30);
+        const intrabar = ruleWith(rsiBelow30, { evaluation_mode: "intrabar" });
+        expect(renderConditionClause(intrabar, et)).toContain(
+            "— read while the candle is still forming",
+        );
+        expect(renderConditionClause(intrabar, dt)).toContain(
+            "— gelesen, während die Kerze noch läuft",
+        );
+        // The mode is inside the content hash: two rules differing only in
+        // it are two different strategies, and the clause must say so.
+        expect(renderConditionClause(intrabar, et)).not.toBe(renderConditionClause(closed, et));
+        expect(renderConditionClause(intrabar, dt)).not.toBe(renderConditionClause(closed, dt));
+    });
+
+    it("carries both qualifiers together in the frame's order", () => {
+        const both = ruleWith(rsiBelow30, {
+            evaluation_mode: "intrabar",
+            veto: { kind: "position", side: "long", open: true },
+        });
+        const rendered = renderConditionClause(both, et);
+        const intrabarAt = rendered.indexOf("read while the candle");
+        const unlessAt = rendered.indexOf("unless a long position");
+        expect(intrabarAt).toBeGreaterThan(-1);
+        expect(unlessAt).toBeGreaterThan(intrabarAt);
+    });
+
+    it("stays the plain condition clause for an unqualified rule", () => {
+        expect(renderConditionClause(ruleWith(rsiBelow30), et)).toBe(
+            renderConditionSentence(ruleWith(rsiBelow30), et),
+        );
     });
 });

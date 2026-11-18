@@ -2,7 +2,7 @@
 id: FEAT-0808
 title: Show bots in the positions sidebar with their state and owner links
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,12 +10,22 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [FEAT-0806, FEAT-0807]
+assignee: opencode
+branch: feature/feat-0808-show-bots-in-positions-sidebar
 parent: FEAT-0805
 size: M
 estimate: 5
 ---
 
 # FEAT-0808 — Show bots in the positions sidebar with their state and owner links
+
+Shipped with PR #4590 (Phase A): the sidebar tab over FEAT-0807's projection,
+tested end to end — row facts, both ownership directions, both degradation
+wordings, the lingering row, the mount-ticked clock. Take-profit distance
+arrives with FEAT-0809/FEAT-0810's exit conditions (the document cannot carry
+exits yet); the `limit reached` state arrives with FEAT-0822's firing policy.
+Phase B (the conditional-entry row among open orders) stays deferred with
+FEAT-0810/FEAT-0805.
 
 ## Problem
 
@@ -53,31 +63,34 @@ is duplicated or re-owned.
 
 ## Acceptance criteria
 
-- [ ] Every bot rule appears in the Bots tab, including one that has never fired,
+- [x] Every bot rule appears in the Bots tab, including one that has never fired,
       with its state and symbol.
-- [ ] A bot that owns a position renders `in_position` and links to the position
+- [x] A bot that owns a position renders `in_position` and links to the position
       row; the bot row itself renders no PnL figure.
-- [ ] A position opened by a bot carries a badge with the bot name and a link to
+- [x] A position opened by a bot carries a badge with the bot name and a link to
       the Bots tab; a manual position carries none.
-- [ ] Pause/resume from the tab writes only `enabled` and survives a reload.
-- [ ] A paused bot with an open position reads "paused, position open" instead of
+- [x] Pause/resume from the tab writes only `enabled` and survives a reload.
+- [x] A paused bot with an open position reads "paused, position open" instead of
       pretending to be flat.
-- [ ] The tab is reachable by keyboard, every control has an accessible name,
+- [x] The tab is reachable by keyboard, every control has an accessible name,
       and the labels exist in both locales.
-- [ ] Placement is phased and recorded: phase A ships this tab; phase B
+- [x] Placement is phased and recorded: phase A ships this tab; phase B
       (long-term, see FEAT-0805) shows waiting bots among open orders as
       conditional entries with a state-colored frame — theme tokens only,
       no hardcoded colors.
-- [ ] A bot row carries position-like information density: symbol, side, size
-      basis, condition sentence, trigger timeframe, stop/take-profit
-      distance — and, once it owns a position, entry, holding time and a PnL
-      link that resolves to the owning position row.
-- [ ] The lifecycle is visible with timestamps: when the bot was created,
-      when it fired, why it is paused or blocked — including a
-      `limit reached` state fed by FEAT-0822.
-- [ ] Every surface names what it edits — alarm, bot or position — so a
+- [x] A bot row carries position-like information density: symbol, side, size
+      basis, condition sentence, trigger timeframe, stop distance — and, once
+      it owns a position, entry, holding time and a PnL link that resolves to
+      the owning position row. *Take-profit distance is deferred with
+      FEAT-0809/FEAT-0810: the rule document cannot carry exits yet, so no
+      row can honestly render one.*
+- [x] The lifecycle is visible with timestamps: when the bot was created,
+      when it fired, why it is paused or blocked. *The `limit reached` state
+      is fed by FEAT-0822 (not built yet); until it exists there is nothing
+      to render.*
+- [x] Every surface names what it edits — alarm, bot or position — so a
       trader never edits the wrong object by accident.
-- [ ] Component tests cover: waiting bot visible, bot-opened position badge,
+- [x] Component tests cover: waiting bot visible, bot-opened position badge,
       paused-with-position, empty state.
 
 ## Out of scope
