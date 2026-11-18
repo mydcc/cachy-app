@@ -42,7 +42,7 @@ Three trader types measure every item (owner framing):
 **C** — wants to trade a strategy directly, no detour.
 
 Naming and vocabulary are decided in
-[`TODO.md`](../../TODO.md#36-public-naming-for-the-bot-stages) — one
+[`TODO.md`](../../TODO.md#36--public-naming-for-the-bot-stages) — one
 concept, "Bot", no stage names in the UI. Where the trigger-order metaphor
 ends is documented in exactly one place:
 [`docs/alert-system.md`](../../alert-system.md#bot-vs-order-where-the-trigger-order-metaphor-ends)
