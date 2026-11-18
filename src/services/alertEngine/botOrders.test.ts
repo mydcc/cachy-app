@@ -60,6 +60,10 @@ vi.mock("../../lib/rules/ruleSchema", () => ({
   ruleSchema: {
     warmupCandles: () => 1,
     evaluate: () => ({ verdict: "fires" }),
+    // FEAT-0806: the plan's strategy hash comes from the same module the
+    // engine trusts. The fake lands here BEFORE the implementation, so a
+    // RED fails on the missing plan fields rather than a mock crash.
+    contentHash: () => "c0ffee".padEnd(64, "0"),
   },
 }));
 
@@ -198,6 +202,24 @@ describe("what a fired bot submits", () => {
     expect(plan.accountSize.toString()).toBe("10000");
     // 0.002 BTC over a 1 000 stop distance is 2 USDT of 10 000 — 0.02%.
     expect(plan.riskPercentage.toString()).toBe("0.02");
+  });
+
+  it("stamps the bot's attribution on the plan (FEAT-0806)", async () => {
+    const doc = botDocument();
+    const { env, place } = environment();
+
+    expect(await submitBotOrder(firingOf(doc), env)).toBeNull();
+
+    // Identity travels in origin's lane (BUG-0494). Today a bot is its rule
+    // (botStore), so botId and ruleId carry the same id under the name the
+    // journal groups by and the name the store looks up; they split apart
+    // only when a bot becomes an entity of its own (ADR-0026's lifecycle).
+    expect(place.mock.calls[0][0]).toMatchObject({
+      origin: "bot",
+      botId: doc.id,
+      ruleId: doc.id,
+      strategyHash: "c0ffee".padEnd(64, "0"),
+    });
   });
 
   it("takes the side from the intent", async () => {

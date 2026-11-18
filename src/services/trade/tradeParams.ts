@@ -84,6 +84,14 @@ export interface PlaceOrderParams {
      * so they carry it without knowing it.
      */
     origin: OrderOrigin;
+    /**
+     * FEAT-0806 — the acting bot's identity, set only by the bot entry path.
+     * Travels on the intent, never the wire payload; the paper seam is its
+     * only consumer. See `BotAttribution` in orderGate.
+     */
+    botId?: string;
+    ruleId?: string;
+    strategyHash?: string;
     orderType?: "LIMIT" | "MARKET";
     qty: Decimal | string;
     price?: Decimal | string;

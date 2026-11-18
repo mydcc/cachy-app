@@ -54,6 +54,7 @@
 import { Decimal } from "decimal.js";
 
 import type { OrderIntent, StopDistance } from "../../lib/rules/types";
+import { ruleSchema } from "../../lib/rules/ruleSchema";
 import { logger } from "../logger";
 import { BOT_PAPER_ONLY_MESSAGE_KEY } from "../orderGate";
 import type { orderPlacementService } from "../orderPlacementService";
@@ -338,6 +339,14 @@ export async function submitBotOrder(
     // this to the real venue. Stamped `bot`, the gate and the transport
     // refuse it while paper trading is off instead of falling through.
     origin: "bot",
+    // FEAT-0806 — identity travels with the provenance, in origin's lane.
+    // botId and ruleId carry the acting rule's id (a bot is its rule —
+    // botStore); strategyHash is the version the rule fired under. If the
+    // core were down, no firing could have reached this line, so the hash is
+    // computed rather than defaulted.
+    botId: firing.rule.id,
+    ruleId: firing.rule.id,
+    strategyHash: ruleSchema.contentHash(firing.rule),
     tradeType: order.side === "buy" ? "long" : "short",
     entryType: "market",
     qty: quantity,

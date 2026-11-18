@@ -103,6 +103,13 @@ export interface EntryPlan {
      * paper trading is off instead of falling through to the venue.
      */
     origin: OrderOrigin;
+    /**
+     * FEAT-0806 — the acting bot's identity. Optional and bot-only: a manual
+     * plan leaves it absent and the book stamps `origin: "manual"`.
+     */
+    botId?: string;
+    ruleId?: string;
+    strategyHash?: string;
     /** "long" or "short", as the calculator states it. */
     tradeType: "long" | "short";
     entryType: OrderEntryType;
@@ -299,6 +306,11 @@ class OrderPlacementService {
                 symbol: plan.symbol,
                 side,
                 origin: plan.origin,
+                // FEAT-0806 — the bot's identity rides the params; the
+                // intent below carries it to the paper seam.
+                botId: plan.botId,
+                ruleId: plan.ruleId,
+                strategyHash: plan.strategyHash,
                 orderType: plan.entryType === "market" ? "MARKET" : "LIMIT",
                 qty: plan.qty,
                 price: plan.entryType === "market" ? undefined : plan.entryPrice,

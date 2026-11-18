@@ -176,6 +176,20 @@ export function createPlaceOrderService(ports: PlaceOrderPorts) {
             endpoint: "/api/orders",
             payload,
             origin: params.origin,
+            // FEAT-0806 — attribution rides the intent in origin's lane
+            // (BUG-0494): the payload above is the exact bytes the venue
+            // sees, and a rule id is Class A strategy that never leaves the
+            // device. The paper seam is the only consumer.
+            attribution:
+                params.botId !== undefined &&
+                params.ruleId !== undefined &&
+                params.strategyHash !== undefined
+                    ? {
+                          botId: params.botId,
+                          ruleId: params.ruleId,
+                          strategyHash: params.strategyHash,
+                      }
+                    : undefined,
             displayed: {
                 symbol: params.symbol,
                 side: params.side,

@@ -196,6 +196,27 @@ export interface OrderRefusal {
 export type OrderOrigin = "manual" | "bot";
 
 /**
+ * FEAT-0806 — who acted, for the simulated book of record.
+ *
+ * Rides the intent beside `origin` (BUG-0494's lane) and never the wire
+ * payload: a rule id is Class A strategy (ADR-0001) and does not leave the
+ * device. Only the bot entry path sets it; every other call site keeps its
+ * exact behaviour.
+ */
+export interface BotAttribution {
+    /** The grouping key the journal and the sidebar consume. */
+    botId: string;
+    /**
+     * The rule-store lookup key — the same id as `botId` while a bot is its
+     * rule (botStore), kept separate for the day a bot becomes an entity of
+     * its own (ADR-0026's lifecycle).
+     */
+    ruleId: string;
+    /** 64 lowercase hex — the strategy version the rule fired under. */
+    strategyHash: string;
+}
+
+/**
  * Refusal key for a bot order that reached approval or transmission while
  * paper trading is off. Shared with the transport (`signedRequest`) and the
  * bot submission path (`submitBotOrder` maps it back to the trader-facing
@@ -466,6 +487,13 @@ export interface OrderIntent {
      * bot-stamped intent approved while paper trading is off (BUG-0494).
      */
     origin?: OrderOrigin;
+    /**
+     * FEAT-0806 — the acting bot's identity, when the origin is one. The
+     * gate does not consume it; the paper seam in `signedRequest` does. It
+     * never reaches the wire payload, which is the exact bytes the venue
+     * sees.
+     */
+    attribution?: BotAttribution;
     /** Overrides for endpoints whose payload shape deviates from the default. */
     priceFields?: PriceFieldMap;
     /** Quantity-path overrides for endpoints that nest their quantities. */

@@ -246,6 +246,19 @@ export interface JournalEntry {
    * true while there was one account per venue.
    */
   accountId?: string;
+  /**
+   * FEAT-0806 — who opened this trade. Absent on every entry written before
+   * this field means "manual or unknown", which is the honest answer —
+   * nothing back-fills a guess.
+   *
+   * `botId` is the grouping key ("which bot works?"), `ruleId` the
+   * rule-store lookup key; today a bot is its rule, so both carry the
+   * rule's id. `strategyHash` is the 64-hex version the rule fired under.
+   */
+  origin?: "bot" | "manual";
+  botId?: string;
+  ruleId?: string;
+  strategyHash?: string;
 }
 
 export interface JournalGroupSummary {
