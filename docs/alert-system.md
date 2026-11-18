@@ -76,15 +76,18 @@ line:
    many-condition bot never *rests on the venue* the way a price-triggered
    order does. Protection is the exception: stops rest in the book
    tick-accurately, as they do for manual trades.
-3. An order owns nothing after it fills; a bot is planned to **own the
-   position it opens** — attribution in the book and the journal, exits
-   evaluated against its own position, a lifecycle and a version history
+3. An order owns nothing after it fills; a bot **owns the position it
+   opens** — attribution in the book and the journal is
+   [shipped](backlog/features/FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md):
+   the position, its entry metadata, the opening fill and the journal entry
+   carry the bot's origin, rule id and strategy hash, so a trade stays
+   attributed even after its rule is deleted. Exits evaluated against its
+   own position, a lifecycle and a version history remain planned
    ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md), Proposed;
    delivery tracked as
-   [FEAT-0806](backlog/features/FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md)
+   [FEAT-0807](backlog/features/FEAT-0807-derive-bot-lifecycle-state.md)
    and
    [FEAT-0810](backlog/features/FEAT-0810-execute-bot-exits-through-the-order-gate.md)).
-   Today's shipped bot trade is still indistinguishable from a manual one.
 
 So: *behaves like a resting conditional entry — is a strategy with a
 lifecycle.* Both halves are documented because a trader who conflates them
