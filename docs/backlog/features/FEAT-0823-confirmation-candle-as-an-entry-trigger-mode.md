@@ -95,4 +95,4 @@ Optional, never forced.
 - [`FEAT-0805`](FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md)
 - [`FEAT-0807`](FEAT-0807-derive-bot-lifecycle-state.md)
 - [`FEAT-0822`](FEAT-0822-bot-firing-policy-and-guards.md) — same editor section
-- [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics)
+- [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics)

@@ -100,8 +100,9 @@ protection cannot ship without its bot equivalent.
 - Whether the editor's home is the control center or the workshop window.
   Proposal: the workshop (its reason to exist), with the control center
   linking into it.
-- Whether the take-profit control is a distance or a condition row; depends
-  on [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics).
+- The take-profit control offers both, decided with the owner (2026-11-18):
+  the distance field and exit-condition rows, `unrealised_pnl_percent`
+  included ([`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics)).
 
 ## Links
 

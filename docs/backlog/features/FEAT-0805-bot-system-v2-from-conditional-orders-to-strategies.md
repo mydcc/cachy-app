@@ -153,9 +153,9 @@ when it is proven to fit what came before and what is planned after.
 
 - Whether a strategy bot and a grid may run on the same symbol and side at
   the same time. Proposal: no, one owner per `(symbol, side)` (ADR-0026).
-- Whether a paused bot keeps evaluating its exits. Proposal: yes — pause
-  stops entries, exits keep protecting. Tracked in
-  [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics).
+- Whether a paused bot keeps evaluating its exits. Decided with the owner
+  (2026-11-18): yes — pause stops entries, exits keep protecting
+  ([`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics)).
 - Grid netting and edition questions remain open in
   [`TODO.md`](../../TODO.md#34-grid-bots-paper-first-netting-and-edition).
 
@@ -166,4 +166,4 @@ when it is proven to fit what came before and what is planned after.
 - [`ADR-0012`](../../adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) — strategy is data, not a model opinion.
 - [`ADR-0020`](../../adr/0020-automation-envelope-promotion-and-simulate-bots.md) — promotion derives a bot; simulate bots go through the gate.
 - [`FEAT-0396`](FEAT-0396-automation-settings-tab.md) — the current bot envelope.
-- [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics) — the decisions this epic waits on.
+- [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics) — the epic's decided exit semantics and the reasoning.

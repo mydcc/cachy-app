@@ -1,6 +1,6 @@
 # ADR-0026: A bot owns the position it opens
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-11-18, owner gate G1; decision 1 shipped as FEAT-0807, decision 6 as FEAT-0806)
 - **Date:** 2026-11-06
 - **Deciders:** mydcc
 

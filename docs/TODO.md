@@ -1277,7 +1277,7 @@ and **Pull requests: Write** to the fine-grained PAT stored as `RELEASE_TOKEN`
 **Workflows: Write** only if a release commit ever touches
 `.github/workflows/**`; unlikely, recorded for the confusion it would cause.
 
-## 32. Take profit and exit semantics
+## 32. ✅ Take profit and exit semantics
 
 **From:** [`FEAT-0809`](backlog/features/FEAT-0809-rule-exit-conditions-in-the-strategy-document.md),
 [`FEAT-0810`](backlog/features/FEAT-0810-execute-bot-exits-through-the-order-gate.md),
@@ -1294,6 +1294,24 @@ choices shape them:
 
 **Proposal:** a distance field (no stale price, matches the stop); close first,
 intrabar later; pause stops entries while exits keep protecting.
+
+**Decision, 2026-11-18.** Take profit ships as **both**: the distance field
+(`take_profit: StopDistance`, resolved against the actual entry like `stop`,
+never a stored price) and PnL-shaped exit conditions. The latter needs no new
+operand — `unrealised_pnl_percent` already ships as an account condition
+(FEAT-0303), a percentage of the position's margin, legal in the trigger from
+`simulate` up. What the decision adds: `exits` carry the same condition
+language, this operand included — FEAT-0809's validation refuses only
+`external_feed` inside exits, exactly as in the trigger. Inside `exits` the
+operand is evaluated against the position the bot owns (ADR-0026, decisions 2
+and 5 — an exit reacting to another position's PnL would break ownership); in
+the trigger it keeps its shipped account-state meaning. The cadence and pause
+proposals stand as written — exits on candle close first, intrabar later
+behind the rule's `evaluation_mode`; a paused bot stops entering while its
+exits keep protecting. FEAT-0810's adjacent question (the owning rule deleted
+while its position is open) is decided in that item's spec: the position turns
+unattributed, must be closed manually, and deleting a rule with an open
+position requires an explicit warning.
 
 ## 33. AI-assisted rule authoring: scope and egress
 

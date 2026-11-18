@@ -8,7 +8,7 @@ milestone: none
 editions: [community, pro, private]
 area: execution
 data_class: A
-adr: required
+adr: ADR-0026
 depends_on: [FEAT-0806, FEAT-0809]
 parent: FEAT-0805
 size: L
@@ -33,8 +33,9 @@ and must never open exposure by accident.
 An exit evaluator runs while a bot owns a position:
 
 1. For each owned position, evaluate the owning bot's `exits` and
-   `take_profit` on the same cadence as the trigger (candle close; intrabar is a
-   decision, see Open questions).
+   `take_profit` on the same cadence as the trigger (candle close first;
+   intrabar arrives later behind the rule's `evaluation_mode`, decided with
+   the owner).
 2. On a firing, submit a **close** through `TradeService.closePosition` /
    `orderPlacementService`, with `reduce_only` set and the quantity derived from
    the position (all, or `fraction` of it), never from the rule's entry size.
@@ -80,16 +81,18 @@ An exit evaluator runs while a bot owns a position:
 - Reopening a position after an exit; a bot that wants to re-enter does so on
   its entry conditions and its frequency policy, not as part of the exit.
 
-## Open questions
+## Decided questions
 
-- Whether exits evaluate intrabar as well as on candle close. Proposal: close
-  first (consistent with the trigger), intrabar behind the rule's
-  `evaluation_mode` once the semantics are settled. Tracked in
-  [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics).
-- Whether a paused bot keeps evaluating exits. Proposal: yes.
-- What happens when the owning rule is deleted while a position is open.
-  Proposal: the position becomes unattributed and must be closed manually; the
-  bot may not be deleted with an open position without an explicit warning.
+- Exits evaluate on candle close, consistent with the trigger; intrabar
+  arrives later behind the rule's `evaluation_mode`. Decided with the owner
+  (2026-11-18) in
+  [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics).
+- A paused bot keeps evaluating exits; pause stops entries, exits keep
+  protecting. Same decision, same entry.
+- When the owning rule is deleted while a position is open, the position
+  turns unattributed and must be closed manually; deleting a rule with an open
+  position requires an explicit warning. Decided with the owner (2026-11-18);
+  FEAT-0808's lingering-row rendering will cover the case this produces.
 
 ## Links
 
