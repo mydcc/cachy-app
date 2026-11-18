@@ -37,6 +37,7 @@
 import { Decimal } from "decimal.js";
 import { validateTpSlPrice, normalizePositionSide } from "../lib/calculators/tpsl";
 import { paperState, type PaperFill, type PaperOrder } from "../stores/paperTrading.svelte";
+import type { BotAttribution } from "./orderGate";
 
 export class PaperExchangeError extends Error {
     constructor(
@@ -677,6 +678,30 @@ class PaperExchange {
         const price = requirePrice(symbol);
         const qty = this.fillQuantity(requested);
         const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
+        // FEAT-0806 — provenance and identity for the book, merged into the
+        // payload by the paper seam in tradeService. A caller that drives the
+        // simulator directly (tests, older callers) stamps nothing and the
+        // trade reads as manual-or-unknown.
+        const origin =
+            payload.origin === "bot" || payload.origin === "manual"
+                ? payload.origin
+                : undefined;
+        // FEAT-0806 — the single attribution guard, at the trust boundary:
+        // identity is a fact of a bot entry, so it exists only when the
+        // payload says `origin: "bot"` and all three fields are strings.
+        // Anything else reads as manual-or-unknown, never as a mis-stamped
+        // bot — a manual order cannot smuggle identity in late.
+        const attribution: BotAttribution | undefined =
+            origin === "bot" &&
+            typeof payload.botId === "string" &&
+            typeof payload.ruleId === "string" &&
+            typeof payload.strategyHash === "string"
+                ? {
+                      botId: payload.botId,
+                      ruleId: payload.ruleId,
+                      strategyHash: payload.strategyHash,
+                  }
+                : undefined;
         // BUG-0552 review: TP/SL levels are validated before the zero-fill
         // shortcut below, so an order carrying invalid TP/SL is rejected even
         // when the market would have filled nothing. Only a fully valid order
@@ -703,13 +728,25 @@ class PaperExchange {
 
         const fill = closes
             ? this.applyClose(symbol, side, qty, price)
-            : this.applyOpen(symbol, side, qty, price, this.entryLeverage(symbol, payload));
+            : this.applyOpen(
+                  symbol,
+                  side,
+                  qty,
+                  price,
+                  this.entryLeverage(symbol, payload),
+                  origin,
+                  attribution,
+              );
         this.recordFill(fill, {
             orderId,
             symbol,
             side,
             orderType,
             tradeSide: closes ? "CLOSE" : "OPEN",
+            // FEAT-0806 — only the opening fill carries the stamp; a
+            // closing fill inherits by positionId.
+            origin,
+            attribution,
         });
 
         // FEAT-0069: TP/SL attached to the entry become resting orders on the
@@ -757,6 +794,9 @@ class PaperExchange {
             side: "BUY" | "SELL";
             orderType: string;
             tradeSide: "OPEN" | "CLOSE";
+            /** FEAT-0806 — stamped on opening fills only. */
+            origin?: "bot" | "manual";
+            attribution?: BotAttribution;
         },
     ): void {
         if (fill.qty.lte(0)) return;
@@ -773,6 +813,11 @@ class PaperExchange {
             realizedPnl: fill.realizedPnl.toString(),
             positionId: fill.positionId,
             createdAt: Date.now(),
+            // FEAT-0806 — the opening fill is the audit record's attributable
+            // anchor; closing fills inherit by positionId.
+            ...(context.tradeSide === "OPEN" && context.origin !== undefined
+                ? { origin: context.origin, ...context.attribution }
+                : {}),
         };
         paperState.addFill(record);
     }
@@ -868,6 +913,9 @@ class PaperExchange {
         qty: Decimal,
         reference: Decimal,
         leverage: Decimal,
+        /** FEAT-0806 — who opened this position; stamped only on a new one. */
+        origin?: "bot" | "manual",
+        attribution?: BotAttribution,
     ): FillResult {
         const price = this.fillPrice(reference, side);
         const notional = price.times(qty);
@@ -897,6 +945,10 @@ class PaperExchange {
                 // report the account the trade was sized against, not the
                 // account one fee later.
                 accountSizeAtEntry: accountSize,
+                // FEAT-0806 — attribution is an open-time fact: an add to an
+                // existing position never re-attributes it.
+                ...(origin !== undefined ? { origin } : {}),
+                ...(attribution ?? {}),
             });
             // Capture entry metadata independently so it survives fill eviction.
             paperState.setPositionMetadata(positionId, {
@@ -907,6 +959,10 @@ class PaperExchange {
                 accountSize,
                 risk: "0", // Risk is unknown until TP/SL is set; filled in by journal
                 createdAt: Date.now(),
+                // FEAT-0806 — stamped beside the entry facts so attribution
+                // survives fill eviction.
+                ...(origin !== undefined ? { origin } : {}),
+                ...(attribution ?? {}),
             });
         } else {
             // Weighted average entry, the way the exchange reports it after an

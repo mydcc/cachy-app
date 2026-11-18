@@ -210,6 +210,18 @@ class PaperJournalService {
                     : [],
             calculatedTpDetails: [],
             positionSize: new Decimal(position.amount),
+            // FEAT-0806 — attribution copied once from the position, as a
+            // recorded fact: the entry owns its copy, so a rule deleted later
+            // never erases the track record, and an entry written before
+            // this change stays unattributed ("manual or unknown").
+            ...(position.origin !== undefined || position.botId !== undefined
+                ? {
+                      origin: position.origin,
+                      botId: position.botId,
+                      ruleId: position.ruleId,
+                      strategyHash: position.strategyHash,
+                  }
+                : {}),
             isManual: false,
             isPaper: true,
             tags: [],

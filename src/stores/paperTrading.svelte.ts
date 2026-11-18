@@ -108,6 +108,25 @@ export interface PaperPosition {
      * leave it unchanged.
      */
     riskAmountAtEntry?: string;
+    /**
+     * FEAT-0806 — who opened this position. A recorded fact of the open,
+     * never refreshed: a manual trade stays manual, a bot's trade stays
+     * attributed after its rule is deleted, and a position written before
+     * this field is absent, which reads as "manual or unknown".
+     *
+     * `botId` is the grouping key the bots overview (FEAT-0808) and the
+     * per-bot journal analytics (FEAT-0812) will consume — no reader exists
+     * yet, the book records the fact first; `ruleId` is the rule-store
+     * lookup key. Today a bot is its rule
+     * (botStore: "a bot is not a second kind of thing"), so both carry the
+     * rule's id — they split apart only when a bot becomes an entity of its
+     * own (ADR-0026's lifecycle).
+     */
+    origin?: "bot" | "manual";
+    botId?: string;
+    ruleId?: string;
+    /** 64 lowercase hex — the strategy version the rule fired under. */
+    strategyHash?: string;
 }
 
 /** A resting simulated order, waiting for the feed to cross it. */
@@ -187,6 +206,15 @@ export interface PaperFill {
     realizedPnl: string;
     positionId: string;
     createdAt: number;
+    /**
+     * FEAT-0806 — stamped on the opening fill only, so attribution survives
+     * metadata eviction (the book caps at 500 fills). A closing fill carries
+     * none and inherits by `positionId`.
+     */
+    origin?: "bot" | "manual";
+    botId?: string;
+    ruleId?: string;
+    strategyHash?: string;
 }
 
 /**
@@ -202,6 +230,11 @@ export interface PositionMetadata {
     accountSize: string;
     risk: string;
     createdAt: number;
+    /** FEAT-0806 — who opened this position; absent means manual or unknown. */
+    origin?: "bot" | "manual";
+    botId?: string;
+    ruleId?: string;
+    strategyHash?: string;
 }
 
 /**
@@ -234,6 +267,14 @@ const PaperPositionSchema = z.object({
     realizedPnl: decimalString.catch("0"),
     openedAt: z.number().catch(0),
     accountSizeAtEntry: decimalString.optional(),
+    // FEAT-0806 — caught, not merely optional: a value this build does not
+    // know (a future "grid" from ADR-0027, a hand-edited blob) reads as
+    // "manual or unknown" instead of failing the whole book and leaving the
+    // next persist() to overwrite the saved history.
+    origin: z.enum(["bot", "manual"]).optional().catch(undefined),
+    botId: z.string().optional(),
+    ruleId: z.string().optional(),
+    strategyHash: z.string().optional(),
 });
 
 const PaperFillSchema = z.object({
@@ -249,6 +290,11 @@ const PaperFillSchema = z.object({
     realizedPnl: decimalString.catch("0"),
     positionId: z.string().catch(""),
     createdAt: z.number().catch(0),
+    // FEAT-0806 — see PaperPositionSchema's origin note on the catch.
+    origin: z.enum(["bot", "manual"]).optional().catch(undefined),
+    botId: z.string().optional(),
+    ruleId: z.string().optional(),
+    strategyHash: z.string().optional(),
 });
 
 const PaperOrderSchema = z.object({
@@ -279,6 +325,11 @@ const PositionMetadataSchema = z.object({
     accountSize: decimalString,
     risk: decimalString,
     createdAt: z.number(),
+    // FEAT-0806 — see PaperPositionSchema's origin note on the catch.
+    origin: z.enum(["bot", "manual"]).optional().catch(undefined),
+    botId: z.string().optional(),
+    ruleId: z.string().optional(),
+    strategyHash: z.string().optional(),
 });
 
 const PaperStateSchema = z.object({

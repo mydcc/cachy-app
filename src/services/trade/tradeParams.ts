@@ -13,7 +13,7 @@
  * runtime edge exists toward orderGate or decimal.js consumers.
  */
 import type { Decimal } from "decimal.js";
-import type { OrderOrigin } from "../orderGate";
+import type { OrderOrigin, BotAttribution } from "../orderGate";
 
 export interface TpSlOrder {
     orderId: string;
@@ -84,6 +84,13 @@ export interface PlaceOrderParams {
      * so they carry it without knowing it.
      */
     origin: OrderOrigin;
+    /**
+     * FEAT-0806 — the acting bot's identity, as one shape (`BotAttribution`)
+     * rather than three loose fields that could drift apart. Set only by the
+     * bot entry path. Travels on the intent, never the wire payload; the
+     * paper seam is its only consumer.
+     */
+    attribution?: BotAttribution;
     orderType?: "LIMIT" | "MARKET";
     qty: Decimal | string;
     price?: Decimal | string;

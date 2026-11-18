@@ -50,7 +50,7 @@ import { paperState } from "../stores/paperTrading.svelte";
 import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
 import { logger } from "./logger";
-import { OrderRefusedError, type OrderRefusal, type OrderOrigin } from "./orderGate";
+import { OrderRefusedError, type OrderRefusal, type OrderOrigin, type BotAttribution } from "./orderGate";
 // Shared with the resting-stop read (review on PR #3551) so the two cannot drift.
 import { planSideMatchesEntry as sideCompatible } from "./tpslNormalize";
 import { getDisplayMessage } from "../utils/errorUtils";
@@ -103,6 +103,13 @@ export interface EntryPlan {
      * paper trading is off instead of falling through to the venue.
      */
     origin: OrderOrigin;
+    /**
+     * FEAT-0806 — the acting bot's identity, as one shape (`BotAttribution`)
+     * rather than three loose fields that could drift apart. Optional and
+     * bot-only: a manual plan leaves it absent and the book stamps
+     * `origin: "manual"`.
+     */
+    attribution?: BotAttribution;
     /** "long" or "short", as the calculator states it. */
     tradeType: "long" | "short";
     entryType: OrderEntryType;
@@ -299,6 +306,9 @@ class OrderPlacementService {
                 symbol: plan.symbol,
                 side,
                 origin: plan.origin,
+                // FEAT-0806 — the bot's identity rides the params as one
+                // shape; the intent below carries it to the paper seam.
+                attribution: plan.attribution,
                 orderType: plan.entryType === "market" ? "MARKET" : "LIMIT",
                 qty: plan.qty,
                 price: plan.entryType === "market" ? undefined : plan.entryPrice,

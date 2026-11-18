@@ -66,6 +66,7 @@ vi.mock("../utils/exchange/browserSigning", async (importOriginal) => {
 });
 
 import { tradeService } from "./tradeService";
+import { setPaperPriceFeed } from "./paperExchange";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { marketState } from "../stores/market.svelte";
@@ -194,5 +195,47 @@ describe("BUG-0494 — paper provenance", () => {
         await expect(
             tradeService.signedRequest("/api/orders", { type: "place-order", symbol: "BTCUSDT" }),
         ).rejects.toMatchObject({ refusal: { messageKey: "orderGate.bypassed" } });
+    });
+
+    it("routes the bot's attribution through the seam into the simulated book (FEAT-0806)", async () => {
+        paperState.setEnabled(true);
+        paperState.resetBook();
+        setPaperPriceFeed(() => new Decimal(50000));
+
+        await tradeService.placeOrder({
+            ...entryParams("bot"),
+            attribution: { botId: "rule-1", ruleId: "rule-1", strategyHash: "ab".repeat(32) },
+        });
+
+        const position = paperState.positions[0];
+        expect(position.origin).toBe("bot");
+        expect(position.botId).toBe("rule-1");
+        expect(position.ruleId).toBe("rule-1");
+        expect(position.strategyHash).toBe("ab".repeat(32));
+        // The paper branch is the only consumer: nothing reached a venue.
+        expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
+    });
+
+    it("keeps the attribution off the live wire (FEAT-0806)", async () => {
+        exchangeSignedFetchMock.mockResolvedValue({
+            ok: true,
+            text: async () => JSON.stringify({ code: "0", data: {} }),
+        });
+
+        // Manual origin with a stamped attribution is the paranoid case:
+        // the boundary guard drops the identity in paper mode, and the live
+        // wire never sees it either way.
+        await tradeService.placeOrder({
+            ...entryParams("manual"),
+            attribution: { botId: "rule-1", ruleId: "rule-1", strategyHash: "ab".repeat(32) },
+        });
+
+        expect(exchangeSignedFetchMock).toHaveBeenCalledTimes(1);
+        const wire = JSON.stringify(exchangeSignedFetchMock.mock.calls[0]);
+        expect(wire).not.toContain("rule-1");
+        expect(wire).not.toContain("ab".repeat(32));
+        expect(wire).not.toContain('"origin"');
+        expect(wire).not.toContain("strategyHash");
+        expect(wire).not.toContain("botId");
     });
 });

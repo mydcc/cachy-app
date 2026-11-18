@@ -60,6 +60,10 @@ vi.mock("../../lib/rules/ruleSchema", () => ({
   ruleSchema: {
     warmupCandles: () => 1,
     evaluate: () => ({ verdict: "fires" }),
+    // FEAT-0806: the plan's strategy hash comes from the same module the
+    // engine trusts. The fake lands here BEFORE the implementation, so a
+    // RED fails on the missing plan fields rather than a mock crash.
+    contentHash: () => "c0ffee".padEnd(64, "0"),
   },
 }));
 
@@ -198,6 +202,32 @@ describe("what a fired bot submits", () => {
     expect(plan.accountSize.toString()).toBe("10000");
     // 0.002 BTC over a 1 000 stop distance is 2 USDT of 10 000 — 0.02%.
     expect(plan.riskPercentage.toString()).toBe("0.02");
+  });
+
+  it("stamps the bot's attribution on the plan (FEAT-0806)", async () => {
+    const doc = botDocument();
+    const { env, place } = environment();
+
+    expect(await submitBotOrder(firingOf(doc), env)).toBeNull();
+
+    // Identity travels in origin's lane (BUG-0494), as one shape. Today a
+    // bot is its rule (botStore), so botId and ruleId carry the same id
+    // under the name the overview will group by and the name the store
+    // looks up; they split apart only when a bot becomes an entity of its
+    // own (ADR-0026's lifecycle).
+    const plan = place.mock.calls[0][0];
+    expect(plan).toMatchObject({
+      origin: "bot",
+      attribution: {
+        botId: doc.id,
+        ruleId: doc.id,
+        strategyHash: "c0ffee".padEnd(64, "0"),
+      },
+    });
+    // The book's contract for a strategy hash is 64 lowercase hex (the core
+    // pins the real one); the fake honors it, so the plan-level shape is
+    // asserted here too.
+    expect(plan.attribution.strategyHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("takes the side from the intent", async () => {

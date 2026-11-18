@@ -61,6 +61,7 @@ import {
     BOT_PAPER_ONLY_MESSAGE_KEY,
     type GatePass,
     type OrderOrigin,
+    type BotAttribution,
     type TransportContext,
 } from "./orderGate";
 import { exchangeSignedFetch, SIGNING_ERRORS } from "../utils/exchange/browserSigning";
@@ -406,6 +407,13 @@ class TradeService {
          * testable without minting one.
          */
         origin?: OrderOrigin,
+        /**
+         * FEAT-0806 — the acting bot's identity, when the origin carries one.
+         * The paper seam below is its only consumer; the live branch never
+         * puts it on the payload, because the payload is the exact bytes the
+         * venue receives.
+         */
+        attribution?: BotAttribution,
     ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
@@ -466,7 +474,20 @@ class TradeService {
         // Everything below it is the network; nothing below it runs in paper
         // mode, so a simulated order cannot produce an outbound request.
         if (paperState.enabled) {
-            return (await paperExchange.handle(endpoint, payload)) as T;
+            // FEAT-0806 — the simulator is the book of record for a
+            // simulated fill, so origin and bot attribution reach it here
+            // and only here. Below this line is the network, and the wire
+            // payload stays byte-identical: a rule id is Class A strategy
+            // (ADR-0001) and never leaves the device.
+            const bookPayload =
+                origin === undefined && attribution === undefined
+                    ? payload
+                    : {
+                          ...payload,
+                          ...(origin !== undefined ? { origin } : {}),
+                          ...attribution,
+                      };
+            return (await paperExchange.handle(endpoint, bookPayload)) as T;
         }
 
         if (!keys || !keys.key) {
@@ -773,7 +794,27 @@ class TradeService {
         const full = completeIntent(intent, this.displayedAccount());
         try {
             const result = await orderGate.submit<T>(full, (pass) =>
-                this.signedRequest<T>(full.endpoint, full.payload, pass, undefined, full.origin),
+                // FEAT-0806 — attribution rides as the optional tail
+                // argument. Every lane that does not carry it (closes,
+                // cancels, modifies, TP/SL) keeps its exact five-argument
+                // call shape, which those lanes' tests pin — BUG-0494's
+                // "keeps its exact behaviour" promise, extended here.
+                full.attribution === undefined
+                    ? this.signedRequest<T>(
+                          full.endpoint,
+                          full.payload,
+                          pass,
+                          undefined,
+                          full.origin,
+                      )
+                    : this.signedRequest<T>(
+                          full.endpoint,
+                          full.payload,
+                          pass,
+                          undefined,
+                          full.origin,
+                          full.attribution,
+                      ),
             );
             // Eager post-action reconciliation on success.
             try {
