@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
 import de from "../../locales/locales/de.json";
 import en from "../../locales/locales/en.json";
 import { PRICE_FIELDS } from "./alertPathIndicators";
-import { formatIndicator, renderRuleSentence, type SentenceTranslator } from "./ruleSentence";
+import { formatIndicator, renderOrderSentence, renderRuleSentence, type SentenceTranslator } from "./ruleSentence";
 import type { Condition, PriceField, RuleDocument } from "./types";
 
 /**
@@ -549,5 +549,36 @@ describe("the instant the trigger candle is read (FEAT-0477)", () => {
         });
         expect(renderRuleSentence(vetoed, et)).toContain("inside the forming 4h candle");
         expect(renderRuleSentence(vetoed, et)).toContain("— unless a long position is open.");
+    });
+});
+
+describe("renderOrderSentence", () => {
+    it("renders the order clause alone, with the stop (FEAT-0808)", () => {
+        // The sidebar row splits the sentence into its two clauses: the
+        // condition names what the bot waits for, the order names what it
+        // will do. This pins that the split keeps the exact fragments the
+        // full sentence renders — one renderer, so a later clause (exits,
+        // FEAT-0809) changes both surfaces at once.
+        const bot = ruleWith(rsiBelow30, {
+            action: {
+                consequence_level: "simulate",
+                order: {
+                    side: "sell",
+                    size_basis: "percent_of_equity",
+                    size: "2.5",
+                    stop: { basis: "percent_of_entry", distance: "2" },
+                },
+            },
+        });
+        expect(renderOrderSentence(bot, et)).toBe(
+            "Simulates a sell order for 2.5 % of equity with a stop 2% from the entry",
+        );
+        expect(renderOrderSentence(bot, dt)).toBe(
+            "Simuliert eine Verkauf-Order über 2.5 % des Kontokapitals mit einem Stopp 2 % vom Einstieg",
+        );
+    });
+
+    it("keeps the bare lead for a rule that submits nothing", () => {
+        expect(renderOrderSentence(ruleWith(rsiBelow30), et)).toBe("Notifies");
     });
 });

@@ -2,7 +2,7 @@
 id: FEAT-0808
 title: Show bots in the positions sidebar with their state and owner links
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [FEAT-0806, FEAT-0807]
+assignee: opencode
+branch: feature/feat-0808-show-bots-in-positions-sidebar
 parent: FEAT-0805
 size: M
 estimate: 5

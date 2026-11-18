@@ -77,6 +77,9 @@
   import AddToPositionModal from "./AddToPositionModal.svelte";
   import TpSlCreateModal from "./TpSlCreateModal.svelte";
   import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
+  import BotsList from "./BotsList.svelte";
+  import { botsState } from "../../stores/botsState.svelte";
+  import { readBots } from "../../services/alertEngine/botStore";
 
   let { fetchEnabled = true }: { fetchEnabled?: boolean } = $props();
 
@@ -163,8 +166,60 @@
   let errorAccount = $state("");
 
   // Tab State
-  type Tab = "positions" | "orders" | "tpsl" | "history";
+  type Tab = "positions" | "orders" | "bots" | "tpsl" | "history";
   let activeTab: Tab = $state("positions");
+
+  // FEAT-0808 — the Positions row a "view position" link resolves to. Set by
+  // the Bots tab's link, consumed by PositionsList as the row to highlight
+  // and scroll to. Never cleared on a timer: the highlight stays until the
+  // trader follows another link, which is the only moment it changes
+  // meaning.
+  let highlightPositionId = $state<string | null>(null);
+
+  /**
+   * FEAT-0808 — bot ownership of the rows the Positions tab lists, for the
+   * badge that names the opener and links back to the Bots tab.
+   *
+   * The book's own stamp (FEAT-0806) is the fact; the name join needs the
+   * rule documents, re-read in step with `botsState.states` — the projection
+   * is what re-reads the rule store on every `rulesVersion` bump. A bot that
+   * was deleted keeps its badge with a null name: the position is still
+   * bot-opened, and the Bots tab's lingering row says the rest.
+   *
+   * Keyed by positionId, so a live venue row can never match a `paper-pos-*`
+   * id — the badge cannot attach to a position the book does not own.
+   */
+  let botOwners = $derived.by(() => {
+    void botsState.states;
+    let names = new Map<string, string>();
+    if (!botsState.degraded.rules) {
+      try {
+        names = new Map(readBots().map((bot) => [bot.id, bot.name]));
+      } catch {
+        names = new Map();
+      }
+    }
+    const owners = new Map<string, { botId: string; name: string | null }>();
+    for (const position of paperState.positions) {
+      if (position.origin !== "bot" || position.botId === undefined) continue;
+      owners.set(position.positionId, {
+        botId: position.botId,
+        name: names.get(position.botId) ?? null,
+      });
+    }
+    return owners;
+  });
+
+  /** FEAT-0808 — a bot row's link lands here: show the position it owns. */
+  function showBotPosition(positionId: string): void {
+    highlightPositionId = positionId;
+    activeTab = "positions";
+  }
+
+  /** FEAT-0808 — a position badge lands here: show the bot that opened it. */
+  function showBotsTab(): void {
+    activeTab = "bots";
+  }
 
   // Context Menu State
   let showContextMenu = $state(false);
@@ -1377,6 +1432,22 @@
       >
         {$_("dashboard.orders")} ({openOrders.length})
       </button>
+      <!-- FEAT-0808 — a bot that is armed and waiting is none of the other
+           tabs, so it gets its own before the record tabs. No count in the
+           label: the tab is a projection over the store, and the rows say
+           more than a number would. -->
+      <button
+        class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
+        class:text-[var(--accent-color)]={activeTab === "bots"}
+        class:border-[var(--accent-color)]={activeTab === "bots"}
+        class:text-[var(--text-secondary)]={activeTab !== "bots"}
+        class:border-transparent={activeTab !== "bots"}
+        data-testid="tab-bots"
+        data-active={activeTab === "bots"}
+        onclick={() => (activeTab = "bots")}
+      >
+        {$_("dashboard.bots")}
+      </button>
       {#if canPlaceStandaloneTpSl}
         <button
           class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
@@ -1418,6 +1489,13 @@
           ontpSl={canPlaceStandaloneTpSl ? handleTpSl : undefined}
           onadjustMargin={handleAdjustMargin}
           onadd={canAddToPosition ? handleAdd : undefined}
+          botOwners={botOwners}
+          onshowbot={showBotsTab}
+          highlightPositionId={highlightPositionId}
+        />
+      {:else if activeTab === "bots"}
+        <BotsList
+          onshowposition={paperState.enabled ? showBotPosition : undefined}
         />
       {:else if activeTab === "orders"}
         <OpenOrdersList oncancel={handleCancelOrder}

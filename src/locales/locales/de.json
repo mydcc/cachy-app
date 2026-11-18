@@ -195,6 +195,7 @@
       "viewDetails": "{symbol} – Orderdetails anzeigen, {time}"
     },
     "orders": "Orders",
+    "bots": "Bots",
     "history": "Historie",
     "balance": "Verfügbar",
     "confirmCancelOrder": "Diesen Auftrag stornieren?",
@@ -941,6 +942,35 @@
     "synchronizingHistory": "Verlauf wird synchronisiert...",
     "cancelOrder": "Order abbrechen",
     "connectionStatus": "Verbindungsstatus"
+  },
+  "botsList": {
+    "state": {
+      "armed": "Scharf",
+      "submitting": "Wird gesendet",
+      "in_position": "Position offen",
+      "closing": "Schließt",
+      "closed": "Abgeschlossen",
+      "paused": "Pausiert",
+      "blocked": "Blockiert",
+      "expired": "Abgelaufen"
+    },
+    "empty": "Noch keine Bots. Das Kontrollzentrum erstellt sie aus deinen Alarmen.",
+    "rulesUnreadable": "Die Bot-Liste konnte nicht gelesen werden. Es wurde nichts geändert.",
+    "bookUnreadable": "Das Paper-Buch konnte nicht gelesen werden – jeder Bot liest sich daher als blockiert und Positionen lassen sich nicht prüfen.",
+    "blockedReason": "Lässt sich nicht auswerten: {reason}",
+    "created": "Erstellt {when}",
+    "fired": "{count}-mal ausgelöst, zuletzt {when}",
+    "firedNever": "Noch nie ausgelöst",
+    "pausedWithPosition": "Pausiert, Position offen",
+    "entry": "Einstieg",
+    "holding": "seit {duration} offen",
+    "viewPosition": "Position ansehen",
+    "viewPositionHint": "Wechselt zum Tab „Positionen“ und hebt die Zeile hervor, die dieser Bot eröffnet hat.",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen",
+    "timeframeHint": "Trigger-Zeitrahmen",
+    "lingeringTitle": "Position eines gelöschten Bots",
+    "lingeringHint": "Der Bot, der diese Position eröffnet hat, existiert nicht mehr. Die Position bleibt, bis sie geschlossen wird."
   },
   "journal": {
     "title": "Trade Journal",
@@ -4655,6 +4685,9 @@
     "flashCloseHint": "Ganze Position mit einem Klick zum Marktpreis schließen",
     "symbol": "Symbol",
     "side": "Richtung",
+    "botOwner": "Bot",
+    "botOwnerHint": "Diese Position wurde von einem Bot eröffnet. Der Klick wechselt zum Tab „Bots“.",
+    "botOwnerHintName": "Diese Position wurde vom Bot „{name}“ eröffnet. Der Klick wechselt zum Tab „Bots“.",
     "markPrice": "Markpreis"
   },
   "trade": {

@@ -64,7 +64,9 @@ const settings = vi.hoisted(() => ({
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
 
 vi.mock("../../stores/paperTrading.svelte", () => ({
-    paperState: { enabled: false, fills: [] as unknown[] },
+    // FEAT-0808: the sidebar's bot-ownership join iterates `positions`, so
+    // the mock mirrors the real store's always-array field.
+    paperState: { enabled: false, fills: [] as unknown[], positions: [] as unknown[] },
 }));
 
 vi.mock("../../services/paperAccountFeed", () => ({ paperAccountFeed: () => null }));

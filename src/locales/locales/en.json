@@ -195,6 +195,7 @@
       "viewDetails": "View order details for {symbol}, {time}"
     },
     "orders": "Orders",
+    "bots": "Bots",
     "history": "History",
     "balance": "Available",
     "confirmCancelOrder": "Cancel this order?",
@@ -941,6 +942,35 @@
     "synchronizingHistory": "Synchronizing History...",
     "cancelOrder": "Cancel Order",
     "connectionStatus": "Connection Status"
+  },
+  "botsList": {
+    "state": {
+      "armed": "Armed",
+      "submitting": "Submitting",
+      "in_position": "Position open",
+      "closing": "Closing",
+      "closed": "Done",
+      "paused": "Paused",
+      "blocked": "Blocked",
+      "expired": "Expired"
+    },
+    "empty": "No bots yet. The control center creates them from your alerts.",
+    "rulesUnreadable": "The bot list could not be read. Nothing was changed.",
+    "bookUnreadable": "The paper book could not be read, so every bot reads as blocked and positions cannot be checked.",
+    "blockedReason": "Cannot be evaluated: {reason}",
+    "created": "Created {when}",
+    "fired": "Fired {count} times, last {when}",
+    "firedNever": "Has never fired",
+    "pausedWithPosition": "Paused, position open",
+    "entry": "Entry",
+    "holding": "open for {duration}",
+    "viewPosition": "View position",
+    "viewPositionHint": "Switches to the Positions tab and highlights the row this bot opened.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "timeframeHint": "Trigger timeframe",
+    "lingeringTitle": "Position from a deleted bot",
+    "lingeringHint": "The bot that opened this position no longer exists. The position stays until it is closed."
   },
   "journal": {
     "title": "Trade Journal",
@@ -2979,6 +3009,9 @@
     "flashCloseHint": "Close the whole position at market, in one click",
     "symbol": "Symbol",
     "side": "Side",
+    "botOwner": "Bot",
+    "botOwnerHint": "This position was opened by a bot. Click to open the Bots tab.",
+    "botOwnerHintName": "This position was opened by the bot “{name}”. Click to open the Bots tab.",
     "markPrice": "Mark price"
   },
   "symbolPicker": {

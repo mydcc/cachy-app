@@ -388,6 +388,25 @@ export function renderConditionSentence(
 }
 
 /**
+ * Just the order clause — "Simulates a Buy order for 1 % of equity with a stop
+ * 2% from the entry" — without the condition it is paired with.
+ *
+ * FEAT-0808's sidebar row renders the two clauses on separate lines (the
+ * condition names what the bot waits for, the order names what it will do),
+ * and both must stay the sentence the trader armed from. One renderer for
+ * both, so a later clause — exits, FEAT-0809 — changes them everywhere at
+ * once instead of in whichever surface remembered to re-compose it.
+ *
+ * Never throws, for the same reason `renderRuleSentence` does not.
+ */
+export function renderOrderSentence(
+  document: RuleDocument,
+  t: SentenceTranslator,
+): string {
+  return formatLead(document, t);
+}
+
+/**
  * The whole rule as one sentence, in the caller's active locale.
  *
  * Never throws for a *half-built* document: the panel renders this on every

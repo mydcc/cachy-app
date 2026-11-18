@@ -295,3 +295,127 @@ describe("BUG-0512 — a PnL priced off a stale price wears the badge", () => {
         expect(host.querySelector('[data-track-id="stale-price-badge"]')).toBeNull();
     });
 });
+
+/*
+ * FEAT-0808 — ownership is visible in both directions.
+ *
+ * The badge on a position row names the bot that opened it and links back
+ * to the Bots tab; a manual position carries none because the book stamped
+ * no owner for it. The sidebar computes the ownership map; these cases pin
+ * what the list does with it, the same way the capability tests above pin
+ * what the list does with a handler's absence.
+ */
+describe("FEAT-0808 — a bot-opened position carries a badge back to the Bots tab", () => {
+    const OWNED: OMSPosition = {
+        symbol: "BTCUSDT",
+        side: "long",
+        amount: new Decimal("0.5"),
+        entryPrice: new Decimal("64000"),
+        markPrice: new Decimal("65000"),
+        unrealizedPnl: new Decimal("500"),
+        leverage: new Decimal("10"),
+        marginMode: "cross",
+        positionId: "paper-pos-1",
+    };
+
+    it("renders the owning bot's name as a link to the Bots tab", async () => {
+        const onshowbot = vi.fn();
+        component = mount(PositionsList, {
+            target: host,
+            props: {
+                positions: [OWNED],
+                botOwners: new Map([["paper-pos-1", { botId: "bot-1", name: "Breakout bot" }]]),
+                onshowbot,
+            },
+        }) as never;
+        await settle();
+
+        const badge = host.querySelector<HTMLButtonElement>('[data-testid="bot-owner-badge"]');
+        expect(badge).not.toBeNull();
+        expect(badge!.textContent).toContain("Breakout bot");
+        badge!.click();
+        flushSync();
+        expect(onshowbot).toHaveBeenCalledTimes(1);
+    });
+
+    it("carries no badge on a manual position", async () => {
+        component = mount(PositionsList, {
+            target: host,
+            props: {
+                positions: [OWNED],
+                botOwners: new Map(),
+                onshowbot: vi.fn(),
+            },
+        }) as never;
+        await settle();
+
+        expect(host.querySelector('[data-testid="bot-owner-badge"]')).toBeNull();
+    });
+
+    it("falls back to the generic Bot label when the bot was deleted", async () => {
+        component = mount(PositionsList, {
+            target: host,
+            props: {
+                positions: [OWNED],
+                botOwners: new Map([["paper-pos-1", { botId: "bot-gone", name: null }]]),
+                onshowbot: vi.fn(),
+            },
+        }) as never;
+        await settle();
+
+        const badge = host.querySelector<HTMLButtonElement>('[data-testid="bot-owner-badge"]');
+        expect(badge).not.toBeNull();
+        expect(badge!.textContent?.trim()).toBe(lookup("positionsList.botOwner"));
+    });
+
+    it("shows no badge when nothing links back to a Bots tab", async () => {
+        component = mount(PositionsList, {
+            target: host,
+            props: {
+                positions: [OWNED],
+                botOwners: new Map([["paper-pos-1", { botId: "bot-1", name: "Breakout bot" }]]),
+            },
+        }) as never;
+        await settle();
+
+        // A dead control is worse than a missing one — the badge's whole
+        // purpose is the way back, so it follows the handler's absence.
+        expect(host.querySelector('[data-testid="bot-owner-badge"]')).toBeNull();
+    });
+
+    it("keeps the badge in focus view too", async () => {
+        settings.positionViewMode = "focus";
+        component = mount(PositionsList, {
+            target: host,
+            props: {
+                positions: [OWNED],
+                botOwners: new Map([["paper-pos-1", { botId: "bot-1", name: "Breakout bot" }]]),
+                onshowbot: vi.fn(),
+            },
+        }) as never;
+        await settle();
+
+        expect(host.querySelector('[data-testid="bot-owner-badge"]')?.textContent).toContain(
+            "Breakout bot",
+        );
+        settings.positionViewMode = "detailed";
+    });
+
+    it("anchors and highlights the row a bot's link resolved to", async () => {
+        component = mount(PositionsList, {
+            target: host,
+            props: {
+                positions: [OWNED],
+                highlightPositionId: "paper-pos-1",
+            },
+        }) as never;
+        await settle();
+
+        const row = host.querySelector<HTMLElement>('[data-position-id="paper-pos-1"]');
+        expect(row).not.toBeNull();
+        // Token-exact on purpose: the row always carries
+        // `hover:border-[var(--accent-color)]`, so a substring match would
+        // pass even with the highlight broken.
+        expect(row!.className.split(/\s+/)).toContain("border-[var(--accent-color)]");
+    });
+});

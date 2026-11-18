@@ -58,6 +58,20 @@
      * is the caller's job — this component only announces the intent.
      */
     oncloseAll?: () => void;
+    /**
+     * FEAT-0808 — bot ownership of each row, keyed by positionId. Present
+     * entries render a badge naming the bot that opened the position and
+     * link back to the Bots tab; a manual position carries none because the
+     * book stamped no owner for it.
+     */
+    botOwners?: Map<string, { botId: string; name: string | null }>;
+    /** FEAT-0808 — the badge's destination; absent where no tab links back. */
+    onshowbot?: () => void;
+    /**
+     * FEAT-0808 — the row a bot's "view position" link resolved to. The row
+     * is highlighted and scrolled into view; null means no link is pending.
+     */
+    highlightPositionId?: string | null;
   }
 
   let {
@@ -70,6 +84,9 @@
     onadd,
     onflashClose,
     oncloseAll,
+    botOwners,
+    onshowbot,
+    highlightPositionId = null,
   }: Props = $props();
 
   /*
@@ -134,9 +151,37 @@
 
   // Safe access to positions
   let safePositions = $derived(Array.isArray(positions) ? positions : []);
+
+  /*
+   * FEAT-0808 — the row a bot's "view position" link named: scroll it into
+   * view once the list renders it. Scoped to this component's own DOM
+   * (bind:this, not a document query) because the sidebar mounts twice —
+   * desktop and mobile — and a document-level query could resolve to the
+   * hidden instance's row.
+   *
+   * No cleanup to return: the effect registers no listener and no
+   * subscription; the scroll is a one-shot side effect of the id changing.
+   */
+  let listHost: HTMLDivElement;
+
+  $effect(() => {
+    const id = highlightPositionId;
+    if (!id || !listHost) return;
+    const row = listHost.querySelector(`[data-position-id="${CSS.escape(id)}"]`);
+    row?.scrollIntoView({ block: "nearest" });
+  });
+
+  /** FEAT-0808 — the bot that opened this row, when the book stamped one. */
+  function ownerOf(pos: OMSPosition): { botId: string; name: string | null } | undefined {
+    if (!onshowbot || !pos.positionId) return undefined;
+    return botOwners?.get(pos.positionId);
+  }
 </script>
 
-<div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
+<div
+  class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin"
+  bind:this={listHost}
+>
   {#if loading && safePositions.length === 0}
     <div class="flex justify-center p-4">
       <div
@@ -166,6 +211,9 @@
         <!-- Card Container -->
         <div
           class="bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors relative overflow-hidden group"
+          class:border-[var(--accent-color)]={highlightPositionId !== null &&
+            pos.positionId === highlightPositionId}
+          data-position-id={pos.positionId}
         >
           {#if viewMode === "detailed"}
             <!-- MODE 1: DETAILED / COMPACT UNIFIED -->
@@ -193,6 +241,26 @@
                     >
                       {pos.marginMode}
                     </span>
+                  {/if}
+                  {#if ownerOf(pos)}
+                    {@const owner = ownerOf(pos)!}
+                    <!--
+                      FEAT-0808 — ownership in the direction the trader reads
+                      it: this row was opened by a bot, and the badge is the
+                      way back to the Bots tab. A manual position carries
+                      none, because the book stamped no owner for it.
+                    -->
+                    <button
+                      type="button"
+                      class="text-[9px] px-1 py-0.5 rounded font-bold bg-accent-paired max-w-[10rem] truncate"
+                      data-testid="bot-owner-badge"
+                      title={owner.name !== null
+                        ? $_("positionsList.botOwnerHintName", { values: { name: owner.name } })
+                        : $_("positionsList.botOwnerHint")}
+                      onclick={() => onshowbot?.()}
+                    >
+                      {owner.name ?? $_("positionsList.botOwner")}
+                    </button>
                   {/if}
                 </div>
 
@@ -495,6 +563,23 @@
                   >{pos.side.toUpperCase()}</span
                 >
               </div>
+
+              {#if ownerOf(pos)}
+                {@const owner = ownerOf(pos)!}
+                <!-- FEAT-0808 — same badge, panic mode: smaller, but the
+                     ownership stays visible when the row is at its densest. -->
+                <button
+                  type="button"
+                  class="text-[9px] px-1 py-0.5 rounded font-bold bg-accent-paired max-w-[8rem] truncate mr-1"
+                  data-testid="bot-owner-badge"
+                  title={owner.name !== null
+                    ? $_("positionsList.botOwnerHintName", { values: { name: owner.name } })
+                    : $_("positionsList.botOwnerHint")}
+                  onclick={() => onshowbot?.()}
+                >
+                  {owner.name ?? $_("positionsList.botOwner")}
+                </button>
+              {/if}
 
               <!--
                 FEAT-0330. The panic mode is where a one-click exit belongs,
