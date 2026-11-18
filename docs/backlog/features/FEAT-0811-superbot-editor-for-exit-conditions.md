@@ -101,7 +101,7 @@ protection cannot ship without its bot equivalent.
   Proposal: the workshop (its reason to exist), with the control center
   linking into it.
 - Whether the take-profit control is a distance or a condition row; depends
-  on [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics).
+  on [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics).
 
 ## Links
 

@@ -8,7 +8,7 @@ milestone: none
 editions: [community, pro, private]
 area: alerts
 data_class: A
-adr: required
+adr: ADR-0026
 depends_on: [FEAT-0806]
 parent: FEAT-0805
 size: L
@@ -67,6 +67,12 @@ Rules:
   so it cannot go stale between arming and filling. The alternative — a price
   written at authoring time — is rejected for the same reason ADR-0020 rejected
   a stored stop price.
+- The condition language gains `unrealised_pnl_percent` as an exit-side
+  operand, decided with the owner (2026-11-18) alongside the distance field:
+  a PnL-shaped exit ("close when down 2 %") needs no distance and no new
+  signal. It is legal only inside `exits` — an entry evaluation has no owned
+  position to have an unrealised PnL. Trailing and further operands stay with
+  FEAT-0815.
 
 The content-hash tests for pre-field documents are the guard that this does not
 rewrite history.
@@ -97,14 +103,14 @@ rewrite history.
   `trailing` field is a later decision.
 - Time-based exits beyond what `valid_until_ms` already means for triggers.
 
-## Open questions
+## Decided questions
 
-- Whether take profit is the distance field above, an exit condition on
-  `unrealised_pnl_percent`, or both. Proposal: the distance field, because it
-  matches the stop and needs no new operand. Tracked in
-  [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics).
-- Whether a paused bot's exits keep evaluating. Proposal: yes; pause stops
-  entries, exits keep protecting.
+- Take profit is **both**: the distance field above and the
+  `unrealised_pnl_percent` operand. Decided with the owner (2026-11-18) in
+  [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics); the operand
+  is the scope extension the Rules section above records.
+- A paused bot's exits keep evaluating; pause stops entries, exits keep
+  protecting. Same decision, same entry.
 
 ## Links
 

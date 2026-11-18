@@ -80,7 +80,7 @@ No new persisted state. The store is a projection, not a source.
 - Whether `submitting` can be observed across a reload. Proposal: no; it is a
   session-only transient and the UI shows `armed` until the fill lands.
 - Whether a paused bot keeps evaluating exits. Proposal: yes; tracked in
-  [`TODO.md`](../../TODO.md#32-take-profit-and-exit-semantics).
+  [`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics).
 
 ## Links
 
