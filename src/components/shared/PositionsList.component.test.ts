@@ -58,6 +58,7 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import PositionsList from "./PositionsList.svelte";
+import PositionsListLateRowProbe from "../../tests/helpers/PositionsListLateRowProbe.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -417,5 +418,38 @@ describe("FEAT-0808 — a bot-opened position carries a badge back to the Bots t
         // `hover:border-[var(--accent-color)]`, so a substring match would
         // pass even with the highlight broken.
         expect(row!.className.split(/\s+/)).toContain("border-[var(--accent-color)]");
+    });
+
+    it("scrolls a late-arriving highlighted row into view", async () => {
+        // The link can resolve before the rows do (a tab switch landing
+        // ahead of the paper hydration). An effect that depends only on the
+        // highlight id ran once against an empty list and never re-runs, so
+        // the row arrives off-screen and unscrolled — the reading the effect
+        // exists to prevent.
+        // happy-dom implements scrollIntoView on HTMLElement.prototype (a
+        // real browser puts it on Element's) — spy where this environment
+        // actually defines it, or the call runs and the spy never fires.
+        const scrollIntoView = vi
+            .spyOn(HTMLElement.prototype, "scrollIntoView")
+            .mockImplementation(() => {});
+        try {
+            const probe = mount(PositionsListLateRowProbe, { target: host }) as {
+                arriveLate: (next: OMSPosition[]) => void;
+            };
+            component = probe as never;
+            await settle();
+            expect(scrollIntoView).not.toHaveBeenCalled();
+
+            probe.arriveLate([OWNED]);
+            await settle();
+
+            expect(scrollIntoView).toHaveBeenCalledTimes(1);
+            // The call's receiver, not its argument: the effect calls
+            // `row.scrollIntoView({ block: "nearest" })`.
+            const scrolled = scrollIntoView.mock.instances[0] as HTMLElement;
+            expect(scrolled.getAttribute("data-position-id")).toBe("paper-pos-1");
+        } finally {
+            scrollIntoView.mockRestore();
+        }
     });
 });

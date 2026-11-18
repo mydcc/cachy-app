@@ -167,6 +167,10 @@
   $effect(() => {
     const id = highlightPositionId;
     if (!id || !listHost) return;
+    // Rows can land after the link that named them (a tab switch resolving
+    // ahead of the paper hydration), so the effect reads the row count too:
+    // it re-runs when one arrives, and a late row still scrolls.
+    void safePositions.length;
     const row = listHost.querySelector(`[data-position-id="${CSS.escape(id)}"]`);
     row?.scrollIntoView({ block: "nearest" });
   });

@@ -407,6 +407,42 @@ export function renderOrderSentence(
 }
 
 /**
+ * The condition side of the frame, qualifiers included — "RSI(14) is below 30
+ * on the 4h close — read while the candle is still forming — unless a long
+ * position is open" — without the lead that says what arming it would do.
+ *
+ * FEAT-0808's sidebar row splits the sentence into its clauses, and the
+ * split must not lose facts the content hash carries: `veto` and
+ * `evaluation_mode` are both inside it, so two rules differing only in
+ * either are two different strategies — and byte-identical rows would say
+ * they are the same one. The veto reuses the frame's own `unless` fragment;
+ * the intrabar mode gets its own suffix fragment because the frame buries
+ * that wording inside its `{lead}` slot, which a clause without a lead
+ * cannot reuse.
+ *
+ * Never throws, for the same reason `renderRuleSentence` does not.
+ */
+export function renderConditionClause(
+  document: RuleDocument,
+  t: SentenceTranslator,
+): string {
+  const condition = renderConditionSentence(document, t);
+  if (!document.veto && document.evaluation_mode !== "intrabar") return condition;
+  const parts = [condition];
+  if (document.evaluation_mode === "intrabar") {
+    parts.push(t("rules.sentence.intrabarSuffix"));
+  }
+  if (document.veto) {
+    parts.push(
+      t("rules.sentence.unless", {
+        condition: formatCondition(document.veto, document.trigger_timeframe, t),
+      }),
+    );
+  }
+  return parts.join(" ");
+}
+
+/**
  * The whole rule as one sentence, in the caller's active locale.
  *
  * Never throws for a *half-built* document: the panel renders this on every

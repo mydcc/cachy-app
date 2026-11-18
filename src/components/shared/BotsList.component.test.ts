@@ -253,20 +253,31 @@ describe("FEAT-0808 — the bots tab", () => {
         ).toBe(lookup(en, "botsList.pausedWithPosition"));
     });
 
-    it("explains a blocked bot with the loop's own reason", () => {
+    it("renders a localized blocked line, never the loop's raw reason", () => {
         seedBots(botDocument("bot-1"));
         render();
 
         alertState.unevaluableReport = [
-            { ruleId: "bot-1", name: "bot bot-1", symbol: "BTCUSDT", reason: "warmup" },
+            {
+                ruleId: "bot-1",
+                name: "bot bot-1",
+                symbol: "BTCUSDT",
+                reason: "the rule core refuses this rule: action.order.size must be positive",
+            },
         ];
         flushSync();
 
         const row = rowOf("bot-1");
         expect(chipOf(row)).toBe(lookup(en, "botsList.state.blocked"));
-        expect(
-            row!.querySelector('[data-testid="bot-blocked-reason"]')?.textContent?.trim(),
-        ).toBe(lookup(en, "botsList.blockedReason").replace("{reason}", "warmup"));
+        const line = row!.querySelector<HTMLElement>('[data-testid="bot-blocked-reason"]');
+        expect(line).not.toBeNull();
+        // The loop's reasons are developer-facing English, some of them
+        // parameterized (`${indicator.id} has no output '${output}'`), so the
+        // row renders one localized sentence; the raw string belongs to the
+        // loop's log, not to a surface in any locale.
+        expect(line!.textContent?.trim()).toBe(lookup(en, "botsList.blockedReason"));
+        expect(line!.textContent).not.toContain("refuses");
+        expect(line!.textContent).not.toContain("size");
     });
 
     it("turns a past-deadline, never-fired bot to expired", () => {
@@ -335,7 +346,12 @@ describe("FEAT-0808 — the bots tab", () => {
         expect(onshowposition).toHaveBeenCalledWith(positionId);
     });
 
-    it("keeps the second bot on a taken slot armed, with the opener linked", async () => {
+    it("pins the opener's ownership join: the second bot on the slot stays armed", async () => {
+        // Not a collision yet — the second bot never fires here. The true
+        // collision (a second bot refused the taken slot) is FEAT-0810's to
+        // build; this case pins the join that refusal will read: the index
+        // names the opener (FEAT-0806/0807), so the opener renders linked and
+        // the second bot renders armed with no link — exactly that truth.
         seedBots(botDocument("bot-1"), botDocument("bot-2"));
         await openAs("bot-1");
         render({ onshowposition: vi.fn() });
@@ -344,10 +360,28 @@ describe("FEAT-0808 — the bots tab", () => {
         const second = rowOf("bot-2");
         expect(chipOf(owner)).toBe(lookup(en, "botsList.state.in_position"));
         expect(owner!.querySelector('[data-testid="bot-view-position"]')).not.toBeNull();
-        // The index names the opener (FEAT-0806/0807); the second bot has no
-        // owned row and stays armed — exactly that truth, nothing kinder.
         expect(chipOf(second)).toBe(lookup(en, "botsList.state.armed"));
         expect(second!.querySelector('[data-testid="bot-view-position"]')).toBeNull();
+    });
+
+    it("keeps veto and intrabar bots distinguishable in the condition clause", () => {
+        // Veto and evaluation mode are both inside the content hash: two
+        // bots differing only in either are two different strategies, and
+        // byte-identical condition lines would say they are the same one.
+        const plain = botDocument("bot-plain");
+        const vetoed = botDocument("bot-veto", {
+            veto: { kind: "position", side: "long", open: true },
+        });
+        const intrabar = botDocument("bot-intrabar", { evaluation_mode: "intrabar" });
+        seedBots(plain, vetoed, intrabar);
+        render();
+
+        const clause = (id: string) =>
+            rowOf(id)!.querySelector('[data-testid="bot-condition"]')?.textContent?.trim() ?? "";
+        expect(clause("bot-veto")).not.toBe(clause("bot-plain"));
+        expect(clause("bot-veto")).toContain("unless");
+        expect(clause("bot-intrabar")).not.toBe(clause("bot-plain"));
+        expect(clause("bot-intrabar")).toContain("forming");
     });
 
     it("sorts by state first, then by symbol", async () => {
@@ -393,6 +427,46 @@ describe("FEAT-0808 — the bots tab", () => {
         expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.armed"));
     });
 
+    it("names the bot in every row control's accessible name", async () => {
+        seedBots(botDocument("bot-1"), botDocument("bot-2"));
+        await openAs("bot-1");
+        render({ onshowposition: vi.fn() });
+
+        // Identical visible labels are fine for a sighted trader scanning
+        // rows; a screen reader reads the label alone, so the accessible name
+        // must say which bot the control acts on.
+        const first = rowOf("bot-1")!;
+        const second = rowOf("bot-2")!;
+        expect(
+            first.querySelector('[data-testid="bot-pause-toggle"]')?.getAttribute("aria-label"),
+        ).toBe(lookup(en, "botsList.pauseNamed").replace("{name}", "bot bot-1"));
+        expect(
+            second.querySelector('[data-testid="bot-pause-toggle"]')?.getAttribute("aria-label"),
+        ).toBe(lookup(en, "botsList.pauseNamed").replace("{name}", "bot bot-2"));
+        expect(
+            first.querySelector('[data-testid="bot-view-position"]')?.getAttribute("aria-label"),
+        ).toBe(lookup(en, "botsList.viewPositionNamed").replace("{name}", "bot bot-1"));
+    });
+
+    it("labels the trigger timeframe on the condition line, not the order", () => {
+        seedBots(botDocument("bot-1"));
+        render();
+
+        // `1h` sitting unlabeled at the end of the order sentence reads as
+        // the order's timeframe; it qualifies the condition, so it moves to
+        // the condition line and gains a visible label — a title alone stays
+        // invisible to a screen reader and to a scan.
+        const conditionLine = rowOf("bot-1")!.querySelector<HTMLElement>(
+            '[data-testid="bot-condition"]',
+        )!;
+        const chip = conditionLine.querySelector<HTMLElement>('[data-testid="bot-timeframe"]');
+        expect(chip).not.toBeNull();
+        expect(chip!.textContent?.trim()).toBe(`${lookup(en, "botsList.timeframe")} 1h`);
+        const orderLine = rowOf("bot-1")!.querySelector<HTMLElement>('[data-testid="bot-order"]');
+        expect(orderLine).not.toBeNull();
+        expect(orderLine!.querySelector('[data-testid="bot-timeframe"]')).toBeNull();
+    });
+
     it("keeps every control a named, native button", () => {
         seedBots(botDocument("bot-1"));
         render();
@@ -409,21 +483,68 @@ describe("FEAT-0808 — the bots tab", () => {
     });
 
     it("keeps the new strings available in German", () => {
-        expect(lookup(de, "dashboard.bots")).not.toBe("");
-        for (const state of [
-            "armed",
-            "submitting",
-            "in_position",
-            "closing",
-            "closed",
-            "paused",
-            "blocked",
-            "expired",
-        ] as const) {
-            expect(lookup(de, `botsList.state.${state}`)).not.toBe("");
+        // Exact literals, not a non-empty check: `.not.toBe("")` passes for
+        // undefined, which is exactly the drift this case exists to catch.
+        expect(lookup(de, "dashboard.bots")).toBe("Bots");
+        expect(lookup(de, "botsList.state.armed")).toBe("Scharf");
+        expect(lookup(de, "botsList.state.submitting")).toBe("Wird gesendet");
+        expect(lookup(de, "botsList.state.in_position")).toBe("Position offen");
+        expect(lookup(de, "botsList.state.closing")).toBe("Schließt");
+        expect(lookup(de, "botsList.state.closed")).toBe("Abgeschlossen");
+        expect(lookup(de, "botsList.state.paused")).toBe("Pausiert");
+        expect(lookup(de, "botsList.state.blocked")).toBe("Blockiert");
+        expect(lookup(de, "botsList.state.expired")).toBe("Abgelaufen");
+        expect(lookup(de, "botsList.lingeringTitle")).toBe("Position eines gelöschten Bots");
+        expect(lookup(de, "botsList.pausedWithPosition")).toBe("Pausiert, Position offen");
+        expect(lookup(de, "botsList.blockedReason")).toBe(
+            "Lässt sich gerade nicht auswerten und löst daher nicht aus.",
+        );
+        expect(lookup(de, "positionsList.botOwnerHintName")).toBe(
+            "Diese Position wurde vom Bot „{name}“ eröffnet. Der Klick wechselt zum Tab „Bots“.",
+        );
+        // The aria-label templates the row controls render from, with the
+        // same placeholder in both locales.
+        for (const key of ["botsList.pauseNamed", "botsList.resumeNamed", "botsList.viewPositionNamed"] as const) {
+            const enTemplate = lookup(en, key);
+            const deTemplate = lookup(de, key);
+            expect(typeof deTemplate).toBe("string");
+            expect(deTemplate).toContain("{name}");
+            expect(enTemplate).toContain("{name}");
         }
-        expect(lookup(de, "botsList.lingeringTitle")).not.toBe("");
-        expect(lookup(de, "botsList.pausedWithPosition")).not.toBe("");
-        expect(lookup(de, "positionsList.botOwnerHintName")).not.toBe("");
+    });
+});
+
+describe("the projection's clock", () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it("ticks once immediately on mount, not a full period later", () => {
+        vi.useFakeTimers();
+        seedBots(botDocument("bot-1"));
+        // Stale from whatever surface ticked it last — mount is exactly the
+        // moment that answer goes stale.
+        botsState.now = 1_000;
+        render();
+
+        // No timer advance happens here: the tick the surface owns is the
+        // first action of mounting it, so `expired` can turn on mount rather
+        // than a period afterwards.
+        expect(botsState.now).toBe(Date.now());
+    });
+
+    it("keeps ticking on the interval while mounted", () => {
+        vi.useFakeTimers();
+        seedBots(botDocument("bot-1"));
+        render();
+        const atMount = botsState.now;
+
+        vi.advanceTimersByTime(30_000);
+
+        // The interval is the point of the effect: without it every case in
+        // the file above stays green while `expired` never turns and holding
+        // times never advance.
+        expect(botsState.now).toBe(atMount + 30_000);
+        expect(botsState.now).toBe(Date.now());
     });
 });

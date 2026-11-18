@@ -40,7 +40,7 @@
   import type { TranslationKey } from "../../locales/schema";
   import { intlTagFor } from "../../lib/i18n/intlTag";
   import {
-    renderConditionSentence,
+    renderConditionClause,
     renderOrderSentence,
     type SentenceTranslator,
   } from "../../lib/rules/ruleSentence";
@@ -78,6 +78,10 @@
   const BOT_CLOCK_TICK_MS = 30_000;
 
   $effect(() => {
+    // The projection answers "as of the last tick", and mount is exactly the
+    // moment that answer goes stale — so the first tick lands now, not a
+    // full period later; an `expired` that already passed turns on mount.
+    botsState.now = Date.now();
     const handle = setInterval(() => {
       botsState.now = Date.now();
     }, BOT_CLOCK_TICK_MS);
@@ -97,8 +101,6 @@
     createdAtMs: number;
     firedCount: number;
     lastFiredMs: number | null;
-    /** The loop's own explanation for `blocked`, joined from its report. */
-    blockedReason: string | null;
     /** The paper position this bot owns, when it owns one. */
     position: PaperPosition | null;
     paused: boolean;
@@ -161,7 +163,6 @@
     }
 
     const fired = readRuleStates();
-    const blockedById = new Map(alertState.unevaluableReport.map((r) => [r.ruleId, r.reason]));
 
     const botRows: BotRow[] = [];
     for (const bot of bots) {
@@ -192,7 +193,6 @@
         createdAtMs: bot.provenance.created_at_ms,
         firedCount: fired[bot.id]?.fired_count ?? 0,
         lastFiredMs: fired[bot.id]?.last_fired_anchor_ms ?? null,
-        blockedReason: life.state === "blocked" ? (blockedById.get(bot.id) ?? null) : null,
         position,
         paused: bot.enabled === false,
       });
@@ -245,7 +245,7 @@
 
   function conditionOf(bot: RuleDocument): string {
     void $locale;
-    return renderConditionSentence(bot, translator());
+    return renderConditionClause(bot, translator());
   }
 
   function orderOf(bot: RuleDocument): string {
@@ -348,31 +348,40 @@
                   {stateLabel(row.life.state)}
                 </span>
               </div>
+              <!-- The accessible name says which bot the control acts on: the
+                   visible label reads in row context, a screen reader reads
+                   the label alone. -->
               <button
                 type="button"
                 class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
                 data-testid="bot-pause-toggle"
+                aria-label={row.paused
+                  ? $_("botsList.resumeNamed", { values: { name: row.name } })
+                  : $_("botsList.pauseNamed", { values: { name: row.name } })}
                 onclick={() => togglePaused(row)}
               >
                 {row.paused ? $_("botsList.resume") : $_("botsList.pause")}
               </button>
             </div>
 
+            <!-- The trigger timeframe qualifies the condition, not the order —
+                 with a visible label, because a bare `1h` at the end of a
+                 sentence reads as that sentence's timeframe. -->
             <p class="text-xs text-[var(--text-secondary)]" data-testid="bot-condition">
               {row.condition}
-            </p>
-            <p class="text-xs text-[var(--text-secondary)]">
-              {row.order}
               <span
                 class="text-[9px] px-1 py-0.5 rounded font-bold border border-[var(--border-color)] text-[var(--text-secondary)]"
-                title={$_("botsList.timeframeHint")}
+                data-testid="bot-timeframe"
               >
-                {row.timeframe}
+                {$_("botsList.timeframe")} {row.timeframe}
               </span>
+            </p>
+            <p class="text-xs text-[var(--text-secondary)]" data-testid="bot-order">
+              {row.order}
             </p>
 
             <!-- Lifecycle with timestamps: created, fired, and — when the
-                 state itself cannot say why — the loop's own reason. -->
+                 state itself cannot say why — one localized sentence. -->
             <p class="text-[10px] text-[var(--text-secondary)]">
               {$_("botsList.created", { values: { when: formatAt(row.createdAtMs) } })}
               ·
@@ -400,9 +409,14 @@
               </p>
             {/if}
 
-            {#if row.blockedReason !== null}
+            {#if row.life.state === "blocked"}
+              <!-- One localized sentence, never the loop's raw reason: the
+                   reasons are developer-facing English, some parameterized
+                   (`${indicator.id} has no output '${output}'`), and they
+                   belong to the loop's log. The state chip names the fact;
+                   this line says what it means for the trader. -->
               <p class="text-xs text-[var(--danger-color)]" data-testid="bot-blocked-reason">
-                {$_("botsList.blockedReason", { values: { reason: row.blockedReason } })}
+                {$_("botsList.blockedReason")}
               </p>
             {/if}
 
@@ -422,6 +436,7 @@
                     type="button"
                     class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
                     data-testid="bot-view-position"
+                    aria-label={$_("botsList.viewPositionNamed", { values: { name: row.name } })}
                     title={$_("botsList.viewPositionHint")}
                     onclick={() => onshowposition?.(row.position!.positionId)}
                   >
@@ -454,6 +469,9 @@
                   type="button"
                   class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
                   data-testid="bot-view-position"
+                  aria-label={$_("botsList.viewPositionSymbol", {
+                    values: { symbol: row.position.symbol },
+                  })}
                   title={$_("botsList.viewPositionHint")}
                   onclick={() => onshowposition?.(row.position.positionId)}
                 >
