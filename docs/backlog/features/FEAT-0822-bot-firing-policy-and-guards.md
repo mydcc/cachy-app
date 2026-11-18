@@ -72,7 +72,7 @@ confirmation; provenance and versioning show who changed what.
 
 Monitoring, three layers: state chip on every bot row (incl. a
 `limit reached` state), guard events in the protocol, per-bot guard history
-under "Prüfen" (FEAT-0812).
+in the journal's per-bot review (FEAT-0812).
 
 ## Acceptance criteria
 

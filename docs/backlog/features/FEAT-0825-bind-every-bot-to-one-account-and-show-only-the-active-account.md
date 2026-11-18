@@ -41,9 +41,10 @@ have to work extremely precisely", and only the **active** account is shown.
   semantics identical across accounts. This is the same edge-adapter shape
   the open-architecture idea proposes ([`IDEA-0830`](../ideas/IDEA-0830-open-extension-architecture.md))
   — building it per-account here is the first concrete use.
-- **Review across accounts is opt-in aggregation.** "Prüfen" (FEAT-0812)
-  shows the active account by default; a later explicit aggregate view may
-  compare accounts and never merges them implicitly.
+- **Review across accounts is opt-in aggregation.** The journal's
+  per-bot review (FEAT-0812) shows the active account by default; a later
+  explicit aggregate view may compare accounts and never merges them
+  implicitly.
 - **A new ADR is required** before implementation (front matter marks it):
   account binding is a money-path architectural decision — where the account
   id lives (document field vs execution context), how reservations and the
@@ -82,6 +83,10 @@ have to work extremely precisely", and only the **active** account is shown.
   the ADR decides.
 - Whether template exports (FEAT-0818) strip the account binding.
   Proposal: yes — a template is strategy data, never account data.
+- Whether account-bound bots are pro/private only or community as well.
+  This spec assumes pro/private (multi-account switching as a convenience
+  feature); the underlying multi-account support shipped to all editions —
+  confirm with the owner before implementation.
 
 ## Links
 
@@ -89,4 +94,7 @@ have to work extremely precisely", and only the **active** account is shown.
 - [`FEAT-0805`](FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md)
 - [`FEAT-0822`](FEAT-0822-bot-firing-policy-and-guards.md)
 - [`IDEA-0830`](../ideas/IDEA-0830-open-extension-architecture.md)
-- Code: `src/services/exchangeAccount*.ts`, `src/stores/paperTrading.svelte.ts`
+- Code: `src/stores/account.svelte.ts`,
+  `src/services/accountSession.svelte.ts`,
+  `src/services/accountEpoch.svelte.ts`, `src/services/exchange/registry.ts`,
+  `src/stores/paperTrading.svelte.ts`

@@ -48,11 +48,18 @@ material is distilled, not quoted by URL.
   conditional entry; a bot is not an order (it owns a position, recurs,
   versions). `docs/alert-system.md` gains the short "Bot vs. Order" section;
   marketing-level pages reference it instead of re-defining.
+- **Parity matrix**: the docs gain the manual-vs-bot capability matrix —
+  every protection the manual trade form offers (auto stop-loss, auto
+  take-profit, size basis, precision limits) against its bot equivalent —
+  linked from the bot editor's documentation
+  ([FEAT-0811](FEAT-0811-superbot-editor-for-exit-conditions.md)).
 - **Milestones/roadmap** reflect the bot system epic (FEAT-0805) with its
   milestones so the public plan matches the backlog.
 - **Source discipline**: no profitability claims anywhere; curated-template
-  citations follow FEAT-0818's rules; owner-supplied industry literature is
-  never cited by URL (per owner instruction — distilled knowledge only).
+  citations follow FEAT-0818's rules; owner-supplied industry literature
+  follows the Provenance rule recorded in
+  [FEAT-0819](FEAT-0819-grid-bot-runtime-on-the-paper-account.md) —
+  distilled, never cited by URL.
 
 ## Acceptance criteria
 
@@ -60,8 +67,11 @@ material is distilled, not quoted by URL.
       with the German locale consistent where translated).
 - [ ] No public page still claims Cachy is *only* a position-size and
       risk tool; the calculator/risk story remains intact alongside.
-- [ ] `docs/alert-system.md` contains the "Bot vs. Order" section and the
+- [ ] Public pages reference the "Bot vs. Order" section in
+      `docs/alert-system.md` instead of re-defining the boundary, and the
       alert/bot vocabulary is used consistently across docs.
+- [ ] The manual-vs-bot parity matrix exists in the docs and is linked from
+      the bot editor's documentation (FEAT-0811).
 - [ ] `docs/MILESTONES.md`/ROADMAP list the bot epic and its milestones.
 - [ ] Zero performance or profitability claims in the touched pages;
       template citations follow FEAT-0818's format.

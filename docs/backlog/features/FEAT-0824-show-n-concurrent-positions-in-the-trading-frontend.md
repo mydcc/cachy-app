@@ -26,9 +26,11 @@ obsolete with his own automation: the overview, the PnL view and the risk
 summary must carry *many* concurrent positions, each owned by its bot
 (ADR-0026) or by hand.
 
-The data model can already represent this (`ownerBotId`, reservation per
-`(symbol, side)`); the UI cannot. This item lifts the presentation layer to
-what the bot era requires.
+The ownership model this needs is specced in this epic — attribution in
+FEAT-0806, the `(symbol, side)` reservation in FEAT-0822 (ADR-0026) — so
+the presentation lift builds on a defined model. The UI today cannot
+represent a fleet; this item lifts the presentation layer to what the bot
+era requires.
 
 ## Proposal
 

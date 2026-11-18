@@ -41,12 +41,12 @@ Three trader types measure every item (owner framing):
 **A** — wants an alarm only. **B** — creates an alarm, promotes it later.
 **C** — wants to trade a strategy directly, no detour.
 
-One concept in the UI: **"Bot"**. No stage taxonomy ("Superbot" is an
-internal word and never appears in the UI); the workshop window carries the
-working title "Automatisierung". The waiting bot *behaves* like a resting
-conditional entry — and the docs say precisely where that metaphor ends
-(see FEAT-0826, "Bot vs. Order"): a bot recurs, owns a position and
-versions, an order does not.
+Naming and vocabulary are decided in
+[`TODO.md`](../../TODO.md#36-public-naming-for-the-bot-stages) — one
+concept, "Bot", no stage names in the UI. Where the trigger-order metaphor
+ends is documented in exactly one place:
+[`docs/alert-system.md`](../../alert-system.md#bot-vs-order-where-the-trigger-order-metaphor-ends)
+("Bot vs. order").
 
 ## Structure decision
 
@@ -76,9 +76,9 @@ Work is split into milestones:
   (goal + vocabulary land early so docs and UI tell one story).
 - **M2 — Exits, safety, scale:** [`FEAT-0809`](FEAT-0809-rule-exit-conditions-in-the-strategy-document.md),
   [`FEAT-0810`](FEAT-0810-execute-bot-exits-through-the-order-gate.md),
-  [`FEAT-0811`](FEAT-0811-superbot-editor-for-exit-conditions.md) (now incl. direct creation and the firing-and-limits section),
   [`FEAT-0822`](FEAT-0822-bot-firing-policy-and-guards.md),
   [`FEAT-0823`](FEAT-0823-confirmation-candle-as-an-entry-trigger-mode.md),
+  [`FEAT-0811`](FEAT-0811-superbot-editor-for-exit-conditions.md) (now incl. direct creation and the firing-and-limits section),
   [`FEAT-0812`](FEAT-0812-per-bot-journal-analytics.md),
   [`FEAT-0824`](FEAT-0824-show-n-concurrent-positions-in-the-trading-frontend.md).
 - **M3 — Conditions:** [`FEAT-0813`](FEAT-0813-condition-builder-v2-more-conditions-and-nested-groups.md),

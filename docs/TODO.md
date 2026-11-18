@@ -1335,7 +1335,7 @@ warmup warning) and whether `none`/NOR is exposed.
 deeper); NOR stays out until the sentence renderer can say it without
 ambiguity.
 
-## 36. Public naming for the bot stages
+## 36. ✅ Public naming for the bot stages
 
 **From:** [`FEAT-0805`](backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md),
 [`FEAT-0808`](backlog/features/FEAT-0808-show-bots-in-the-positions-sidebar.md).
@@ -1344,14 +1344,18 @@ ambiguity.
 the control center and the journal; one name must fit all three and both
 locales.
 
-**Decision, 2026-11-18.** One concept, no stages: the UI says **"Bot"**, full
+**DECIDED (2026-11-18).** One concept, no stages: the UI says **"Bot"**, full
 stop — what a bot can do follows from what the trader fills in (notify only,
-trade with a stop, trade with exits, run a grid). "Superbot" and the stage
-ladder remain internal model vocabulary ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md),
-[ADR-0027](adr/0027-a-grid-bot-owns-an-order-set-and-its-position.md)) and
-never appear in UI strings or public docs; de/en strings both use "Bot". The
-workshop window carries the working title "Automatisierung" / "Automation"
-until a naming pass says otherwise.
+trade with a stop, trade with exits, run a grid). The stage ladder and its
+working names ("Superbot", "Strategy bot") stay internal model vocabulary —
+the ownership model they describe is anchored in
+[ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md) and
+[ADR-0027](adr/0027-a-grid-bot-owns-an-order-set-and-its-position.md) — and
+never appear in UI strings or public docs; de/en strings both use "Bot".
+Tracked as [`FEAT-0805`](backlog/features/FEAT-0805-bot-system-v2-from-conditional-orders-to-strategies.md).
+The workshop window carries the working title "Automatisierung" / "Automation"
+until a naming pass says otherwise; that pass must also disambiguate the
+existing Settings section title "Automatisierung & Erweitert".
 
 ## 37. Literature template library: scope and citations
 

@@ -8,7 +8,7 @@ milestone: none
 editions: [community, pro, private]
 area: execution
 data_class: A
-adr: required
+adr: ADR-0027
 depends_on: [FEAT-0810]
 parent: FEAT-0805
 size: XL
@@ -74,8 +74,8 @@ Implement the grid as its own bot kind, per
 - [ ] The editor warns when the level spacing does not exceed the round-trip
       fee and names the minimum viable spacing derived from the paper fee
       schedule (fees apply on both legs of every level cycle).
-- [ ] The stop-out rule is a required field — empty is refused unless the
-      trader explicitly confirms running without a stop-out.
+- [ ] The stop-out rule is a required field — empty is refused, with no
+      opt-out (ADR-0027: grid budget and stop-out limits are not optional).
 - [ ] The grid's review surfaces show mark-to-market equity alongside
       realized closed trades, never closed-trade-only curves.
 - [ ] The editor offers an ATR-derived spacing suggestion from existing

@@ -9,7 +9,7 @@ editions: [community, pro, private]
 area: alerts
 data_class: A
 adr: none
-depends_on: [FEAT-0809, FEAT-0822]
+depends_on: [FEAT-0809, FEAT-0822, FEAT-0823]
 parent: FEAT-0805
 size: L
 estimate: 8

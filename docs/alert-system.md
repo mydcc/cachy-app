@@ -52,25 +52,38 @@ is [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md).
 A waiting bot *presents* like a resting conditional order — it lies there
 until its condition holds, then it acts exactly once for that signal. That
 is a presentation truth, and the UI leans on it deliberately: a bot row in
-the orders view reads as a "conditional entry" (FEAT-0805, phase B). But a
-bot is **not** an order, and three differences draw the line:
+the orders view is planned to read as a "conditional entry"
+([FEAT-0808](backlog/features/FEAT-0808-show-bots-in-the-positions-sidebar.md),
+phase B). But a bot is **not** an order, and three differences draw the
+line:
 
-1. An order is one-shot and stateless; a bot is **recurring** — it stays
-   armed after firing (per its firing policy, FEAT-0822) and can act again.
+1. An order is one-shot and stateless; a bot today is armed until it fires
+   once — the shipped `frequency: "once"` default spends the rule — and
+   configurable recurrence (fire again, per limits) is planned as
+   [FEAT-0822](backlog/features/FEAT-0822-bot-firing-policy-and-guards.md),
+   not shipped behavior.
 2. An order fills at its trigger price the moment the market touches it; a
-   bot **evaluates on candle close** and enters at that close, because a
-   condition like "RSI(14) below 30" only has a deterministic value on a
-   closed candle ([ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md)).
-   Protection is the exception: stops rest in the book tick-accurately, as
-   they do for manual trades.
-3. An order owns nothing after it fills; a bot **owns the position it
-   opens** — it is attributed in the book and the journal, evaluates exits
-   against its own position, and has a lifecycle and a version history
-   ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md)).
+   bot **evaluates locally, by default on candle close**, and enters at
+   that close — the deterministic baseline for a multi-condition rule. A
+   rule may opt into intrabar evaluation (shipped
+   `evaluation_mode: "intrabar"`; see Evaluation), but even then the
+   evaluation runs on the device against the forming candle: a
+   many-condition bot never *rests on the venue* the way a price-triggered
+   order does. Protection is the exception: stops rest in the book
+   tick-accurately, as they do for manual trades.
+3. An order owns nothing after it fills; a bot is planned to **own the
+   position it opens** — attribution in the book and the journal, exits
+   evaluated against its own position, a lifecycle and a version history
+   ([ADR-0026](adr/0026-a-bot-owns-the-position-it-opens.md), Proposed;
+   delivery tracked as
+   [FEAT-0806](backlog/features/FEAT-0806-attribute-paper-trades-and-journal-entries-to-their-bot.md)
+   and
+   [FEAT-0810](backlog/features/FEAT-0810-execute-bot-exits-through-the-order-gate.md)).
+   Today's shipped bot trade is still indistinguishable from a manual one.
 
 So: *behaves like a resting conditional entry — is a strategy with a
 lifecycle.* Both halves are documented because a trader who conflates them
-will expect fills at trigger prices the evaluation model cannot honestly
+will expect fills at trigger prices the default evaluation model does not
 give.
 
 ## The data

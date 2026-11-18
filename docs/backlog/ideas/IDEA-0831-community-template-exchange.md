@@ -8,7 +8,7 @@ milestone: none
 editions: [pro, private]
 area: alerts
 data_class: A
-adr: ADR-0001
+adr: required
 depends_on: [FEAT-0818]
 size: L
 estimate: 13
@@ -30,7 +30,11 @@ Sharing a strategy template is **user-directed egress of Class A data**
 (ADR-0001): what symbols someone trades, which exits he trusts — the
 strategy *is* user data. So any exchange must be opt-in, consent-per-share,
 and provably reversible (unshare). That is a product surface of its own
-with real trust decisions, not a checkbox on export.
+with real trust decisions, not a checkbox on export. A dedicated ADR is
+required before any exchange is specified — transport, consent-per-share
+and reversibility are a new Class B surface, and the repo's own precedent
+says so (FEAT-0391 called template sharing a Class B question needing its
+own ADR).
 
 ## What it would build on
 
