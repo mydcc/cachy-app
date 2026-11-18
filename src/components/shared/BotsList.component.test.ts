@@ -44,7 +44,6 @@ import { Decimal } from "decimal.js";
 import type { RuleDocument } from "../../lib/rules/types";
 import { CONSTANTS } from "../../lib/constants";
 import { RULES_STORAGE_KEY } from "../../services/alertEngine/migrateAlertsToRules";
-import { recordRuleFiring } from "../../services/alertEngine/ruleStateStore";
 import { paperExchange, setPaperPriceFeed } from "../../services/paperExchange";
 
 const setBotEnabledMock = vi.hoisted(() => vi.fn());
