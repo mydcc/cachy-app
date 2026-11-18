@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 use super::refusal::{RefusalCode, RuleRefusal};
 
 /// The version this build authors and evaluates.
-pub const CURRENT_SCHEMA_VERSION: u16 = 2;
+pub const CURRENT_SCHEMA_VERSION: u16 = 3;
 
 /// The oldest version this build can still read. Below it, a document is
 /// refused rather than guessed at.
@@ -106,19 +106,35 @@ impl std::fmt::Display for SchemaVersion {
 /// notices is wrong.
 type MigrationStep = fn(&mut serde_json::Value) -> Result<(), RuleRefusal>;
 
-/// The migration chain, indexed by the version being migrated *from* — today
-/// the single `1 → 2` step of FEAT-0393.
+/// The migration chain, indexed by the version being migrated *from*.
 ///
 /// A version that is supported but has no step is refused rather than
 /// reinterpreted, so adding a version means filling in a slot here instead of
 /// designing a migration under pressure with rules already armed.
-// The extension point: adding version 3 means adding `2 => Some(...)` here and
-// nowhere else.
 fn migration_for(from: u16) -> Option<MigrationStep> {
     match from {
         1 => Some(migrate_v1_to_v2),
+        2 => Some(migrate_v2_to_v3),
         _ => None,
     }
+}
+
+/// Version 2 to 3: the exit conditions and take-profit distance of FEAT-0809.
+///
+/// The second pure addition in this chain, and deliberately the emptiest
+/// migration in it. Every new field is optional on the wire
+/// (`skip_serializing_if`) and means exactly what a version 2 rule already
+/// did by not having it: no exits beyond the resting stop, no profit target.
+/// There is nothing to write — a version 2 document that learns nothing new
+/// is already a complete version 3 document, so stamping the version (which
+/// `migrate_to_current` does centrally, and which `EXCLUDED_FROM_HASH` keeps
+/// outside the content hash) is the entire step.
+///
+/// The chain requires the slot anyway rather than special-casing "no step
+/// needed": a version that silently skips a rung is a version whose future
+/// readers cannot tell a deliberate no-op from a forgotten one.
+fn migrate_v2_to_v3(_raw: &mut serde_json::Value) -> Result<(), RuleRefusal> {
+    Ok(())
 }
 
 /// Version 1 to 2: the per-rule lifecycle fields of FEAT-0393.
@@ -286,11 +302,25 @@ mod tests {
     }
 
     #[test]
-    fn a_v1_document_migrates_to_v2_and_gains_the_default_frequency() {
+    fn a_v1_document_migrates_to_current_and_gains_the_default_frequency() {
         let mut doc = json!({ "schema_version": 1, "name": "x" });
-        assert_eq!(migrate_to_current(&mut doc).unwrap(), SchemaVersion(2));
+        assert_eq!(migrate_to_current(&mut doc).unwrap(), SchemaVersion::CURRENT);
         assert_eq!(doc["frequency"], json!("once"));
-        assert_eq!(doc["schema_version"], json!(2));
+        assert_eq!(doc["schema_version"], json!(CURRENT_SCHEMA_VERSION));
+    }
+
+    /// FEAT-0809: the `2 → 3` step is the chain's second pure addition and
+    /// its emptiest migration — every new field defaults to absent, so the
+    /// only thing that may change is the stamp itself.
+    #[test]
+    fn a_v2_document_migrates_to_current_with_nothing_but_the_stamp_written() {
+        let mut doc = json!({ "schema_version": 2, "name": "x", "frequency": "every_time" });
+        let expected = json!({ "schema_version": CURRENT_SCHEMA_VERSION, "name": "x", "frequency": "every_time" });
+        assert_eq!(migrate_to_current(&mut doc).unwrap(), SchemaVersion::CURRENT);
+        assert_eq!(
+            doc, expected,
+            "a pure addition writes nothing but the version stamp"
+        );
     }
 
     #[test]

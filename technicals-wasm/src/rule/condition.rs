@@ -412,6 +412,12 @@ pub enum ConditionSite {
     Trigger,
     /// The suppression condition. External feeds are the point here.
     Veto,
+    /// An exit's `when` clause — FEAT-0809. Evaluated against the position
+    /// the owning bot holds, so account state is as legal here as in the
+    /// trigger; external feeds are as illegal, for the same honesty reason
+    /// the trigger refuses them (an exit is an action, and a backtest cannot
+    /// replay a closing decision made on an unversioned feed).
+    Exit,
 }
 
 impl Condition {
@@ -507,6 +513,19 @@ impl Condition {
                              such a feed may veto or annotate a trigger but never be one, \
                              because a backtest over an unversioned feed cannot be honest. \
                              Move it to `veto`."
+                        ),
+                    ));
+                }
+                if site == ConditionSite::Exit {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::ExternalFeedExit,
+                        field,
+                        format!(
+                            "`{feed}` is a third-party aggregate, and an exit is an action: \
+                             a backtest cannot replay a closing decision made on an \
+                             unversioned feed. Per ADR-0012 decision 7 the feed may veto a \
+                             trigger; move it there, or author the exit on market or account \
+                             state."
                         ),
                     ));
                 }

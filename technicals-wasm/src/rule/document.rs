@@ -45,7 +45,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::condition::{Condition, ConditionSite, MAX_CONDITION_DEPTH, MAX_RULE_WARMUP_CANDLES};
-use super::consequence::{ConsequenceLevel, OrderIntent, RuleAction};
+use super::consequence::{ConsequenceLevel, OrderIntent, OrderSide, RuleAction, StopDistance};
 use super::lifecycle::{validate_note, validate_validity, TriggerFrequency, TriggerMethod};
 use super::refusal::{RefusalCode, Refused, RuleRefusal};
 use super::sha256::sha256_hex;
@@ -187,6 +187,36 @@ impl EvaluationMode {
     }
 }
 
+/// How much of the owned position one exit closes — FEAT-0809.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExitClose {
+    All,
+    Partial,
+}
+
+/// One way this bot leaves the position it owns — FEAT-0809.
+///
+/// `when` is the same condition language the trigger speaks, evaluated at the
+/// same anchor while the position is open; `ConditionSite::Exit` is what keeps
+/// the site-specific rules honest — external feeds refused for the same
+/// backtest-honesty reason the trigger refuses them, account state legal from
+/// `simulate` up exactly as in the trigger. The `close` half says what the
+/// exit does when `when` holds.
+///
+/// `fraction` rides as `Option` with `skip_serializing_if` so an `all` exit
+/// serialises without one; the validators below refuse the field where it
+/// cannot mean anything, and `deny_unknown_fields` keeps the wire honest.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ExitRule {
+    pub when: Condition,
+    pub close: ExitClose,
+    /// How much of the owned position a `partial` close takes: `0 < f <= 1`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraction: Option<rust_decimal::Decimal>,
+}
+
 /// A serialisable, versioned, schema-validated strategy.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -210,6 +240,18 @@ pub struct RuleDocument {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub veto: Option<Condition>,
     pub action: RuleAction,
+    /// FEAT-0809. Ways this bot leaves the position it owns, evaluated by the
+    /// same core while the position is open. Hashed — an exit is part of what
+    /// the strategy means, and a journal entry must not keep pointing at a
+    /// rule whose exits were edited. Absent means the resting stop is the
+    /// whole exit story, exactly as it was for every rule before this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exits: Option<Vec<ExitRule>>,
+    /// FEAT-0809. A profit target, resolved against the actual entry like
+    /// `OrderIntent::stop` and never a stored price, so it cannot go stale.
+    /// Hashed, for the same reason the stop is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub take_profit: Option<StopDistance>,
     /// Armed or not. Not hashed: arming is not a change of strategy.
     #[serde(default)]
     pub enabled: bool,
@@ -236,6 +278,28 @@ pub struct RuleDocument {
     /// leaves the device, not hashed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+}
+
+/// The warmup ceiling for one condition tree, extracted so the trigger, the
+/// veto and each exit's `when` are held to the same limit with one message —
+/// and so the refusal names which tree is too deep, which a bare maximum
+/// over `warmup_candles()` cannot do.
+fn check_warmup_ceiling(site: &str, tree: &Condition, out: &mut Vec<RuleRefusal>) {
+    let needed = tree.warmup_candles();
+    if needed > MAX_RULE_WARMUP_CANDLES {
+        out.push(RuleRefusal::new(
+            RefusalCode::RuleWarmupTooDeep,
+            site,
+            format!(
+                "this rule needs {needed} closed candles before it can produce a \
+                 verdict, and at most {MAX_RULE_WARMUP_CANDLES} are loaded. Without \
+                 this refusal the alert would simply never fire: the evaluation gate \
+                 withholds a verdict while the series is too short and has no \
+                 separate state for a requirement that can never be met. Shorten a \
+                 window or an indicator period."
+            ),
+        ));
+    }
 }
 
 impl RuleDocument {
@@ -284,6 +348,95 @@ impl RuleDocument {
             );
         }
 
+        // FEAT-0809. Exits are strategy: hashed like the trigger, validated
+        // like the trigger, and refused for a document that can never own the
+        // position they promise to close. `may_read_account` is the same
+        // gate the account conditions answer to — a `notify` rule holds no
+        // book, so nothing would ever evaluate an exit against a position.
+        let has_exits = self.exits.as_ref().is_some_and(|e| !e.is_empty());
+        if !may_read_account && (has_exits || self.take_profit.is_some()) {
+            out.push(RuleRefusal::new(
+                RefusalCode::ExitsAtNotifyLevel,
+                if has_exits { "exits" } else { "take_profit" },
+                "a `notify` rule carries exits nothing will ever evaluate: it owns no \
+                 position to close. Author the rule at `simulate` or above",
+            ));
+        }
+        if self.exits.as_ref().is_some_and(|e| e.is_empty()) {
+            out.push(RuleRefusal::new(
+                RefusalCode::EmptyExitsArray,
+                "exits",
+                "an empty exits array is refused rather than read as no exits: absence \
+                 already means that, exactly as it did before this field existed",
+            ));
+        }
+        if let Some(exits) = &self.exits {
+            for (i, exit) in exits.iter().enumerate() {
+                let field = format!("exits[{i}]");
+                match (exit.close, exit.fraction) {
+                    (ExitClose::All, Some(_)) => out.push(RuleRefusal::new(
+                        RefusalCode::ExitFractionInvalid,
+                        format!("{field}.fraction"),
+                        "`close: \"all\"\" closes the whole owned position; a fraction \
+                         here is a field nothing reads",
+                    )),
+                    (ExitClose::Partial, None) => out.push(RuleRefusal::new(
+                        RefusalCode::ExitFractionInvalid,
+                        format!("{field}.fraction"),
+                        "`close: \"partial\"\" needs a fraction: how much of the owned \
+                         position this exit closes",
+                    )),
+                    _ => {}
+                }
+                if let Some(fraction) = exit.fraction {
+                    if fraction <= rust_decimal::Decimal::ZERO
+                        || fraction > rust_decimal::Decimal::ONE
+                    {
+                        out.push(RuleRefusal::new(
+                            RefusalCode::ExitFractionInvalid,
+                            format!("{field}.fraction"),
+                            format!("fraction `{fraction}` is not in (0, 1]"),
+                        ));
+                    }
+                }
+                exit.when.validate(
+                    &format!("{field}.when"),
+                    ConditionSite::Exit,
+                    self.trigger_timeframe,
+                    may_read_account,
+                    0,
+                    &mut out,
+                );
+            }
+        }
+        if let Some(take_profit) = &self.take_profit {
+            let distance = take_profit.magnitude();
+            if distance <= rust_decimal::Decimal::ZERO {
+                out.push(RuleRefusal::new(
+                    RefusalCode::InvalidDecimal,
+                    "take_profit.distance",
+                    format!("take-profit distance `{distance}` is not positive"),
+                ));
+            } else if self.action.order.as_ref().is_some_and(|o| o.side == OrderSide::Sell)
+                && distance >= rust_decimal::Decimal::from(100)
+            {
+                // The ceiling mirrors `validate_stop` with the side flipped.
+                // A long's target sits *above* its entry, where any distance
+                // names a price that exists, but a short's target sits below,
+                // and a hundred percent below a short entry is zero — past
+                // that is a negative price. Refusing at authoring time beats
+                // discovering it at the venue.
+                out.push(RuleRefusal::new(
+                    RefusalCode::InvalidDecimal,
+                    "take_profit.distance",
+                    format!(
+                        "a take-profit `{distance}` percent below a short entry is at or \
+                         through zero"
+                    ),
+                ));
+            }
+        }
+
         self.action.validate("action", &mut out);
         self.provenance.validate("provenance", &mut out);
 
@@ -312,25 +465,15 @@ impl RuleDocument {
         // refused. Checked per tree so the refusal names which half is too
         // deep; `warmup_candles()` reduces to a maximum and carries no path, so
         // this is the finest granularity available without a second walker.
-        for (site, tree) in [
-            ("conditions", Some(&self.conditions)),
-            ("veto", self.veto.as_ref()),
-        ] {
-            let Some(tree) = tree else { continue };
-            let needed = tree.warmup_candles();
-            if needed > MAX_RULE_WARMUP_CANDLES {
-                out.push(RuleRefusal::new(
-                    RefusalCode::RuleWarmupTooDeep,
-                    site,
-                    format!(
-                        "this rule needs {needed} closed candles before it can produce a \
-                         verdict, and at most {MAX_RULE_WARMUP_CANDLES} are loaded. Without \
-                         this refusal the alert would simply never fire: the evaluation gate \
-                         withholds a verdict while the series is too short and has no \
-                         separate state for a requirement that can never be met. Shorten a \
-                         window or an indicator period."
-                    ),
-                ));
+        // FEAT-0809: each exit's `when` is a fourth tree held to the same
+        // ceiling, with its own slot in the message.
+        check_warmup_ceiling("conditions", &self.conditions, &mut out);
+        if let Some(veto) = &self.veto {
+            check_warmup_ceiling("veto", veto, &mut out);
+        }
+        if let Some(exits) = &self.exits {
+            for (i, exit) in exits.iter().enumerate() {
+                check_warmup_ceiling(&format!("exits[{i}].when"), &exit.when, &mut out);
             }
         }
 
@@ -463,6 +606,11 @@ impl RuleDocument {
         if let Some(veto) = &self.veto {
             veto.timeframes(&mut out);
         }
+        if let Some(exits) = &self.exits {
+            for exit in exits {
+                exit.when.timeframes(&mut out);
+            }
+        }
         out
     }
 
@@ -477,6 +625,11 @@ impl RuleDocument {
         if let Some(veto) = &self.veto {
             veto.mark_timeframes(&mut out);
         }
+        if let Some(exits) = &self.exits {
+            for exit in exits {
+                exit.when.mark_timeframes(&mut out);
+            }
+        }
         out
     }
 
@@ -484,7 +637,12 @@ impl RuleDocument {
     /// can produce a verdict at all.
     pub fn warmup_candles(&self) -> u32 {
         let veto = self.veto.as_ref().map(|v| v.warmup_candles()).unwrap_or(0);
-        self.conditions.warmup_candles().max(veto)
+        let exits = self
+            .exits
+            .as_ref()
+            .map(|es| es.iter().map(|e| e.when.warmup_candles()).max().unwrap_or(0))
+            .unwrap_or(0);
+        self.conditions.warmup_candles().max(veto).max(exits)
     }
 }
 
@@ -622,6 +780,8 @@ mod tests {
             frequency: TriggerFrequency::Once,
             valid_until_ms: None,
             note: None,
+            exits: None,
+            take_profit: None,
         }
     }
 
@@ -2286,5 +2446,404 @@ mod tests {
                 .unwrap()
                 .replace(r#""agg":"min""#, r#""agg":"mean""#);
         assert!(serde_json::from_str::<RuleDocument>(&json).is_err());
+    }
+
+    // ---- FEAT-0809: exits and the take-profit distance ----------------------
+
+    /// A simulate document — the shape the whole item is about: a bot that
+    /// owns a position and says how it leaves it.
+    fn bot_with_exits(
+        side: OrderSide,
+        exits: Option<Vec<ExitRule>>,
+        take_profit: Option<StopDistance>,
+    ) -> RuleDocument {
+        let mut doc = rsi_dip();
+        doc.action = RuleAction {
+            consequence_level: ConsequenceLevel::Simulate,
+            order: Some(OrderIntent {
+                side,
+                size_basis: SizeBasis::PercentOfEquity,
+                size: d("1"),
+                reduce_only: false,
+                stop: None,
+            }),
+        };
+        doc.exits = exits;
+        doc.take_profit = take_profit;
+        doc
+    }
+
+    fn profit_target(percent: &str) -> StopDistance {
+        StopDistance::PercentOfEntry {
+            distance: d(percent),
+        }
+    }
+
+    fn exit_all(when: Condition) -> ExitRule {
+        ExitRule {
+            when,
+            close: ExitClose::All,
+            fraction: None,
+        }
+    }
+
+    #[test]
+    fn exits_and_a_take_profit_round_trip_through_serialisation() {
+        let doc = bot_with_exits(
+            OrderSide::Buy,
+            Some(vec![ExitRule {
+                when: compare(close(), Operand::Constant { value: d("60000") }),
+                close: ExitClose::Partial,
+                fraction: Some(d("0.5")),
+            }]),
+            Some(profit_target("3")),
+        );
+        let json = serialise_document(&doc).unwrap();
+        let back: RuleDocument = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, doc);
+    }
+
+    /// The alarm the TS integration test sounds with measured constants: a
+    /// document without exits must serialise exactly as it always did, or
+    /// every strategy identity recorded before the field silently moves.
+    #[test]
+    fn a_document_without_exits_keeps_its_canonical_form() {
+        let doc = bot_with_exits(OrderSide::Buy, None, None);
+        let json = serialise_document(&doc).unwrap();
+        assert!(
+            !json.contains("exits"),
+            "absent exits must stay off the wire: {json}"
+        );
+        assert!(
+            !json.contains("take_profit"),
+            "absent take_profit must stay off the wire: {json}"
+        );
+    }
+
+    #[test]
+    fn exits_and_a_take_profit_are_part_of_the_strategy_identity() {
+        let before = bot_with_exits(OrderSide::Buy, None, None).content_hash().unwrap();
+        let with_exits = bot_with_exits(
+            OrderSide::Buy,
+            Some(vec![exit_all(compare(
+                close(),
+                Operand::Constant { value: d("60000") },
+            ))]),
+            None,
+        )
+        .content_hash()
+        .unwrap();
+        let with_target =
+            bot_with_exits(OrderSide::Buy, None, Some(profit_target("3")))
+                .content_hash()
+                .unwrap();
+
+        assert_ne!(
+            with_exits, before,
+            "an exit is what the strategy does, not how it is labelled"
+        );
+        assert_ne!(
+            with_target, before,
+            "a profit target is part of what the strategy means"
+        );
+        assert_ne!(with_exits, with_target);
+    }
+
+    /// The schema-version stamp never was part of the identity, so a stored
+    /// v2 document reloads at v3 with every hash it was recorded under.
+    #[test]
+    fn a_version_stamp_is_not_part_of_the_strategy_identity() {
+        let doc = bot_with_exits(OrderSide::Buy, None, None);
+        let json = serialise_document(&doc).unwrap();
+
+        let mut stored: serde_json::Value = serde_json::from_str(&json).unwrap();
+        stored["schema_version"] = serde_json::json!(2);
+        let reloaded = parse_document(&serde_json::to_string(&stored).unwrap()).unwrap();
+
+        assert_eq!(reloaded.schema_version, SchemaVersion::CURRENT);
+        assert_eq!(
+            reloaded.content_hash().unwrap(),
+            doc.content_hash().unwrap()
+        );
+    }
+
+    #[test]
+    fn a_notify_document_cannot_carry_exits() {
+        let mut doc = rsi_dip();
+        doc.exits = Some(vec![exit_all(compare(
+            close(),
+            Operand::Constant { value: d("60000") },
+        ))]);
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::ExitsAtNotifyLevel)
+            .expect("a notify document with exits names the exit field");
+        assert_eq!(refusal.field, "exits");
+
+        let mut target_only = rsi_dip();
+        target_only.take_profit = Some(profit_target("3"));
+        let refusals = &target_only.validate().unwrap_err().refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::ExitsAtNotifyLevel)
+            .expect("a notify document with a target names the target field");
+        assert_eq!(refusal.field, "take_profit");
+    }
+
+    #[test]
+    fn an_empty_exits_array_is_refused_rather_than_read_as_none() {
+        let doc = bot_with_exits(OrderSide::Buy, Some(Vec::new()), None);
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::EmptyExitsArray)
+            .expect("an empty exits array is a refusal, not a no-op");
+        assert_eq!(refusal.field, "exits");
+    }
+
+    #[test]
+    fn a_partial_exit_needs_a_fraction_and_an_all_exit_refuses_one() {
+        let partial_without = ExitRule {
+            when: compare(close(), Operand::Constant { value: d("60000") }),
+            close: ExitClose::Partial,
+            fraction: None,
+        };
+        let refusals = &bot_with_exits(OrderSide::Buy, Some(vec![partial_without]), None)
+            .validate()
+            .unwrap_err()
+            .refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::ExitFractionInvalid)
+            .expect("a partial close must name the fraction it needs");
+        assert_eq!(refusal.field, "exits[0].fraction");
+        assert!(refusal.detail.contains("partial"));
+
+        let all_with_one = ExitRule {
+            when: compare(close(), Operand::Constant { value: d("60000") }),
+            close: ExitClose::All,
+            fraction: Some(d("0.5")),
+        };
+        let refusals = &bot_with_exits(OrderSide::Buy, Some(vec![all_with_one]), None)
+            .validate()
+            .unwrap_err()
+            .refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::ExitFractionInvalid)
+            .expect("an all close must refuse the fraction nothing reads");
+        assert_eq!(refusal.field, "exits[0].fraction");
+        assert!(refusal.detail.contains("all"));
+    }
+
+    #[test]
+    fn an_exit_fraction_outside_its_range_is_refused() {
+        for fraction in [Decimal::ZERO, d("-1"), d("1.5")] {
+            let partial = ExitRule {
+                when: compare(close(), Operand::Constant { value: d("60000") }),
+                close: ExitClose::Partial,
+                fraction: Some(fraction),
+            };
+            let refusals = &bot_with_exits(OrderSide::Buy, Some(vec![partial]), None)
+                .validate()
+                .unwrap_err()
+                .refusals;
+            assert!(
+                refusals
+                    .iter()
+                    .any(|r| r.code == RefusalCode::ExitFractionInvalid),
+                "fraction {fraction} must be refused"
+            );
+        }
+        // The upper boundary is inclusive: closing the whole position through
+        // `partial` with 1 is a legal spelling of the same intent.
+        let whole = ExitRule {
+            when: compare(close(), Operand::Constant { value: d("60000") }),
+            close: ExitClose::Partial,
+            fraction: Some(Decimal::ONE),
+        };
+        assert!(bot_with_exits(OrderSide::Buy, Some(vec![whole]), None)
+            .validate()
+            .is_ok());
+    }
+
+    /// The G1-decided acceptance criterion: an exit on
+    /// `unrealised_pnl_percent` validates — the same operand the trigger
+    /// already offers, legal at `simulate` and above, refused only for a
+    /// `notify` document that cannot read account state at all.
+    #[test]
+    fn an_exit_reads_account_state_from_simulate_up() {
+        let loss_exit = Condition::Account {
+            field: AccountField::UnrealisedPnlPercent,
+            op: CompareOp::Lte,
+            value: d("-2"),
+        };
+        let doc = bot_with_exits(OrderSide::Buy, Some(vec![exit_all(loss_exit)]), None);
+        assert!(doc.validate().is_ok());
+
+        let mut notify = rsi_dip();
+        notify.exits = Some(vec![exit_all(Condition::Account {
+            field: AccountField::UnrealisedPnlPercent,
+            op: CompareOp::Lte,
+            value: d("-2"),
+        })]);
+        let refusals = &notify.validate().unwrap_err().refusals;
+        assert!(
+            refusals.iter().any(|r| r.code == RefusalCode::FieldNotHonouredAtLevel
+                && r.field == "exits[0].when"),
+            "the account gate names the exit's own field: {refusals:?}"
+        );
+    }
+
+    #[test]
+    fn an_external_feed_may_never_close_a_position() {
+        let feed_exit = exit_all(Condition::ExternalFeed {
+            feed: "liquidation_heatmap".to_string(),
+            op: CompareOp::Gt,
+            value: d("0.9"),
+        });
+        let refusals = &bot_with_exits(OrderSide::Buy, Some(vec![feed_exit]), None)
+            .validate()
+            .unwrap_err()
+            .refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::ExternalFeedExit)
+            .expect("an exit names the feed it refuses");
+        assert_eq!(refusal.field, "exits[0].when");
+
+        // The same feed stays legal in `veto` — the exit site is the third
+        // site, not a change to the second.
+        let mut vetoed = bot_with_exits(OrderSide::Buy, None, None);
+        vetoed.veto = Some(Condition::ExternalFeed {
+            feed: "liquidation_heatmap".to_string(),
+            op: CompareOp::Gt,
+            value: d("0.9"),
+        });
+        assert!(vetoed.validate().is_ok());
+    }
+
+    /// A tree deeper than `MAX_CONDITION_DEPTH` is refused at the exit site,
+    /// with the field path naming where the depth lives.
+    #[test]
+    fn an_exit_tree_is_held_to_the_condition_depth_ceiling() {
+        // MAX_CONDITION_DEPTH + 1 nested groups, built from the inside out.
+        let mut deep = Condition::Group {
+            op: LogicOp::All,
+            of: vec![compare(close(), Operand::Constant { value: d("60000") })],
+        };
+        for _ in 0..MAX_CONDITION_DEPTH {
+            deep = Condition::Group {
+                op: LogicOp::All,
+                of: vec![deep],
+            };
+        }
+        let doc = bot_with_exits(OrderSide::Buy, Some(vec![exit_all(deep)]), None);
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::ConditionTreeTooDeep)
+            .expect("an exit's tree is held to the depth ceiling");
+        assert!(
+            refusal.field.starts_with("exits[0].when"),
+            "the refusal names the exit's own tree: {}",
+            refusal.field
+        );
+    }
+
+    /// The G1-decided operand is not just accepted — an exit built on it is
+    /// part of the strategy identity like any other.
+    #[test]
+    fn an_account_exit_is_hashed_like_any_other() {
+        let plain = bot_with_exits(
+            OrderSide::Buy,
+            Some(vec![exit_all(compare(
+                close(),
+                Operand::Constant { value: d("60000") },
+            ))]),
+            None,
+        )
+        .content_hash()
+        .unwrap();
+        let pnl_exit = bot_with_exits(
+            OrderSide::Buy,
+            Some(vec![exit_all(Condition::Account {
+                field: AccountField::UnrealisedPnlPercent,
+                op: CompareOp::Lte,
+                value: d("-2"),
+            })]),
+            None,
+        )
+        .content_hash()
+        .unwrap();
+        assert_ne!(pnl_exit, plain);
+    }
+
+    #[test]
+    fn exit_conditions_count_toward_the_warmup_ceiling_and_are_named() {
+        let deep = exit_all(compare(
+            close(),
+            window(WindowAgg::Min, MAX_RULE_WARMUP_CANDLES + 1, Operand::Volume {}),
+        ));
+        let doc = bot_with_exits(OrderSide::Buy, Some(vec![deep]), None);
+        assert!(doc.warmup_candles() > MAX_RULE_WARMUP_CANDLES);
+
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::RuleWarmupTooDeep)
+            .expect("an exit's warmup is held to the same ceiling");
+        assert_eq!(refusal.field, "exits[0].when");
+    }
+
+    #[test]
+    fn exit_conditions_join_the_timeframe_and_mark_series_reads() {
+        let doc = bot_with_exits(
+            OrderSide::Buy,
+            Some(vec![exit_all(Condition::Compare {
+                left: Operand::Price {
+                    field: PriceField::Close,
+                    source: PriceSource::Mark,
+                },
+                op: CompareOp::Gt,
+                right: Operand::Constant { value: d("60000") },
+                timeframe: tf("1d"),
+            })]),
+            None,
+        );
+        assert!(doc.timeframes().contains(&tf("1d")));
+        assert!(doc.mark_timeframes().contains(&tf("1d")));
+    }
+
+    #[test]
+    fn a_take_profit_distance_is_validated_like_a_stop_mirrored_to_the_target_side() {
+        let refusals = &bot_with_exits(OrderSide::Buy, None, Some(profit_target("0")))
+            .validate()
+            .unwrap_err()
+            .refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::InvalidDecimal)
+            .expect("a zero distance is not a target");
+        assert_eq!(refusal.field, "take_profit.distance");
+
+        // A short's target sits below its entry: a hundred percent down is
+        // zero, past that a negative price.
+        let refusals = &bot_with_exits(OrderSide::Sell, None, Some(profit_target("150")))
+            .validate()
+            .unwrap_err()
+            .refusals;
+        assert!(
+            refusals.iter().any(|r| r.code == RefusalCode::InvalidDecimal
+                && r.field == "take_profit.distance"),
+            "a short must refuse a target through zero: {refusals:?}"
+        );
+
+        // The same distance on a long names a price above entry that exists —
+        // the side is the whole difference, exactly as with the stop.
+        assert!(bot_with_exits(OrderSide::Buy, None, Some(profit_target("150")))
+            .validate()
+            .is_ok());
     }
 }

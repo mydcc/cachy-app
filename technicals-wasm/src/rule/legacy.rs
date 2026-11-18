@@ -109,6 +109,10 @@ pub fn rule_from_alert(
         frequency: TriggerFrequency::Once,
         valid_until_ms: None,
         note: None,
+        // A migrated price alert has no exits and no profit target, exactly
+        // as it never did — FEAT-0809's absent-means-none.
+        exits: None,
+        take_profit: None,
     };
 
     document.validate()?;
