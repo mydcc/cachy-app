@@ -2,7 +2,7 @@
 id: FEAT-0806
 title: Attribute paper trades and journal entries to their bot
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
