@@ -186,4 +186,18 @@ describe("FEAT-0807 — the projection under a live subscription", () => {
         // file). The mounted view stays honest about what it can name.
         expect(probeText()).toBe("");
     });
+
+    it("updates the mounted view when the consumer's clock passes an expiry", () => {
+        seedBots(botDocument("bot-1", { valid_until_ms: 100 }));
+        botsState.now = 50;
+        probe = mount(BotsStateProbe, { target: host });
+        flushSync();
+        expect(probeText()).toContain("bot-1:armed:false");
+
+        // Time is a dependency the projection reads as state, not as a
+        // hidden Date.now() a cached derived would freeze.
+        botsState.now = 200;
+        flushSync();
+        expect(probeText()).toContain("bot-1:expired:false");
+    });
 });

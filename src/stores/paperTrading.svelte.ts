@@ -549,6 +549,10 @@ class PaperTradingManager {
                 }),
                 () => uiState.showError("storage.quotaExceeded"),
             );
+            // FEAT-0807 — a persist that landed means the storage the next
+            // reload will read is a valid book again. The unreadable flag
+            // describes the storage, not this session's worst moment.
+            this._bookUnreadable = false;
         } catch {
             // Losing a simulated fill costs nothing real. Failing loudly here
             // would be noise on a feature whose whole point is that nothing

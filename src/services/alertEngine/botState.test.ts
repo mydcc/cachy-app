@@ -208,6 +208,36 @@ const rows: Row[] = [
         state: "armed",
         hasPosition: false,
     },
+    {
+        name: "a submission in flight wins over a pause — the order is already traveling",
+        rule: { enabled: false },
+        book: { submitting: new Set(["bot-1"]) },
+        state: "submitting",
+        hasPosition: false,
+    },
+    {
+        name: "the trader's switch beats the engine's inert record",
+        rule: { enabled: false },
+        book: { unevaluable: new Set(["bot-1"]) },
+        state: "paused",
+        hasPosition: false,
+    },
+    {
+        name: "a blocked bot with an exit in flight stays blocked — the exit cannot run either",
+        book: { unevaluable: new Set(["bot-1"]), closing: new Set(["bot-1"]), positions: [position()] },
+        state: "blocked",
+        hasPosition: true,
+    },
+    {
+        // A pruned fire ledger (pruneRuleStates) leaves a lingering row with
+        // fired 0: the position is the stronger recorded fact, so the row
+        // also pins in_position above expired for the never-fired case.
+        name: "a lingering position with a pruned ledger reads in_position, never expired",
+        rule: { valid_until_ms: 999 },
+        book: { positions: [position()] },
+        state: "in_position",
+        hasPosition: true,
+    },
 ];
 
 describe("FEAT-0807 — deriveBotState", () => {

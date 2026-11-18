@@ -36,7 +36,7 @@ import { Decimal } from "decimal.js";
 import type { RuleDocument } from "../lib/rules/types";
 import { CONSTANTS } from "../lib/constants";
 import { RULES_STORAGE_KEY } from "../services/alertEngine/migrateAlertsToRules";
-import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
+import { recordRuleFiring, RULE_STATE_STORAGE_KEY } from "../services/alertEngine/ruleStateStore";
 import { paperExchange, setPaperPriceFeed } from "../services/paperExchange";
 import { alertState } from "./alerts.svelte";
 import { botsState } from "./botsState.svelte";
@@ -206,7 +206,7 @@ describe("FEAT-0807 — the botsState projection", () => {
         paperState.reloadFromStorage();
 
         expect(paperState.bookUnreadable).toBe(true);
-        expect(botsState.degraded).toBe(true);
+        expect(botsState.degraded.book).toBe(true);
         expect(botsState.states.get("bot-1")?.state).toBe("blocked");
         expect(botsState.states.get("bot-2")?.state).toBe("blocked");
         expect(botsState.states.get("bot-1")?.hasPosition).toBe(false);
@@ -219,9 +219,73 @@ describe("FEAT-0807 — the botsState projection", () => {
         alertState.firingsVersion += 1;
         botsState.setSubmitting(new Set(["bot-1"]));
 
-        // The projection persists nothing; every key it read belongs to
-        // another store.
-        const newKeys = Object.keys(localStorage).filter((key) => key.startsWith("cachy_bots"));
-        expect(newKeys).toEqual([]);
+        // The projection persists nothing: after a full round of reads the
+        // key set is exactly what the other stores own.
+        expect([...Object.keys(localStorage)].sort()).toEqual(
+            [CONSTANTS.LOCAL_STORAGE_PAPER_KEY, RULES_STORAGE_KEY, RULE_STATE_STORAGE_KEY].sort(),
+        );
+    });
+
+    it("degrades to an empty projection with a notice when the rule store is unreadable", () => {
+        seedBots(botDocument("bot-1"));
+        // The rule store throws on a blob it cannot read (FEAT-0542's
+        // RuleStoreUnreadableError); the Manage tab renders its refusal
+        // rather than dying, and so does the projection.
+        localStorage.setItem(RULES_STORAGE_KEY, "{not json");
+        alertState.rulesVersion += 1;
+
+        expect(botsState.states.size).toBe(0);
+        expect(botsState.degraded.rules).toBe(true);
+
+        // Recovery: a re-seeded store is picked up on the next bump.
+        seedBots(botDocument("bot-1"));
+        expect(botsState.states.get("bot-1")?.state).toBe("armed");
+        expect(botsState.degraded.rules).toBe(false);
+    });
+
+    it("turns expired when the consumer's clock passes the deadline", () => {
+        seedBots(botDocument("bot-1", { valid_until_ms: 100 }));
+
+        botsState.now = 50;
+        expect(botsState.states.get("bot-1")?.state).toBe("armed");
+
+        botsState.now = 200;
+        expect(botsState.states.get("bot-1")?.state).toBe("expired");
+    });
+
+    it("clears the unreadable-book flag once a persist writes a valid book again", async () => {
+        seedBots(botDocument("bot-1"));
+        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, "{not json");
+        paperState.reloadFromStorage();
+        expect(botsState.degraded.book).toBe(true);
+
+        // The entry's own persist() writes a book the next reload can read;
+        // the flag describes the storage, not the session's worst moment.
+        await openAs("bot-1");
+        expect(botsState.degraded.book).toBe(false);
+        expect(botsState.states.get("bot-1")?.state).toBe("in_position");
+    });
+
+    it("an unknown origin value reads as unattributed and the book stays readable", async () => {
+        seedBots(botDocument("bot-1"));
+        await openAs("bot-1");
+        const blob = JSON.parse(
+            localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY) as string,
+        ) as { positions: Array<Record<string, unknown>> };
+        blob.positions[0].origin = "grid";
+        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, JSON.stringify(blob));
+        paperState.reloadFromStorage();
+
+        expect(paperState.bookUnreadable).toBe(false);
+        expect(botsState.degraded.book).toBe(false);
+        expect(paperState.positions).toHaveLength(1);
+    });
+
+    it("skips a malformed bot without a string id rather than keying a phantom row", () => {
+        const malformed = botDocument("bot-2") as RuleDocument & { id: string | undefined };
+        malformed.id = undefined;
+        seedBots(botDocument("bot-1"), malformed);
+
+        expect([...botsState.states.keys()]).toEqual(["bot-1"]);
     });
 });

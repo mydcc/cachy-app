@@ -547,6 +547,15 @@ function disarmRuleEngine(): void {
  * `initAlertEngine("shadow")` arms `ledgerSink`, which records verdicts and
  * notifies nobody.
  */
+/**
+ * FEAT-0807 — the generation of the sink currently allowed to write the
+ * projection's "submitting" snapshot. Every init retires the previous sink,
+ * and a submission of a retired sink that settles later must not overwrite
+ * the new one's snapshot: the observer checks the generation before
+ * writing, so only the sink this init armed is heard.
+ */
+let botsSinkGeneration = 0;
+
 export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<void> {
     if (!browser) return;
 
@@ -651,11 +660,17 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // `initAlertEngine()` whose schema failed to load this time must not leave
     // the previous run's loop evaluating and notifying.
     disarmRuleEngine();
+    // FEAT-0807 — the retired sink's observer is stale from here on; the
+    // sink this init may arm captures the new generation.
+    botsSinkGeneration++;
 
     if (!ready) {
         // A rule the panel armed is now evaluated by nothing at all. That is
         // BUG-0382 exactly, and it must not stay silent behind "ready".
         alertState.engineStatus = "failed";
+        // FEAT-0807 — no new sink will observe the guard, so the projection
+        // must not keep whatever the last one left.
+        botsState.setSubmitting(new Set());
         return;
     }
 
@@ -667,17 +682,24 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // `startRuleEvaluationLoop`'s `onFiring === ledgerSink` identity check,
     // which is what makes a shadow run say so in the log instead of claiming
     // it is notifying.
+    // FEAT-0807 — the snapshot belongs to whichever sink this init arms:
+    // the observer checks the generation, so a retired sink settling late
+    // cannot overwrite it. Shadow mode arms the ledger sink — an order is a
+    // consequence, even a simulated one — so nothing observes the guard
+    // and the projection is reset instead of left stale.
+    const botsGeneration = botsSinkGeneration;
+    if (mode !== "live") botsState.setSubmitting(new Set());
+
     disarmRuleLoop = startRuleEvaluationLoop(
         mode === "live"
             ? withBotOrders(
                   notifyingRuleSink,
                   botOrderEnvironment(closeAtAnchor, livePriceAt),
                   reportBotOrderRefusal,
-                  // FEAT-0807 — "submitting" is the sink's guard, observed.
-                  // The observer fires once at sink creation, so a re-init
-                  // resets the projection instead of stranding the previous
-                  // engine's snapshot in it.
-                  (ids) => botsState.setSubmitting(ids),
+                  (ids) => {
+                      if (botsGeneration !== botsSinkGeneration) return;
+                      botsState.setSubmitting(ids);
+                  },
               )
             : ledgerSink,
         // FEAT-0406: a core that stops being ready mid-session must stop the

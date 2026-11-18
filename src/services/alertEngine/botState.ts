@@ -77,8 +77,12 @@ export interface OwnedSlot {
     botId: string;
 }
 
-/** The slot index's key: one paper position per symbol and side. */
-export function slotKey(symbol: string, side: string): string {
+/**
+ * The slot index's key: one paper position per symbol and side. `side` is
+ * the position's side, not the order's direction — FEAT-0810 maps BUY/SELL
+ * onto it itself, and a silent mismatch would make that join miss.
+ */
+export function slotKey(symbol: string, side: PaperPosition["side"]): string {
     return `${symbol}|${side}`;
 }
 

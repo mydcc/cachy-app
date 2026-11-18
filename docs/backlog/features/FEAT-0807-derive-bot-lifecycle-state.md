@@ -2,7 +2,7 @@
 id: FEAT-0807
 title: Derive bot lifecycle state from the rule and the paper book
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
