@@ -3034,6 +3034,8 @@
         "triggerTradeoff": "The confirmation entry fires one candle later than the signal. That is the trade-off: fewer false entries, later fills.",
         "firingHint": "Empty limits mean the engine's own floor: one position per market and direction.",
         "fractionRequired": "A partial exit needs a fraction: how much of the position it closes.",
+        "countWholeNumber": "A limit is a whole number of positions or entries — no decimals, no units.",
+        "valueRequired": "A condition needs the value it compares against.",
         "readbackPositions": "at most {count} positions",
         "readbackEntriesDay": "up to {count} entries a day",
         "readbackRisk": "at most {amount} at risk per entry",

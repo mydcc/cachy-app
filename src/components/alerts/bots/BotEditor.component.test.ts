@@ -310,9 +310,13 @@ describe("the exits section (FEAT-0811 AC 2, 3, 6, 8)", () => {
     it("refuses a partial exit without a fraction, anchored to the row (AC 3)", () => {
         render(null);
         setInput(input("bot-create-symbol"), "ETHUSDT");
+        setInput(input("bot-create-entry-value"), "3000");
         setInput(input("bot-create-stop-distance"), "2");
 
         addExit();
+        // Everything else the form answers is answered, so the missing
+        // fraction is the only defect left to earn the refusal.
+        setInput(input("bot-create-exit-0-value"), "4000");
         setSelect(select("bot-create-exit-0-close"), "partial");
 
         save();
@@ -425,6 +429,7 @@ describe("the firing section (FEAT-0811 AC 4; FEAT-0823 AC 7)", () => {
     it("hands every firing field to the created draft", () => {
         render(null);
         setInput(input("bot-create-symbol"), "ETHUSDT");
+        setInput(input("bot-create-entry-value"), "3000");
         setInput(input("bot-create-stop-distance"), "2");
 
         setSelect(select("bot-create-firing-policy"), "multi");
@@ -482,5 +487,80 @@ describe("edit mode — the absorbed discipline", () => {
             input("bot-edit-size-bot-1").getAttribute("aria-describedby"),
         ).toBe("bot-edit-refusal-size");
         expect(host.querySelector("#bot-edit-refusal-size")).not.toBeNull();
+    });
+});
+
+/**
+ * The limits are counts, so the editor converts them with `Number()`. That
+ * conversion is total where the trader's typing is not: `Number("abc")` is
+ * `NaN`, `JSON.stringify` writes `NaN` as `null`, and the core reads `null`
+ * for an `Option<u32>` as *absent* — which for `max_entries_per_day` means
+ * "unbounded by day", the loosest setting there is.
+ *
+ * Proven against the real core (`createBotDraft` with `Number("abc")`): the
+ * saved document carries no `max_entries_per_day` key at all and nothing is
+ * refused. So the limit must be caught here, at the form, where the field
+ * that earned the refusal is still on screen.
+ */
+describe("the limits refuse what is not a whole number (FEAT-0811)", () => {
+    function fillCreateMinimum(): void {
+        setInput(input("bot-create-symbol"), "ETHUSDT");
+        setInput(input("bot-create-entry-value"), "3000");
+        setInput(input("bot-create-stop-distance"), "2");
+    }
+
+    it("refuses a non-numeric entries-per-day instead of dropping the limit", () => {
+        render(null);
+        fillCreateMinimum();
+
+        setInput(input("bot-create-maxEntriesPerDay"), "abc");
+        save();
+
+        expect(mocks.createBotDraft).not.toHaveBeenCalled();
+        expect(input("bot-create-maxEntriesPerDay").getAttribute("aria-invalid")).toBe("true");
+        expect(refusalText()).toBe(lookup(en, "settings.automation.editor.countWholeNumber"));
+    });
+
+    it("refuses a fractional position count, which the core would reject unanchored", () => {
+        render(null);
+        fillCreateMinimum();
+
+        setInput(input("bot-create-maxPositions"), "2.5");
+        save();
+
+        expect(mocks.createBotDraft).not.toHaveBeenCalled();
+        expect(input("bot-create-maxPositions").getAttribute("aria-invalid")).toBe("true");
+    });
+
+    it("still accepts a whole number", () => {
+        render(null);
+        fillCreateMinimum();
+
+        setInput(input("bot-create-maxEntriesPerDay"), "3");
+        save();
+
+        expect(mocks.createBotDraft).toHaveBeenCalledTimes(1);
+        expect(mocks.createBotDraft.mock.calls[0][0].max_entries_per_day).toBe(3);
+    });
+});
+
+/**
+ * An empty constant is refused by the core — but with `field: ""`, so
+ * `anchorFor` cannot place it and the trader reads a generic message with no
+ * input highlighted. Verified against the real core: the refusal is
+ * `rules.refusal.unknownField` with an empty field. The form owns this one,
+ * exactly as it already owns the empty symbol and the empty stop.
+ */
+describe("the entry value is answered before the core sees it (FEAT-0811)", () => {
+    it("refuses an empty entry value anchored to the field", () => {
+        render(null);
+        setInput(input("bot-create-symbol"), "ETHUSDT");
+        setInput(input("bot-create-stop-distance"), "2");
+
+        save();
+
+        expect(mocks.createBotDraft).not.toHaveBeenCalled();
+        expect(input("bot-create-entry-value").getAttribute("aria-invalid")).toBe("true");
+        expect(refusalText()).toBe(lookup(en, "settings.automation.editor.valueRequired"));
     });
 });

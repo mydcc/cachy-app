@@ -236,7 +236,9 @@
                         inputmode="decimal"
                         bind:value={row.value}
                         oninput={publish}
+                        aria-invalid={refusalField === `${targetId(i)}-value` ? "true" : "false"}
                         class="w-28 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1 text-[var(--text-primary)]"
+                        class:border-[var(--danger-color)]={refusalField === `${targetId(i)}-value`}
                     />
                 </label>
 

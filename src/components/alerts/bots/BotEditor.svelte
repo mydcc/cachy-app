@@ -160,6 +160,53 @@
         return null;
     }
 
+    /** A count the core stores as an unsigned integer. */
+    const WHOLE_NUMBER = /^\d+$/;
+
+    /**
+     * The limits pre-check (AC 5): a count that is not a whole number is
+     * refused here, before anything coerces it.
+     *
+     * Numeric coercion is total where typing is not: `"abc"` coerces to
+     * `NaN`, `JSON.stringify` writes `NaN` as `null`, and the core reads
+     * `null` for an optional count as *absent* — which for
+     * `max_entries_per_day` means "unbounded by day", the loosest setting
+     * there is. A limit the trader typed would vanish rather than be
+     * refused. `"1e2"`, `"0x10"` and `" 5 "` are the same class of
+     * surprise: accepted as something other than what was typed.
+     */
+    function countViolation(): string | null {
+        const counts: [string, string][] = [
+            [draftFiring.maxPositions, `${mode}-maxPositions`],
+            [draftFiring.maxEntriesPerDay, `${mode}-maxEntriesPerDay`],
+        ];
+        for (const [raw, anchor] of counts) {
+            const typed = raw.trim();
+            if (typed !== "" && !WHOLE_NUMBER.test(typed)) return anchor;
+        }
+        return null;
+    }
+
+    /**
+     * Every constant the trader typed carries a value (AC 1, 2).
+     *
+     * The core does refuse an empty one — but with an empty `field`, so
+     * `anchorFor` cannot place it and the trader reads a general message
+     * with nothing highlighted. The form owns this one, exactly as it
+     * already owns the empty symbol and the empty stop.
+     */
+    function emptyValueViolation(): string | null {
+        if (creating && !entryValue.trim()) return "bot-create-entry-value";
+        for (const [i, exit] of (draftExits ?? []).entries()) {
+            if (exit.when.kind !== "compare") continue;
+            const right = exit.when.right;
+            if (right.kind === "constant" && !right.value.trim()) {
+                return `${mode}-exit-${i}-value`;
+            }
+        }
+        return null;
+    }
+
     function save() {
         refusal = null;
         if (creating && !symbol.trim()) {
@@ -178,9 +225,19 @@
             };
             return;
         }
+        const missingValue = emptyValueViolation();
+        if (missingValue !== null) {
+            refusal = { key: "settings.automation.editor.valueRequired", field: missingValue };
+            return;
+        }
         const missingFraction = fractionViolation();
         if (missingFraction !== null) {
             refusal = { key: "settings.automation.editor.fractionRequired", field: missingFraction };
+            return;
+        }
+        const badCount = countViolation();
+        if (badCount !== null) {
+            refusal = { key: "settings.automation.editor.countWholeNumber", field: badCount };
             return;
         }
 
@@ -215,10 +272,10 @@
                         ? { firing_policy: draftFiring.policy }
                         : {}),
                     ...(draftFiring.maxPositions.trim() !== ""
-                        ? { max_positions: Number(draftFiring.maxPositions.trim()) }
+                        ? { max_positions: Number(draftFiring.maxPositions.trim()) } // audit: safe — a count, not money (core: u32); countViolation() proved the digits
                         : {}),
                     ...(draftFiring.maxEntriesPerDay.trim() !== ""
-                        ? { max_entries_per_day: Number(draftFiring.maxEntriesPerDay.trim()) }
+                        ? { max_entries_per_day: Number(draftFiring.maxEntriesPerDay.trim()) } // audit: safe — a count, not money (core: u32); countViolation() proved the digits
                         : {}),
                     ...(draftFiring.maxRiskPerPosition.trim() !== ""
                         ? { max_risk_per_position: draftFiring.maxRiskPerPosition.trim() }
@@ -258,9 +315,9 @@
             if (draftFiring.policy === undefined) delete updated.firing_policy;
             else updated.firing_policy = draftFiring.policy;
             if (draftFiring.maxPositions.trim() === "") delete updated.max_positions;
-            else updated.max_positions = Number(draftFiring.maxPositions.trim());
+            else updated.max_positions = Number(draftFiring.maxPositions.trim()); // audit: safe — a count, not money (core: u32); countViolation() proved the digits
             if (draftFiring.maxEntriesPerDay.trim() === "") delete updated.max_entries_per_day;
-            else updated.max_entries_per_day = Number(draftFiring.maxEntriesPerDay.trim());
+            else updated.max_entries_per_day = Number(draftFiring.maxEntriesPerDay.trim()); // audit: safe — a count, not money (core: u32); countViolation() proved the digits
             if (draftFiring.maxRiskPerPosition.trim() === "") delete updated.max_risk_per_position;
             else updated.max_risk_per_position = draftFiring.maxRiskPerPosition.trim();
             if (draftFiring.budgetCap.trim() === "") delete updated.budget_cap;
@@ -383,7 +440,9 @@
                     type="text"
                     inputmode="decimal"
                     bind:value={entryValue}
+                    aria-invalid={refusal?.field === "bot-create-entry-value" ? "true" : "false"}
                     class="w-32 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
+                    class:border-[var(--danger-color)]={refusal?.field === "bot-create-entry-value"}
                 />
             </label>
         </div>

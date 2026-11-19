@@ -3034,6 +3034,8 @@
         "triggerTradeoff": "Der Bestätigungseinstieg feuert eine Kerze später als das Signal. Das ist der Trade-off: weniger Fehleinstiege, spätere Fills.",
         "firingHint": "Leere Limits bedeuten die eigene Schwelle der Engine: eine Position pro Markt und Richtung.",
         "fractionRequired": "Ein Teil-Exit braucht einen Anteil: wie viel der Position er schließt.",
+        "countWholeNumber": "Ein Limit ist eine ganze Zahl an Positionen oder Einstiegen — keine Dezimalstellen, keine Einheiten.",
+        "valueRequired": "Eine Bedingung braucht den Wert, mit dem sie vergleicht.",
         "readbackPositions": "höchstens {count} Positionen",
         "readbackEntriesDay": "bis zu {count} Einstiege pro Tag",
         "readbackRisk": "höchstens {amount} Risiko pro Einstieg",

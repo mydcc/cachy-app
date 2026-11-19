@@ -2650,6 +2650,8 @@ export type TranslationKey =
   | "settings.automation.editor.triggerTradeoff"
   | "settings.automation.editor.firingHint"
   | "settings.automation.editor.fractionRequired"
+  | "settings.automation.editor.countWholeNumber"
+  | "settings.automation.editor.valueRequired"
   | "settings.automation.editor.readbackPositions"
   | "settings.automation.editor.readbackEntriesDay"
   | "settings.automation.editor.readbackRisk"
