@@ -953,7 +953,8 @@
       "paused": "Pausiert",
       "blocked": "Blockiert",
       "expired": "Abgelaufen",
-      "limit_reached": "Limit erreicht"
+      "limit_reached": "Limit erreicht",
+      "awaiting_confirmation": "Wartet auf Bestätigung"
     },
     "empty": "Noch keine Bots. Das Kontrollzentrum erstellt sie aus deinen Alarmen.",
     "rulesUnreadable": "Die Bot-Liste konnte nicht gelesen werden. Es wurde nichts geändert.",
@@ -973,7 +974,9 @@
       "limitRisk": "Einstieg würde das Risiko-Limit überschreiten",
       "limitBudget": "Einstieg würde das Risiko-Budget überschreiten",
       "submissionInFlight": "ein Einstieg ist noch unterwegs",
-      "positionAlreadyOpen": "in dieser Richtung ist bereits eine Position offen"
+      "positionAlreadyOpen": "in dieser Richtung ist bereits eine Position offen",
+      "confirmationAgainstDirection": "die Bestätigungskerze schloss gegen den Einstieg",
+      "signalStoppedOut": "die Position war vor der Bestätigung weg"
     },
     "created": "Erstellt {when}",
     "fired": "{count}-mal ausgelöst, zuletzt {when}",
@@ -5005,6 +5008,7 @@
       "emptyExitsArray": "Ein leeres Exits-Array wird abgelehnt — Abwesenheit bedeutet bereits: keine Exits über den Stop hinaus.",
       "exitFractionInvalid": "Der Schlussanteil in `{field}` ist unbrauchbar: Ein Teil-Close braucht einen Wert in (0, 1], ein Full-Close braucht keinen.",
       "invalidLimit": "Das Limit in `{field}` kann nichts begrenzen: Eine Grenze von null schützt nichts. Nimm sie heraus oder setz eine echte.",
+      "confirmationNeedsCloses": "Ein Bestätigungseinstieg wartet auf eine geschlossene Kerze — eine Intrabar-Regel sieht nie eine. Lege die Regel auf Kerzenschluss an.",
       "executableTextRejected": "Eine Strategie ist prüfbare Daten, kein ausführbarer Text. Freitext-Ausdrücke werden abgelehnt.",
       "unsupportedSchemaVersion": "Diese Regel nutzt eine Schema-Version, die diese App-Version nicht lesen kann.",
       "migrationNotPossible": "Die Regel lässt sich nicht bedeutungserhaltend auf die aktuelle Schema-Version übertragen und wird abgelehnt, statt umgedeutet zu werden.",

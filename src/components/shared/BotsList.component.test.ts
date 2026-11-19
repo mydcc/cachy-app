@@ -193,6 +193,9 @@ beforeEach(() => {
     setPaperPriceFeed(() => new Decimal(50000));
 
     alertState.unevaluableReport = [];
+    // FEAT-0823 — same reset for the awaiting report: it is $state on the
+    // singleton, and a leftover wait would shadow every later case's chip.
+    alertState.awaitingReport = [];
     botsState.setSubmitting(new Set());
     botsState.now = Date.now();
 
@@ -668,6 +671,34 @@ describe("FEAT-0822 — firing limits and the kill switch", () => {
         const line = host.querySelector<HTMLElement>('[data-testid="bot-guard-line"]');
         expect(line?.textContent?.trim()).toBe(
             `Last guard: ${lookup(en, "botsList.guard.slotReserved")} ×2`,
+        );
+    });
+
+    it("shows awaiting confirmation while a signal waits for its candle", () => {
+        seedBots(botDocument("bot-1", { entry_trigger: "confirmation" }));
+
+        // The loop's per-close report is the whole input: the chip follows
+        // it without any ledger version bump.
+        alertState.awaitingReport = [{ ruleId: "bot-1", signalAnchorMs: 60_000 }];
+        flushSync();
+
+        render();
+        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.awaiting_confirmation"));
+    });
+
+    it("renders the confirmation discards in the row's guard line", () => {
+        seedBots(botDocument("bot-1", { entry_trigger: "confirmation" }));
+        render();
+
+        // A signal the market refused: the guard line says it in the
+        // trader's words, counted while it repeats.
+        recordBotGuard("bot-1", "confirmation-against-direction", 60_000);
+        alertState.guardsVersion += 1;
+        flushSync();
+
+        const line = host.querySelector<HTMLElement>('[data-testid="bot-guard-line"]');
+        expect(line?.textContent?.trim()).toBe(
+            `Last guard: ${lookup(en, "botsList.guard.confirmationAgainstDirection")} ×1`,
         );
     });
 });

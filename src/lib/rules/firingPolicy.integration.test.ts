@@ -200,10 +200,10 @@ describe("a bot's firing policy and limits (FEAT-0822)", () => {
     }
   });
 
-  it("migrates a v3 document to v4 without touching its hash", () => {
+  it("migrates a v3 document to current without touching its hash", () => {
     const v3 = botDocument({ schema_version: 3 });
     const parsed = ruleSchema.validate(v3);
-    expect(parsed.schema_version).toBe(4);
+    expect(parsed.schema_version).toBe(5);
     expect(ruleSchema.contentHash(v3)).toBe(HASH_BEFORE_POLICY_EXISTED.bot);
   });
 

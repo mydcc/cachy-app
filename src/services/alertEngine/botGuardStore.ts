@@ -55,6 +55,10 @@ export const BOT_GUARD_REASON_KEYS: Record<string, TranslationKey> = {
     "limit-budget": "botsList.guard.limitBudget",
     "submission-in-flight": "botsList.guard.submissionInFlight",
     "position-already-open": "botsList.guard.positionAlreadyOpen",
+    // FEAT-0823 — the confirmation discards: a signal the market refused is
+    // an answer the same log exists to give.
+    "confirmation-against-direction": "botsList.guard.confirmationAgainstDirection",
+    "signal-stopped-out": "botsList.guard.signalStoppedOut",
 };
 
 export const BOT_GUARD_SCHEMA_VERSION = 1;

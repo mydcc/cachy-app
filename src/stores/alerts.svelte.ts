@@ -54,7 +54,14 @@ import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
 import { alertNotificationKey } from "../lib/notificationPolicy";
 import { channelSelection } from "../lib/alerts/effectiveChannels";
-import type { FiringSink, OwnedBotPosition, SeriesGap, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
+import type {
+    AwaitingEntrySignal,
+    FiringSink,
+    OwnedBotPosition,
+    SeriesGap,
+    SignalDiscardReason,
+    UnevaluableRule,
+} from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
 import { readBots, setBotEnabled } from "../services/alertEngine/botStore";
 import { submitBotExit, type BotExitEnvironment, type BotExitRefusal, type BotCloseParams } from "../services/alertEngine/botExits";
@@ -151,6 +158,18 @@ class AlertsManager {
      * read, not another banner.
      */
     unevaluableReport = $state<UnevaluableRule[]>([]);
+
+    /**
+     * FEAT-0823 — rule ids with an entry signal waiting for its
+     * confirmation candle, with the anchor that produced the signal.
+     *
+     * The reactive mirror of the loop's per-series awaiting report, written
+     * only by the `onAwaiting` port below. In-memory by design, like the
+     * unevaluable report beside it: the wait is derived from candles the
+     * loop re-reads, a reload re-derives it at the next close, and a
+     * persisted copy would only be a second truth to keep honest.
+     */
+    awaitingReport = $state<AwaitingEntrySignal[]>([]);
 
     /**
      * Candle gaps the loop found for series an armed rule watches.
@@ -872,6 +891,84 @@ function disarmRuleEngine(): void {
  */
 let botsSinkGeneration = 0;
 
+/**
+ * FEAT-0823 — the per-series awaiting slices, keyed `symbol|timeframe`. The
+ * loop reports the complete fresh slice for one series on every close that
+ * has a confirmation vocabulary; this map is how one series' report becomes
+ * the flattened `awaitingReport` without every other series' waits moving.
+ */
+const awaitingBySeries = new Map<string, AwaitingEntrySignal[]>();
+
+/**
+ * FEAT-0823 review — the rules version the mirror was last pruned against.
+ * Pruning is lazy on purpose: the report arrives per close, but a deleted or
+ * edited rule changes nothing until the rules version moves, and a parse per
+ * close would tax the hot path for a check that only matters on writes.
+ */
+let awaitingPrunedRulesVersion = -1;
+
+/**
+ * FEAT-0823 — the `onAwaiting` port: replace this series' slice, then
+ * republish. An empty slice deletes the key, so a series whose last wait
+ * consumed or purged stops answering — the report never carries a wait the
+ * loop no longer holds.
+ *
+ * The republish prunes stale rule ids against the rule store (guarded: an
+ * unreadable store prunes nothing this round): a series that stops closing
+ * entirely — the trader removed the bot because they stopped watching the
+ * market — would otherwise keep promising a wait forever, and a rule id
+ * reused later would inherit it. The loop purges its own memos on the next
+ * close of a live series; this is the half for series that never close
+ * again.
+ */
+export function reportAwaitingSlice(
+    symbol: string,
+    timeframe: string,
+    slice: AwaitingEntrySignal[],
+): void {
+    const key = `${symbol}|${timeframe}`;
+    if (slice.length === 0) awaitingBySeries.delete(key);
+    else awaitingBySeries.set(key, slice);
+    if (alertState.rulesVersion !== awaitingPrunedRulesVersion) {
+        awaitingPrunedRulesVersion = alertState.rulesVersion;
+        try {
+            const stillConfirming = new Set(
+                readBots()
+                    .filter((rule) => rule.entry_trigger === "confirmation")
+                    .map((rule) => rule.id),
+            );
+            for (const [seriesKey, entries] of awaitingBySeries) {
+                const kept = entries.filter((entry) => stillConfirming.has(entry.ruleId));
+                if (kept.length === entries.length) continue;
+                if (kept.length === 0) awaitingBySeries.delete(seriesKey);
+                else awaitingBySeries.set(seriesKey, kept);
+            }
+        } catch {
+            // An unreadable rule store prunes nothing: the projection
+            // degrades on its own, and a wrong prune would drop live waits.
+        }
+    }
+    alertState.awaitingReport = [...awaitingBySeries.values()].flat();
+}
+
+/**
+ * FEAT-0823 — the `onSignalDiscarded` port: a discarded signal lands in the
+ * guard ledger, the same channel every other "why did my bot not act?" is
+ * answered through (FEAT-0822), and the version bump is what makes the rows
+ * that render it re-read. No toast: a signal the market refused is a fact of
+ * the strategy's own words, and the row's guard line says it in place —
+ * toasting every counter-candle of a live signal would be the per-candle
+ * flood the guard log exists to prevent.
+ */
+function recordConfirmationDiscard(
+    ruleId: string,
+    anchorMs: number,
+    reason: SignalDiscardReason,
+): void {
+    recordBotGuard(ruleId, reason, anchorMs);
+    alertState.guardsVersion += 1;
+}
+
 export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<void> {
     if (!browser) return;
 
@@ -1013,6 +1110,11 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         clearBotSubmissions();
         // An exit is a consequence like an entry; shadow mode arms neither.
         clearBotClosing();
+        // FEAT-0823 — and a shadow run reports no waits: the loop may still
+        // hold memos for its own dedupe, but the report this init would
+        // leave behind would promise entries a shadow run never makes.
+        awaitingBySeries.clear();
+        alertState.awaitingReport = [];
     }
 
     disarmRuleLoop = startRuleEvaluationLoop(
@@ -1058,6 +1160,17 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
                           notifyBotClosing(ids);
                       },
                   ),
+              }
+            : undefined,
+        // FEAT-0823 — the confirmation ports, live mode only: the report is
+        // a store's derived mirror (no generation guard needed — the report
+        // rides the close pass synchronously, and a disarmed loop evaluates
+        // nothing), and the discards land in the same guard ledger every
+        // other refusal records through.
+        mode === "live"
+            ? {
+                  onAwaiting: reportAwaitingSlice,
+                  onSignalDiscarded: recordConfirmationDiscard,
               }
             : undefined,
     );

@@ -253,6 +253,21 @@ describe("FEAT-0807 — the botsState projection", () => {
         expect(botsState.states.get("bot-1")?.hasPosition).toBe(false);
     });
 
+    it("reads awaiting_confirmation from the loop's report, without a ledger bump", () => {
+        seedBots(botDocument("bot-1", { entry_trigger: "confirmation" }));
+        expect(botsState.states.get("bot-1")?.state).toBe("armed");
+
+        // The loop's port rewrote the report; the projection follows the
+        // $state read — no version bump pretending a fire ledger moved.
+        alertState.awaitingReport = [{ ruleId: "bot-1", signalAnchorMs: 60_000 }];
+        expect(botsState.states.get("bot-1")?.state).toBe("awaiting_confirmation");
+
+        // And the consumed signal clears the wait the same way: the next
+        // report says no slice, the chip says the truth after it.
+        alertState.awaitingReport = [];
+        expect(botsState.states.get("bot-1")?.state).toBe("armed");
+    });
+
     it("reads limit_reached from the durable day counter", () => {
         seedBots(
             botDocument("bot-1", { max_entries_per_day: 1, firing_policy: "multi" }),

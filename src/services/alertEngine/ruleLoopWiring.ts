@@ -41,6 +41,7 @@ import { toastService } from "../toastService.svelte";
 import {
   logUnevaluable,
   ruleEvaluationLoop,
+  type ConfirmationLoopPorts,
   type ExitLoopPorts,
   type FiringSink,
   type SeriesCloseHook,
@@ -437,6 +438,10 @@ export function startRuleEvaluationLoop(
   // edge budget per pair; the store layer owns those reads, exactly as it
   // owns `botOrderEnvironment`.
   exits?: ExitLoopPorts,
+  // FEAT-0823 — the confirmation ports, same discipline: assembled by the
+  // store layer (the awaiting report it maintains, the guard ledger it
+  // records into) and passed through untouched.
+  confirmation?: ConfirmationLoopPorts,
 ): () => void {
   // A no-op disposer rather than `undefined`: SSR must not hand the caller a
   // value it has to null-check, and there is nothing armed to stop.
@@ -467,6 +472,15 @@ export function startRuleEvaluationLoop(
             accountForPosition: exits.accountForPosition,
             recordExitAction: exits.recordExitAction,
             onExitFiring: exits.onExitFiring,
+        }
+      : {}),
+    // FEAT-0823 — the confirmation ports, live mode only: absent means
+    // waits are held and consumed but never reported and discards are
+    // silent, which is the measurement shape shadow mode exists for.
+    ...(confirmation
+      ? {
+            onAwaiting: confirmation.onAwaiting,
+            onSignalDiscarded: confirmation.onSignalDiscarded,
         }
       : {}),
   });

@@ -178,6 +178,11 @@ class BotsStateManager {
             submitting: this.submittingIds,
             closing: this.closingIds,
             unevaluable: new Set(alertState.unevaluableReport.map((rule) => rule.ruleId)),
+            // FEAT-0823 — the loop's awaiting report, the same in-memory
+            // mirror discipline the unevaluable set above uses: re-derived
+            // on every close, honest about a reload's gap, and never a
+            // second persisted truth.
+            awaiting: new Set(alertState.awaitingReport.map((entry) => entry.ruleId)),
             firedCounts,
             entriesToday,
             budgetUsed,
@@ -191,8 +196,13 @@ class BotsStateManager {
     states = $derived.by(() => {
         // The rule set and the fire ledger are localStorage reads; the two
         // counters are the whole signal that this projection re-reads them.
+        // FEAT-0823 adds the awaiting report: it is a $state array the loop's
+        // port rewrites on every confirmation-relevant close, so reading it
+        // here is the reactive edge — a held signal turns the chip without
+        // any version bump pretending a ledger moved.
         void alertState.rulesVersion;
         void alertState.firingsVersion;
+        void alertState.awaitingReport;
 
         const book = this.buildBook();
         const { bots, unreadable } = readBotsOrRefusal();

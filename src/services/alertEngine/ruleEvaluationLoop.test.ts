@@ -49,6 +49,14 @@ vi.mock("../../lib/rules/ruleEvaluationGate", () => ({
 // window does with it, not about what the core concludes — the core's half
 // is pinned by `exitEvaluation.integration.test.ts` against the real wasm.
 const evaluateExitsMock = vi.fn<() => unknown[]>();
+/** FEAT-0823 — the confirmation path evaluates through `ruleSchema.evaluate`
+ * directly (the memo is its dedupe, not the gate), so the mock serves it. */
+const evaluateMock = vi.fn<() => unknown>();
+/** FEAT-0823 — `rawSignalAt` carries the gate's warmup discipline itself, so
+ * the mock serves that call too. Zero by default: the fixtures are one- and
+ * two-candle series, and the tests assert the memo/entry mechanics, not the
+ * warmup boundary (the e2e pins that against the real core). */
+const warmupCandlesMock = vi.fn<() => number>();
 vi.mock("../../lib/rules/ruleSchema", () => {
   // The shape the loop and the existing tests rely on: constructed from a
   // refusals list, message assembled from it, recognized by the same
@@ -71,6 +79,8 @@ vi.mock("../../lib/rules/ruleSchema", () => {
     isRuleRefusedError: (e: unknown) => e instanceof RuleRefusedError,
     ruleSchema: {
       evaluateExits: (...args: unknown[]) => evaluateExitsMock(...(args as [])),
+      evaluate: (...args: unknown[]) => evaluateMock(...(args as [])),
+      warmupCandles: (...args: unknown[]) => warmupCandlesMock(...(args as [])),
     },
   };
 });
@@ -1747,5 +1757,346 @@ describe("RuleEvaluationLoop", () => {
       // this anchor stays quiet rather than closing twice.
       expect(recordExitAction).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe("the confirmation entry mode (FEAT-0823)", () => {
+  /**
+   * The OHLC the direction check reads. The marks drive the loop's closes;
+   * these give each closed candle its shape — a green close, a red one, a
+   * doji — because the confirmation decision reads open and close, not the
+   * mocked verdict.
+   */
+  function candle(at: number, open: string, close: string): EvaluationCandle {
+    return {
+      open_time_ms: at,
+      open,
+      high: "101",
+      low: "99",
+      close,
+      volume: "0",
+    };
+  }
+
+  function confirmationRule(overrides: Partial<RuleDocument> = {}): RuleDocument {
+    return rule({
+      id: "bot-1",
+      entry_trigger: "confirmation",
+      action: {
+        consequence_level: "simulate",
+        order: {
+          side: "buy",
+          size_basis: "percent_of_equity",
+          size: "1",
+          stop: { basis: "percent_of_entry", distance: "2" },
+        },
+      },
+      ...overrides,
+    });
+  }
+
+  interface ConfirmationPorts {
+    candles?: EvaluationCandle[];
+    owned?: (ruleId: string) => OwnedBotPosition[];
+    rules?: () => RuleDocument[];
+  }
+
+  function loopWithConfirmation(
+    rules: RuleDocument[],
+    ports: ConfirmationPorts = {},
+  ) {
+    const awaiting: Array<{ symbol: string; timeframe: string; slice: unknown[] }> = [];
+    const discards: Array<{ ruleId: string; anchorMs: number; reason: string }> = [];
+    const loop = new RuleEvaluationLoop({
+      readCandles: () => ports.candles ?? [],
+      readRules: ports.rules ?? (() => rules),
+      onFiring: vi.fn(),
+      onAwaiting: (symbol, timeframe, slice) => {
+        awaiting.push({ symbol, timeframe, slice });
+      },
+      onSignalDiscarded: (ruleId, anchorMs, reason) => {
+        discards.push({ ruleId, anchorMs, reason });
+      },
+      ownedPositions: ports.owned ?? (() => []),
+    });
+    return { loop, awaiting, discards };
+  }
+
+  /** One mark: announcing a forming candle closes the previous one. */
+  function mark(loop: RuleEvaluationLoop, time: number): void {
+    loop.observeCandles("BTCUSDT", "1m", [{ time }]);
+  }
+
+  beforeEach(() => {
+    evaluateMock.mockReset();
+    evaluateMock.mockReturnValue({ verdict: "fires" });
+    warmupCandlesMock.mockReset();
+    warmupCandlesMock.mockReturnValue(0);
+  });
+
+  it("holds the wait at a signal and reports it, without entering", () => {
+    const { loop, awaiting, discards } = loopWithConfirmation([confirmationRule()], {
+      candles: [candle(1_000, "100", "100")],
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+
+    // The signal close: no predecessor to confirm against, so the pass
+    // holds a memo and reports the wait. No entry — the confirmation
+    // candle has not closed yet.
+    expect(awaiting).toEqual([
+      { symbol: "BTCUSDT", timeframe: "1m", slice: [{ ruleId: "bot-1", signalAnchorMs: 1_000 }] },
+    ]);
+    expect(discards).toEqual([]);
+    expect(evaluateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("a green confirmation close enters once, at the confirmation anchor", () => {
+    const onFiring = vi.fn();
+    const awaiting: Array<{ symbol: string; timeframe: string; slice: unknown[] }> = [];
+    const candles = [candle(1_000, "100", "100"), candle(61_000, "100", "101")];
+    const loop = new RuleEvaluationLoop({
+      readCandles: () => candles,
+      readRules: () => [confirmationRule()],
+      onFiring,
+      onAwaiting: (symbol, timeframe, slice) => {
+        awaiting.push({ symbol, timeframe, slice });
+      },
+      onSignalDiscarded: vi.fn(),
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    mark(loop, 121_000);
+
+    expect(onFiring).toHaveBeenCalledTimes(1);
+    expect(onFiring.mock.calls[0][0]).toMatchObject({
+      rule: { id: "bot-1" },
+      anchorMs: 61_000,
+    });
+    // The entry consumed the signal; the next signal (conditions still
+    // holding at the confirmation close) waits for its own candle.
+    expect(awaiting.at(-1)?.slice).toEqual([
+      { ruleId: "bot-1", signalAnchorMs: 61_000 },
+    ]);
+  });
+
+  it("a red confirmation candle discards the signal and is recorded", () => {
+    const { loop, awaiting, discards } = loopWithConfirmation([confirmationRule()], {
+      candles: [candle(1_000, "100", "100"), candle(61_000, "101", "100")],
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    mark(loop, 121_000);
+
+    expect(discards).toEqual([
+      { ruleId: "bot-1", anchorMs: 61_000, reason: "confirmation-against-direction" },
+    ]);
+    // The discard is not a disarm: conditions still holding at the red
+    // close hold a new wait for the next candle.
+    expect(awaiting.at(-1)?.slice).toEqual([
+      { ruleId: "bot-1", signalAnchorMs: 61_000 },
+    ]);
+  });
+
+  it("a doji counts as against, for either side", () => {
+    const { loop, discards } = loopWithConfirmation([confirmationRule()], {
+      candles: [candle(1_000, "100", "100"), candle(61_000, "100", "100")],
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    mark(loop, 121_000);
+
+    expect(discards).toEqual([
+      { ruleId: "bot-1", anchorMs: 61_000, reason: "confirmation-against-direction" },
+    ]);
+  });
+
+  it("a stop-out during the wait cancels the signal instead of entering", () => {
+    // The owned row this describe owns — `ownedRow` lives in the exit
+    // window's describe and is not in scope here.
+    const ownedRow: OwnedBotPosition = {
+      symbol: "BTCUSDT",
+      positionId: "paper-pos-1",
+      side: "long",
+      entryPrice: "100",
+      amount: "2",
+      lastExitActionAnchorMs: null,
+    };
+    let owned = true;
+    const { loop, discards } = loopWithConfirmation([confirmationRule()], {
+      candles: [candle(1_000, "100", "100"), candle(61_000, "100", "101")],
+      owned: () => (owned ? [ownedRow] : []),
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    // The position the signal was sizing is gone before confirmation —
+    // a stop-out, a manual close. A green candle cannot make the trade
+    // the signal described true again.
+    owned = false;
+    mark(loop, 121_000);
+
+    expect(discards).toEqual([
+      { ruleId: "bot-1", anchorMs: 61_000, reason: "signal-stopped-out" },
+    ]);
+  });
+
+  it("a loop that never held the signal re-derives it from its candle", () => {
+    // The reload shape: the wiring re-announces the already-closed signal
+    // candle (first mark, no close) and then the confirmation candle. The
+    // loop holds no memo, but the entry decision is derivable from the
+    // candles alone — the same derivation, the same answer, no storage.
+    const onFiring = vi.fn();
+    const candles = [candle(1_000, "100", "100"), candle(61_000, "100", "101")];
+    const loop = new RuleEvaluationLoop({
+      readCandles: () => candles,
+      readRules: () => [confirmationRule()],
+      onFiring,
+      onAwaiting: vi.fn(),
+      onSignalDiscarded: vi.fn(),
+    });
+
+    mark(loop, 61_000);
+    mark(loop, 121_000);
+
+    expect(onFiring).toHaveBeenCalledTimes(1);
+    expect(onFiring.mock.calls[0][0]).toMatchObject({
+      rule: { id: "bot-1" },
+      anchorMs: 61_000,
+    });
+  });
+
+  it("a catch-up with no signal on the previous candle stays silent", () => {
+    evaluateMock.mockReturnValue({ verdict: "does_not_fire" });
+    const onFiring = vi.fn();
+    const onSignalDiscarded = vi.fn();
+    const candles = [candle(1_000, "100", "100"), candle(61_000, "100", "101")];
+    const loop = new RuleEvaluationLoop({
+      readCandles: () => candles,
+      readRules: () => [confirmationRule()],
+      onFiring,
+      onAwaiting: vi.fn(),
+      onSignalDiscarded,
+    });
+
+    mark(loop, 61_000);
+    mark(loop, 121_000);
+
+    // No signal existed, so no discard is recorded and nothing enters —
+    // "no signal" is the quiet majority, not an answer to file.
+    expect(onFiring).not.toHaveBeenCalled();
+    expect(onSignalDiscarded).not.toHaveBeenCalled();
+  });
+
+  it("a disabled rule's wait is purged and the awaiting slice clears", () => {
+    let enabled = true;
+    const { loop, awaiting } = loopWithConfirmation([confirmationRule()], {
+      candles: [candle(1_000, "100", "100"), candle(61_000, "100", "101")],
+      rules: () => [confirmationRule({ enabled })],
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    expect(awaiting.at(-1)?.slice).toEqual([
+      { ruleId: "bot-1", signalAnchorMs: 1_000 },
+    ]);
+
+    // The trader pauses the bot: the wait is over — nothing can consume
+    // it, and the next close must clear the report rather than keep
+    // promising an entry a paused bot will never make.
+    enabled = false;
+    mark(loop, 121_000);
+
+    expect(awaiting.at(-1)?.slice).toEqual([]);
+  });
+
+  it("a genuine replay — forget the series, refill it — does not re-enter a decided close", () => {
+    const onFiring = vi.fn();
+    const onSignalDiscarded = vi.fn();
+    const candles = [
+      candle(1_000, "100", "100"),
+      candle(61_000, "100", "101"),
+      candle(121_000, "101", "100"),
+    ];
+    const loop = new RuleEvaluationLoop({
+      readCandles: () => candles,
+      readRules: () => [confirmationRule()],
+      onFiring,
+      onAwaiting: vi.fn(),
+      onSignalDiscarded,
+    });
+
+    // Pass 1: the signal at 1_000 holds, the green close at 61_000 enters,
+    // and the red candle at 121_000 discards the follow-up signal — one
+    // entry, one discard, a fresh wait held.
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    mark(loop, 121_000);
+    expect(onFiring).toHaveBeenCalledTimes(1);
+    expect(onFiring.mock.calls[0][0]).toMatchObject({
+      rule: { id: "bot-1" },
+      anchorMs: 61_000,
+    });
+
+    // The market cache evicts the series and the store refills it — the
+    // normal LRU path. Every replayed close was already decided; the
+    // entry at 61_000 must not happen a second time.
+    loop.forgetSeries("BTCUSDT", "1m");
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    mark(loop, 121_000);
+    mark(loop, 181_000);
+
+    expect(onFiring).toHaveBeenCalledTimes(1);
+  });
+
+  it("a rule edited away from confirmation drops its wait with the mode", () => {
+    let trigger: "confirmation" | "immediate" = "confirmation";
+    const { loop, awaiting } = loopWithConfirmation([confirmationRule()], {
+      candles: [candle(1_000, "100", "100"), candle(61_000, "100", "101")],
+      rules: () => [confirmationRule({ entry_trigger: trigger })],
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    // The signal holds a wait while the mode is confirmation.
+    expect(awaiting.at(-1)?.slice).toEqual([{ ruleId: "bot-1", signalAnchorMs: 1_000 }]);
+
+    // The trader edits the bot to enter immediately: the wait belonged to
+    // the mode, not the id, and the next close must stop promising an entry
+    // the mode no longer waits for.
+    trigger = "immediate";
+    mark(loop, 121_000);
+    expect(awaiting.at(-1)?.slice).toEqual([]);
+  });
+
+  it("a wait whose signal candle can no longer be read dies without a record", () => {
+    let candles = [candle(1_000, "100", "100"), candle(61_000, "100", "101")];
+    const discards: Array<{ ruleId: string; anchorMs: number; reason: string }> = [];
+    const loop = new RuleEvaluationLoop({
+      readCandles: () => candles,
+      readRules: () => [confirmationRule()],
+      onFiring: vi.fn(),
+      onAwaiting: vi.fn(),
+      onSignalDiscarded: (ruleId, anchorMs, reason) => {
+        discards.push({ ruleId, anchorMs, reason });
+      },
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000); // the signal at 1_000 holds a wait
+    expect(discards).toEqual([]);
+
+    // The series is trimmed below the signal candle (an eviction refill
+    // that starts later): the wait's own candle is gone, so the
+    // confirmation close can say nothing about it — no entry, and no
+    // "the market refused" story about a candle nobody can see.
+    candles = [candle(61_000, "100", "101")];
+    mark(loop, 121_000);
+    expect(discards).toEqual([]);
   });
 });

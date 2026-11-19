@@ -51,7 +51,7 @@ use super::condition::{
     PriceSource, WindowAgg,
 };
 use super::consequence::StopDistance;
-use super::document::{ExitClose, FiringPolicy, RuleDocument};
+use super::document::{ExitClose, RuleDocument};
 /// Only the test documents below name the mode; evaluation itself reads the
 /// anchor it is handed and never asks how that anchor was chosen.
 #[cfg(test)]
@@ -990,7 +990,9 @@ mod tests {
 
     use crate::rule::condition::CompareOp;
     use crate::rule::consequence::{ConsequenceLevel, RuleAction};
-    use crate::rule::document::{AuthoringSource, Provenance};
+    use crate::rule::document::{
+        AuthoringSource, EntryTrigger, FiringPolicy, Provenance,
+    };
     use crate::rule::indicator::ParamValue;
     use crate::rule::version::SchemaVersion;
     use std::str::FromStr;
@@ -1083,6 +1085,7 @@ mod tests {
             max_entries_per_day: None,
             max_risk_per_position: None,
             budget_cap: None,
+            entry_trigger: EntryTrigger::Immediate,
         }
     }
 
@@ -1189,6 +1192,7 @@ mod tests {
             max_entries_per_day: None,
             max_risk_per_position: None,
             budget_cap: None,
+            entry_trigger: EntryTrigger::Immediate,
         }
     }
 
@@ -2088,6 +2092,7 @@ mod tests {
             max_entries_per_day: None,
             max_risk_per_position: None,
             budget_cap: None,
+            entry_trigger: EntryTrigger::Immediate,
         }
     }
 
