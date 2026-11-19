@@ -44,7 +44,6 @@
         ExitClose,
         ExitRule,
         PriceField,
-        RuleDocument,
         StopDistance,
         TimeframeString,
     } from "../../../lib/rules/types";

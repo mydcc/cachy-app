@@ -30,7 +30,6 @@
 <script lang="ts">
     import { untrack } from "svelte";
     import { _ } from "../../../locales/i18n";
-    import type { TranslationKey } from "../../../locales/schema";
     import type { EntryTriggerMode, FiringPolicy } from "../../../lib/rules/types";
     import type { BotFiringState } from "./botEditorTypes";
 
