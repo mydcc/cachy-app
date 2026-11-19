@@ -1051,8 +1051,12 @@ export const ruleEvaluationLoop = new RuleEvaluationLoop();
  * market hot path. The two must agree — a timeframe missed here reads as no
  * candles at all, which withholds the verdict rather than faking one, so the
  * failure is safe but silent.
+ *
+ * Exported for the same reason `collectMarkTimeframes` below is: the parity
+ * test is the enforcer that keeps this mirror and the core walking the same
+ * trees, and FEAT-0809 added a third tree (`exits[*].when`) to both sides.
  */
-function collectTimeframes(rule: RuleDocument): Set<string> {
+export function collectTimeframes(rule: RuleDocument): Set<string> {
   const found = new Set<string>();
 
   const walk = (condition: unknown): void => {
@@ -1065,6 +1069,10 @@ function collectTimeframes(rule: RuleDocument): Set<string> {
 
   walk(rule.conditions);
   walk(rule.veto);
+  // FEAT-0809: exits read the same series the trigger does, and this mirror
+  // must agree with the core — which walks them — or a verdict silently
+  // loses a series it needed.
+  for (const exit of rule.exits ?? []) walk(exit.when);
   return found;
 }
 
@@ -1132,5 +1140,10 @@ export function collectMarkTimeframes(rule: RuleDocument): Set<string> {
 
   walk(rule.conditions);
   walk(rule.veto);
+  // Same as `collectTimeframes` above: the core walks exits too
+  // (FEAT-0809), and a mark read that lives only in an exit is a mark
+  // series the rule needs — missing it here would withhold the verdict in
+  // 0810's executor for a rule that looks armed.
+  for (const exit of rule.exits ?? []) walk(exit.when);
   return found;
 }

@@ -4969,7 +4969,7 @@
       "fieldNotHonouredAtLevel": "`{field}` kann auf der gewählten Konsequenz-Stufe nicht eingelöst werden.",
       "externalFeedTrigger": "Ein Drittanbieter-Feed darf einen Auslöser unterdrücken, aber nie selbst einer sein — ein Backtest darüber wäre nicht ehrlich. Verschiebe ihn in den Veto-Block.",
       "externalFeedExit": "Ein Drittanbieter-Feed darf einen Auslöser unterdrücken, aber ein Exit ist eine Handlung — ein Backtest kann eine darauf getroffene Schlussentscheidung nicht ehrlich wiederholen. Verschiebe ihn in den Veto-Block oder baue den Exit auf Markt- oder Kontostand.",
-      "exitsAtNotifyLevel": "Eine Notify-Regel trägt Exits, die nichts jemals auswertet: Sie besitzt keine Position, die sie schließen könnte. Lege die Regel auf `simulate` oder höher an.",
+      "exitsAtNotifyLevel": "Eine Notify-Regel kann keine Position schließen, die sie nie besitzen wird: Lege die Regel auf `simulate` oder höher an.",
       "emptyExitsArray": "Ein leeres Exits-Array wird abgelehnt — Abwesenheit bedeutet bereits: keine Exits über den Stop hinaus.",
       "exitFractionInvalid": "Der Schlussanteil in `{field}` ist unbrauchbar: Ein Teil-Close braucht einen Wert in (0, 1], ein Full-Close braucht keinen.",
       "executableTextRejected": "Eine Strategie ist prüfbare Daten, kein ausführbarer Text. Freitext-Ausdrücke werden abgelehnt.",

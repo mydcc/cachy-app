@@ -353,13 +353,23 @@ impl RuleDocument {
         // position they promise to close. `may_read_account` is the same
         // gate the account conditions answer to — a `notify` rule holds no
         // book, so nothing would ever evaluate an exit against a position.
+        // One refusal per offending field: a document that carries both is
+        // told about both, not just whichever the branch happened to pick.
         let has_exits = self.exits.as_ref().is_some_and(|e| !e.is_empty());
-        if !may_read_account && (has_exits || self.take_profit.is_some()) {
+        if !may_read_account && has_exits {
             out.push(RuleRefusal::new(
                 RefusalCode::ExitsAtNotifyLevel,
-                if has_exits { "exits" } else { "take_profit" },
-                "a `notify` rule carries exits nothing will ever evaluate: it owns no \
+                "exits",
+                "a `notify` rule carries an exit nothing will ever evaluate: it owns no \
                  position to close. Author the rule at `simulate` or above",
+            ));
+        }
+        if !may_read_account && self.take_profit.is_some() {
+            out.push(RuleRefusal::new(
+                RefusalCode::ExitsAtNotifyLevel,
+                "take_profit",
+                "a `notify` rule carries a take-profit nothing would ever place: it owns \
+                 no position to close. Author the rule at `simulate` or above",
             ));
         }
         if self.exits.as_ref().is_some_and(|e| e.is_empty()) {
@@ -377,13 +387,13 @@ impl RuleDocument {
                     (ExitClose::All, Some(_)) => out.push(RuleRefusal::new(
                         RefusalCode::ExitFractionInvalid,
                         format!("{field}.fraction"),
-                        "`close: \"all\"\" closes the whole owned position; a fraction \
+                        "`close: \"all\"` closes the whole owned position; a fraction \
                          here is a field nothing reads",
                     )),
                     (ExitClose::Partial, None) => out.push(RuleRefusal::new(
                         RefusalCode::ExitFractionInvalid,
                         format!("{field}.fraction"),
-                        "`close: \"partial\"\" needs a fraction: how much of the owned \
+                        "`close: \"partial\"` needs a fraction: how much of the owned \
                          position this exit closes",
                     )),
                     _ => {}
@@ -410,6 +420,23 @@ impl RuleDocument {
             }
         }
         if let Some(take_profit) = &self.take_profit {
+            // The sibling of `validate_stop`'s `StopNotHonoured` branch: a
+            // `reduce_only` intent closes exposure rather than opening it, so
+            // nothing would ever place this target either. Same code as the
+            // other unread-field refusals at this level, naming the field.
+            if self
+                .action
+                .order
+                .as_ref()
+                .is_some_and(|order| order.reduce_only)
+            {
+                out.push(RuleRefusal::new(
+                    RefusalCode::FieldNotHonouredAtLevel,
+                    "take_profit",
+                    "a `reduce_only` intent closes exposure rather than opening it, so \
+                     nothing would ever place this take-profit",
+                ));
+            }
             let distance = take_profit.magnitude();
             if distance <= rust_decimal::Decimal::ZERO {
                 out.push(RuleRefusal::new(
@@ -2589,6 +2616,51 @@ mod tests {
             .find(|r| r.code == RefusalCode::ExitsAtNotifyLevel)
             .expect("a notify document with a target names the target field");
         assert_eq!(refusal.field, "take_profit");
+    }
+
+    /// A document carrying both offending fields is told about both — one
+    /// refusal per field, not whichever a single branch happened to pick.
+    #[test]
+    fn a_notify_document_with_both_fields_is_told_about_both() {
+        let mut doc = rsi_dip();
+        doc.exits = Some(vec![exit_all(compare(
+            close(),
+            Operand::Constant { value: d("60000") },
+        ))]);
+        doc.take_profit = Some(profit_target("3"));
+
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let named: Vec<&str> = refusals
+            .iter()
+            .filter(|r| r.code == RefusalCode::ExitsAtNotifyLevel)
+            .map(|r| r.field.as_str())
+            .collect();
+        assert_eq!(named, vec!["exits", "take_profit"]);
+    }
+
+    /// The sibling of the stop's `StopNotHonoured` branch: a target on an
+    /// intent that closes rather than opens is a field nothing would ever
+    /// read, and the crate refuses those where it finds them.
+    #[test]
+    fn a_take_profit_on_a_reduce_only_intent_is_refused() {
+        let mut doc = bot_with_exits(OrderSide::Buy, None, Some(profit_target("3")));
+        if let Some(order) = doc.action.order.as_mut() {
+            order.reduce_only = true;
+        }
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let refusal = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::FieldNotHonouredAtLevel)
+            .expect("a reduce-only intent names the target nothing would place");
+        assert_eq!(refusal.field, "take_profit");
+
+        // The same intent without a target stays clean — the refusal is
+        // about the unread field, not about closing exposure.
+        let mut clean = bot_with_exits(OrderSide::Buy, None, None);
+        if let Some(order) = clean.action.order.as_mut() {
+            order.reduce_only = true;
+        }
+        assert!(clean.validate().is_ok());
     }
 
     #[test]
