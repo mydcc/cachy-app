@@ -248,7 +248,7 @@ export interface BotOrderEnvironment {
    * FEAT-0822 — the resting orders, so each owned row's stop can be read
    * where the risk arithmetic lives once (`botGuards.openRiskOfRow`).
    */
-  restingOrders: () => RestingOrderLite[];
+  restingOrders: () => readonly RestingOrderLite[];
   /**
    * FEAT-0822 — every suppressed or refused action, for the guard log. The
    * store counts repeats per reason; this is the collector, not the filter.
@@ -608,7 +608,10 @@ export function withBotOrders(
     // close's book read is the durable guard.
     const slot = slotKey(
       firing.rule.symbol,
-      firing.rule.action.order.side === "buy" ? "long" : "short",
+      // A missing intent (the core refuses that combination) reads as a
+      // long slot here only so the reservation still runs: the submission
+      // below refuses with its own reason before anything is placed.
+      firing.rule.action.order?.side === "sell" ? "short" : "long",
     );
     const holder = reserved.get(slot);
     if (holder !== undefined && holder !== firing.rule.id) {

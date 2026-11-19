@@ -34,10 +34,29 @@
  */
 
 import { browser } from "$app/env";
+import type { TranslationKey } from "../../locales/schema";
 import { logger } from "../logger";
 import { safeLocalStorage } from "../../utils/storageWrapper";
 
 export const BOT_GUARD_STORAGE_KEY = "cachy_bot_guards_v1";
+
+/**
+ * The guard reasons, in a row's register: the toast keys say who fired and
+ * what it refused to place, but a row already names the bot, so these say
+ * only the bound itself. One map, shared by every surface that renders a
+ * guard reason, so the sidebar row and the control center can never
+ * disagree about a word.
+ */
+export const BOT_GUARD_REASON_KEYS: Record<string, TranslationKey> = {
+    "slot-reserved": "botsList.guard.slotReserved",
+    "policy-once": "botsList.guard.policyOnce",
+    "limit-entries-day": "botsList.guard.limitEntriesDay",
+    "limit-positions": "botsList.guard.limitPositions",
+    "limit-risk": "botsList.guard.limitRisk",
+    "limit-budget": "botsList.guard.limitBudget",
+    "submission-in-flight": "botsList.guard.submissionInFlight",
+    "position-already-open": "botsList.guard.positionAlreadyOpen",
+};
 
 export const BOT_GUARD_SCHEMA_VERSION = 1;
 
@@ -93,7 +112,7 @@ function readLedger(): GuardLedger {
     if (raw === null) return emptyLedger();
     const parsed: unknown = JSON.parse(raw);
     if (!isPlainObject(parsed)) return emptyLedger();
-    return parsed as GuardLedger;
+    return parsed as unknown as GuardLedger;
   } catch {
     // A view must degrade, not throw — the log is a diagnostic surface.
     return emptyLedger();

@@ -53,6 +53,9 @@ vi.mock("../../../services/alertEngine/botStore", () => ({
   deleteBot: vi.fn(),
   isBot: (rule: RuleDocument) => rule.action?.consequence_level === "simulate",
   setBotEnabled: vi.fn(),
+  // The real stopAllBots iterates the store; this harness already owns what
+  // the store would read (storedRules), so the mock serves the same rows.
+  readBots: () => storedRules.filter((rule) => rule.action?.consequence_level === "simulate"),
 }));
 
 vi.mock("../../../lib/rules/ruleSchema", () => ({
@@ -81,6 +84,8 @@ vi.mock("../../../locales/i18n", async () => {
 });
 
 import BotsTab from "./BotsTab.svelte";
+import { setBotEnabled } from "../../../services/alertEngine/botStore";
+import { recordBotGuard } from "../../../services/alertEngine/botGuardStore";
 import { alertState } from "../../../stores/alerts.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
 
@@ -375,5 +380,66 @@ describe("FEAT-0804 — the tab leads with sentences, not paragraphs", () => {
     } finally {
       settingsState.showTooltips = previous;
     }
+  });
+});
+
+describe("FEAT-0822 — stop-all and the guard history", () => {
+  function storedBot(id: string): RuleDocument {
+    return { ...bot({ basis: "percent_of_entry", distance: "2" }), id, enabled: true };
+  }
+
+  it("stop all disables every enabled bot and bumps the version", () => {
+    storedRules = [storedBot("bot-1"), storedBot("bot-2")];
+    const versionBefore = alertState.rulesVersion;
+    render();
+
+    button(translation(en as Record<string, unknown>, "settings.automation.stopAll")).click();
+    flushSync();
+
+    // The real stopAllBots runs against the mocked store readers: one write
+    // per enabled bot, and the rules version is what re-renders the rows.
+    expect(vi.mocked(setBotEnabled)).toHaveBeenCalledWith("bot-1", false);
+    expect(vi.mocked(setBotEnabled)).toHaveBeenCalledWith("bot-2", false);
+    expect(alertState.rulesVersion).toBeGreaterThan(versionBefore);
+  });
+
+  it("offers stop-all only when bots exist", () => {
+    storedRules = [alert];
+    render();
+
+    const stopAll = [...host.querySelectorAll("button")].find(
+      (element) =>
+        element.textContent?.trim() ===
+        translation(en as Record<string, unknown>, "settings.automation.stopAll"),
+    );
+    expect(stopAll).toBeUndefined();
+  });
+
+  it("renders the guard history newest first, one row per reason, counting repeats", () => {
+    storedRules = [storedBot("bot-1")];
+    render();
+    expect(host.querySelector('[data-testid="bot-guard-history-bot-1"]')).toBeNull();
+
+    recordBotGuard("bot-1", "slot-reserved", 0);
+    recordBotGuard("bot-1", "limit-entries-day", 60_000);
+    recordBotGuard("bot-1", "limit-entries-day", 120_000);
+    alertState.guardsVersion += 1;
+    flushSync();
+
+    const details = host.querySelector<HTMLElement>('[data-testid="bot-guard-history-bot-1"]');
+    expect(details).not.toBeNull();
+    expect(details!.textContent).toContain("Guard history (2");
+
+    const rows = [...details!.querySelectorAll("li")];
+    expect(rows).toHaveLength(2);
+    // Newest reason first, repeats counted on the row that owns them.
+    expect(rows[0].textContent).toContain(
+      translation(en as Record<string, unknown>, "botsList.guard.limitEntriesDay"),
+    );
+    expect(rows[0].textContent).toContain("×2");
+    expect(rows[1].textContent).toContain(
+      translation(en as Record<string, unknown>, "botsList.guard.slotReserved"),
+    );
+    expect(rows[1].textContent).toContain("×1");
   });
 });

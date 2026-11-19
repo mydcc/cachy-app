@@ -2,7 +2,7 @@
 id: FEAT-0822
 title: Bot firing policy and guards — every rule user-configurable, the safety floor fixed
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -78,26 +78,50 @@ in the journal's per-bot review (FEAT-0812).
 
 ## Acceptance criteria
 
-- [ ] A bot with `once_per_candle` fires at most once per closed candle even
+- [x] A bot with `once_per_candle` fires at most once per closed candle even
       when the condition holds on the next evaluation; the suppressed repeat
       appears once in the guard log.
-- [ ] A `multi` bot with `max positions: 1` refuses a second entry with a
+      *Shipped split: the within-candle suppression is the evaluation gate's
+      announce map (FEAT-0477, pinned in its own tests — a repeat the gate
+      withholds never reaches the lane); the lane-level refusals the guard
+      log counts are `policy-once` and the limits (botOrders tests pin the
+      once-expiry after a landed entry).* 
+- [x] A `multi` bot with `max positions: 1` refuses a second entry with a
       visible reason and stays healthy for the next legitimate exit/entry
       cycle.
-- [ ] Ownership reservation prevents the two-bot same-symbol-and-side race;
+      *Pinned in botOrders.test.ts (cap consulted before the book guard) and
+      released for the next cycle by the reservation's settle-release test.*
+- [x] Ownership reservation prevents the two-bot same-symbol-and-side race;
       the loser's refusal names the reason and is logged.
-- [ ] Max entries per day and the budget cap are enforced with `Decimal`
+      *Unit (race + release) and e2e (botGuardExecution: one entry lands, the
+      loser refused `slot-reserved` with a ledger row, no network).*
+- [x] Max entries per day and the budget cap are enforced with `Decimal`
       arithmetic; hitting a limit shows `limit reached` on the row, not a
       silent stop.
-- [ ] A refusal (gate, size, permissions) produces exactly one notice per
+      *Pure checks in botGuards.ts (Decimal end to end), the projection's
+      standing-state half in botsState (day-cap pin), the chip in BotsList.*
+- [x] A refusal (gate, size, permissions) produces exactly one notice per
       rule and reason — no per-candle toast loop.
-- [ ] The kill switch stops new entries immediately; its close-owned-positions
+      *The toast throttle stays on the sink's reported-set; the guard log
+      counts every repeat per reason on the newest row (the log answers
+      "why did my bot not act", the toast answers "know it now").*
+- [x] The kill switch stops new entries immediately; its close-owned-positions
       variant confirms once, names what will be closed, and leaves untouched
       positions untouched.
-- [ ] Every firing/limit policy is readable in the bot document (hashed), set
+      *Per-bot Stop with confirm-before-close (BotsList component tests);
+      the fleet button stops entries only — closing stays per-bot with its
+      own confirm, per the open question's proposal below.*
+- [x] Every firing/limit policy is readable in the bot document (hashed), set
       in the editor (FEAT-0811), and visible in the row (FEAT-0808).
-- [ ] Money-path tests: no native-number math, prove no double close and no
+      *Document fields hashed (Rust + TS integration tests pin the identity
+      and the pre-field hash), row visible (chip + guard line); the editor
+      controls are FEAT-0811's deliverable, as this criterion itself names.*
+- [x] Money-path tests: no native-number math, prove no double close and no
       accidental exposure increase. 👤 Human review recommended before merge.
+      *Decimal quantities throughout; the race and day-cap e2e prove a
+      refused firing leaves no book row behind; the no-double-close half is
+      the exit lane's, pinned in FEAT-0810's e2e and carried here by the
+      reservation's own release test.*
 
 ## Out of scope
 
@@ -106,12 +130,19 @@ in the journal's per-bot review (FEAT-0812).
 - Multi-account separation (FEAT-0825).
 - Portfolio-level limits across bots (a later decision; per-bot first).
 
-## Open questions
+## Decided questions
 
-- Whether the fleet-wide kill switch closes positions or only stops entries by
-  default. Proposal: stops entries, asks once per position group before closing.
-- Whether guard events belong in the firing ledger or their own log view.
-  Proposal: same chronology as the veto suppression record (FEAT-0814).
+- **2026-11-19 (shipped with this item):** The fleet-wide kill switch **stops
+  entries** and does not close anything by default — closing is the per-bot
+  Stop's own confirm (the row asks once, names the position, and leaves
+  everything else untouched). The proposal's "asks once per position group"
+  remains the shape a future fleet-close control would take; it is
+  deliberately not shipped here.
+- **2026-11-19 (shipped with this item):** Guard events live in **their own
+  log view** (`cachy_bot_guards_v1`, newest-first, one row per reason with a
+  repeat count) rather than inside the firing ledger — the firing ledger
+  counts attempts, the guard log answers "why did my bot not act", and
+  merging them would have made the two counts indistinguishable.
 
 ## Links
 

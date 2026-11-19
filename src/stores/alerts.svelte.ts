@@ -164,6 +164,15 @@ class AlertsManager {
      * throttled background tab.
      */
     seriesGapReport = $state<SeriesGap[]>([]);
+
+    /**
+     * FEAT-0822 — bumped by every guard-log write, so the rows that render
+     * the newest guard event re-read the ledger. The same counter-per-
+     * localStorage pattern the two above established: the guard log is
+     * deliberately not mirrored into a rune, and this is the smallest thing
+     * that closes the gap.
+     */
+    guardsVersion = $state(0);
 }
 
 export const alertState = new AlertsManager();
@@ -371,7 +380,10 @@ export function botOrderEnvironment(
         recordEntry: (botId) => recordBotEntry(botId),
         ownedPositionsOf: (botId) => ownedBotPositions(botId),
         restingOrders: () => paperState.orders,
-        recordGuard: (botId, reason, anchorMs) => recordBotGuard(botId, reason, anchorMs),
+        recordGuard: (botId, reason, anchorMs) => {
+            recordBotGuard(botId, reason, anchorMs);
+            alertState.guardsVersion += 1;
+        },
         // Imported at the moment an order is actually placed, not at startup.
         // `orderPlacementService` pulls the TP/SL stores and the trade service
         // in behind it, and the alert engine starts on every session —
@@ -642,14 +654,17 @@ export async function closeBotOwnedPositions(
     let closed = 0;
     const refused: string[] = [];
     for (const row of owned) {
-        const refusal = await submitBotExit(env, {
-            rule: bot,
-            symbol: row.symbol,
-            positionId: row.positionId,
-            close: "all",
-            exitIndex: null,
-            anchorMs: Date.now(),
-        });
+        const refusal = await submitBotExit(
+            {
+                rule: bot,
+                symbol: row.symbol,
+                positionId: row.positionId,
+                close: "all",
+                exitIndex: null,
+                anchorMs: Date.now(),
+            },
+            env,
+        );
         if (refusal === null) closed += 1;
         else refused.push(refusal);
     }

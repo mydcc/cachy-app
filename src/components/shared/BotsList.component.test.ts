@@ -45,6 +45,25 @@ import type { RuleDocument } from "../../lib/rules/types";
 import { CONSTANTS } from "../../lib/constants";
 import { RULES_STORAGE_KEY } from "../../services/alertEngine/migrateAlertsToRules";
 import { paperExchange, setPaperPriceFeed } from "../../services/paperExchange";
+import { recordBotEntry } from "../../services/alertEngine/ruleStateStore";
+import { recordBotGuard } from "../../services/alertEngine/botGuardStore";
+
+const closeBotOwnedPositionsMock = vi.hoisted(() =>
+    vi.fn().mockResolvedValue({ closed: 0, refused: [] as string[] }),
+);
+vi.mock("../../stores/alerts.svelte", async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import("../../stores/alerts.svelte")>();
+    return {
+        ...actual,
+        // The kill switch's close lane would otherwise dynamically import the
+        // whole tradeService stack into this harness. What the row owes the
+        // trader — the entries stop, the close is *asked* for — is pinned
+        // here; the lane itself is pinned end to end against the real
+        // tradeService in botExitExecution.integration.test.ts.
+        closeBotOwnedPositions: closeBotOwnedPositionsMock,
+    };
+});
 
 const setBotEnabledMock = vi.hoisted(() => vi.fn());
 vi.mock("../../services/alertEngine/botStore", async (importOriginal) => {
@@ -545,5 +564,107 @@ describe("the projection's clock", () => {
         // times never advance.
         expect(botsState.now).toBe(atMount + 30_000);
         expect(botsState.now).toBe(Date.now());
+    });
+});
+
+describe("FEAT-0822 — firing limits and the kill switch", () => {
+    it("reads limit_reached for a multi bot whose day cap is spent", () => {
+        seedBots(
+            botDocument("bot-1", { firing_policy: "multi", max_entries_per_day: 1 }),
+        );
+
+        // The counter is the projection's input, not a rule rewrite: nothing
+        // but a version bump tells it to re-read the entry ledger.
+        recordBotEntry("bot-1");
+        alertState.firingsVersion += 1;
+        render();
+
+        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.limit_reached"));
+    });
+
+    it("a bot with budget left by other limits still reads by its state", () => {
+        // The complement of the row above: the same spent ledger under a bot
+        // with no caps set stays a plain state — limit_reached is a property
+        // of the document's own limits, never of global activity.
+        seedBots(botDocument("bot-1"));
+        recordBotEntry("bot-1");
+        alertState.firingsVersion += 1;
+        render();
+
+        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.armed"));
+    });
+
+    it("stop asks before closing an owned position, and closes it on confirm", async () => {
+        seedBots(botDocument("bot-1"));
+        await openAs("bot-1");
+        render();
+
+        const row = rowOf("bot-1");
+        expect(chipOf(row)).toBe(lookup(en, "botsList.state.in_position"));
+
+        row!.querySelector<HTMLElement>('[data-testid="bot-kill"]')!.click();
+        flushSync();
+
+        // Entries stop the moment Stop is pressed, before any close is
+        // asked for — the two halves of the kill are deliberately separate.
+        expect(setBotEnabledMock).toHaveBeenLastCalledWith("bot-1", false);
+        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.paused"));
+
+        const confirm = host.querySelector<HTMLElement>('[data-testid="bot-kill-confirm"]');
+        expect(confirm).not.toBeNull();
+
+        host.querySelector<HTMLElement>('[data-testid="bot-kill-confirm-close"]')!.click();
+        await vi.waitFor(() => expect(closeBotOwnedPositionsMock).toHaveBeenCalledWith("bot-1"));
+        flushSync();
+        expect(host.querySelector('[data-testid="bot-kill-confirm"]')).toBeNull();
+    });
+
+    it("keep-it-open cancels the close and leaves the position owned", async () => {
+        seedBots(botDocument("bot-1"));
+        await openAs("bot-1");
+        render();
+
+        rowOf("bot-1")!.querySelector<HTMLElement>('[data-testid="bot-kill"]')!.click();
+        flushSync();
+
+        host.querySelector<HTMLElement>('[data-testid="bot-kill-confirm-keep"]')!.click();
+        flushSync();
+
+        expect(closeBotOwnedPositionsMock).not.toHaveBeenCalled();
+        expect(host.querySelector('[data-testid="bot-kill-confirm"]')).toBeNull();
+        // Entries stay stopped (the trader pressed Stop), the book keeps the
+        // row they chose to keep.
+        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.paused"));
+        expect(paperState.positions).toHaveLength(1);
+    });
+
+    it("a bot that owns nothing stops without asking", () => {
+        seedBots(botDocument("bot-1"));
+        render();
+
+        rowOf("bot-1")!.querySelector<HTMLElement>('[data-testid="bot-kill"]')!.click();
+        flushSync();
+
+        expect(setBotEnabledMock).toHaveBeenLastCalledWith("bot-1", false);
+        // No position, no confirm block: stopping entries is the whole act.
+        expect(host.querySelector('[data-testid="bot-kill-confirm"]')).toBeNull();
+        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.paused"));
+    });
+
+    it("shows the latest guard with its repeat count", () => {
+        seedBots(botDocument("bot-1"));
+        render();
+        expect(host.querySelector('[data-testid="bot-guard-line"]')).toBeNull();
+
+        // Two refusals of the same reason land as one row that counts them.
+        recordBotGuard("bot-1", "slot-reserved", 0);
+        recordBotGuard("bot-1", "slot-reserved", 60_000);
+        alertState.guardsVersion += 1;
+        flushSync();
+
+        const line = host.querySelector<HTMLElement>('[data-testid="bot-guard-line"]');
+        expect(line?.textContent?.trim()).toBe(
+            `Last guard: ${lookup(en, "botsList.guard.slotReserved")} ×2`,
+        );
     });
 });
