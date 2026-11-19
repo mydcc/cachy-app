@@ -250,6 +250,34 @@ impl FiringPolicy {
     }
 }
 
+/// FEAT-0823. When a bot turns a signal into an entry.
+///
+/// Engine semantics, not a condition: `immediate` is the only behaviour the
+/// engine ever had — the entry rides the signal's own close — while
+/// `confirmation` holds the entry one candle and checks that the market
+/// agreed (direction first; a custom confirmation condition is a later
+/// extension once offset operands exist). The signal itself is evaluated by
+/// the same condition language at the same close; only the *acting on it*
+/// waits.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EntryTrigger {
+    /// The absent value: the entry rides the signal's own close, which is
+    /// what every rule before this field already did.
+    #[default]
+    Immediate,
+    Confirmation,
+}
+
+impl EntryTrigger {
+    /// Drives `skip_serializing_if`, the same hash-stability mechanism every
+    /// default-carrying field before this one used: a document without the
+    /// field is byte-identical before and after FEAT-0823 exists.
+    fn is_immediate(&self) -> bool {
+        matches!(self, Self::Immediate)
+    }
+}
+
 /// A serialisable, versioned, schema-validated strategy.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -307,6 +335,14 @@ pub struct RuleDocument {
     /// account currency. Hashed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub budget_cap: Option<rust_decimal::Decimal>,
+    /// FEAT-0823. How an entry is released after the conditions fire:
+    /// immediately, or only once the next closed candle confirms the
+    /// direction. Engine semantics like `frequency` — the core answers
+    /// the conditions, the loop owns the wait. Hashed. Absent means
+    /// `immediate`, the only behaviour the engine ever had before this
+    /// field.
+    #[serde(default, skip_serializing_if = "EntryTrigger::is_immediate")]
+    pub entry_trigger: EntryTrigger,
     /// Armed or not. Not hashed: arming is not a change of strategy.
     #[serde(default)]
     pub enabled: bool,
@@ -486,6 +522,34 @@ impl RuleDocument {
                     format!("`{value}` is not a risk limit: it must be positive"),
                 ));
             }
+        }
+        // FEAT-0823. An entry trigger mode describes what an owned position
+        // may enter, so it belongs to documents that can own one — the same
+        // reason the firing policy above is gated. The absent mode is
+        // `immediate`, legal everywhere, exactly as every rule before this
+        // field was.
+        if !may_read_account && !self.entry_trigger.is_immediate() {
+            out.push(RuleRefusal::new(
+                RefusalCode::FieldNotHonouredAtLevel,
+                "entry_trigger",
+                "a `notify` rule chooses an entry trigger mode but owns no \
+                 position to enter. Author the rule at `simulate` or above",
+            ));
+        }
+        // FEAT-0823. Confirmation waits for a closed confirmation candle;
+        // an intrabar rule never sees one — its conditions are read against
+        // a candle still forming, so the wait would hold a signal nothing
+        // can ever confirm. Refused together rather than ignored: a rule
+        // that looks armed and never enters is the exact failure this code
+        // exists to name.
+        if !self.entry_trigger.is_immediate() && !self.evaluation_mode.is_close() {
+            out.push(RuleRefusal::new(
+                RefusalCode::ConfirmationNeedsCloses,
+                "entry_trigger",
+                "confirmation entries wait for a closed confirmation candle; an \
+                 `intrabar` rule never sees one. Author the rule at \
+                 `evaluation_mode: close`",
+            ));
         }
         if self.exits.as_ref().is_some_and(|e| e.is_empty()) {
             out.push(RuleRefusal::new(
@@ -929,6 +993,7 @@ mod tests {
             max_entries_per_day: None,
             max_risk_per_position: None,
             budget_cap: None,
+            entry_trigger: EntryTrigger::Immediate,
         }
     }
 
@@ -3201,5 +3266,89 @@ mod tests {
     #[test]
     fn the_absent_policy_changes_nothing_for_a_notify_rule() {
         assert!(rsi_dip().validate().is_ok());
+    }
+
+    // ---- FEAT-0823: the entry trigger mode ---------------------------------
+
+    /// A simulate bot that waits for confirmation — the shape every test
+    /// below starts from.
+    fn bot_with_entry_trigger(trigger: EntryTrigger) -> RuleDocument {
+        let mut doc = bot_with_policy(FiringPolicy::OncePerCandle, None, None, None, None);
+        doc.entry_trigger = trigger;
+        doc
+    }
+
+    #[test]
+    fn entry_trigger_round_trips_through_serialisation() {
+        let doc = bot_with_entry_trigger(EntryTrigger::Confirmation);
+        let json = serialise_document(&doc).unwrap();
+        let back: RuleDocument = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, doc);
+    }
+
+    /// The same alarm the exits and policy tests sound: a v4 document must
+    /// serialise byte-identically at v5, or every strategy identity
+    /// recorded before this field silently moves.
+    #[test]
+    fn a_document_without_an_entry_trigger_keeps_its_canonical_form() {
+        let doc = bot_with_entry_trigger(EntryTrigger::Immediate);
+        let json = serialise_document(&doc).unwrap();
+        assert!(
+            !json.contains("entry_trigger"),
+            "absent entry_trigger must stay off the wire: {json}"
+        );
+    }
+
+    #[test]
+    fn the_entry_trigger_is_part_of_the_strategy_identity() {
+        let immediate = bot_with_entry_trigger(EntryTrigger::Immediate);
+        let confirmation = bot_with_entry_trigger(EntryTrigger::Confirmation);
+
+        // Waiting for a candle is a different strategy from not waiting:
+        // the hash must say so.
+        assert_ne!(
+            immediate.content_hash().unwrap(),
+            confirmation.content_hash().unwrap()
+        );
+        // And the absent field is the default, so a rule written before
+        // this field keeps the identity it was recorded under.
+        let absent = bot_with_policy(FiringPolicy::OncePerCandle, None, None, None, None);
+        assert_eq!(
+            absent.content_hash().unwrap(),
+            immediate.content_hash().unwrap()
+        );
+    }
+
+    #[test]
+    fn a_notify_document_is_refused_for_a_confirmation_entry_trigger() {
+        let mut doc = rsi_dip();
+        doc.entry_trigger = EntryTrigger::Confirmation;
+        let refused = doc.validate().unwrap_err();
+        assert_eq!(refused.refusals.len(), 1);
+        assert_eq!(refused.refusals[0].code, RefusalCode::FieldNotHonouredAtLevel);
+        assert_eq!(refused.refusals[0].field, "entry_trigger");
+    }
+
+    #[test]
+    fn confirmation_needs_closes_on_an_intrabar_rule() {
+        let mut doc = bot_with_entry_trigger(EntryTrigger::Confirmation);
+        doc.evaluation_mode = EvaluationMode::Intrabar;
+        let refused = doc.validate().unwrap_err();
+        assert_eq!(refused.refusals.len(), 1);
+        assert_eq!(refused.refusals[0].code, RefusalCode::ConfirmationNeedsCloses);
+        assert_eq!(refused.refusals[0].field, "entry_trigger");
+    }
+
+    #[test]
+    fn an_immediate_entry_trigger_is_legal_everywhere_a_rule_was() {
+        let mut doc = rsi_dip();
+        doc.entry_trigger = EntryTrigger::Immediate;
+        assert!(doc.validate().is_ok());
+        // And the combination the refusal exists to guard stays guarded only
+        // one way: immediate entries on an intrabar rule are simply the
+        // behaviour an intrabar rule already had.
+        let mut intrabar = bot_with_entry_trigger(EntryTrigger::Immediate);
+        intrabar.evaluation_mode = EvaluationMode::Intrabar;
+        assert!(intrabar.validate().is_ok());
     }
 }

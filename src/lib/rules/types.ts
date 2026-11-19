@@ -278,6 +278,13 @@ export type ExitKind = "exit" | "take_profit";
 export type FiringPolicy = "once" | "once_per_candle" | "multi";
 
 /**
+ * FEAT-0823. How an entry is released after the conditions fire. Mirrors
+ * `EntryTrigger` in `technicals-wasm/src/rule/document.rs`, which is where
+ * the meaning (and the wait's owner — the engine, not the core) lives.
+ */
+export type EntryTriggerMode = "immediate" | "confirmation";
+
+/**
  * One exit's verdict at one anchor. Mirrors `evaluate::ExitOutcome`.
  *
  * Three-valued for the same reason `Verdict` is: an exit whose operands
@@ -407,6 +414,13 @@ export interface RuleDocument {
    * currency. Hashed.
    */
   budget_cap?: DecimalString;
+  /**
+   * FEAT-0823. How an entry is released after the conditions fire:
+   * immediately, or once the next closed candle confirms the direction.
+   * Hashed — waiting is part of what the strategy means. Absent means
+   * `immediate`, the only behaviour the engine had before this field.
+   */
+  entry_trigger?: EntryTriggerMode;
   enabled?: boolean;
   provenance: Provenance;
 

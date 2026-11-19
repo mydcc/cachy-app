@@ -953,7 +953,8 @@
       "paused": "Paused",
       "blocked": "Blocked",
       "expired": "Expired",
-      "limit_reached": "Limit reached"
+      "limit_reached": "Limit reached",
+      "awaitingConfirmation": "Awaiting confirmation"
     },
     "empty": "No bots yet. The control center creates them from your alerts.",
     "rulesUnreadable": "The bot list could not be read. Nothing was changed.",
@@ -973,7 +974,9 @@
       "limitRisk": "entry would exceed the risk limit",
       "limitBudget": "entry would exceed the risk budget",
       "submissionInFlight": "an entry is still in flight",
-      "positionAlreadyOpen": "a position in this direction is already open"
+      "positionAlreadyOpen": "a position in this direction is already open",
+      "confirmationAgainstDirection": "the confirmation candle closed against the entry",
+      "signalStoppedOut": "the position left before confirmation"
     },
     "created": "Created {when}",
     "fired": "Fired {count} times, last {when}",
@@ -5005,6 +5008,7 @@
       "emptyExitsArray": "An empty exits array is refused — absence already means no exits beyond the stop.",
       "exitFractionInvalid": "The closing fraction in `{field}` is unusable: a partial close needs one in (0, 1], an `all` close needs none.",
       "invalidLimit": "The limit in `{field}` cannot limit anything: a bound of zero protects nothing. Remove it, or set a real one.",
+      "confirmationNeedsCloses": "A confirmation entry waits for a closed candle — an intrabar rule never sees one. Author the rule at candle close.",
       "executableTextRejected": "A strategy is checkable data, not executable text. Free-text expressions are refused.",
       "unsupportedSchemaVersion": "This rule uses a schema version this build of the app cannot read.",
       "migrationNotPossible": "The rule cannot be carried to the current schema version with its meaning intact, so it is refused rather than reinterpreted.",

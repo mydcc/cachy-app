@@ -379,10 +379,10 @@ describe("duplicateRule — FEAT-0746", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    // FEAT-0809 bumped the current schema to v3; the copy is stamped with
-    // whatever the core currently reads, while the stored source keeps the
-    // version it was armed under — meaning preserved either way.
-    expect(result.rule.schema_version).toBe(4);
+    // The copy is stamped with whatever the core currently reads, while the
+    // stored source keeps the version it was armed under — meaning preserved
+    // either way. (v5 as of FEAT-0823; v3 as of 0809, v4 as of 0822.)
+    expect(result.rule.schema_version).toBe(5);
     expect(readRuleStore().find((r) => r.id === "rule-1")?.schema_version).toBe(1);
   });
 

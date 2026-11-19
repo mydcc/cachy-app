@@ -282,6 +282,9 @@ refusal_codes! {
     /// they are protected. Refused rather than clamped, at every consequence
     /// level, naming the field; absence is the honest way to say "no limit".
     InvalidLimit => "invalidLimit",
+    /// FEAT-0823. `entry_trigger: confirmation` on a rule evaluated
+    /// intrabar: confirmation waits for a close an intrabar rule never sees.
+    ConfirmationNeedsCloses => "confirmationNeedsCloses",
 }
 
 /// One reason a document was refused, naming the field responsible.
@@ -496,6 +499,7 @@ mod tests {
         "empty_exits_array",
         "exit_fraction_invalid",
         "invalid_limit",
+        "confirmation_needs_closes",
     ];
 
     #[test]

@@ -48,7 +48,8 @@ export type BotState =
     | "paused"
     | "blocked"
     | "expired"
-    | "limit_reached";
+    | "limit_reached"
+    | "awaiting_confirmation";
 
 /**
  * Everything the rule document cannot know about itself, pre-read by the
@@ -68,6 +69,13 @@ export interface BotBook {
     closing: ReadonlySet<string>;
     /** Rule ids the evaluation loop reported unevaluable. */
     unevaluable: ReadonlySet<string>;
+    /**
+     * FEAT-0823 — rule ids with an entry signal waiting for its
+     * confirmation candle. The loop's report, re-derived on every close;
+     * a reload loses the wait until the next close says otherwise, the
+     * same honesty the unevaluable report carries.
+     */
+    awaiting: ReadonlySet<string>;
     /** Fired count per rule id, from the rule-state ledger. */
     firedCounts: ReadonlyMap<string, number>;
     /**
@@ -148,6 +156,11 @@ export function deriveBotState(rule: RuleDocument, book: BotBook, now: number): 
         return { state: "expired", hasPosition };
     }
     if (standingLimitReached(rule, book)) return { state: "limit_reached", hasPosition };
+    // FEAT-0823 — a held signal is the newer fact than a past firing, but
+    // the older fact than every acting or blocking state: a pause stops
+    // the entry the signal was promising, an expiry ended the story, and
+    // a standing limit refuses what the confirmation would submit anyway.
+    if (book.awaiting.has(rule.id)) return { state: "awaiting_confirmation", hasPosition };
     if (fired > 0) return { state: "closed", hasPosition };
     return { state: "armed", hasPosition };
 }

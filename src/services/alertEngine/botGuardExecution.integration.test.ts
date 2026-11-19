@@ -79,7 +79,8 @@ import { RuleEvaluationLoop } from "./ruleEvaluationLoop";
 import { withBotOrders, type RuleFiring } from "./botOrders";
 import { botOrderEnvironment } from "../../stores/alerts.svelte";
 import { botEntryActivity } from "./ruleStateStore";
-import { readBotGuards } from "./botGuardStore";
+import { readBotGuards, recordBotGuard } from "./botGuardStore";
+import type { AwaitingEntrySignal } from "./ruleEvaluationLoop";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import type { RuleDocument } from "../../lib/rules/types";
 
@@ -308,6 +309,107 @@ describe("FEAT-0822 — firing limits on the money path", () => {
         );
 
         // And nothing anywhere reached the network.
+        expect(appFetchMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("FEAT-0823 — confirmation entries on the money path", () => {
+    /**
+     * The loop the wiring arms, with the confirmation ports the live wiring
+     * provides: the awaiting report captured, and the discards landed in the
+     * same guard ledger every other refusal records through.
+     */
+    function loopOverConfirmation(
+        rules: RuleDocument[],
+        series: Array<Record<string, string | number>>,
+    ) {
+        const refusals: Array<{ ruleId: string; refusal: string }> = [];
+        const awaiting: Array<AwaitingEntrySignal[]> = [];
+        const loop = new RuleEvaluationLoop({
+            readCandles: () => series as never,
+            readFormingCandles: () => [],
+            readRules: () => rules,
+            onFiring: withBotOrders(
+                vi.fn(),
+                botOrderEnvironment(
+                    () => new Decimal("100"),
+                    () => new Decimal(FEED_PRICE),
+                ),
+                (firing: RuleFiring, refusal: string) => {
+                    refusals.push({ ruleId: firing.rule.id, refusal });
+                },
+            ) as never,
+            onAwaiting: (_symbol, _timeframe, slice) => {
+                awaiting.push(slice);
+            },
+            onSignalDiscarded: (ruleId, anchorMs, reason) => {
+                recordBotGuard(ruleId, reason, anchorMs);
+            },
+        });
+        return { loop, refusals, awaiting };
+    }
+
+    it("waits at the signal, then enters once on the green confirmation close", async () => {
+        const bot = botDocument("bot-confirm", {
+            schema_version: 5,
+            entry_trigger: "confirmation",
+        });
+        // Candle 1 carries the signal (close 100 >= 100); candle 2 is the
+        // green confirmation (close 101 over open 100).
+        const series = candles("100", "100", "101");
+        const { loop, refusals, awaiting } = loopOverConfirmation([bot], series);
+
+        // Closes 0 and 1: warmup withholds the first anchor, the second is
+        // the signal — held, reported, and nothing entered.
+        drive(loop, 2);
+        expect(paperState.positions).toHaveLength(0);
+        expect(awaiting.at(-1)).toEqual([{ ruleId: "bot-confirm", signalAnchorMs: STEP }]);
+
+        // The confirmation close consumes the wait and the entry lands
+        // through the same lane every entry takes.
+        drive(loop, 3);
+        await vi.waitFor(
+            () => {
+                expect(paperState.positions).toHaveLength(1);
+                expect(paperState.positions[0]?.botId).toBe("bot-confirm");
+                expect(botEntryActivity("bot-confirm").total).toBe(1);
+            },
+            { timeout: 10_000 },
+        );
+
+        // The entry is the whole story: no refusals, no discards, no
+        // network — and the confirm close's own signal (conditions still
+        // holding) is the next wait, not another entry.
+        expect(refusals).toEqual([]);
+        expect(readBotGuards("bot-confirm")).toEqual([]);
+        expect(appFetchMock).not.toHaveBeenCalled();
+        expect(awaiting.at(-1)).toEqual([{ ruleId: "bot-confirm", signalAnchorMs: 2 * STEP }]);
+    });
+
+    it("a counter candle discards the signal and the guard ledger says why", async () => {
+        const bot = botDocument("bot-counter", {
+            schema_version: 5,
+            entry_trigger: "confirmation",
+        });
+        // Candle 2 closes red (99 under open 100): the market refused.
+        const series = candles("100", "100", "99");
+        const { loop, refusals } = loopOverConfirmation([bot], series);
+
+        drive(loop, 3);
+        await vi.waitFor(
+            () => {
+                expect(readBotGuards("bot-counter")[0]?.reason).toBe(
+                    "confirmation-against-direction",
+                );
+            },
+            { timeout: 10_000 },
+        );
+
+        // The discard is the whole outcome: no position, no entry counted,
+        // no refusal reached the lane, nothing reached the network.
+        expect(paperState.positions).toHaveLength(0);
+        expect(botEntryActivity("bot-counter").total).toBe(0);
+        expect(refusals).toEqual([]);
         expect(appFetchMock).not.toHaveBeenCalled();
     });
 });

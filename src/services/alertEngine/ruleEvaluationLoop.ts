@@ -43,6 +43,7 @@
  * the market store, it does not reach into it.
  */
 
+import { Decimal } from "decimal.js";
 import { collectIndicators } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
@@ -258,6 +259,75 @@ export interface ExitLoopPorts {
   onExitFiring: ExitFiringSink;
 }
 
+/**
+ * FEAT-0823 — the confirmation ports a live wiring provides. Shadow mode
+ * provides none: without them waits are still held and consumed (the memo
+ * is the dedupe, not a report), but nobody is told — the same honesty the
+ * exit ports above carry.
+ */
+export interface ConfirmationLoopPorts {
+  onAwaiting?: AwaitingSink;
+  onSignalDiscarded?: SignalDiscardSink;
+}
+
+/**
+ * FEAT-0823 — one entry signal held for its confirmation close.
+ *
+ * Held by the loop, not the document and not storage: a reload re-derives it
+ * from the candles (the catch-up below), the same way the projection's
+ * awaiting state re-derives from the loop's report.
+ */
+export interface AwaitingEntrySignal {
+  ruleId: string;
+  /**
+   * The anchor whose close produced the signal. The candle being confirmed
+   * is the next one — everything about the wait is answerable from these two
+   * anchors, which is why nothing needs persisting.
+   */
+  signalAnchorMs: number;
+}
+
+/**
+ * FEAT-0823 — the fresh awaiting slice for one series, reported once per
+ * closed candle. Always the complete truth for that series: an empty array
+ * means no rule of this series is waiting, and the caller replaces whatever
+ * it held rather than merging.
+ */
+export type AwaitingSink = (
+  symbol: string,
+  timeframe: string,
+  awaiting: AwaitingEntrySignal[],
+) => void;
+
+/** FEAT-0823 — why a held signal did not become an entry. */
+export type SignalDiscardReason =
+  /** The confirmation candle closed against the intent (a doji counts). */
+  | "confirmation-against-direction"
+  /** The position the signal was sizing was gone before confirmation. */
+  | "signal-stopped-out";
+
+/**
+ * FEAT-0823 — one discarded signal, recorded once at the confirmation close
+ * that discarded it. The wiring lands it in the guard ledger, so "why did my
+ * bot not enter?" has the same answer path as every other refusal.
+ */
+export type SignalDiscardSink = (
+  ruleId: string,
+  anchorMs: number,
+  reason: SignalDiscardReason,
+) => void;
+
+/**
+ * FEAT-0823 — the words vs the entry: `confirmSignal` answers one of three,
+ * and only the entry is an object. A helper rather than an inline check so
+ * the two call sites cannot drift on what "confirmed" means.
+ */
+function isConfirmationEntry(
+  answer: RuleFiring | "against" | "no-signal",
+): answer is RuleFiring {
+  return typeof answer === "object";
+}
+
 export interface RuleEvaluationLoopOptions {
   readCandles: CandleReader;
   readRules: RuleReader;
@@ -327,6 +397,17 @@ export interface RuleEvaluationLoopOptions {
   recordExitAction?: ExitActionRecorder;
   /** FEAT-0810 — absent means exit firings are dropped (the shadow shape). */
   onExitFiring?: ExitFiringSink;
+  /**
+   * FEAT-0823 — the per-series awaiting report. Absent means awaiting
+   * signals are still held and still consumed, but nobody is told — the
+   * shadow shape, same as the exit port above.
+   */
+  onAwaiting?: AwaitingSink;
+  /**
+   * FEAT-0823 — one record per discarded signal. Absent means discards are
+   * silent to the caller; the loop's own bookkeeping is unaffected.
+   */
+  onSignalDiscarded?: SignalDiscardSink;
 }
 
 /**
@@ -428,6 +509,20 @@ export class RuleEvaluationLoop {
   private accountForPosition: PositionAccountReader = () => undefined;
   private recordExitAction: ExitActionRecorder | undefined = undefined;
   private onExitFiring: ExitFiringSink | undefined = undefined;
+  private onAwaiting: AwaitingSink | undefined = undefined;
+  private onSignalDiscarded: SignalDiscardSink | undefined = undefined;
+  /**
+   * FEAT-0823 — the held entry signals, keyed by rule id. One signal per
+   * rule at a time (a second signal while one waits would be a third
+   * entry the day cap is there to refuse), keyed by rule because a rule
+   * belongs to exactly one series. The `seriesKey` on the memo is the
+   * purge key: a rule that leaves its series' armed set (disabled,
+   * deleted) must not carry a stale wait back in when it returns.
+   */
+  private readonly confirmationMemos = new Map<
+    string,
+    { seriesKey: string; signalAnchorMs: number; ownedAtSignal: boolean }
+  >();
 
   constructor(options?: RuleEvaluationLoopOptions) {
     if (options) this.configure(options);
@@ -456,6 +551,8 @@ export class RuleEvaluationLoop {
     this.accountForPosition = options.accountForPosition ?? (() => undefined);
     this.recordExitAction = options.recordExitAction;
     this.onExitFiring = options.onExitFiring;
+    this.onAwaiting = options.onAwaiting;
+    this.onSignalDiscarded = options.onSignalDiscarded;
   }
 
   /**
@@ -776,8 +873,63 @@ export class RuleEvaluationLoop {
 
   private evaluateSeries(symbol: string, timeframe: string, anchorMs: number): RuleFiring[] {
     const rules = this.rulesFor(symbol, timeframe, false);
-    if (rules.length === 0) return [];
-    return this.evaluateRules(rules, symbol, timeframe, anchorMs, false, anchorMs);
+    if (rules.length === 0) {
+      // FEAT-0823 — the awaiting slice runs even when the pass is empty: a
+      // series whose every confirmation rule just went disabled must still
+      // report the cleared wait, and the memos of rules that left the armed
+      // set must still be purged — an empty pass is the purge case, not an
+      // excuse to skip it.
+      this.reportAwaiting(rules, symbol, timeframe);
+      return [];
+    }
+    const firings = this.evaluateRules(rules, symbol, timeframe, anchorMs, false, anchorMs);
+    // FEAT-0823 — reported after the pass, so the slice says what this
+    // close left behind: signals consumed by an entry are gone from it,
+    // signals formed by this close are in it, and a consumer rendering
+    // "awaiting" reads the wait as of now, not as of the previous candle.
+    this.reportAwaiting(rules, symbol, timeframe);
+    return firings;
+  }
+
+  /**
+   * FEAT-0823 — the fresh awaiting slice for one series, reported once per
+   * closed-candle pass. The purge runs first: a rule that left this
+   * series' armed set (disabled, deleted, moved to another market) must
+   * not answer for an await nothing can consume any more, and the slice
+   * clears with it. Reported only when this series has a confirmation
+   * rule or already holds a memo — a series of immediate rules has no
+   * awaiting vocabulary and stays off the port entirely.
+   */
+  private reportAwaiting(
+    rules: readonly RuleDocument[],
+    symbol: string,
+    timeframe: string,
+  ): void {
+    const seriesKey = `${symbol}|${timeframe}`;
+    const hasConfirmationRules = rules.some(
+      (rule) => rule.entry_trigger === "confirmation",
+    );
+    let seriesHasMemo = false;
+    for (const memo of this.confirmationMemos.values()) {
+      if (memo.seriesKey === seriesKey) {
+        seriesHasMemo = true;
+        break;
+      }
+    }
+    if (!hasConfirmationRules && !seriesHasMemo) return;
+
+    for (const [id, memo] of this.confirmationMemos) {
+      if (memo.seriesKey === seriesKey && !rules.some((rule) => rule.id === id)) {
+        this.confirmationMemos.delete(id);
+      }
+    }
+    const awaiting: AwaitingEntrySignal[] = [];
+    for (const [id, memo] of this.confirmationMemos) {
+      if (memo.seriesKey === seriesKey) {
+        awaiting.push({ ruleId: id, signalAnchorMs: memo.signalAnchorMs });
+      }
+    }
+    this.onAwaiting?.(symbol, timeframe, awaiting);
   }
 
   private evaluateRules(
@@ -832,6 +984,17 @@ export class RuleEvaluationLoop {
     intrabar: boolean,
     asOf?: number,
   ): RuleFiring | undefined {
+    // FEAT-0823 — a confirmation bot never reaches the one-anchor gate in
+    // the close path: its entry decision spans two anchors, and the gate's
+    // dedupe would consume the signal anchor before a confirmation could
+    // ever exist. The signal memo is the dedupe instead (see
+    // `evaluateConfirmation`). Intrabar never gets here — the document
+    // refuses that combination — and a confirmation doc without an order
+    // is not this engine's problem (validation refuses it too); both fall
+    // through to the gate path and are answered as themselves.
+    if (!intrabar && rule.entry_trigger === "confirmation" && rule.action.order !== undefined) {
+      return this.evaluateConfirmation(rule, symbol, timeframe, anchorMs, asOf);
+    }
     // Read per rule, not once per series: two rules on the same trigger
     // timeframe can still read different timeframes, and the reader is the
     // only thing that knows which series each one needs.
@@ -875,6 +1038,167 @@ export class RuleEvaluationLoop {
     if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
     if (verdict === undefined || verdict.verdict !== "fires") return undefined;
     return { rule, verdict, anchorMs };
+  }
+
+  /**
+   * FEAT-0823 — one confirmation bot's decision at one closed candle.
+   *
+   * Two decisions per anchor, in this order: consume the previous anchor's
+   * signal (the entry, the discard, or the stop-out cancel), then derive
+   * this anchor's signal (the await). Both evaluations bypass the
+   * one-anchor gate on purpose — the gate's dedupe has no two-anchor
+   * vocabulary, and the memo already is the replay guard: a replayed close
+   * finds the memo consumed and the signal re-derivation is idempotent, so
+   * the same candles always produce the same entry, never two.
+   *
+   * Nothing here touches storage. A reload mid-wait re-derives the signal
+   * from the candle that produced it (`confirmSignal`'s catch-up half), so
+   * the wait survives a restart without a second thing to persist — the
+   * one corner that accepts is a bot armed between a signal and its
+   * confirmation entering on a signal it was not alive for: bounded (one
+   * entry, every lane guard applies) and the alternative — losing every
+   * mid-wait reload — is the worse contract.
+   */
+  private evaluateConfirmation(
+    rule: RuleDocument,
+    symbol: string,
+    timeframe: string,
+    anchorMs: number,
+    asOf?: number,
+  ): RuleFiring | undefined {
+    const seriesKey = `${symbol}|${timeframe}`;
+    const memo = this.confirmationMemos.get(rule.id);
+    let entry: RuleFiring | undefined;
+
+    // The entry decision consumes the wait first — one signal, one
+    // confirmation close, and a replayed anchor finds nothing left to spend.
+    let consumed = false;
+    if (memo !== undefined && memo.seriesKey === seriesKey) {
+      this.confirmationMemos.delete(rule.id);
+      consumed = true;
+      if (memo.ownedAtSignal && this.ownedPositions(rule.id).length === 0) {
+        // AC 5 — the position this signal was sizing is gone (a stop-out, a
+        // manual close); entering now would open a fresh position on the
+        // strength of a candle that spoke about a trade already over.
+        this.onSignalDiscarded?.(rule.id, anchorMs, "signal-stopped-out");
+      } else {
+        const confirmed = this.confirmSignal(rule, symbol, timeframe, anchorMs, asOf);
+        if (isConfirmationEntry(confirmed)) {
+          entry = confirmed;
+        } else {
+          this.onSignalDiscarded?.(rule.id, anchorMs, "confirmation-against-direction");
+        }
+      }
+    }
+
+    // The reload catch-up: a signal this loop instance never held. Only a
+    // real signal gets a discard record — "no signal on the previous
+    // candle" is the quiet majority and says nothing.
+    if (!consumed) {
+      const confirmed = this.confirmSignal(rule, symbol, timeframe, anchorMs, asOf);
+      if (isConfirmationEntry(confirmed)) {
+        entry = confirmed;
+      } else if (confirmed === "against") {
+        this.onSignalDiscarded?.(rule.id, anchorMs, "confirmation-against-direction");
+      }
+    }
+
+    // This anchor's own signal: conditions true at this close hold the
+    // wait for the next one — including on the close that confirmed an
+    // entry, because conditions still holding is a new wait, not a
+    // continuation of the old one. Owned state is read at the moment the
+    // signal forms, because that is the trade the signal is sizing — the
+    // AC 5 cancel compares against this, not against a later read.
+    if (this.rawSignalAt(rule, symbol, timeframe, anchorMs, asOf)?.verdict === "fires") {
+      this.confirmationMemos.set(rule.id, {
+        seriesKey,
+        signalAnchorMs: anchorMs,
+        ownedAtSignal: this.ownedPositions(rule.id).length > 0,
+      });
+    }
+    return entry;
+  }
+
+  /**
+   * FEAT-0823 — decide the entry at this close: did the previous candle
+   * hold the signal, and does this close's candle confirm its direction?
+   *
+   * `"no-signal"` and `"against"` are words, not booleans, because the
+   * caller records the second and must not record the first: a candle that
+   * never signalled is silence, a signal the market refused is an answer.
+   */
+  private confirmSignal(
+    rule: RuleDocument,
+    symbol: string,
+    timeframe: string,
+    anchorMs: number,
+    asOf?: number,
+  ): RuleFiring | "against" | "no-signal" {
+    // The signal candle is the one before the confirmation candle — its
+    // anchor is the previous closed candle of the trigger series, not
+    // `anchorMs − timeframe`, which would invent a candle the series never
+    // had.
+    const candles = this.readCandles(symbol, timeframe);
+    const index = candles.findIndex((c) => c.open_time_ms === anchorMs);
+    if (index <= 0) return "no-signal";
+    const signalAnchorMs = candles[index - 1].open_time_ms;
+
+    const verdict = this.rawSignalAt(rule, symbol, timeframe, signalAnchorMs, signalAnchorMs);
+    if (verdict === undefined || verdict.verdict !== "fires") return "no-signal";
+
+    const ctx = this.contextFor(rule, symbol, timeframe, false, asOf ?? anchorMs);
+    const candle = ctx?.candles[rule.trigger_timeframe]?.at(-1);
+    // No confirmation candle means the context cannot answer — the same
+    // honest skip the trigger path takes, never a refusal.
+    if (candle === undefined) return "no-signal";
+
+    // The direction contract: a long is confirmed by a green close, a short
+    // by a red one, a doji by neither. Decimal, not string comparison —
+    // "9.5" > "10.25" as text is the bug this line exists to not have.
+    const open = new Decimal(candle.open);
+    const close = new Decimal(candle.close);
+    const intent = rule.action.order?.side;
+    if (intent === "buy" && close.gt(open)) return { rule, verdict, anchorMs };
+    if (intent === "sell" && close.lt(open)) return { rule, verdict, anchorMs };
+    return "against";
+  }
+
+  /**
+   * FEAT-0823 — the raw condition evaluation at one closed anchor, shared
+   * by the signal derivation and the confirmation decision.
+   *
+   * Deliberately not the gate: the gate's one-anchor dedupe would consume
+   * the signal anchor before a confirmation could ever exist, and the memo
+   * is the replay guard for this whole path. Threshold resolution and the
+   * mark series are still honoured — a confirmation signal anchored to a
+   * drawing or the mark price reads the same sources an immediate one does.
+   */
+  private rawSignalAt(
+    rule: RuleDocument,
+    symbol: string,
+    timeframe: string,
+    anchorMs: number,
+    asOf?: number,
+  ): Verdict | undefined {
+    const resolved = this.resolveThreshold(rule, anchorMs);
+    if ("unevaluable" in resolved) {
+      this.reportUnevaluable(rule, resolved.unevaluable);
+      return undefined;
+    }
+    const ctx = this.contextFor(resolved.rule, symbol, timeframe, false, asOf ?? anchorMs);
+    if (ctx === undefined) return undefined;
+    // The gate this path bypasses also carried the warmup check, and
+    // bypassing the gate must not mean bypassing the warmup: an indicator
+    // condition evaluated over a partial buffer is not an honest signal,
+    // and "the memo is the dedupe" never licensed it. The gate uses the
+    // same call on the same context.
+    const closedCandles = ctx.candles[resolved.rule.trigger_timeframe]?.length ?? 0;
+    if (closedCandles < ruleSchema.warmupCandles(resolved.rule)) return undefined;
+    const markCandles = this.markCandlesFor(resolved.rule, symbol, asOf);
+    if (markCandles) {
+      ctx.mark_candles = markCandles;
+    }
+    return ruleSchema.evaluate(resolved.rule, ctx);
   }
 
   /**

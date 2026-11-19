@@ -141,8 +141,12 @@
     paused: 4,
     blocked: 5,
     limit_reached: 6,
-    closed: 7,
-    expired: 8,
+    // FEAT-0823 — a held signal ranks between the limits and a done bot:
+    // it is the newest thing an armed bot is doing, and sorting it above
+    // `closed` keeps a waiting bot from sinking under its own history.
+    awaiting_confirmation: 7,
+    closed: 8,
+    expired: 9,
   };
 
   /**
@@ -295,6 +299,7 @@
     blocked: "botsList.state.blocked",
     expired: "botsList.state.expired",
     limit_reached: "botsList.state.limit_reached",
+    awaiting_confirmation: "botsList.state.awaitingConfirmation",
   };
 
   /**
@@ -400,7 +405,8 @@
                   class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider border border-[var(--border-color)]"
                   class:bg-success-paired={row.life.state === "in_position"}
                   class:bg-warning-paired={row.life.state === "submitting" ||
-                    row.life.state === "closing" || row.life.state === "limit_reached"}
+                    row.life.state === "closing" || row.life.state === "limit_reached" ||
+                    row.life.state === "awaiting_confirmation"}
                   class:bg-accent-paired={row.life.state === "armed"}
                   class:bg-danger-paired={row.life.state === "blocked"}
                   class:bg-[var(--bg-secondary)]={row.life.state === "paused" ||

@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 use super::refusal::{RefusalCode, RuleRefusal};
 
 /// The version this build authors and evaluates.
-pub const CURRENT_SCHEMA_VERSION: u16 = 4;
+pub const CURRENT_SCHEMA_VERSION: u16 = 5;
 
 /// The oldest version this build can still read. Below it, a document is
 /// refused rather than guessed at.
@@ -116,8 +116,21 @@ fn migration_for(from: u16) -> Option<MigrationStep> {
         1 => Some(migrate_v1_to_v2),
         2 => Some(migrate_v2_to_v3),
         3 => Some(migrate_v3_to_v4),
+        4 => Some(migrate_v4_to_v5),
         _ => None,
     }
+}
+
+/// Version 4 to 5: the entry trigger mode of FEAT-0823.
+///
+/// The third pure-addition migration in a row, and the no-op shape is now the
+/// established one: `entry_trigger` is absent-means-default on the wire
+/// (`skip_serializing_if`), its default (`immediate`) is the behaviour every
+/// version 4 rule already had, and the version stamp is excluded from the
+/// content hash — so a v4 document parses, validates and hashes identically
+/// at v5, exactly as the pinned constants in the integration tests assert.
+fn migrate_v4_to_v5(_raw: &mut serde_json::Value) -> Result<(), RuleRefusal> {
+    Ok(())
 }
 
 /// Version 2 to 3: the exit conditions and take-profit distance of FEAT-0809.
@@ -356,6 +369,22 @@ mod tests {
         });
         assert_eq!(migrate_to_current(&mut doc).unwrap(), SchemaVersion::CURRENT);
         assert_eq!(doc, expected, "the v4 step writes nothing but the stamp");
+    }
+
+    #[test]
+    fn a_v4_document_migrates_to_current_with_nothing_but_the_stamp_written() {
+        let mut doc = json!({
+            "schema_version": 4,
+            "name": "x",
+            "entry_trigger": "confirmation"
+        });
+        let expected = json!({
+            "schema_version": CURRENT_SCHEMA_VERSION,
+            "name": "x",
+            "entry_trigger": "confirmation"
+        });
+        assert_eq!(migrate_to_current(&mut doc).unwrap(), SchemaVersion::CURRENT);
+        assert_eq!(doc, expected, "the v5 step writes nothing but the stamp");
     }
 
     #[test]

@@ -84,6 +84,7 @@ function book(overrides: Partial<BotBook> = {}): BotBook {
         submitting: new Set<string>(),
         closing: new Set<string>(),
         unevaluable: new Set<string>(),
+        awaiting: new Set<string>(),
         firedCounts: new Map<string, number>(),
         entriesToday: new Map<string, number>(),
         budgetUsed: new Map<string, Decimal>(),
@@ -271,6 +272,59 @@ const rows: Row[] = [
         name: "a bot with an unmeasurable budget reads limit_reached, never free room",
         rule: { budget_cap: "1000000" },
         book: { budgetUsed: new Map([["bot-1", null]]) },
+        state: "limit_reached",
+        hasPosition: false,
+    },
+    {
+        // FEAT-0823 — the wait is the newest fact an armed bot can carry.
+        name: "a held entry signal reads awaiting_confirmation, not armed",
+        book: { awaiting: new Set(["bot-1"]) },
+        state: "awaiting_confirmation",
+        hasPosition: false,
+    },
+    {
+        name: "a fired bot with a new signal shows the newer fact",
+        book: {
+            awaiting: new Set(["bot-1"]),
+            firedCounts: new Map([["bot-1", 2]]),
+        },
+        state: "awaiting_confirmation",
+        hasPosition: false,
+    },
+    {
+        // A pause stops the entry the signal was promising — the switch
+        // beats the wait, exactly as it beats every other acting state.
+        name: "a paused bot's wait is over — the switch beats the signal",
+        rule: { enabled: false },
+        book: { awaiting: new Set(["bot-1"]) },
+        state: "paused",
+        hasPosition: false,
+    },
+    {
+        name: "an expired bot does not wait",
+        rule: { valid_until_ms: 999 },
+        book: { awaiting: new Set(["bot-1"]) },
+        state: "expired",
+        hasPosition: false,
+    },
+    {
+        name: "a bot that already owns reads in_position even with a signal held",
+        book: {
+            awaiting: new Set(["bot-1"]),
+            positions: [position()],
+        },
+        state: "in_position",
+        hasPosition: true,
+    },
+    {
+        // The standing limit refuses what the confirmation would submit
+        // anyway — promising the entry would be the lie.
+        name: "a day-capped bot does not promise the awaited entry",
+        rule: { max_entries_per_day: 1 },
+        book: {
+            awaiting: new Set(["bot-1"]),
+            entriesToday: new Map([["bot-1", 1]]),
+        },
         state: "limit_reached",
         hasPosition: false,
     },

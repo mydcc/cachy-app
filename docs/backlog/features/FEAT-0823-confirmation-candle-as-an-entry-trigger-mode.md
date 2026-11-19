@@ -2,7 +2,7 @@
 id: FEAT-0823
 title: Confirmation candle as an entry trigger mode
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -62,21 +62,49 @@ Optional, never forced.
 
 ## Acceptance criteria
 
-- [ ] A bot with `confirmation` fires its signal, shows
+- [x] A bot with `confirmation` fires its signal, shows
       `awaiting confirmation`, and enters exactly once at the close of a
       confirming candle.
-- [ ] A counter-confirmation candle produces exactly one expiry record and
+      *Loop tests (9 cases: hold, green entry, red discard, doji-against,
+      stop-out cancel, reload catch-up, quiet catch-up, disabled purge,
+      replay determinism) and the money-path e2e: the entry lands at the
+      confirm close through the same lane every entry takes, counted once,
+      no network.*
+- [x] A counter-confirmation candle produces exactly one expiry record and
       returns the bot to armed without an entry.
-- [ ] The mode is included in the content hash; documents without it keep
+      *The discard lands in the guard ledger (`confirmation-against-direction`)
+      via the same channel every other refusal records through (0822), and
+      the bot re-arms — conditions still holding form the next wait. Pinned
+      in the e2e's counter-candle case and the loop's red/doji cases.*
+- [x] The mode is included in the content hash; documents without it keep
       their existing hash.
-- [ ] The state `awaiting confirmation` is visible in the sidebar (FEAT-0808)
+      *Rust identity tests + entryTrigger.integration against the rebuilt
+      artifact: the pre-field constants hold across the fourth schema
+      crossing; absent == immediate.*
+- [x] The state `awaiting confirmation` is visible in the sidebar (FEAT-0808)
       and derived, not persisted.
-- [ ] Stops and exits never wait for confirmation; a stop-out during the
+      *`BotState.awaiting_confirmation` + `BotBook.awaiting` fed from the
+      loop's per-close report; the chip and rank pinned in BotsList's
+      component tests; nothing persists the wait — a reload re-derives it
+      at the next close (the catch-up's contract, pinned).*
+- [x] Stops and exits never wait for confirmation; a stop-out during the
       wait cancels the pending signal cleanly.
-- [ ] Determinism: given the same candles, the same evaluation replay
+      *The exit window is untouched (0810's own pass); the stop-out cancel
+      is its own discard reason (`signal-stopped-out`) with a loop test and
+      a guard-locale key, and the cancel wins over the direction check.*
+- [x] Determinism: given the same candles, the same evaluation replay
       produces the same entries — no intrabar peeking.
+      *The signal memo is the replay guard — a replayed confirmation close
+      finds it consumed (loop test); the document refuses
+      `confirmation + intrabar` outright (`confirmationNeedsCloses`, both
+      locales), so the wait can never read a forming candle.*
 - [ ] The editor states the trade-off (entry one candle later) in both
       locales, with i18n keys.
+      *Deferred to FEAT-0811, the same deferral 0822's editor criterion
+      carries: the editor section is 0811's deliverable, and shipping its
+      locale keys now would be dead strings no surface renders. The
+      document field, its validation and its sidebar rendering are this
+      item's; the control that sets them is the editor's.*
 
 ## Out of scope
 
@@ -85,11 +113,20 @@ Optional, never forced.
 - Applying confirmation to exits — rejected by design.
 - Intrabar triggers generally (TODO.md #32 tracks the cadence decision).
 
+## Decided questions
+
+- **2026-11-19 (shipped with this item):** The confirmation rule is candle
+  **direction** (green for a long, red for a short, doji against) — the
+  simplest honest rule, as proposed. A "closes beyond the signal close"
+  variant stays expressible later once offset operands exist; direction
+  ships now because it is the version every textbook phrase names.
+
 ## Open questions
 
 - Whether the default confirmation rule should be candle direction or
   "closes in favor of the signal side above/below the signal close".
-  Proposal: direction (green/red), the simplest honest rule.
+  ~~Proposal: direction (green/red), the simplest honest rule.~~ Decided
+  above: direction ships.
 
 ## Links
 

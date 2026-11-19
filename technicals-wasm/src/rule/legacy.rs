@@ -41,7 +41,9 @@
 
 use super::condition::{Condition, CrossDirection, Operand, PriceField, PriceSource};
 use super::consequence::{ConsequenceLevel, RuleAction};
-use super::document::{AuthoringSource, EvaluationMode, FiringPolicy, Provenance, RuleDocument};
+use super::document::{
+    AuthoringSource, EntryTrigger, EvaluationMode, FiringPolicy, Provenance, RuleDocument,
+};
 use super::lifecycle::TriggerFrequency;
 use super::refusal::Refused;
 use super::timeframe::Timeframe;
@@ -118,6 +120,9 @@ pub fn rule_from_alert(
         max_entries_per_day: None,
         max_risk_per_position: None,
         budget_cap: None,
+        // A migrated price alert enters the way it always did — the moment
+        // its condition closes. FEAT-0823's absent-means-immediate.
+        entry_trigger: EntryTrigger::Immediate,
     };
 
     document.validate()?;
