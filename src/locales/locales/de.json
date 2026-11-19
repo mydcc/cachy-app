@@ -961,7 +961,7 @@
     "blockedReason": "Lässt sich gerade nicht auswerten und löst daher nicht aus.",
     "stop": "Stopp",
     "stopNamed": "„{name}“ stoppen: keine neuen Einstiege; eigene Positionen fragen vor dem Schließen nach.",
-    "killAsk": "Einstiege sind gestoppt. Die Position dieses Bots schließen?",
+    "killAsk": "Entries sind gestoppt. Soll die Position, die dieser Bot auf {symbol} hält, geschlossen werden?",
     "killClose": "Schließen",
     "killKeep": "Offen lassen",
     "guardLatest": "Letzter Guard: {reason} ×{count}",
@@ -2988,7 +2988,9 @@
       "exitRefusedOther": "„{name}“ wollte aussteigen, hat aber nichts geschlossen.",
       "introShort": "Ein Alarm, hochgestuft vom Melden zum Handeln.",
       "simulateOnlyShort": "Bots simulieren nur — nichts von dieser Seite erreicht eine Börse.",
-      "promoteHintShort": "Der Alarm bleibt scharf; Hochstufen legt einen Bot an."
+      "promoteHintShort": "Der Alarm bleibt scharf; Hochstufen legt einen Bot an.",
+      "orderRefusedBookUnreadable": "Das Positions-Buch ließ sich nicht lesen, daher können die Limits von {name} nicht greifen — es wurde nichts eröffnet.",
+      "stopAllDone": "{count} Bots gestoppt: keine neuen Entries, bis du einen fortsetzt."
     },
     "densityTitle": "Dichte",
     "densityLabel": "Steuerungsdichte",
@@ -4444,11 +4446,11 @@
     "liveExplain": {
       "heading": "Live-Deutung",
       "hint": "Lass dir sagen, was genau diese Werte gerade bedeuten. Die Anfrage geht an den Anbieter aus den Einstellungen.",
-      "noProvider": "Kein KI-Anbieter eingerichtet. Hinterlege einen unter Einstellungen \u2192 KI, um eine Live-Deutung zu bekommen.",
-      "ask": "Mit {provider} erkl\u00e4ren",
-      "askDisabled": "Erkl\u00e4ren",
-      "streaming": "Der Anbieter antwortet\u2026",
-      "frozen": "Gelesen um {time} \u00b7 {symbol} \u00b7 {timeframe}",
+      "noProvider": "Kein KI-Anbieter eingerichtet. Hinterlege einen unter Einstellungen → KI, um eine Live-Deutung zu bekommen.",
+      "ask": "Mit {provider} erklären",
+      "askDisabled": "Erklären",
+      "streaming": "Der Anbieter antwortet…",
+      "frozen": "Gelesen um {time} · {symbol} · {timeframe}",
       "failed": "Der Anbieter konnte nicht antworten:"
     },
     "title": "Trading Akademie",
@@ -5024,7 +5026,7 @@
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
       "frameIntrabar": "{lead}, wenn während der laufenden {timeframe}-Kerze {condition}",
-    "intrabarSuffix": "— gelesen, während die Kerze noch läuft",
+      "intrabarSuffix": "— gelesen, während die Kerze noch läuft",
       "unless": "— außer wenn {condition}.",
       "empty": "(noch keine Bedingung)",
       "negate": "nicht {condition}",

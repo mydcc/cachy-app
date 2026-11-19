@@ -36,6 +36,7 @@ import type { ConsequenceLevel, RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
 import { armRule, readRuleStore, removeRule } from "./armRule";
 import { readRuleStates } from "./ruleStateStore";
+import { clearBotGuards } from "./botGuardStore";
 
 /**
  * The level that makes a rule a bot.
@@ -150,5 +151,10 @@ export function deleteBot(botId: string): boolean {
   // `cachy_rules_v1` and every invalidation it performs (BUG-0486's anchor
   // forget) applies to a deleted bot too.
   removeRule(botId);
+  // FEAT-0822 — the diagnostic history dies with the bot that earned it: a
+  // reused rule id must not inherit a dead bot's answers to "why did my
+  // bot not act". A leaf-module call (botGuardStore imports nothing that
+  // could pull this module into a cycle).
+  clearBotGuards(botId);
   return true;
 }

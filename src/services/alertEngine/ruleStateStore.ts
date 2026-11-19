@@ -251,7 +251,14 @@ export function botEntryActivity(ruleId: string): { total: number; day: string; 
   try {
     const activity = readRuleStates()[ruleId]?.bot_entries;
     if (activity === undefined) return { total: 0, day: "", today: 0 };
-    return activity;
+    // The day reset is the reader's to answer, not only the writer's: the
+    // writer that would stamp a new day is the submission the spent cap
+    // refuses, so a reader that returned the stored `today` verbatim would
+    // keep a yesterday-spent cap refusing forever after local midnight.
+    // `total` is day-less and stays; `today` answers the day it is.
+    return activity.day === localDayKey()
+      ? activity
+      : { ...activity, today: 0 };
   } catch {
     return { total: 0, day: "", today: 0 };
   }
@@ -457,6 +464,15 @@ export function clearRuleState(ruleId: string): void {
 
   if (!browser) return;
 
+  // Deliberate whole-entry drop, and the one caller that reaches it is the
+  // alert panel's re-arm of a rule that was disarmed by its own firing
+  // (FEAT-0747's history path). A trader pressing Arm there is asking for
+  // the rule *fresh* — fire state, and with it every derived counter, gone:
+  // for a bot that includes `bot_entries`, so a re-arm resets the day cap
+  // and the `once` policy's expiry. That is re-arm semantics, not an
+  // accident: a bot the trader wants to keep bounded keeps its counters by
+  // NOT being re-armed through this path (pause/resume writes `enabled`
+  // only and never comes here).
   const states = readRuleStates();
   if (!(ruleId in states)) return;
 

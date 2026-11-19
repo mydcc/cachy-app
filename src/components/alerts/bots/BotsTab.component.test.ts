@@ -54,8 +54,9 @@ vi.mock("../../../services/alertEngine/botStore", () => ({
   isBot: (rule: RuleDocument) => rule.action?.consequence_level === "simulate",
   setBotEnabled: vi.fn(),
   // The real stopAllBots iterates the store; this harness already owns what
-  // the store would read (storedRules), so the mock serves the same rows.
-  readBots: () => storedRules.filter((rule) => rule.action?.consequence_level === "simulate"),
+  // the store would read (storedRules), so the mock serves the same rows —
+  // a `vi.fn` so one case can also answer the way an unreadable store does.
+  readBots: vi.fn(() => storedRules.filter((rule) => rule.action?.consequence_level === "simulate")),
 }));
 
 vi.mock("../../../lib/rules/ruleSchema", () => ({
@@ -84,7 +85,7 @@ vi.mock("../../../locales/i18n", async () => {
 });
 
 import BotsTab from "./BotsTab.svelte";
-import { setBotEnabled } from "../../../services/alertEngine/botStore";
+import { readBots, setBotEnabled } from "../../../services/alertEngine/botStore";
 import { recordBotGuard } from "../../../services/alertEngine/botGuardStore";
 import { alertState } from "../../../stores/alerts.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
@@ -415,6 +416,25 @@ describe("FEAT-0822 — stop-all and the guard history", () => {
     expect(stopAll).toBeUndefined();
   });
 
+  it("stop all survives an unreadable rule store and stops nothing", () => {
+    storedRules = [storedBot("bot-1")];
+    render();
+
+    // The store's unreadable blob is a routine degradation — Stop-all must
+    // answer 0 and report it, never surface as an unhandled rejection from
+    // the click that triggered it.
+    vi.mocked(readBots).mockImplementationOnce(() => {
+      throw new Error("rule store is not readable");
+    });
+
+    expect(() =>
+      button(translation(en as Record<string, unknown>, "settings.automation.stopAll")).click(),
+    ).not.toThrow();
+    flushSync();
+
+    expect(vi.mocked(setBotEnabled)).not.toHaveBeenCalled();
+  });
+
   it("renders the guard history newest first, one row per reason, counting repeats", () => {
     storedRules = [storedBot("bot-1")];
     render();
@@ -441,5 +461,32 @@ describe("FEAT-0822 — stop-all and the guard history", () => {
       translation(en as Record<string, unknown>, "botsList.guard.slotReserved"),
     );
     expect(rows[1].textContent).toContain("×1");
+  });
+});
+
+describe("FEAT-0822 review — the guard history renders every row", () => {
+  it("an alternating history opens a second row per reason and still renders", () => {
+    // This file's beforeEach clears mocks but not storage, and the guard
+    // ledger survives between cases — start this one's history empty so
+    // the row count is this case's alone.
+    localStorage.clear();
+    storedRules = [bot({ basis: "percent_of_entry", distance: "2" })];
+    render();
+
+    // The ledger's deliberate shape: a reason that recurs after another
+    // intervened opens a NEW row (pinned in botGuardStore.test) — two
+    // `limit-entries-day` rows with different firsts. A key of the reason
+    // alone would throw `each_key_duplicate` on exactly this history.
+    recordBotGuard("bot-1", "limit-entries-day", 0);
+    recordBotGuard("bot-1", "slot-reserved", 1);
+    recordBotGuard("bot-1", "limit-entries-day", 2);
+    alertState.guardsVersion += 1;
+    flushSync();
+
+    const details = host.querySelector<HTMLElement>('[data-testid="bot-guard-history-bot-1"]');
+    expect(details).not.toBeNull();
+    const rows = [...details!.querySelectorAll("li")];
+    expect(rows).toHaveLength(3);
+    expect(rows.filter((row) => row.textContent?.includes("×1"))).toHaveLength(3);
   });
 });

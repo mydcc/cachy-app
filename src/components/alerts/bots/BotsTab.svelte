@@ -405,7 +405,19 @@
                                     })}
                                 </summary>
                                 <ul class="flex flex-col gap-1 mt-1">
-                                    {#each guardRowsOf(bot.id) as guard (guard.reason)}
+                                    <!-- Keyed by index, on purpose: the ledger
+                                         opens a second row when a reason
+                                         recurs after another intervened,
+                                         and rows opened in the same
+                                         millisecond share their reason AND
+                                         their firstAtMs — no field of the
+                                         record is unique. A synthetic key
+                                         would throw `each_key_duplicate` on
+                                         exactly the busy history this view
+                                         exists for; the list is capped at
+                                         twenty static rows, so index-keyed
+                                         reconciliation costs nothing. -->
+                                    {#each guardRowsOf(bot.id) as guard, i (i)}
                                         <li
                                             class="text-xs text-[var(--text-secondary)] flex justify-between gap-2"
                                         >

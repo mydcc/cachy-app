@@ -450,7 +450,7 @@
                 data-testid="bot-kill-confirm"
                 role="alert"
               >
-                {$_("botsList.killAsk")}
+                {$_("botsList.killAsk", { values: { symbol: row.symbol } })}
                 <button
                   type="button"
                   class="py-0.5 px-2 text-[10px] bg-[var(--danger-color)] text-[var(--text-on-danger)] rounded border border-[var(--border-color)]"

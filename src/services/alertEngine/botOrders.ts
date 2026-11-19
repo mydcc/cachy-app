@@ -149,6 +149,7 @@ export type BotOrderRefusal =
   | "stale-anchor-price"
   | "no-equity"
   | "size-not-positive"
+  | "book-unreadable"
   | "level-not-supported"
   | "submission-in-flight"
   | "position-already-open"
@@ -242,8 +243,13 @@ export interface BotOrderEnvironment {
   /**
    * FEAT-0822 — the rows this bot owns, plain, for the position cap and the
    * budget. The same book `hasOpenPosition` reads, filtered to ownership.
+   *
+   * `null` when the book could not be read at all: a degraded read is not
+   * "no owned rows" (that would unbind the position and budget caps exactly
+   * when the trader cannot check them), it is a refusal of its own —
+   * fail-closed, the same word the exit lane gives the same state.
    */
-  ownedPositionsOf: (botId: string) => OwnedRowLite[];
+  ownedPositionsOf: (botId: string) => OwnedRowLite[] | null;
   /**
    * FEAT-0822 — the resting orders, so each owned row's stop can be read
    * where the risk arithmetic lives once (`botGuards.openRiskOfRow`).
@@ -361,9 +367,15 @@ export async function submitBotOrder(
   // The risk and budget halves wait until the quantity exists below — they
   // price the entry being submitted, which is not knowable yet.
   const owned = env.ownedPositionsOf(firing.rule.id);
+  if (owned === null) return "book-unreadable";
   const resting = env.restingOrders();
-  const riskUsed = owned.reduce(
-      (sum, row) => sum.plus(openRiskOfRow(row, resting) ?? 0),
+  const risks = owned.map((row) => openRiskOfRow(row, resting));
+  // `null` (an unmeasurable row) never reads as zero: the budget's room
+  // becomes unprovable, and an unprovable budget is a refused entry, not a
+  // free one. The pure function holds that word via `riskUnmeasurable`.
+  const riskUnmeasurable = risks.some((risk) => risk === null);
+  const riskUsed = risks.reduce<Decimal>(
+      (sum, risk) => sum.plus(risk ?? 0),
       new Decimal(0),
   );
   const activity = env.entryActivityOf(firing.rule.id);
@@ -377,6 +389,7 @@ export async function submitBotOrder(
       budgetCap: firing.rule.budget_cap,
       ownedCount: owned.length,
       riskUsed,
+      riskUnmeasurable,
   });
   const earlyLimit = limitReasons.find(
       (reason) => reason !== "risk" && reason !== "budget",
@@ -432,6 +445,7 @@ export async function submitBotOrder(
       budgetCap: firing.rule.budget_cap,
       ownedCount: owned.length,
       riskUsed,
+      riskUnmeasurable,
       entryRisk,
   }).find((reason) => reason === "risk" || reason === "budget") as BotLimitReason | undefined;
   if (pricedLimit) return LIMIT_REFUSALS[pricedLimit];
@@ -628,7 +642,16 @@ export function withBotOrders(
       return;
     }
     inFlight.add(firing.rule.id);
-    onInFlight?.(inFlight);
+    // Contained on this side too, for the same reason as the release-side
+    // notify below: an observer that throws here would leak the slot for
+    // the whole session — the `.finally` release still runs (it is a
+    // separate chain link), but this call must not turn a taken guard into
+    // an unhandled rejection either.
+    try {
+      onInFlight?.(inFlight);
+    } catch (e) {
+      logger.error("alerts", `[BotOrders] In-flight observer failed for ${firing.rule.id}`, e);
+    }
     reserved.set(slot, firing.rule.id);
 
     void submitBotOrder(firing, env)

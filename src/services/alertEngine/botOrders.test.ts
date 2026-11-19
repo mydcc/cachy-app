@@ -134,7 +134,7 @@ function environment(overrides: Partial<BotOrderEnvironment> = {}) {
     // FEAT-0822 — the guard ports, defaulted to "nothing on record": a
     // test that does not seed them asserts the defaults, not the guards.
     entryActivityOf: () => ({ total: 0, day: "", today: 0 }),
-    recordEntry: () => {},
+    recordEntry: vi.fn(),
     ownedPositionsOf: () => [],
     restingOrders: () => [],
     recordGuard: () => {},
@@ -929,8 +929,9 @@ describe("FEAT-0822 — the firing policy, the limits, and the slot reservation"
     });
     await settle();
     expect(place).toHaveBeenCalledTimes(1);
-    // The entry landed, so the counter counted it.
-    expect(env.recordEntry).toBeDefined();
+    // The entry landed, so the counter counted it — the call, not the
+    // fixture's existence, is the fact under test.
+    expect(env.recordEntry).toHaveBeenCalledWith(once.id);
 
     // Total 1: the same document refuses from here on.
     const refused = await submitBotOrder(firingOf(guardedRule({ firing_policy: "once" })), {
@@ -1004,7 +1005,7 @@ describe("FEAT-0822 — the firing policy, the limits, and the slot reservation"
       amount: "1",
       entryPrice: "50000",
     };
-    const heldStop = { orderId: "o-1", symbol: "BTCUSDT", triggerPrice: "49000", reduceOnly: true, positionId: "p-1" };
+    const heldStop = { orderId: "o-1", symbol: "BTCUSDT", planType: "SL", triggerPrice: "49000", reduceOnly: true, positionId: "p-1" };
 
     // Held risk: 1 BTC entered at 50 000 with its stop resting at 49 000
     // still carries 1 000 of risk. The pending entry adds 2 (0.002 BTC over
@@ -1023,6 +1024,53 @@ describe("FEAT-0822 — the firing policy, the limits, and the slot reservation"
       restingOrders: () => [heldStop],
     });
     expect(fits).toBeNull();
+  });
+
+  it("refuses an entry against a budget it cannot measure, never prices it free", async () => {
+    const { env } = environment();
+    const heldRow = {
+      positionId: "p-1",
+      symbol: "BTCUSDT",
+      side: "long" as const,
+      amount: "1",
+      entryPrice: "50000",
+    };
+
+    // The row's stop no longer rests (it filled, or was cancelled): its
+    // risk is unknown, and a budget with an unknown component has no
+    // provable room. Unknown was never zero — zero here admitted an entry
+    // against a cap nobody could check.
+    const unmeasured = await submitBotOrder(
+      firingOf(guardedRule({ budget_cap: "1000000" })),
+      {
+        ...env,
+        ownedPositionsOf: () => [heldRow],
+        restingOrders: () => [],
+      },
+    );
+    expect(unmeasured).toBe("limit-budget");
+
+    // The same unknown with no budget stated binds nothing: the pure
+    // function refuses only limits the document actually set.
+    const unbound = await submitBotOrder(firingOf(guardedRule()), {
+      ...env,
+      ownedPositionsOf: () => [heldRow],
+      restingOrders: () => [],
+    });
+    expect(unbound).toBeNull();
+  });
+
+  it("refuses outright when the book it would cap against is unreadable", async () => {
+    const { env } = environment();
+
+    // `null` is the degraded read — not "no owned rows", which would unbind
+    // the position and budget caps exactly when the trader cannot check
+    // them. Fail-closed, before any market read or limit arithmetic runs.
+    const refused = await submitBotOrder(firingOf(guardedRule()), {
+      ...env,
+      ownedPositionsOf: () => null,
+    });
+    expect(refused).toBe("book-unreadable");
   });
 
   it("counts a landed entry once, and never counts an attempt that refused", async () => {

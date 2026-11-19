@@ -2606,6 +2606,8 @@ export type TranslationKey =
   | "settings.automation.introShort"
   | "settings.automation.simulateOnlyShort"
   | "settings.automation.promoteHintShort"
+  | "settings.automation.orderRefusedBookUnreadable"
+  | "settings.automation.stopAllDone"
   | "settings.densityTitle"
   | "settings.densityLabel"
   | "settings.densityCompact"

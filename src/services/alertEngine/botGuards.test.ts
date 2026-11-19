@@ -58,6 +58,7 @@ function stopOrder(overrides: Partial<RestingOrderLite> = {}): RestingOrderLite 
     return {
         orderId: "o-1",
         symbol: "BTCUSDT",
+        planType: "SL",
         triggerPrice: "90",
         reduceOnly: true,
         positionId: "p-1",
@@ -108,6 +109,42 @@ describe("FEAT-0822 — the pure guard decisions", () => {
         // is protected when nothing says it is.
         expect(openRiskOfRow(row(), [])).toBeNull();
         expect(openRiskOfRow(row(), [stopOrder({ reduceOnly: false })])).toBeNull();
+    });
+
+    it("prices the stop leg, never the row's take-profit", () => {
+        // A take-profit of the same position is also reduce-only, carries
+        // the same position id and a trigger price — the first match the
+        // naive finder takes. Priced as a stop it would claim protection
+        // the row does not have.
+        const takeProfit = stopOrder({
+            orderId: "o-tp",
+            planType: "TP",
+            triggerPrice: "120",
+        });
+        expect(openRiskOfRow(row(), [takeProfit])).toBeNull();
+
+        // Both legs resting: the SL answers, wherever it sits in the array.
+        const stopLeg = stopOrder({ orderId: "o-sl", triggerPrice: "90" });
+        expect(
+            openRiskOfRow(row(), [takeProfit, stopLeg])?.toString(),
+        ).toBe("20");
+    });
+
+    it("treats a stop on the wrong side of its entry as unmeasurable", () => {
+        // A long whose only resting trigger sits above its entry is not
+        // protected below it — whatever the leg is called, the row can lose
+        // everything under the market. Wrong side is not a smaller risk
+        // number, it is the absence of one.
+        const throughEntry = stopOrder({ triggerPrice: "110" });
+        expect(openRiskOfRow(row(), [throughEntry])).toBeNull();
+
+        // The short mirror: a short's loss side is above its entry, so a
+        // trigger below it does not answer either.
+        const shortRow = row({ side: "short", entryPrice: "100" });
+        expect(openRiskOfRow(shortRow, [stopOrder({ triggerPrice: "90" })])).toBeNull();
+        expect(openRiskOfRow(shortRow, [stopOrder({ triggerPrice: "110" })])?.toString()).toBe(
+            "20",
+        );
     });
 
     it("binds the once policy after the first landed entry, not the first attempt", () => {

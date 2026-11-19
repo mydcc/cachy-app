@@ -59,6 +59,8 @@ export interface OwnedRowLite {
 export interface RestingOrderLite {
     orderId: string;
     symbol: string;
+    /** The plan leg this order is: `"TP"` or `"SL"` on the paper book. */
+    planType?: string;
     triggerPrice?: string;
     reduceOnly?: boolean;
     positionId?: string;
@@ -84,6 +86,14 @@ export interface GuardCheckInputs {
     ownedCount: number;
     /** The open risk those rows hold (their resting stops), already summed. */
     riskUsed: Decimal;
+    /**
+     * Whether any owned row's risk could not be measured — a stop that has
+     * filled, was cancelled, or sits on the wrong side of its entry. The
+     * budget cap binds when this is true: a budget that cannot prove its
+     * room has none (fail-closed, the same word `openRiskOfRow`'s `null`
+     * means).
+     */
+    riskUnmeasurable?: boolean;
     /** The risk the entry being submitted would add, when one is pending. */
     entryRisk?: Decimal;
 }
@@ -117,8 +127,13 @@ export function openRiskOfRow(
     row: OwnedRowLite,
     orders: readonly RestingOrderLite[],
 ): Decimal | null {
+    // The stop leg, not the first reduce-only leg: a take-profit of the same
+    // position is also `reduceOnly` with a `triggerPrice` and the same
+    // `positionId`, and pricing a row by its profit target claims protection
+    // the row does not have. `planType` is what the book wrote the leg as.
     const stop = orders.find(
         (o) =>
+            o.planType === "SL" &&
             o.reduceOnly === true &&
             o.positionId === row.positionId &&
             typeof o.triggerPrice === "string",
@@ -128,6 +143,15 @@ export function openRiskOfRow(
     const entry = new Decimal(row.entryPrice);
     const trigger = new Decimal(stop.triggerPrice ?? "0");
     if (!entry.isFinite() || !trigger.isFinite()) return null;
+
+    // A stop on the wrong side of its entry no longer bounds the loss it was
+    // priced against — a long whose trigger sits above its entry can lose
+    // everything below it, whatever the trigger says. Wrong side is not a
+    // (negative) risk number, it is the absence of one: `null`, the answer
+    // the budget treats as unmeasurable rather than free.
+    const lossSide =
+        row.side === "short" ? trigger.gt(entry) : trigger.lt(entry);
+    if (!lossSide) return null;
 
     return entryRiskAmount(entry, new Decimal(row.amount), trigger);
 }
@@ -166,18 +190,26 @@ export function limitReasonsFor(inputs: GuardCheckInputs): BotLimitReason[] {
         reasons.push("risk");
     }
     if (inputs.budgetCap !== undefined) {
-        const total = inputs.riskUsed.plus(inputs.entryRisk ?? 0);
-        // Two comparators, one limit, both honest: with an entry pending the
-        // cap is inclusive (landing exactly on it is allowed); without one,
-        // "reached" means nothing more fits, and holding the whole budget
-        // is that state. The row's `limit reached` chip answers the second
-        // question, the submission refusal the first.
-        const reached =
-            inputs.entryRisk === undefined
-                ? total.gte(inputs.budgetCap)
-                : total.gt(inputs.budgetCap);
-        if (reached) {
+        // Unmeasurable risk binds before any arithmetic: a budget whose
+        // held risk cannot be summed has no provable room, and `entryRisk`
+        // only ever adds to that unknown. Fail-closed — the alternative is
+        // admitting an entry against a cap nobody could check.
+        if (inputs.riskUnmeasurable === true) {
             reasons.push("budget");
+        } else {
+            const total = inputs.riskUsed.plus(inputs.entryRisk ?? 0);
+            // Two comparators, one limit, both honest: with an entry pending the
+            // cap is inclusive (landing exactly on it is allowed); without one,
+            // "reached" means nothing more fits, and holding the whole budget
+            // is that state. The row's `limit reached` chip answers the second
+            // question, the submission refusal the first.
+            const reached =
+                inputs.entryRisk === undefined
+                    ? total.gte(inputs.budgetCap)
+                    : total.gt(inputs.budgetCap);
+            if (reached) {
+                reasons.push("budget");
+            }
         }
     }
 

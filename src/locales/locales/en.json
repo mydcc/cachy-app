@@ -961,7 +961,7 @@
     "blockedReason": "Cannot be evaluated right now, so it will not fire.",
     "stop": "Stop",
     "stopNamed": "Stop “{name}”: no new entries; owned positions ask before closing.",
-    "killAsk": "Entries are stopped. Close the position this bot owns?",
+    "killAsk": "Entries are stopped. Close the position this bot owns on {symbol}?",
     "killClose": "Close it",
     "killKeep": "Keep it open",
     "guardLatest": "Last guard: {reason} ×{count}",
@@ -2988,7 +2988,9 @@
       "exitRefusedOther": "“{name}” wanted to exit, but closed nothing.",
       "introShort": "An alert promoted to act instead of announce.",
       "simulateOnlyShort": "Bots simulate only — nothing from this page reaches an exchange.",
-      "promoteHintShort": "The alert stays armed; promoting adds a bot."
+      "promoteHintShort": "The alert stays armed; promoting adds a bot.",
+      "orderRefusedBookUnreadable": "The position book could not be read, so the limits {name} set on itself cannot bind — nothing was entered.",
+      "stopAllDone": "Stopped {count} bots: no new entries until you resume one."
     },
     "densityTitle": "Density",
     "densityLabel": "Control density",
@@ -4507,11 +4509,11 @@
     "liveExplain": {
       "heading": "Live reading",
       "hint": "Ask what these exact values say right now. The request goes to the provider configured in Settings.",
-      "noProvider": "No AI provider is configured. Add one under Settings \u2192 AI to get a live reading.",
+      "noProvider": "No AI provider is configured. Add one under Settings → AI to get a live reading.",
       "ask": "Explain with {provider}",
       "askDisabled": "Explain",
-      "streaming": "The provider is answering\u2026",
-      "frozen": "Read at {time} \u00b7 {symbol} \u00b7 {timeframe}",
+      "streaming": "The provider is answering…",
+      "frozen": "Read at {time} · {symbol} · {timeframe}",
       "failed": "The provider could not answer:"
     },
     "title": "Trading Academy",
@@ -5024,7 +5026,7 @@
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
       "frameIntrabar": "{lead} when, inside the forming {timeframe} candle, {condition}",
-    "intrabarSuffix": "— read while the candle is still forming",
+      "intrabarSuffix": "— read while the candle is still forming",
       "unless": "— unless {condition}.",
       "empty": "(no condition yet)",
       "negate": "not {condition}",

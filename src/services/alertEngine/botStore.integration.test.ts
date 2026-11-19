@@ -37,6 +37,7 @@ vi.mock("$app/env", () => ({ browser: true, dev: false }));
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type { RuleDocument } from "../../lib/rules/types";
 import { deleteBot, isBot, readBots, setBotEnabled } from "./botStore";
+import { recordBotGuard, readBotGuards } from "./botGuardStore";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { promoteAlertToBot } from "./promoteAlert";
 
@@ -149,6 +150,18 @@ describe("the bots botStore manages", () => {
     expect(deleteBot(bot.id)).toBe(true);
     expect(stored().map((r) => r.id)).toEqual(["alert-1"]);
     expect(readBots()).toEqual([]);
+  });
+
+  it("deleting a bot clears its guard history with it", () => {
+    const { bot } = seedAlertAndBot();
+    recordBotGuard(bot.id, "slot-reserved", 1);
+    recordBotGuard(bot.id, "limit-entries-day", 2);
+    expect(readBotGuards(bot.id)).toHaveLength(2);
+
+    // A reused rule id must not inherit a dead bot's answers: the history
+    // is the deleted bot's, and it goes where the bot went.
+    expect(deleteBot(bot.id)).toBe(true);
+    expect(readBotGuards(bot.id)).toEqual([]);
   });
 
   it("never authorises a send, armed or not", () => {

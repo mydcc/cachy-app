@@ -267,6 +267,28 @@ describe("FEAT-0807 — the botsState projection", () => {
         expect(botsState.states.get("bot-1")?.state).toBe("limit_reached");
     });
 
+    it("a day cap spent yesterday binds nothing today — the reader answers the rollover", () => {
+        seedBots(
+            botDocument("bot-1", { max_entries_per_day: 1, firing_policy: "multi" }),
+        );
+        // A stored counter from another local day, straight off the ledger:
+        // the writer that would stamp today is the submission the cap would
+        // refuse, so the projection's re-read must answer "today: zero"
+        // for a chip that would otherwise read limit_reached forever.
+        localStorage.setItem(
+            RULE_STATE_STORAGE_KEY,
+            JSON.stringify({
+                "bot-1": {
+                    fired_count: 0,
+                    bot_entries: { total: 1, day: "2000-01-01", today: 1 },
+                },
+            }),
+        );
+        alertState.firingsVersion += 1;
+
+        expect(botsState.states.get("bot-1")?.state).toBe("armed");
+    });
+
     it("introduces no storage key of its own", async () => {
         seedBots(botDocument("bot-1"));
         await openAs("bot-1");

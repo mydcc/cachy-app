@@ -76,11 +76,14 @@ export interface BotBook {
      */
     entriesToday: ReadonlyMap<string, number>;
     /**
-     * FEAT-0822 — the open risk each bot's rows still hold (their resting
-     * stops, unknown reads as zero here only because the enforcement lane
-     * refuses on unknown, never admits). Keyed by bot id.
+     * FEAT-0822 — the open risk each bot's rows still hold, keyed by bot id:
+     * the summed resting-stop risk, or `null` when any row's risk could not
+     * be measured (no stop answering, or one on the wrong side of its
+     * entry). Null never reads as zero — the standing chip treats an
+     * unmeasurable budget as reached, mirroring the enforcement lane's
+     * fail-closed refusal.
      */
-    budgetUsed: ReadonlyMap<string, Decimal>;
+    budgetUsed: ReadonlyMap<string, Decimal | null>;
 }
 
 /** One bot's answer to "what are you doing right now?". */
@@ -158,6 +161,7 @@ export function deriveBotState(rule: RuleDocument, book: BotBook, now: number): 
  * entry through?".
  */
 function standingLimitReached(rule: RuleDocument, book: BotBook): boolean {
+    const budgetUsed = book.budgetUsed.get(rule.id);
     return limitReasonsFor({
         policy: rule.firing_policy ?? "once_per_candle",
         entriesTotal: 0,
@@ -167,7 +171,8 @@ function standingLimitReached(rule: RuleDocument, book: BotBook): boolean {
         maxRiskPerPosition: rule.max_risk_per_position,
         budgetCap: rule.budget_cap,
         ownedCount: 0,
-        riskUsed: book.budgetUsed.get(rule.id) ?? ZERO_RISK,
+        riskUsed: budgetUsed ?? ZERO_RISK,
+        riskUnmeasurable: budgetUsed === null,
     }).some((reason) => reason === "entries-day" || reason === "budget");
 }
 

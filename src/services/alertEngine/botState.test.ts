@@ -264,6 +264,17 @@ const rows: Row[] = [
         hasPosition: false,
     },
     {
+        // The budget's unknown half: a row whose stop does not answer
+        // makes the whole budget unmeasurable, and unmeasurable is the
+        // chip's `limit reached` — never a zero that would promise room
+        // nobody could check.
+        name: "a bot with an unmeasurable budget reads limit_reached, never free room",
+        rule: { budget_cap: "1000000" },
+        book: { budgetUsed: new Map([["bot-1", null]]) },
+        state: "limit_reached",
+        hasPosition: false,
+    },
+    {
         name: "a holding bot at its day cap reads in_position — the position is the stronger truth",
         rule: { max_entries_per_day: 1 },
         book: {

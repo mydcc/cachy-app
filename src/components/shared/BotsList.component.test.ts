@@ -612,6 +612,9 @@ describe("FEAT-0822 — firing limits and the kill switch", () => {
 
         const confirm = host.querySelector<HTMLElement>('[data-testid="bot-kill-confirm"]');
         expect(confirm).not.toBeNull();
+        // The ask names the market the owned position is on, so the trader
+        // confirms the exact close, not a category of closes.
+        expect(confirm?.textContent).toContain("BTCUSDT");
 
         host.querySelector<HTMLElement>('[data-testid="bot-kill-confirm-close"]')!.click();
         await vi.waitFor(() => expect(closeBotOwnedPositionsMock).toHaveBeenCalledWith("bot-1"));

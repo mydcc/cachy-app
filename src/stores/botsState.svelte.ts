@@ -39,8 +39,8 @@
 import type { RuleDocument } from "../lib/rules/types";
 import { Decimal } from "decimal.js";
 import { readBots } from "../services/alertEngine/botStore";
-import { botEntryActivity, readRuleStates } from "../services/alertEngine/ruleStateStore";
-import { openRiskOfRow, type OwnedRowLite } from "../services/alertEngine/botGuards";
+import { readRuleStates } from "../services/alertEngine/ruleStateStore";
+import { localDayKey, openRiskOfRow, type OwnedRowLite } from "../services/alertEngine/botGuards";
 import {
     setBotClosingListener,
     setBotSubmissionsListener,
@@ -125,9 +125,24 @@ class BotsStateManager {
     }
 
     private buildBook(): BotBook {
+        // One read of the fire-state ledger for every consumer it feeds:
+        // `firedCounts`, and the per-bot entry counters below. Parsing the
+        // whole blob once per bot per recompute — a projection that ticks
+        // with the clock — was the accidental cost this map removes.
+        const ruleStates = readRuleStates();
         const firedCounts = new Map<string, number>();
-        for (const [ruleId, state] of Object.entries(readRuleStates())) {
+        const activityByBot = new Map<string, { total: number; today: number }>();
+        for (const [ruleId, state] of Object.entries(ruleStates)) {
             firedCounts.set(ruleId, state.fired_count ?? 0);
+            const entries = state.bot_entries;
+            if (entries === undefined) continue;
+            // The same day-rollover `botEntryActivity` answers with: a
+            // stored `today` from another day reads as zero here too, so
+            // the chip and the lane can never disagree about the day.
+            activityByBot.set(ruleId, {
+                total: entries.total,
+                today: entries.day === localDayKey() ? entries.today : 0,
+            });
         }
         // FEAT-0822 — the standing limits' consumption, read per bot from the
         // same durable counter the enforcement lane refuses with and the
@@ -136,18 +151,27 @@ class BotsStateManager {
         // function, so a chip that says `limit reached` and an engine that
         // refuses can never disagree about whether a limit binds.
         const entriesToday = new Map<string, number>();
-        const budgetUsed = new Map<string, Decimal>();
+        const budgetUsed = new Map<string, Decimal | null>();
         const orders = paperState.orders;
         for (const bot of readBotsOrRefusal().bots) {
             if (typeof bot.id !== "string") continue;
-            entriesToday.set(bot.id, botEntryActivity(bot.id).today);
-            const used = paperState.positions
+            entriesToday.set(bot.id, activityByBot.get(bot.id)?.today ?? 0);
+            const risks = paperState.positions
                 .filter((p) => p.origin === "bot" && p.botId === bot.id)
-                .reduce(
-                    (sum, row) => sum.plus(openRiskOfRow(row as OwnedRowLite, orders) ?? 0),
-                    new Decimal(0),
-                );
-            budgetUsed.set(bot.id, used);
+                .map((row) => openRiskOfRow(row as OwnedRowLite, orders));
+            // `null` (a row whose stop does not answer, or one on the wrong
+            // side of its entry) makes the whole budget unmeasurable, never
+            // zero: the standing chip treats it as reached, mirroring the
+            // lane's fail-closed refusal — unknown risk is never free.
+            budgetUsed.set(
+                bot.id,
+                risks.some((risk) => risk === null)
+                    ? null
+                    : risks.reduce<Decimal>(
+                          (sum, risk) => sum.plus(risk ?? 0),
+                          new Decimal(0),
+                      ),
+            );
         }
         return {
             positions: paperState.positions,

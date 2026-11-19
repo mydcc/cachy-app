@@ -78,14 +78,20 @@ in the journal's per-bot review (FEAT-0812).
 
 ## Acceptance criteria
 
-- [x] A bot with `once_per_candle` fires at most once per closed candle even
+- [ ] A bot with `once_per_candle` fires at most once per closed candle even
       when the condition holds on the next evaluation; the suppressed repeat
       appears once in the guard log.
-      *Shipped split: the within-candle suppression is the evaluation gate's
-      announce map (FEAT-0477, pinned in its own tests — a repeat the gate
-      withholds never reaches the lane); the lane-level refusals the guard
-      log counts are `policy-once` and the limits (botOrders tests pin the
-      once-expiry after a landed entry).* 
+      *Delivered in halves, and only one of them is this item's: the
+      within-candle suppression is real and pinned, but it happens in the
+      evaluation gate's announce map (FEAT-0477, pinned in its own tests) —
+      a repeat the gate withholds never reaches the lane, so it never
+      reaches the guard log either. Recording gate-side suppressions in the
+      ledger would need a gate→ledger notification channel the evaluation
+      core deliberately does not have (it is store-free by design);
+      deferring that channel rather than breaking the core's boundary.
+      What the guard log DOES record, pinned in botOrders tests: the
+      `once` policy's expiry after a landed entry, and every limit
+      refusal.* 
 - [x] A `multi` bot with `max positions: 1` refuses a second entry with a
       visible reason and stays healthy for the next legitimate exit/entry
       cycle.

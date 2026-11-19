@@ -207,3 +207,26 @@ export function recordBotGuard(ruleId: string, reason: string, anchorMs?: number
     logger.error("alerts", `[BotGuards] Recording a guard event for ${ruleId} failed`, e);
   }
 }
+
+/**
+ * Drops one rule's diagnostic history entirely.
+ *
+ * Called from `deleteBot`: the history is the *dead bot's* answer to "why
+ * did my bot not act", and a rule id the trader reuses later must not
+ * inherit it — the new bot's refusals are its own story. Never throws, for
+ * the same reason the recorder never does: a diagnostic ledger must not
+ * take down the deletion it rides along with.
+ */
+export function clearBotGuards(ruleId: string): void {
+  if (!browser) return;
+  try {
+    const ledger = readLedger();
+    if (ledger.per_rule === undefined || ledger.per_rule[ruleId] === undefined) {
+      return;
+    }
+    delete ledger.per_rule[ruleId];
+    writeLedger(ledger);
+  } catch (e) {
+    logger.error("alerts", `[BotGuards] Clearing guard history for ${ruleId} failed`, e);
+  }
+}

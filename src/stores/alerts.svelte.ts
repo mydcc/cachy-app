@@ -378,7 +378,14 @@ export function botOrderEnvironment(
         // unreadable book answers "no owned rows" only after warning once.
         entryActivityOf: (botId) => botEntryActivity(botId),
         recordEntry: (botId) => recordBotEntry(botId),
-        ownedPositionsOf: (botId) => ownedBotPositions(botId),
+        ownedPositionsOf: (botId) =>
+            // FEAT-0822 review — the order lane's cap reads are fail-closed:
+            // a book the app cannot read refuses the entry outright
+            // (`book-unreadable`) rather than answering "no owned rows",
+            // which would unbind the position and budget caps exactly when
+            // the trader cannot check them. The exit window keeps its own
+            // degraded answer over the same store.
+            paperState.bookUnreadable ? null : ownedBotPositions(botId),
         restingOrders: () => paperState.orders,
         recordGuard: (botId, reason, anchorMs) => {
             recordBotGuard(botId, reason, anchorMs);
@@ -428,6 +435,10 @@ const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, TranslationKey> = {
     "stale-anchor-price": "settings.automation.orderRefusedStaleAnchor",
     "no-equity": "settings.automation.orderRefusedOther",
     "size-not-positive": "settings.automation.orderRefusedOther",
+    // The caps cannot bind over a book the app cannot read — fail-closed,
+    // with its own word so the trader is not sent looking for a stop or a
+    // price that was never the problem.
+    "book-unreadable": "settings.automation.orderRefusedBookUnreadable",
     "level-not-supported": "settings.automation.orderRefusedLevelNotSupported",
     // FEAT-0488 — both of these are limits rather than faults. A bot that says
     // nothing about why it stopped is the failure this channel exists to avoid,
@@ -668,6 +679,14 @@ export async function closeBotOwnedPositions(
         if (refusal === null) closed += 1;
         else refused.push(refusal);
     }
+    // A refusal the trader never hears is a position they believe is gone
+    // while it is still owned: each refused close reports through the exit
+    // lane's own channel, once per reason, naming the bot. The kill's
+    // caller still gets the full {closed, refused} answer for its own
+    // accounting and tests.
+    for (const refusal of refused) {
+        reportBotExitRefusal({ rule: bot }, refusal as BotExitRefusal);
+    }
     return { closed, refused };
 }
 
@@ -677,13 +696,32 @@ export async function closeBotOwnedPositions(
  * caller can say so rather than imply a fleet it did not find.
  */
 export function stopAllBots(): number {
+    // The rule store's unreadable blob is a routine degradation — the
+    // Manage tab renders its refusal rather than dying, and Stop-all must
+    // not become an unhandled rejection on top of it. Nothing can be
+    // listed, so nothing was stopped.
+    let bots: RuleDocument[];
+    try {
+        bots = readBots();
+    } catch (e) {
+        logger.warn("alerts", "[StopAllBots] rule store unreadable — nothing stopped", e);
+        return 0;
+    }
     let stopped = 0;
-    for (const bot of readBots()) {
+    for (const bot of bots) {
         if (typeof bot.id !== "string") continue;
         if (bot.enabled !== false) {
             setBotEnabled(bot.id, false);
             stopped += 1;
         }
+    }
+    // The count is said rather than implied: a button that stops three of
+    // five bots and reports nothing leaves the two it found disabled
+    // looking like an oversight.
+    if (stopped > 0) {
+        toastService.success(
+            get(_)("settings.automation.stopAllDone", { values: { count: stopped } }),
+        );
     }
     return stopped;
 }

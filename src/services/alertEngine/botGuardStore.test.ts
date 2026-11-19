@@ -32,6 +32,7 @@ vi.mock("$app/env", () => ({ browser: true }));
 import {
   BOT_GUARD_MAX_PER_RULE,
   BOT_GUARD_STORAGE_KEY,
+  clearBotGuards,
   readBotGuards,
   recordBotGuard,
 } from "./botGuardStore";
@@ -142,5 +143,18 @@ describe("FEAT-0822 — the guard log", () => {
     // Storage is oldest-first; the reader answers newest-first.
     const rows = readBotGuards("bot-1");
     expect(rows.map((r) => r.reason)).toEqual(["limit-entries-day", "slot-reserved"]);
+  });
+
+  it("clearing a rule's history drops it alone, leaving other rules untouched", () => {
+    recordBotGuard("bot-1", "slot-reserved", 1);
+    recordBotGuard("bot-2", "limit-entries-day", 1);
+
+    clearBotGuards("bot-1");
+
+    expect(readBotGuards("bot-1")).toEqual([]);
+    expect(readBotGuards("bot-2")).toHaveLength(1);
+
+    // An absent rule clears to the same silence — never a throw.
+    expect(() => clearBotGuards("nobody")).not.toThrow();
   });
 });
