@@ -244,6 +244,37 @@ refusal_codes! {
     /// field sitting unread is the one a trader would later swear they had
     /// armed.
     StopNotHonoured => "stopNotHonoured",
+    /// A third-party aggregate asked to close a position — FEAT-0809.
+    ///
+    /// ADR-0012 decision 7 keeps `external_feed` legal in `veto` only, and
+    /// `ExternalFeedTrigger` already says why a feed may never *cause* an
+    /// action. An exit is an action with the same honesty problem: a
+    /// backtest cannot replay a closing decision made on an unversioned
+    /// feed. The message tells the author where a feed *is* legal, the same
+    /// courtesy `ExternalFeedTrigger` pays.
+    ExternalFeedExit => "externalFeedExit",
+    /// Exits on a document that can never own a position — FEAT-0809.
+    ///
+    /// A `notify` rule announces; it holds no book, so nothing would ever
+    /// evaluate an exit against a position. The refusal names the exit
+    /// field the way `FieldNotHonouredAtLevel` names `action.order`, so the
+    /// author is told which half of their document contradicts the other.
+    ExitsAtNotifyLevel => "exitsAtNotifyLevel",
+    /// An `exits` array with no members — FEAT-0809.
+    ///
+    /// Absence already means "no exits beyond the stop", exactly as it did
+    /// for every rule written before the field existed, so an empty array is
+    /// a document that says nothing in a way that looks like it says
+    /// something. The crate's rule about unread fields applies once more:
+    /// the field a trader would swear they had armed is the one to refuse.
+    EmptyExitsArray => "emptyExitsArray",
+    /// A closing fraction that cannot describe any position — FEAT-0809.
+    ///
+    /// One code for the three ways a fraction lies: absent where a partial
+    /// close needs one, present where `all` makes it meaningless, and a
+    /// value outside `(0, 1]`. The field path names the exact slot, and the
+    /// detail names which of the three it is.
+    ExitFractionInvalid => "exitFractionInvalid",
 }
 
 /// One reason a document was refused, naming the field responsible.
@@ -453,6 +484,10 @@ mod tests {
         "invalid_derived_from_hash",
         "stop_required_for_risk_sizing",
         "stop_not_honoured",
+        "external_feed_exit",
+        "exits_at_notify_level",
+        "empty_exits_array",
+        "exit_fraction_invalid",
     ];
 
     #[test]

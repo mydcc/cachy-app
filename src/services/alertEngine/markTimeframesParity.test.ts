@@ -45,8 +45,8 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import type { Condition, Operand, RuleDocument } from "../../lib/rules/types";
-import { collectMarkTimeframes, RuleEvaluationLoop } from "./ruleEvaluationLoop";
+import type { Condition, ExitRule, Operand, RuleDocument } from "../../lib/rules/types";
+import { collectMarkTimeframes, collectTimeframes, RuleEvaluationLoop } from "./ruleEvaluationLoop";
 
 // Resolved from the repo root, not from this file: a bare relative specifier
 // in a dynamic import resolves against the importing module's directory.
@@ -72,6 +72,7 @@ function doc(
   conditions: Condition,
   veto?: Condition,
   consequence_level: "notify" | "simulate" = "notify",
+  exits?: ExitRule[],
 ): RuleDocument {
   return {
     schema_version: 1,
@@ -81,10 +82,12 @@ function doc(
     trigger_timeframe: "1m",
     conditions,
     ...(veto === undefined ? {} : { veto }),
+    ...(exits === undefined ? {} : { exits }),
     action:
       // A `simulate` rule must say what it would submit; the order is inert
       // here — parity is about which series the conditions read, not about
-      // consequences.
+      // consequences. A document with exits must be `simulate` or the core
+      // refuses it before parity can be measured.
       consequence_level === "simulate"
         ? { consequence_level, order: { side: "buy", size_basis: "quote_notional", size: "100" } }
         : { consequence_level },
@@ -121,6 +124,8 @@ interface CorpusCase { name: string;
   tsOnly?: string[];
   /** A `notify` rule cannot read account state; position and account need `simulate`. */
   consequence_level?: "notify" | "simulate";
+  /** FEAT-0809: exit conditions read series like the trigger does. */
+  exits?: ExitRule[];
 }
 
 const CORPUS: CorpusCase[] = [
@@ -265,6 +270,25 @@ const CORPUS: CorpusCase[] = [
     name: "a cross of two windows reads the mark side's timeframe",
     conditions: { kind: "cross", left: windowOf(mark()), direction: "above", right: windowOf(last()), timeframe: "1m" },
   },
+  {
+    name: "an exit naming a mark condition is collected like the trigger's",
+    conditions: { kind: "compare", left: last(), op: "gte", right: constant(), timeframe: "1m" },
+    exits: [{ when: { kind: "compare", left: mark(), op: "gte", right: constant(), timeframe: "4h" }, close: "all" }],
+    consequence_level: "simulate",
+  },
+  {
+    name: "conditions, veto and exits each contribute their mark timeframes",
+    conditions: { kind: "compare", left: mark(), op: "gte", right: constant(), timeframe: "1m" },
+    veto: { kind: "cross", left: mark(), direction: "below", right: constant(), timeframe: "15m" },
+    exits: [
+      {
+        when: { kind: "compare", left: mark(), op: "gte", right: constant(), timeframe: "4h" },
+        close: "partial",
+        fraction: "0.5",
+      },
+    ],
+    consequence_level: "simulate",
+  },
 ];
 
 /** The core answers refusals as a JS value; render it readably on failure. */
@@ -277,9 +301,9 @@ function tryStringify(e: unknown): string {
 }
 
 describe("mark-timeframe parity with the core — BUG-0482", () => {
-  for (const { name, conditions, veto, tsOnly, consequence_level } of CORPUS) {
+  for (const { name, conditions, veto, tsOnly, consequence_level, exits } of CORPUS) {
     it(`TS and core agree: ${name}`, () => {
-      const document = doc(conditions, veto, consequence_level);
+      const document = doc(conditions, veto, consequence_level, exits);
 
       const fromTs = [...collectMarkTimeframes(document)].sort();
       if (tsOnly !== undefined) {
@@ -321,6 +345,20 @@ describe("mark-timeframe parity with the core — BUG-0482", () => {
 
     expect([...collectMarkTimeframes(document)]).toEqual([]);
     expect([...core.rule_mark_timeframes(JSON.stringify(document))]).toEqual([]);
+  });
+
+  /** FEAT-0809: the plain-timeframe mirror walks exits like the core does. */
+  it("an exit's timeframe reaches the plain-timeframe mirror and the core alike", () => {
+    const document = doc(
+      { kind: "compare", left: last(), op: "gte", right: constant(), timeframe: "1m" },
+      undefined,
+      "simulate",
+      [{ when: { kind: "compare", left: last(), op: "gte", right: constant(), timeframe: "4h" }, close: "all" }],
+    );
+
+    expect([...collectTimeframes(document)].sort()).toEqual(
+      [...core.rule_timeframes(JSON.stringify(document))].sort(),
+    );
   });
 
   /**

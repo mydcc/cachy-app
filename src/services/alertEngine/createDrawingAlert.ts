@@ -48,6 +48,7 @@ import { Decimal } from "decimal.js";
 import { levelAt } from "../../lib/chart/drawings/levelAt";
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
 import type { EvaluationMode, Provenance, RuleDocument } from "../../lib/rules/types";
+import { ruleSchema } from "../../lib/rules/ruleSchema";
 import { generateId } from "../../utils/utils";
 import { logger } from "../logger";
 import { armRule, removeRule } from "./armRule";
@@ -135,7 +136,11 @@ export function buildDrawingAlert(request: DrawingAlertRequest): DrawingAlertRes
     return {
         ok: true,
         rule: {
-            schema_version: 2,
+            // FEAT-0809: stamped with whatever the loaded core currently
+            // reads, not a number hand-copied from the last bump — an app
+            // that authors one version behind what it parses is an app
+            // whose own documents look stale to its own validator.
+            schema_version: ruleSchema.schemaVersion(),
             id: request.id ?? generateId(),
             name: request.name ?? defaultName(request.drawing),
             symbol: request.drawing.symbol,

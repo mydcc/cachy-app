@@ -2,7 +2,7 @@
 id: FEAT-0809
 title: Add exit conditions and a take-profit distance to the strategy document
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: ADR-0026
 depends_on: [FEAT-0806]
+assignee: opencode
+branch: feature/feat-0809-exit-conditions-and-take-profit
 parent: FEAT-0805
 size: L
 estimate: 8
@@ -81,23 +83,23 @@ rewrite history.
 
 ## Acceptance criteria
 
-- [ ] A document with `exits` round-trips through the wasm validator and the
+- [x] A document with `exits` round-trips through the wasm validator and the
       TypeScript types; a document without it validates and keeps its old hash,
       pinned by the existing pre-field hash tests.
-- [ ] `exits` and `take_profit` change the content hash; editing only `name`,
+- [x] `exits` and `take_profit` change the content hash; editing only `name`,
       `enabled`, `frequency`, `valid_until_ms` or `note` still does not.
-- [ ] `external_feed` inside an exit is refused with a refusal naming the field,
+- [x] `external_feed` inside an exit is refused with a refusal naming the field,
       and the same feed remains legal inside `veto`.
-- [ ] A `notify` document with `exits` is refused, naming
+- [x] A `notify` document with `exits` is refused, naming
       `exits`.
-- [ ] `close: "partial"` without a fraction, with `fraction <= 0` or `> 1` is
+- [x] `close: "partial"` without a fraction, with `fraction <= 0` or `> 1` is
       refused; `close: "all"` with a fraction is refused.
-- [ ] A tree deeper than `MAX_CONDITION_DEPTH` is refused at the exit site.
-- [ ] Every refusal has an i18n key and a test that asserts the field path.
-- [ ] An exit condition on `unrealised_pnl_percent` validates and is hashed;
+- [x] A tree deeper than `MAX_CONDITION_DEPTH` is refused at the exit site.
+- [x] Every refusal has an i18n key and a test that asserts the field path.
+- [x] An exit condition on `unrealised_pnl_percent` validates and is hashed;
       it is refused nowhere except by the general exit rules above — the
       operand stays legal inside `exits`, reading the owned position.
-- [ ] No UI is added in this item; the editor is FEAT-0811.
+- [x] No UI is added in this item; the editor is FEAT-0811.
 
 ## Out of scope
 

@@ -878,6 +878,8 @@ mod tests {
             frequency: TriggerFrequency::Once,
             valid_until_ms: None,
             note: None,
+            exits: None,
+            take_profit: None,
         }
     }
 
@@ -977,6 +979,8 @@ mod tests {
             frequency: TriggerFrequency::Once,
             valid_until_ms: None,
             note: None,
+            exits: None,
+            take_profit: None,
         }
     }
 

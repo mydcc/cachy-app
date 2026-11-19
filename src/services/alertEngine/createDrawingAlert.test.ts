@@ -31,6 +31,7 @@ import { Decimal } from "decimal.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
+import { ruleSchema } from "../../lib/rules/ruleSchema";
 import { RULE_DRAWING_STORAGE_KEY, readDrawingAnchorLedger } from "./drawingAnchors";
 import { armDrawingAlert, buildDrawingAlert } from "./createDrawingAlert";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
@@ -83,6 +84,25 @@ function storedRules(): unknown[] {
 
 beforeEach(() => {
     localStorage.clear();
+    // FEAT-0809: the builder stamps whatever the loaded core reads. This
+    // test exercises the builder, not the core, so the seam is a spy —
+    // no unit test here should have to load a wasm binary to learn a
+    // version number, and the `restores every spy` afterEach puts the
+    // real method back.
+    vi.spyOn(ruleSchema, "schemaVersion").mockReturnValue(3);
+});
+
+describe("the version it stamps", () => {
+    it("reads the schema version from the loaded core, not a copied number", () => {
+        // FEAT-0809: the stamp comes from `ruleSchema.schemaVersion()`.
+        // The default spy says 3; this one says 7, and the document says
+        // 7 — proving the builder delegates rather than hardcodes, which
+        // is exactly what stopped `createDrawingAlert` from lagging the
+        // schema bump in the first place.
+        vi.spyOn(ruleSchema, "schemaVersion").mockReturnValue(7);
+        const result = buildDrawingAlert(request());
+        expect(result.ok && result.rule.schema_version).toBe(7);
+    });
 });
 
 // A throwing assertion mid-test must never leak its storage spy into the
@@ -93,8 +113,7 @@ afterEach(() => {
 
 describe("which way the alert watches", () => {
     it("watches upward when price is below the line", () => {
-        expect(comparison(buildDrawingAlert(request())).op).toBe("gte");
-    });
+        expect(comparison(buildDrawingAlert(request())).op).toBe("gte");    });
 
     it("watches downward when price is above the line", () => {
         const result = buildDrawingAlert(request({ currentPrice: new Decimal("51000") }));

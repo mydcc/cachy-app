@@ -372,14 +372,17 @@ describe("duplicateRule — FEAT-0746", () => {
     expect(states["rule-1"]).toMatchObject({ fired_count: 3 });
   });
 
-  it("migrates a v1 source to a v2 copy without rewriting the source", () => {
+  it("migrates a v1 source to a current-version copy without rewriting the source", () => {
     seed(rule({ schema_version: 1 }));
 
     const result = duplicateRule("rule-1");
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.rule.schema_version).toBe(2);
+    // FEAT-0809 bumped the current schema to v3; the copy is stamped with
+    // whatever the core currently reads, while the stored source keeps the
+    // version it was armed under — meaning preserved either way.
+    expect(result.rule.schema_version).toBe(3);
     expect(readRuleStore().find((r) => r.id === "rule-1")?.schema_version).toBe(1);
   });
 

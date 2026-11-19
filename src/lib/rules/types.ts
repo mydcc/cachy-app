@@ -242,6 +242,28 @@ export interface RuleAction {
   order?: OrderIntent;
 }
 
+/**
+ * How much of the owned position one exit closes. Mirrors `ExitClose` in
+ * `technicals-wasm/src/rule/document.rs`.
+ */
+export type ExitClose = "all" | "partial";
+
+/**
+ * One way this bot leaves the position it owns — FEAT-0809.
+ *
+ * `when` is the same condition language the trigger speaks; inside it,
+ * account state is legal from `simulate` up (the exit reads the position the
+ * bot owns — ADR-0026 decisions 2 and 5) and `external_feed` is refused:
+ * an exit is an action, and a backtest cannot replay a closing decision
+ * made on an unversioned feed.
+ */
+export interface ExitRule {
+  when: Condition;
+  close: ExitClose;
+  /** Required for `partial`, refused for `all`: `0 < fraction <= 1`. */
+  fraction?: DecimalString;
+}
+
 export interface Provenance {
   source: "human" | "model";
   created_at_ms: number;
@@ -299,6 +321,20 @@ export interface RuleDocument {
   conditions: Condition;
   veto?: Condition;
   action: RuleAction;
+  /**
+   * FEAT-0809. Ways this bot leaves the position it owns, evaluated by the
+   * same core while the position is open. Hashed — an exit is part of what
+   * the strategy means, and a journal entry must not keep pointing at a rule
+   * whose exits were edited. Absent means the resting stop is the whole exit
+   * story, exactly as it was for every rule before this field.
+   */
+  exits?: ExitRule[];
+  /**
+   * FEAT-0809. A profit target, resolved against the actual entry like
+   * `OrderIntent.stop` and never a stored price, so it cannot go stale.
+   * Hashed, for the same reason the stop is.
+   */
+  take_profit?: StopDistance;
   enabled?: boolean;
   provenance: Provenance;
 
