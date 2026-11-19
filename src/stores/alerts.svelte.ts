@@ -31,6 +31,8 @@ import {
     exitActionAnchorFor,
     recordExitActionAnchor,
 } from "../services/alertEngine/ruleStateStore";
+import { botEntryActivity, recordBotEntry } from "../services/alertEngine/ruleStateStore";
+import { recordBotGuard } from "../services/alertEngine/botGuardStore";
 import {
     reconcileStoredRules,
     type OrphanReconciliation,
@@ -360,6 +362,15 @@ export function botOrderEnvironment(
             (paperState.enabled ? paperState.positions : accountState.positions).some(
                 (p) => p.symbol === symbol && p.side === side,
             ),
+        // FEAT-0822 — the guard ports: the stores this wiring already owns,
+        // handed to the lane so it stays testable and store-free. The
+        // ownership read is the same degraded one the exits use: an
+        // unreadable book answers "no owned rows" only after warning once.
+        entryActivityOf: (botId) => botEntryActivity(botId),
+        recordEntry: (botId) => recordBotEntry(botId),
+        ownedPositionsOf: (botId) => ownedBotPositions(botId),
+        restingOrders: () => paperState.orders,
+        recordGuard: (botId, reason, anchorMs) => recordBotGuard(botId, reason, anchorMs),
         // Imported at the moment an order is actually placed, not at startup.
         // `orderPlacementService` pulls the TP/SL stores and the trade service
         // in behind it, and the alert engine starts on every session —

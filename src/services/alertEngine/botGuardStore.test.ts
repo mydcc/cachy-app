@@ -139,7 +139,8 @@ describe("FEAT-0822 — the guard log", () => {
       }),
     );
 
+    // Storage is oldest-first; the reader answers newest-first.
     const rows = readBotGuards("bot-1");
-    expect(rows.map((r) => r.reason)).toEqual(["slot-reserved", "limit-entries-day"]);
+    expect(rows.map((r) => r.reason)).toEqual(["limit-entries-day", "slot-reserved"]);
   });
 });
