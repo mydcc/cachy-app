@@ -444,7 +444,7 @@ let rootElement: HTMLElement | null = null;
     {#snippet fieldRefusals(field: ShellField)}
         <div class="field-refusals" id={SHELL_REFUSAL_IDS[field]}>
             {#each refusalsForField(alertPanelState.refusals, field) as refusal (refusal.code + refusal.field)}
-                <span class="refusal">{$_(refusal.i18n_key as TranslationKey, { field: refusal.field })}</span>
+                <span class="refusal">{$_(refusal.i18n_key as TranslationKey, { values: { field: refusal.field } })}</span>
             {/each}
         </div>
     {/snippet}
@@ -634,7 +634,7 @@ let rootElement: HTMLElement | null = null;
                 <strong>{$_("dashboard.alerts.panel.otherRefusals")}</strong>
                 <ul>
                     {#each otherRefusals as refusal (refusal.code + refusal.field)}
-                        <li><code>{refusal.field}</code> — {$_(refusal.i18n_key as TranslationKey, { field: refusal.field })}</li>
+                        <li><code>{refusal.field}</code> — {$_(refusal.i18n_key as TranslationKey, { values: { field: refusal.field } })}</li>
                     {/each}
                 </ul>
             </div>
