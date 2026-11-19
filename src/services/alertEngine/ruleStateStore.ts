@@ -83,12 +83,39 @@ function normalizeState(stored: unknown): RuleState {
   if (evaluated !== null) state.last_evaluated_anchor_ms = evaluated;
   if (intrabar !== null) state.last_intrabar_anchor_ms = intrabar;
   if (intrabarFired !== null) state.last_intrabar_fired_anchor_ms = intrabarFired;
+
+  // FEAT-0810 — the exit action ledger. Sparse for the same reason as the
+  // anchors above: entries written before this field carry none and must
+  // keep reading exactly as before. A corrupt entry reads as absent, which
+  // errs towards acting — but the window that consults it also re-reads the
+  // position, so an orphaned anchor can at worst mute an exit for a
+  // position that no longer exists.
+  const exitAnchors = asExitAnchors(stored.last_exit_action_anchors);
+  if (exitAnchors !== undefined) state.last_exit_action_anchors = exitAnchors;
   return state;
 }
 
 /** A finite anchor instant, or absent. Non-finite is corrupt, not zero. */
 function asAnchorMs(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * The stored exit action ledger, or absent when it is not a plain object of
+ * finite anchors. Tolerant per entry: one corrupt positionId is dropped, not
+ * the whole ledger — the other positions' idempotency must survive one bad
+ * row.
+ */
+function asExitAnchors(value: unknown): Record<string, number> | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const anchors: Record<string, number> = {};
+  let any = false;
+  for (const [positionId, anchor] of Object.entries(value)) {
+    if (typeof anchor !== "number" || !Number.isFinite(anchor)) continue;
+    anchors[positionId] = anchor;
+    any = true;
+  }
+  return any ? anchors : undefined;
 }
 
 /** The stored gate anchors as the persistence port carries them. */
@@ -170,6 +197,60 @@ export function recordRuleFiring(ruleId: string, anchorMs: number): RuleState {
     writeRuleStates(states);
   }
   return next;
+}
+
+/**
+ * FEAT-0810 — records that a rule's exit acted on one position at an anchor.
+ *
+ * The durable half of the exit window's idempotency. Written before the
+ * sink runs, so a sink that throws cannot erase the ledger entry — a retry
+ * over the same anchor reads the record and stays quiet instead of closing
+ * twice.
+ *
+ * Read-modify-write with a spread, unlike `recordRuleFiring`'s replacement:
+ * a firing is a whole-entry event (the gate re-saves its own anchors after),
+ * while an exit action is one position's fact and must not cost the rule its
+ * fire count or its gate anchors.
+ *
+ * Never throws, for the same reason as `saveBotAnchors`: a persistence hiccup
+ * must not take down the evaluation that just succeeded. The cost of a lost
+ * write is one repeat action attempt, which the close path's own guards
+ * (position re-read, in-flight) bound.
+ */
+export function recordExitActionAnchor(ruleId: string, positionId: string, anchorMs: number): void {
+  if (!browser) return;
+  try {
+    const states = readRuleStates();
+    const previous = states[ruleId] ?? NEVER_FIRED;
+    states[ruleId] = {
+      ...previous,
+      last_exit_action_anchors: {
+        ...(previous.last_exit_action_anchors ?? {}),
+        [positionId]: anchorMs,
+      },
+    };
+    writeRuleStates(states);
+  } catch (e) {
+    logger.error("alerts", `[RuleState] Recording exit action for ${ruleId} failed`, e);
+  }
+}
+
+/**
+ * FEAT-0810 — the anchor at which this rule's exit last acted on this
+ * position, or `null` when it never did (or the ledger could not be read).
+ *
+ * Null errs towards acting, the loud direction — and the window that
+ * consults it re-reads the position anyway, so a stale anchor can only mute
+ * an exit for a position that no longer exists.
+ */
+export function exitActionAnchorFor(ruleId: string, positionId: string): number | null {
+  if (!browser) return null;
+  try {
+    const anchor = readRuleStates()[ruleId]?.last_exit_action_anchors?.[positionId];
+    return typeof anchor === "number" && Number.isFinite(anchor) ? anchor : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

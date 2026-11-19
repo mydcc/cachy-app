@@ -2,7 +2,7 @@
 id: FEAT-0810
 title: Execute bot exits through the order gate
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

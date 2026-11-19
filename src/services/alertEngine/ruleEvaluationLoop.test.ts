@@ -19,7 +19,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RuleEvaluationLoop } from "./ruleEvaluationLoop";
+import { RuleEvaluationLoop, type OwnedBotPosition } from "./ruleEvaluationLoop";
 import { RuleRefusedError } from "../../lib/rules/ruleSchema";
 import { logger } from "../logger";
 import type { RuleDocument, Verdict } from "../../lib/rules/types";
@@ -43,6 +43,37 @@ vi.mock("../../lib/rules/ruleEvaluationGate", () => ({
     evaluateIntrabar: (...args: unknown[]) => gateEvaluateIntrabar(...(args as [])),
   },
 }));
+
+// FEAT-0810 — the exit window's core call. Mocked here for the same reason
+// the gate is: these tests are about *when* a firing exists and what the
+// window does with it, not about what the core concludes — the core's half
+// is pinned by `exitEvaluation.integration.test.ts` against the real wasm.
+const evaluateExitsMock = vi.fn<() => unknown[]>();
+vi.mock("../../lib/rules/ruleSchema", () => {
+  // The shape the loop and the existing tests rely on: constructed from a
+  // refusals list, message assembled from it, recognized by the same
+  // module's guard. A mock, not the real class, so importing this file
+  // never loads the wasm.
+  class RuleRefusedError extends Error {
+    public readonly refusals: unknown[];
+    constructor(
+      refusals: Array<{ code: string; field: string; detail: string }> = [],
+    ) {
+      const detail =
+        refusals.map((r) => `${r.code} at \`${r.field}\`: ${r.detail}`).join("; ") ||
+        "rule refused without a stated reason";
+      super(detail);
+      this.refusals = refusals;
+    }
+  }
+  return {
+    RuleRefusedError,
+    isRuleRefusedError: (e: unknown) => e instanceof RuleRefusedError,
+    ruleSchema: {
+      evaluateExits: (...args: unknown[]) => evaluateExitsMock(...(args as [])),
+    },
+  };
+});
 
 const FIRES: Verdict = { verdict: "fires" };
 const QUIET: Verdict = { verdict: "does_not_fire" };
@@ -1401,6 +1432,283 @@ describe("RuleEvaluationLoop", () => {
       loop.reset();
 
       expect(seen).toEqual([]);
+    });
+  });
+
+  // ---- FEAT-0810: the exit window -----------------------------------------
+
+  describe("the exit window (FEAT-0810)", () => {
+    /** An answer row the mocked core can hand back. */
+    function answer(
+      outcome:
+        | { result: "fires"; close: "all" | "partial"; fraction?: string | null }
+        | { result: "does_not_fire" }
+        | { result: "unknown"; reason: string },
+      index: number | null = 0,
+    ): {
+      kind: "exit" | "take_profit";
+      index: number | null;
+      outcome: unknown;
+    } {
+      return {
+        kind: index === null ? "take_profit" : "exit",
+        index,
+        outcome,
+      };
+    }
+
+    function exitRule(overrides: Partial<RuleDocument> = {}): RuleDocument {
+      return rule({
+        id: "bot-1",
+        exits: [
+          {
+            when: { kind: "group", op: "all", of: [] },
+            close: "all",
+          },
+        ],
+        ...overrides,
+      });
+    }
+
+    function ownedRow(overrides: Partial<OwnedBotPosition> = {}): OwnedBotPosition {
+      return {
+        positionId: "paper-pos-1",
+        side: "long",
+        entryPrice: "100",
+        amount: "2",
+        lastExitActionAnchorMs: null,
+        ...overrides,
+      };
+    }
+
+    function loopWithExits(
+      rules: RuleDocument[],
+      ports: {
+        ownedPositions?: (ruleId: string) => OwnedBotPosition[];
+        accountForPosition?: (ruleId: string, positionId: string) => unknown;
+        recordExitAction?: (ruleId: string, positionId: string, anchorMs: number) => void;
+        onExitFiring?: (firing: unknown) => void;
+        onUnevaluable?: (rule: unknown) => void;
+      } = {},
+    ) {
+      return new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => rules,
+        onFiring: vi.fn(),
+        ownedPositions: ports.ownedPositions ?? (() => []),
+        accountForPosition: ports.accountForPosition as never,
+        recordExitAction: ports.recordExitAction as never,
+        onExitFiring: ports.onExitFiring as never,
+        onUnevaluable: (ports.onUnevaluable as never) ?? (() => {}),
+      });
+    }
+
+    /** Observes one closed candle: `[t0]`, then the candle that closes it. */
+    function driveOneClose(loop: RuleEvaluationLoop): void {
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+    }
+
+    beforeEach(() => {
+      evaluateExitsMock.mockReset();
+      evaluateExitsMock.mockReturnValue([answer({ result: "does_not_fire" })]);
+    });
+
+    it("evaluates a paused bot's exits — ownership decides, not arming", () => {
+      const onExitFiring = vi.fn();
+      const pausedBot = exitRule({ enabled: false });
+      const loop = loopWithExits([pausedBot], {
+        ownedPositions: () => [ownedRow()],
+        onExitFiring,
+      });
+
+      driveOneClose(loop);
+
+      expect(evaluateExitsMock).toHaveBeenCalledTimes(1);
+      expect(onExitFiring).not.toHaveBeenCalled();
+    });
+
+    it("does not ask the core when the rule owns nothing", () => {
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [],
+        // The window must be armed for the question to be asked at all —
+        // without a sink the window never runs, and this test would pass
+        // for the wrong reason.
+        onExitFiring: vi.fn(),
+      });
+
+      driveOneClose(loop);
+
+      expect(evaluateExitsMock).not.toHaveBeenCalled();
+    });
+
+    it("fires one exit per anchor and records the action durably before the sink runs", () => {
+      evaluateExitsMock.mockReturnValue([
+        answer({ result: "fires", close: "all", fraction: null }),
+      ]);
+      const onExitFiring = vi.fn(() => {
+        // The ledger write must already have happened: a sink that throws
+        // cannot be allowed to erase the record a retry would need.
+        expect(recordExitAction).toHaveBeenCalledWith("bot-1", "paper-pos-1", 1_000);
+      });
+      const recordExitAction = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow()],
+        recordExitAction,
+        onExitFiring,
+      });
+
+      driveOneClose(loop);
+
+      expect(recordExitAction).toHaveBeenCalledTimes(1);
+      expect(onExitFiring).toHaveBeenCalledTimes(1);
+      const firing = onExitFiring.mock.calls[0][0] as {
+        rule: RuleDocument;
+        positionId: string;
+        close: string;
+        exitIndex: number | null;
+        anchorMs: number;
+      };
+      expect(firing.positionId).toBe("paper-pos-1");
+      expect(firing.close).toBe("all");
+      expect(firing.exitIndex).toBe(0);
+      expect(firing.anchorMs).toBe(1_000);
+    });
+
+    it("a recorded action bounds the same anchor: the reload case closes twice never", () => {
+      evaluateExitsMock.mockReturnValue([
+        answer({ result: "fires", close: "all", fraction: null }),
+      ]);
+      const onExitFiring = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        // The ledger the reload re-reads: the action at this anchor is
+        // already recorded, so the window stays quiet about it forever.
+        ownedPositions: () => [ownedRow({ lastExitActionAnchorMs: 1_000 })],
+        onExitFiring,
+      });
+
+      driveOneClose(loop);
+
+      expect(evaluateExitsMock).not.toHaveBeenCalled();
+      expect(onExitFiring).not.toHaveBeenCalled();
+    });
+
+    it("the first exit that holds wins the anchor; a second does not double-close", () => {
+      evaluateExitsMock.mockReturnValue([
+        answer({ result: "fires", close: "all", fraction: null }, 0),
+        answer({ result: "fires", close: "partial", fraction: "0.5" }, 1),
+      ]);
+      const onExitFiring = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow()],
+        onExitFiring,
+      });
+
+      driveOneClose(loop);
+
+      expect(onExitFiring).toHaveBeenCalledTimes(1);
+      expect((onExitFiring.mock.calls[0][0] as { close: string }).close).toBe("all");
+    });
+
+    it("the take-profit answers last and can win its own anchor", () => {
+      evaluateExitsMock.mockReturnValue([
+        answer({ result: "does_not_fire" }, 0),
+        answer({ result: "fires", close: "all", fraction: null }, null),
+      ]);
+      const onExitFiring = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow()],
+        onExitFiring,
+      });
+
+      driveOneClose(loop);
+
+      expect(onExitFiring).toHaveBeenCalledTimes(1);
+      const firing = onExitFiring.mock.calls[0][0] as { exitIndex: number | null };
+      expect(firing.exitIndex).toBeNull();
+    });
+
+    it("an unknown exit is reported once and does not block a readable one", () => {
+      evaluateExitsMock.mockReturnValue([
+        answer({ result: "unknown", reason: "rsi has no value" }, 0),
+        answer({ result: "fires", close: "all", fraction: null }, 1),
+      ]);
+      const onExitFiring = vi.fn();
+      const onUnevaluable = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow()],
+        onExitFiring,
+        onUnevaluable,
+      });
+
+      driveOneClose(loop);
+
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+      const reported = onUnevaluable.mock.calls[0][0] as { reason: string };
+      expect(reported.reason).toContain("rsi has no value");
+      expect(onExitFiring).toHaveBeenCalledTimes(1);
+    });
+
+    it("the position-scoped account snapshot rides through to the core", () => {
+      const snapshot = {
+        position_size: "2",
+        unrealised_pnl: "1",
+        unrealised_pnl_percent: "5",
+        exposure: "200",
+        available_balance: "10000",
+      };
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow()],
+        accountForPosition: () => snapshot,
+        onExitFiring: vi.fn(),
+      });
+
+      driveOneClose(loop);
+
+      const ctx = evaluateExitsMock.mock.calls[0][1] as { account?: unknown };
+      expect(ctx.account).toEqual(snapshot);
+    });
+
+    it("a document the core refuses is reported through the unevaluable channel and fires nothing", () => {
+      evaluateExitsMock.mockImplementation(() => {
+        throw new RuleRefusedError([
+          { code: "unknown_field", field: "exits[0].when", detail: "not a condition" },
+        ]);
+      });
+      const onExitFiring = vi.fn();
+      const onUnevaluable = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow()],
+        onExitFiring,
+        onUnevaluable,
+      });
+
+      driveOneClose(loop);
+
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+      const reported = onUnevaluable.mock.calls[0][0] as { reason: string };
+      expect(reported.reason).toContain("the rule core refuses this rule");
+      expect(onExitFiring).not.toHaveBeenCalled();
+    });
+
+    it("a sink that throws costs its own firing, not the loop", () => {
+      evaluateExitsMock.mockReturnValue([
+        answer({ result: "fires", close: "all", fraction: null }),
+      ]);
+      const onExitFiring = vi.fn(() => {
+        throw new Error("sink exploded");
+      });
+      const recordExitAction = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow()],
+        recordExitAction,
+        onExitFiring,
+      });
+
+      expect(() => driveOneClose(loop)).not.toThrow();
+      // The ledger recorded the action before the sink ran, so a retry over
+      // this anchor stays quiet rather than closing twice.
+      expect(recordExitAction).toHaveBeenCalledTimes(1);
     });
   });
 });

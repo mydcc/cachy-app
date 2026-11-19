@@ -46,11 +46,14 @@
 import { collectIndicators } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
-import { isRuleRefusedError } from "../../lib/rules/ruleSchema";
+import { isRuleRefusedError, ruleSchema } from "../../lib/rules/ruleSchema";
 import type {
+  AccountSnapshot,
   EvaluationCandle,
   EvaluationContext,
   EvaluationIndicatorSeries,
+  ExitAnswer,
+  ExitClose,
   RuleDocument,
   RuleState,
   Verdict,
@@ -177,6 +180,75 @@ export type ThresholdResolver = (
   anchorMs: number,
 ) => { rule: RuleDocument } | { unevaluable: string };
 
+/**
+ * One owned position the exit window evaluates against — FEAT-0810.
+ *
+ * The wiring composes this from the simulated book and the exit-action
+ * ledger: `entryPrice` and `side` are the trade the bot actually made, and
+ * `lastExitActionAnchorMs` is the durable half of the exit idempotency — a
+ * reload mid-exit re-reads it and must not close twice on one anchor.
+ */
+export interface OwnedBotPosition {
+  positionId: string;
+  side: "long" | "short";
+  /** The book row's own entry price, as stored (a decimal string). */
+  entryPrice: string;
+  /** The book row's remaining amount, as stored (a decimal string). */
+  amount: string;
+  lastExitActionAnchorMs: number | null;
+}
+
+/** Which owned positions a rule may exit — the wiring reads the book. */
+export type OwnedPositionsReader = (ruleId: string) => OwnedBotPosition[];
+
+/**
+ * The account snapshot scoped to one owned position — ADR-0026 decisions 2
+ * and 5: inside exits, account conditions speak about the position the bot
+ * owns, not the account aggregate.
+ */
+export type PositionAccountReader = (
+  ruleId: string,
+  positionId: string,
+) => AccountSnapshot | undefined;
+
+/** Records that a rule's exit acted on a position at an anchor — durable. */
+export type ExitActionRecorder = (
+  ruleId: string,
+  positionId: string,
+  anchorMs: number,
+) => void;
+
+/**
+ * One exit the engine wants honoured — FEAT-0810. The sink chain decides what
+ * acting on it means; this is the engine's half of the contract.
+ */
+export interface BotExitFiring {
+  rule: RuleDocument;
+  positionId: string;
+  /** How much the document says to close — `all`, or `partial`. */
+  close: ExitClose;
+  /** Present exactly when `close` is `partial`. */
+  fraction?: string;
+  /** The exit's index in `exits`, or `null` for the take-profit target. */
+  exitIndex: number | null;
+  anchorMs: number;
+}
+
+/** The sink an armed engine hands exit firings to. */
+export type ExitFiringSink = (firing: BotExitFiring) => void;
+
+/**
+ * FEAT-0810 — the exit ports a live wiring provides. Shadow mode provides
+ * none: without them the exit window evaluates nothing and fires nothing,
+ * which is exactly the measurement shape shadow mode exists for.
+ */
+export interface ExitLoopPorts {
+  ownedPositions: OwnedPositionsReader;
+  accountForPosition: PositionAccountReader;
+  recordExitAction: ExitActionRecorder;
+  onExitFiring: ExitFiringSink;
+}
+
 export interface RuleEvaluationLoopOptions {
   readCandles: CandleReader;
   readRules: RuleReader;
@@ -225,6 +297,27 @@ export interface RuleEvaluationLoopOptions {
   resolveThreshold?: ThresholdResolver;
   /** Defaults to `logUnevaluable`. */
   onUnevaluable?: UnevaluableSink;
+  /**
+   * FEAT-0810 — which owned positions each rule may exit.
+   *
+   * Absent by default: without it no exit is evaluated, which keeps a
+   * loop configured by a caller that owns no book exactly as quiet as it was.
+   */
+  ownedPositions?: OwnedPositionsReader;
+  /**
+   * FEAT-0810 — the account snapshot scoped to one owned position. Absent
+   * means account conditions inside exits read as unknown (not false), the
+   * same honesty a trigger gets when nothing supplies a snapshot.
+   */
+  accountForPosition?: PositionAccountReader;
+  /**
+   * FEAT-0810 — the durable half of exit idempotency. Absent means exit
+   * actions are recorded nowhere, so a reload mid-exit could act twice; the
+   * wiring always provides it.
+   */
+  recordExitAction?: ExitActionRecorder;
+  /** FEAT-0810 — absent means exit firings are dropped (the shadow shape). */
+  onExitFiring?: ExitFiringSink;
 }
 
 /**
@@ -322,6 +415,10 @@ export class RuleEvaluationLoop {
   private onClose: SeriesCloseHook = () => {};
   private onUnevaluable: UnevaluableSink = logUnevaluable;
   private resolveThreshold: ThresholdResolver = PASS_THROUGH_THRESHOLD;
+  private ownedPositions: OwnedPositionsReader = () => [];
+  private accountForPosition: PositionAccountReader = () => undefined;
+  private recordExitAction: ExitActionRecorder | undefined = undefined;
+  private onExitFiring: ExitFiringSink | undefined = undefined;
 
   constructor(options?: RuleEvaluationLoopOptions) {
     if (options) this.configure(options);
@@ -346,6 +443,10 @@ export class RuleEvaluationLoop {
     this.onClose = options.onClose ?? (() => {});
     this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
     this.resolveThreshold = options.resolveThreshold ?? PASS_THROUGH_THRESHOLD;
+    this.ownedPositions = options.ownedPositions ?? (() => []);
+    this.accountForPosition = options.accountForPosition ?? (() => undefined);
+    this.recordExitAction = options.recordExitAction;
+    this.onExitFiring = options.onExitFiring;
   }
 
   /**
@@ -522,6 +623,10 @@ export class RuleEvaluationLoop {
       // where it happened rather than missed in silence.
       for (const anchorMs of closes) {
         firings.push(...this.evaluateSeries(symbol, timeframe, anchorMs));
+        // FEAT-0810 — the same close is the bot's exit window: the trigger
+        // asks whether to enter, this asks whether to leave. Same anchor, so
+        // the two answers can never disagree about which candle they read.
+        this.evaluateExitWindow(symbol, timeframe, anchorMs);
       }
       return firings;
     } catch (e) {
@@ -761,6 +866,131 @@ export class RuleEvaluationLoop {
     if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
     if (verdict === undefined || verdict.verdict !== "fires") return undefined;
     return { rule, verdict, anchorMs };
+  }
+
+  /**
+   * FEAT-0810 — the exit window at one closed candle.
+   *
+   * Runs beside `evaluateSeries` on the same anchor and answers a different
+   * question for a different audience: not "does the rule fire" (the trigger,
+   * which the enabled switch gates) but "does the bot leave the position it
+   * owns" — which ownership decides, not arming. A paused bot keeps
+   * protecting; the owner decided that with the trigger cadence in G1.
+   *
+   * One action per `(rule, anchor, position)`: the first exit that holds in
+   * document order wins the anchor, the win is recorded durably before the
+   * sink runs, and a reload re-reads the record instead of closing twice.
+   */
+  private evaluateExitWindow(symbol: string, timeframe: string, anchorMs: number): void {
+    if (this.onExitFiring === undefined) return;
+
+    // Ownership candidates, not armed candidates: the enabled filter the
+    // trigger applies is deliberately absent.
+    const candidates = this.readRules().filter(
+      (rule) =>
+        rule !== null &&
+        typeof rule === "object" &&
+        rule.symbol === symbol &&
+        rule.trigger_timeframe === timeframe &&
+        ((rule.exits?.length ?? 0) > 0 || rule.take_profit !== undefined),
+    );
+
+    for (const rule of candidates) {
+      for (const position of this.ownedPositions(rule.id)) {
+        this.evaluateExitsFor(rule, position, symbol, timeframe, anchorMs);
+      }
+    }
+  }
+
+  /**
+   * One owned position's exit answers at one anchor.
+   *
+   * The same context the trigger gets — candles truncated to the anchor, so
+   * a replayed close is decided where it happened (BUG-0483 part 2's
+   * discipline, which protects exits exactly as it protects triggers) — plus
+   * the account snapshot scoped to this position. `resolveThreshold` is
+   * deliberately not run: the drawing resolver rewrites the trigger half
+   * today, and an exit that names a drawing evaluates against its stored
+   * constant until the resolver learns exits; pretending otherwise here
+   * would make the resolver's gaps look like the exit engine's.
+   */
+  private evaluateExitsFor(
+    rule: RuleDocument,
+    position: OwnedBotPosition,
+    symbol: string,
+    timeframe: string,
+    anchorMs: number,
+  ): void {
+    // Idempotency, monotonic like the trigger gate's: anchors only move
+    // forward on a series, so one recorded action bounds every re-read of
+    // the same or an older anchor — including the one a reload replays
+    // mid-exit.
+    if (position.lastExitActionAnchorMs !== null && anchorMs <= position.lastExitActionAnchorMs) {
+      return;
+    }
+
+    const ctx = this.contextFor(rule, symbol, timeframe, false, anchorMs);
+    if (ctx === undefined) return;
+    const account = this.accountForPosition(rule.id, position.positionId);
+    if (account !== undefined) ctx.account = account;
+
+    let answers: ExitAnswer[];
+    try {
+      answers = ruleSchema.evaluateExits(rule, ctx, {
+        entry_price: position.entryPrice,
+        side: position.side,
+      });
+    } catch (e) {
+      if (isRuleRefusedError(e)) {
+        // A document the core refuses cannot be honestly evaluated against
+        // anything. The same once-per-rule channel the trigger uses, with
+        // the reason phrased the way the loop already phrases refusals.
+        this.reportUnevaluable(rule, `the rule core refuses this rule: ${e.message}`);
+      } else {
+        logger.error(
+          "alerts",
+          `[RuleEngine] Exit evaluation failed for rule ${rule.id} on ${symbol} ${timeframe}`,
+          e,
+        );
+      }
+      return;
+    }
+
+    // An unreadable exit neither acts nor blocks the readable ones — but it
+    // is worth surfacing once: an exit whose indicator never warms up is a
+    // bot that looks protected and is not.
+    const unknown = answers.find((a) => a.outcome.result === "unknown");
+    if (unknown !== undefined && unknown.outcome.result === "unknown") {
+      this.reportUnevaluable(rule, unknown.outcome.reason);
+    }
+
+    // First exit that holds, in document order — `take_profit` answers
+    // last, exactly the order the core returns. One anchor, one action.
+    const fired = answers.find((a) => a.outcome.result === "fires");
+    if (fired === undefined || fired.outcome.result !== "fires") return;
+
+    // Recorded before the sink runs: a sink that throws must not erase the
+    // ledger entry, or a retry would close twice over the same anchor.
+    this.recordExitAction?.(rule.id, position.positionId, anchorMs);
+
+    try {
+      this.onExitFiring?.({
+        rule,
+        positionId: position.positionId,
+        close: fired.outcome.close,
+        ...(fired.outcome.close === "partial" && fired.outcome.fraction !== null
+          ? { fraction: fired.outcome.fraction }
+          : {}),
+        exitIndex: fired.index,
+        anchorMs,
+      });
+    } catch (e) {
+      logger.error(
+        "alerts",
+        `[RuleEngine] Exit firing sink failed for rule ${rule.id} on ${symbol} ${timeframe}`,
+        e,
+      );
+    }
   }
 
   /**

@@ -56,3 +56,33 @@ export function notifyBotSubmissions(ids: ReadonlySet<string>): void {
 export function clearBotSubmissions(): void {
     listener?.(new Set());
 }
+
+// ---------------------------------------------------------------------------
+// FEAT-0810 — the closing channel, same shape, other side of the trade.
+//
+// A close in flight is its own fact, not a submission: the projection shows
+// `closing` while an exit travels, and `submitting` while an entry does,
+// and the two must not overwrite each other. A second listener pair on the
+// same leaf keeps both channels one import away from their two writers and
+// zero imports away from the cycle the ratchet freezes.
+// ---------------------------------------------------------------------------
+
+/** Receives the in-flight closing snapshot after every change and once per reset. */
+export type BotClosingListener = (ids: ReadonlySet<string>) => void;
+
+let closingListener: BotClosingListener | undefined;
+
+/** Replaces the closing listener; a later registration wins, as above. */
+export function setBotClosingListener(next: BotClosingListener | undefined): void {
+    closingListener = next;
+}
+
+/** The exit sink's closing snapshot, handed to whoever is listening. */
+export function notifyBotClosing(ids: ReadonlySet<string>): void {
+    closingListener?.(ids);
+}
+
+/** The wiring's reset: an exit sink was retired or never armed. */
+export function clearBotClosing(): void {
+    closingListener?.(new Set());
+}

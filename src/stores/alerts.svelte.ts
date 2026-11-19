@@ -19,11 +19,18 @@ import { get } from "svelte/store";
 
 import { browser } from "$app/env";
 import { _ } from "../locales/i18n";
+import { Decimal } from "decimal.js";
 import { migrateAlertsToRuleDocuments } from "../services/alertEngine/migrateAlertsToRules";
 import {
+    clearBotClosing,
     clearBotSubmissions,
+    notifyBotClosing,
     notifyBotSubmissions,
 } from "../services/alertEngine/botSubmissionBus";
+import {
+    exitActionAnchorFor,
+    recordExitActionAnchor,
+} from "../services/alertEngine/ruleStateStore";
 import {
     reconcileStoredRules,
     type OrphanReconciliation,
@@ -45,12 +52,15 @@ import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
 import { alertNotificationKey } from "../lib/notificationPolicy";
 import { channelSelection } from "../lib/alerts/effectiveChannels";
-import type { FiringSink, SeriesGap, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
+import type { FiringSink, OwnedBotPosition, SeriesGap, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
-import type { RuleDocument } from "../lib/rules/types";
+import type { BotExitEnvironment, BotExitRefusal, BotCloseParams } from "../services/alertEngine/botExits";
+import type { AccountSnapshot, RuleDocument } from "../lib/rules/types";
+import type { PaperPosition } from "./paperTrading.svelte";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
 import { paperState } from "./paperTrading.svelte";
+import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
 import { settingsState } from "./settings.svelte";
 import type { TranslationKey } from "../locales/schema";
@@ -414,6 +424,144 @@ export function reportBotOrderRefusal(
     );
 }
 
+// ---------------------------------------------------------------------------
+// FEAT-0810 — the exit half of the same wiring.
+// ---------------------------------------------------------------------------
+
+/**
+ * Why a bot's exit did not close, as a toast key. The same convention as
+ * `BOT_REFUSAL_KEYS`: every refusal the exit path can produce has one key,
+ * a trader reads one line, and the log carries the id.
+ */
+const BOT_EXIT_REFUSAL_KEYS: Record<BotExitRefusal, TranslationKey> = {
+    "paper-trading-off": "settings.automation.exitRefusedPaperOff",
+    "no-exits": "settings.automation.exitRefusedOther",
+    "level-not-supported": "settings.automation.exitRefusedLevelNotSupported",
+    "position-gone": "settings.automation.exitRefusedPositionGone",
+    "size-not-positive": "settings.automation.exitRefusedOther",
+    "close-in-flight": "settings.automation.exitRefusedInFlight",
+    "close-refused": "settings.automation.exitRefusedCloseRefused",
+};
+
+/**
+ * The exit path's refusal channel: one toast per rule per reason (the sink
+ * already keeps it to once), naming the bot the way the entry path does.
+ *
+ * `position-gone` is deliberately reported here rather than filtered
+ * silently: a stop-out and a manual close are the two honest ways a position
+ * disappears, and the toast says the exit did nothing rather than leaving
+ * the trader to wonder. The once-per-reason filter keeps it from repeating
+ * for the anchors the ledger has not caught up with.
+ */
+export function reportBotExitRefusal(
+    firing: { rule: RuleDocument },
+    refusal: BotExitRefusal,
+): void {
+    logger.warn("alerts", `bot ${firing.rule.id} exited but closed nothing: ${refusal}`);
+    toastService.error(
+        get(_)(BOT_EXIT_REFUSAL_KEYS[refusal], {
+            values: { name: firing.rule.name },
+        }),
+    );
+}
+
+/**
+ * The account snapshot scoped to one owned position — ADR-0026 decisions 2
+ * and 5: inside exits, account conditions speak about the position the bot
+ * owns, not the account aggregate.
+ *
+ * Every figure is Decimal end to end; the snapshot crosses to the core as
+ * decimal strings, the language the whole money boundary speaks. The mark
+ * price mirrors `paperAccountFeed`'s resolution (mark first, last price
+ * second, the entry as the quiet fallback when the feed has nothing), and
+ * `unrealised_pnl_percent` keeps FEAT-0303's documented base: a percentage
+ * of the position's margin, not percent-from-entry.
+ */
+function exitAccountSnapshot(position: PaperPosition): AccountSnapshot {
+    const data = marketState.data[position.symbol];
+    const mark = data?.markPrice ?? data?.lastPrice;
+    const markPrice =
+        mark instanceof Decimal && mark.gt(0) ? mark : new Decimal(position.entryPrice);
+
+    const amount = new Decimal(position.amount);
+    const entry = new Decimal(position.entryPrice);
+    const leverage = new Decimal(position.leverage);
+    const notional = amount.times(entry);
+    const margin = leverage.gt(0) ? notional.div(leverage) : notional;
+    const unrealised =
+        position.side === "long"
+            ? markPrice.minus(entry).times(amount)
+            : entry.minus(markPrice).times(amount);
+    const percent = margin.gt(0) ? unrealised.div(margin).times(100) : new Decimal(0);
+
+    return {
+        position_size: (position.side === "long" ? amount : amount.neg()).toString(),
+        unrealised_pnl: unrealised.toString(),
+        unrealised_pnl_percent: percent.toString(),
+        exposure: notional.toString(),
+        available_balance: paperState.balance.toString(),
+    };
+}
+
+/** The book rows a rule owns — the loop's exit window reads the book directly. */
+function ownedBotPositions(ruleId: string): OwnedBotPosition[] {
+    return paperState.positions
+        .filter((p) => p.origin === "bot" && p.botId === ruleId)
+        .map((p) => ({
+            positionId: p.positionId,
+            side: p.side,
+            entryPrice: p.entryPrice,
+            amount: p.amount,
+            // The durable half of exit idempotency: the ledger the reload
+            // re-reads instead of closing twice.
+            lastExitActionAnchorMs: exitActionAnchorFor(ruleId, p.positionId),
+        }));
+}
+
+/** One owned row, re-read wherever the book must get the last word. */
+function ownedBotPositionRow(ruleId: string, positionId: string): PaperPosition | undefined {
+    return paperState.positions.find(
+        (p) => p.origin === "bot" && p.botId === ruleId && p.positionId === positionId,
+    );
+}
+
+/** The position-scoped snapshot, for the loop's exit window. */
+function accountForOwnedPosition(ruleId: string, positionId: string): AccountSnapshot | undefined {
+    const position = ownedBotPositionRow(ruleId, positionId);
+    return position === undefined ? undefined : exitAccountSnapshot(position);
+}
+
+/**
+ * The exit sink's store reads, assembled where store access lives — the same
+ * division `botOrderEnvironment` established. The close port is passed in
+ * because the trade service is loaded only when the engine arms, beside the
+ * order path, for the same reason: a session with no bot never pays for it.
+ */
+export function botExitEnvironment(
+    close: (params: BotCloseParams) => Promise<unknown>,
+): BotExitEnvironment {
+    return {
+        paperEnabled: () => paperState.enabled,
+        close,
+        // Re-read at exit time, never from the firing: the book is the owner
+        // of record, and a manual close or a stop-out between evaluation and
+        // here must end the exit, not fire a close at a position that is gone.
+        // The anchor fact is deliberately null here — the sink does not decide
+        // idempotency; the loop's ledger already did before it fired.
+        ownedPosition: (ruleId, positionId) => {
+            const position = ownedBotPositionRow(ruleId, positionId);
+            if (position === undefined) return undefined;
+            return {
+                positionId: position.positionId,
+                side: position.side,
+                entryPrice: position.entryPrice,
+                amount: position.amount,
+                lastExitActionAnchorMs: null,
+            };
+        },
+    };
+}
+
 /**
  * BUG-0750 — the rule's channel vocabulary is snake_case, delivery's is
  * kebab-case, and this is the only place the two meet.
@@ -651,6 +799,11 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // Bots ride the same sink the alerts do, so they load with it rather than
     // at module scope: a session with no bot never pays for the order path.
     const { closeAtAnchor, livePriceAt, withBotOrders } = await import("../services/alertEngine/botOrders");
+    // FEAT-0810 — the exit half rides beside it, for the same reason, and the
+    // close lane it hands the sink is the trade service's single-close path:
+    // loaded here so a session with no bot never pulls the trade stack in.
+    const { withBotExits } = await import("../services/alertEngine/botExits");
+    const { tradeService } = await import("../services/tradeService");
 
     // FEAT-0406: one read, and every later tick re-decides from its own.
     const ready = ruleSchema.isReady();
@@ -670,6 +823,8 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         // FEAT-0807 — no new sink will observe the guard, so the projection
         // must not keep whatever the last one left.
         clearBotSubmissions();
+        // FEAT-0810 — same truth for the closing half.
+        clearBotClosing();
         return;
     }
 
@@ -690,7 +845,11 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // because that edge would grow the cycle the architecture ratchet
     // freezes.
     const botsGeneration = botsSinkGeneration;
-    if (mode !== "live") clearBotSubmissions();
+    if (mode !== "live") {
+        clearBotSubmissions();
+        // An exit is a consequence like an entry; shadow mode arms neither.
+        clearBotClosing();
+    }
 
     disarmRuleLoop = startRuleEvaluationLoop(
         mode === "live"
@@ -713,6 +872,28 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
                   if (ruleSchema.isReady()) return;
                   disarmRuleEngine();
                   alertState.engineStatus = "failed";
+              }
+            : undefined,
+        // FEAT-0810 — the exit window rides the same loop, live mode only:
+        // the readers it needs (book rows, the position-scoped snapshot, the
+        // durable action ledger) are store reads assembled here, where store
+        // access lives, and the sink closes through the same single-close
+        // lane a manual close takes. Shadow mode gets no exit ports at all —
+        // the window then evaluates nothing and fires nothing, which is the
+        // measurement shape shadow mode exists for.
+        mode === "live"
+            ? {
+                  ownedPositions: ownedBotPositions,
+                  accountForPosition: accountForOwnedPosition,
+                  recordExitAction: recordExitActionAnchor,
+                  onExitFiring: withBotExits(
+                      botExitEnvironment((params) => tradeService.closePosition(params)),
+                      reportBotExitRefusal,
+                      (ids) => {
+                          if (botsGeneration !== botsSinkGeneration) return;
+                          notifyBotClosing(ids);
+                      },
+                  ),
               }
             : undefined,
     );

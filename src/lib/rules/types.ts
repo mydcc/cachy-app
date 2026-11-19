@@ -444,6 +444,16 @@ export interface RuleState {
   last_intrabar_anchor_ms?: number | null;
   /** Open time of the forming candle last announced on the intrabar path. */
   last_intrabar_fired_anchor_ms?: number | null;
+  /**
+   * FEAT-0810 — the exit action ledger, TS-side only like the anchors above.
+   *
+   * One entry per owned position: the last close anchor at which this rule's
+   * exit acted on it. The idempotency the exit window needs across a reload
+   * — "two evaluations of the same (ruleId, anchor, positionId) produce one
+   * close" — lives here, keyed by positionId because a rule may own several
+   * positions over its life and each is its own exit story.
+   */
+  last_exit_action_anchors?: Record<string, number>;
 }
 
 /**
