@@ -2,7 +2,7 @@
 id: FEAT-0812
 title: Review a bot's track record in the journal
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,8 @@ depends_on: [FEAT-0806, FEAT-0810]
 parent: FEAT-0805
 size: M
 estimate: 5
+assignee: claude
+branch: feature/feat-0812-per-bot-journal-analytics
 ---
 
 # FEAT-0812 — Review a bot's track record in the journal
