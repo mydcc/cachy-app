@@ -487,7 +487,15 @@ export function withBotOrders(
       })
       .finally(() => {
         inFlight.delete(firing.rule.id);
-        onInFlight?.(inFlight);
+        try {
+          onInFlight?.(inFlight);
+        } catch (e) {
+          // The notify sits after the release, so an observer that throws
+          // must not turn a settled submission into an unhandled rejection
+          // — the guard is already released, which is the state the throw
+          // would otherwise have masked.
+          logger.error("alerts", `[BotOrders] In-flight observer failed for ${firing.rule.id}`, e);
+        }
       });
   };
 }

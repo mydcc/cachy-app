@@ -41,6 +41,7 @@ import { toastService } from "../toastService.svelte";
 import {
   logUnevaluable,
   ruleEvaluationLoop,
+  type ExitLoopPorts,
   type FiringSink,
   type SeriesCloseHook,
   type UnevaluableSink,
@@ -430,6 +431,12 @@ export function drawingThresholdResolver(
 export function startRuleEvaluationLoop(
   onFiring: FiringSink = ledgerSink,
   onClose?: SeriesCloseHook,
+  // FEAT-0810 — the exit ports, assembled by the store layer where store
+  // access lives and passed through untouched. Passed rather than read here
+  // because `paperState` is a store and this module already holds one uphill
+  // edge budget per pair; the store layer owns those reads, exactly as it
+  // owns `botOrderEnvironment`.
+  exits?: ExitLoopPorts,
 ): () => void {
   // A no-op disposer rather than `undefined`: SSR must not hand the caller a
   // value it has to null-check, and there is nothing armed to stop.
@@ -452,6 +459,16 @@ export function startRuleEvaluationLoop(
     // constant it was stored with, which stops following the line the moment
     // the trader moves it.
     resolveThreshold: drawingThresholdResolver,
+    // FEAT-0810 — the exit window's ports, live mode only: absent means the
+    // window evaluates nothing, which keeps a shadow run honest.
+    ...(exits
+      ? {
+            ownedPositions: exits.ownedPositions,
+            accountForPosition: exits.accountForPosition,
+            recordExitAction: exits.recordExitAction,
+            onExitFiring: exits.onExitFiring,
+        }
+      : {}),
   });
   // BUG-0491: bind the gate's durable half. Without this the gate dedupes
   // within the session only, and an `every_time` bot re-orders the same

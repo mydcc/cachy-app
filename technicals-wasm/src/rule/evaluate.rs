@@ -50,7 +50,8 @@ use super::condition::{
     AccountField, Condition, CrossDirection, LogicOp, Operand, PositionSide, PriceField,
     PriceSource, WindowAgg,
 };
-use super::document::RuleDocument;
+use super::consequence::StopDistance;
+use super::document::{ExitClose, RuleDocument};
 /// Only the test documents below name the mode; evaluation itself reads the
 /// anchor it is handed and never asks how that anchor was chosen.
 #[cfg(test)]
@@ -408,6 +409,203 @@ pub fn evaluate_with_lifecycle(
         Announce::Yes => Verdict::Fires,
         Announce::Expired => Verdict::Expired,
         Announce::AlreadyAnnounced => Verdict::AlreadyFired,
+    }
+}
+
+/// FEAT-0810 — the position an exit evaluates against: the owner's own entry.
+///
+/// The trade's entry price and facing, as the position book states them. A
+/// distance resolves from the price the bot actually paid, never from a stored
+/// target — a gap or a wick between authoring and exit cannot turn a
+/// take-profit into a different trade than the one made (ADR-0026 decision 4,
+/// and the same reason `stop` is a distance on the intent).
+///
+/// `PositionSide::Either` is a *condition's* vocabulary ("in a position at
+/// all"); a position faces one way, and the export layer refuses `either`
+/// before this is reached.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct OwnedPositionContext {
+    pub entry_price: Decimal,
+    pub side: PositionSide,
+}
+
+/// Which of a document's exits one answer belongs to.
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExitKind {
+    /// `document.exits[index]`.
+    Exit,
+    /// The document's `take_profit` distance.
+    TakeProfit,
+}
+
+/// One exit's verdict at one anchor. Three-valued for the same reason
+/// `evaluate` is: an exit whose operands cannot be read must neither act nor
+/// silently veto the exits that could be read. The caller reports the unknown
+/// by rule — the loop's unevaluable pattern — and still honours every
+/// readable answer.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "snake_case", tag = "result")]
+pub enum ExitOutcome {
+    Fires {
+        close: ExitClose,
+        /// Present exactly when `close` is `partial` — validated at authoring,
+        /// repeated here so the caller never re-derives it.
+        fraction: Option<Decimal>,
+    },
+    DoesNotFire,
+    Unknown {
+        reason: String,
+    },
+}
+
+/// One owned position's answers at one anchor: one per exit, plus the
+/// take-profit target's own.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct ExitAnswer {
+    pub kind: ExitKind,
+    /// The exit's position in `exits`; `None` on the take-profit answer.
+    pub index: Option<usize>,
+    pub outcome: ExitOutcome,
+}
+
+/// FEAT-0810 — evaluate `document.exits` and `document.take_profit` at the
+/// last closed candle of the trigger timeframe, against one owned position.
+///
+/// The same purity as [`evaluate`]: same document, market, account snapshot
+/// and position give the same answers. The trigger's lifecycle does not apply
+/// — frequency gates announcements and entries, and an exit's own bound is the
+/// caller's `(rule, anchor, position)` action ledger, which this function
+/// knows nothing about (and must not: state is the caller's to own).
+///
+/// An exit reads the account snapshot the caller scoped to *this* position —
+/// ADR-0026 decisions 2 and 5: inside exits, `unrealised_pnl_percent` speaks
+/// about the owned position, not the account aggregate.
+pub fn evaluate_exits(
+    document: &RuleDocument,
+    market: &dyn MarketView,
+    account: Option<&AccountSnapshot>,
+    position: &OwnedPositionContext,
+) -> Vec<ExitAnswer> {
+    let trigger = document.trigger_timeframe;
+    let mut answers = Vec::new();
+
+    // Same honesty as `evaluate`, and for the same price: without an anchor
+    // candle there is no answer at all, and half the exits firing over a
+    // series the caller cannot see would be worse than none. Every exit
+    // says why, in the words `evaluate` uses.
+    let Some(anchor) = market.closed_candles(trigger).last() else {
+        let reason = format!("no closed {trigger} candle to evaluate on");
+        for (index, _) in document.exits.iter().flatten().enumerate() {
+            answers.push(ExitAnswer {
+                kind: ExitKind::Exit,
+                index: Some(index),
+                outcome: ExitOutcome::Unknown {
+                    reason: reason.clone(),
+                },
+            });
+        }
+        if document.take_profit.is_some() {
+            answers.push(ExitAnswer {
+                kind: ExitKind::TakeProfit,
+                index: None,
+                outcome: ExitOutcome::Unknown { reason },
+            });
+        }
+        return answers;
+    };
+    let anchor_close_ms = anchor.open_time_ms + trigger.milliseconds();
+
+    let ctx = Ctx {
+        market,
+        account,
+        anchor_close_ms,
+    };
+
+    for (index, exit) in document.exits.iter().flatten().enumerate() {
+        let outcome = match eval(&exit.when, &ctx) {
+            Truth::True => ExitOutcome::Fires {
+                close: exit.close,
+                fraction: exit.fraction,
+            },
+            Truth::False => ExitOutcome::DoesNotFire,
+            Truth::Unknown(reason) => ExitOutcome::Unknown { reason },
+        };
+        answers.push(ExitAnswer {
+            kind: ExitKind::Exit,
+            index: Some(index),
+            outcome,
+        });
+    }
+
+    if let Some(target) = &document.take_profit {
+        answers.push(ExitAnswer {
+            kind: ExitKind::TakeProfit,
+            index: None,
+            outcome: take_profit_at(target, position, &anchor.close),
+        });
+    }
+
+    answers
+}
+
+/// Where a take-profit distance lands, and whether the anchor's close
+/// reached it.
+///
+/// A long's reward sits above its entry, a short's below — the mirror of
+/// `validate_stop`'s side reasoning. `close` is always `all`: the target is
+/// one price the trader wrote, and a partial target would be a second
+/// `fraction` field the document does not carry.
+fn take_profit_at(
+    target: &StopDistance,
+    position: &OwnedPositionContext,
+    anchor_close: &Decimal,
+) -> ExitOutcome {
+    let distance = target.magnitude();
+    if distance <= Decimal::ZERO {
+        // Authoring refuses this shape (`InvalidDecimal`, the field named),
+        // so reaching here means a document that skipped the validator. Say
+        // so rather than quietly treating the target as absent.
+        return ExitOutcome::Unknown {
+            reason: format!("take-profit distance `{distance}` is not positive"),
+        };
+    }
+    if position.entry_price <= Decimal::ZERO {
+        return ExitOutcome::Unknown {
+            reason: format!(
+                "owned position entry price `{}` is not usable",
+                position.entry_price
+            ),
+        };
+    }
+
+    let percent = distance / Decimal::from(100);
+    let reached = match position.side {
+        PositionSide::Long => {
+            let target_price = position.entry_price * (Decimal::ONE + percent);
+            *anchor_close >= target_price
+        }
+        PositionSide::Short => {
+            let target_price = position.entry_price * (Decimal::ONE - percent);
+            *anchor_close <= target_price
+        }
+        PositionSide::Either => {
+            // The export layer refuses this before evaluation; the answer
+            // here keeps the function total and honest if reached anyway.
+            return ExitOutcome::Unknown {
+                reason: "a position faces long or short, never either".to_string(),
+            };
+        }
+    };
+
+    if reached {
+        ExitOutcome::Fires {
+            close: ExitClose::All,
+            fraction: None,
+        }
+    } else {
+        ExitOutcome::DoesNotFire
     }
 }
 
@@ -1826,5 +2024,316 @@ mod tests {
             ),
             "an indeterminate evaluation must not be relabelled as expired"
         );
+    }
+
+    // ---- FEAT-0810: exits and take-profit against one owned position ------
+
+    use super::super::consequence::StopDistance;
+    use super::super::document::ExitRule;
+
+    fn price_holds_above(level: &str) -> Condition {
+        Condition::Compare {
+            left: Operand::Price {
+                source: PriceSource::Last,
+                field: PriceField::Close,
+            },
+            op: CompareOp::Gte,
+            right: Operand::Constant { value: d(level) },
+            timeframe: tf("4h"),
+        }
+    }
+
+    fn exit_doc(exits: Vec<ExitRule>, take_profit: Option<StopDistance>) -> RuleDocument {
+        RuleDocument {
+            schema_version: SchemaVersion::CURRENT,
+            id: "rule-exit".to_string(),
+            name: "exit fixture".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            trigger_timeframe: tf("4h"),
+            // The trigger is not `evaluate_exits`'s question; a trivial
+            // condition keeps the fixture honest without coupling the exit
+            // answers to it.
+            conditions: price_holds_above("1"),
+            veto: None,
+            action: RuleAction {
+                consequence_level: ConsequenceLevel::Simulate,
+                order: None,
+            },
+            enabled: true,
+            provenance: Provenance {
+                source: AuthoringSource::Human,
+                created_at_ms: 0,
+                model: None,
+                derived_from_hash: None,
+            },
+            evaluation_mode: EvaluationMode::Close,
+            trigger_methods: Vec::new(),
+            frequency: TriggerFrequency::Once,
+            valid_until_ms: None,
+            note: None,
+            exits: if exits.is_empty() { None } else { Some(exits) },
+            take_profit,
+        }
+    }
+
+    fn long_at(entry: &str) -> OwnedPositionContext {
+        OwnedPositionContext {
+            entry_price: d(entry),
+            side: PositionSide::Long,
+        }
+    }
+
+    fn take_profit_distance(distance: &str) -> StopDistance {
+        StopDistance::PercentOfEntry {
+            distance: d(distance),
+        }
+    }
+
+    #[test]
+    fn an_exit_fires_only_while_its_condition_holds_and_carries_its_close() {
+        let doc = exit_doc(
+            vec![ExitRule {
+                when: price_holds_above("110"),
+                close: ExitClose::All,
+                fraction: None,
+            }],
+            None,
+        );
+        let below = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "109"]));
+        let above = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "111"]));
+
+        assert_eq!(
+            evaluate_exits(&doc, &below, None, &long_at("100")),
+            vec![ExitAnswer {
+                kind: ExitKind::Exit,
+                index: Some(0),
+                outcome: ExitOutcome::DoesNotFire,
+            }],
+            "a condition that does not hold must not close anything"
+        );
+        assert_eq!(
+            evaluate_exits(&doc, &above, None, &long_at("100")),
+            vec![ExitAnswer {
+                kind: ExitKind::Exit,
+                index: Some(0),
+                outcome: ExitOutcome::Fires {
+                    close: ExitClose::All,
+                    fraction: None,
+                },
+            }]
+        );
+    }
+
+    #[test]
+    fn a_partial_exit_carries_its_fraction_through_evaluation() {
+        let doc = exit_doc(
+            vec![ExitRule {
+                when: price_holds_above("110"),
+                close: ExitClose::Partial,
+                fraction: Some(d("0.5")),
+            }],
+            None,
+        );
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "111"]));
+
+        assert_eq!(
+            evaluate_exits(&doc, &market, None, &long_at("100"))[0].outcome,
+            ExitOutcome::Fires {
+                close: ExitClose::Partial,
+                fraction: Some(d("0.5")),
+            },
+            "the caller must never re-derive how much to close — the document said so"
+        );
+    }
+
+    #[test]
+    fn take_profit_resolves_from_the_owned_entry_never_from_the_market() {
+        let doc = exit_doc(Vec::new(), Some(take_profit_distance("10")));
+        // The market can be anywhere: a 10 % long target off a 100 entry is
+        // 110 whatever the last candle did before this one.
+        let just_short = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "109.999"]));
+        let reached = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "110"]));
+
+        assert_eq!(
+            evaluate_exits(&doc, &just_short, None, &long_at("100"))[0].outcome,
+            ExitOutcome::DoesNotFire,
+            "one tick short of the target is not the target"
+        );
+        assert_eq!(
+            evaluate_exits(&doc, &reached, None, &long_at("100"))[0].outcome,
+            ExitOutcome::Fires {
+                close: ExitClose::All,
+                fraction: None,
+            }
+        );
+    }
+
+    #[test]
+    fn a_short_take_profit_resolves_below_its_entry() {
+        let doc = exit_doc(Vec::new(), Some(take_profit_distance("10")));
+        let short = OwnedPositionContext {
+            entry_price: d("100"),
+            side: PositionSide::Short,
+        };
+        let not_yet = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "90.01"]));
+        let reached = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "90"]));
+
+        assert_eq!(
+            evaluate_exits(&doc, &not_yet, None, &short)[0].outcome,
+            ExitOutcome::DoesNotFire
+        );
+        assert_eq!(
+            evaluate_exits(&doc, &reached, None, &short)[0].outcome,
+            ExitOutcome::Fires {
+                close: ExitClose::All,
+                fraction: None,
+            }
+        );
+    }
+
+    #[test]
+    fn a_non_positive_distance_or_entry_is_unknown_not_silent() {
+        let doc = exit_doc(Vec::new(), Some(take_profit_distance("0")));
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "120"]));
+
+        let ExitOutcome::Unknown { reason } = &evaluate_exits(&doc, &market, None, &long_at("100"))[0].outcome
+        else {
+            panic!("a zero distance must be refused, not evaluated");
+        };
+        assert!(reason.contains("not positive"), "reason names the cause: {reason}");
+
+        let doc = exit_doc(Vec::new(), Some(take_profit_distance("10")));
+        let ExitOutcome::Unknown { reason } = &evaluate_exits(&doc, &market, None, &long_at("0"))[0].outcome
+        else {
+            panic!("an unusable entry must be refused, not evaluated");
+        };
+        assert!(reason.contains("entry price"), "reason names the cause: {reason}");
+    }
+
+    #[test]
+    fn account_conditions_inside_exits_read_the_callers_snapshot() {
+        // ADR-0026 decisions 2 and 5: inside exits, `unrealised_pnl_percent`
+        // speaks about the owned position. The core does not decide that —
+        // the caller scopes the snapshot — but it must read the one it is
+        // given, and say so when there is none.
+        let doc = exit_doc(
+            vec![ExitRule {
+                when: Condition::Account {
+                    field: AccountField::UnrealisedPnlPercent,
+                    op: CompareOp::Gte,
+                    value: d("5"),
+                },
+                close: ExitClose::All,
+                fraction: None,
+            }],
+            None,
+        );
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "101"]));
+
+        let profitable = AccountSnapshot {
+            position_size: d("0.02"),
+            unrealised_pnl: d("1.2"),
+            unrealised_pnl_percent: d("6"),
+            exposure: d("200"),
+            available_balance: d("10000"),
+        };
+        assert_eq!(
+            evaluate_exits(&doc, &market, Some(&profitable), &long_at("100"))[0].outcome,
+            ExitOutcome::Fires {
+                close: ExitClose::All,
+                fraction: None,
+            },
+            "5 % of the owned position's margin is a 6 here — the exit must honour it"
+        );
+
+        let ExitOutcome::Unknown { reason } = &evaluate_exits(&doc, &market, None, &long_at("100"))[0].outcome
+        else {
+            panic!("a missing snapshot must be unknown, not false");
+        };
+        assert!(
+            reason.contains("no account snapshot"),
+            "reason names the cause: {reason}"
+        );
+    }
+
+    #[test]
+    fn an_unreadable_exit_neither_acts_nor_blocks_a_readable_one() {
+        let doc = exit_doc(
+            vec![
+                // No RSI series in the market below: this exit cannot be read.
+                ExitRule {
+                    when: Condition::Compare {
+                        left: Operand::Indicator { indicator: rsi(14) },
+                        op: CompareOp::Lt,
+                        right: Operand::Constant { value: d("30") },
+                        timeframe: tf("4h"),
+                    },
+                    close: ExitClose::All,
+                    fraction: None,
+                },
+                ExitRule {
+                    when: price_holds_above("110"),
+                    close: ExitClose::All,
+                    fraction: None,
+                },
+            ],
+            None,
+        );
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "111"]));
+
+        let answers = evaluate_exits(&doc, &market, None, &long_at("100"));
+        assert!(
+            matches!(&answers[0].outcome, ExitOutcome::Unknown { .. }),
+            "the unreadable exit says so: {:?}",
+            answers[0].outcome
+        );
+        assert_eq!(
+            answers[1].outcome,
+            ExitOutcome::Fires {
+                close: ExitClose::All,
+                fraction: None,
+            },
+            "one exit the engine cannot read must not veto the one it can"
+        );
+    }
+
+    #[test]
+    fn no_anchor_candle_makes_every_answer_unknown_with_the_reason_evaluate_uses() {
+        let doc = exit_doc(
+            vec![ExitRule {
+                when: price_holds_above("110"),
+                close: ExitClose::All,
+                fraction: None,
+            }],
+            Some(take_profit_distance("10")),
+        );
+        let empty = InMemoryMarket::new();
+
+        let answers = evaluate_exits(&doc, &empty, None, &long_at("100"));
+        assert_eq!(answers.len(), 2, "the take-profit answers too");
+        for answer in &answers {
+            let ExitOutcome::Unknown { reason } = &answer.outcome else {
+                panic!("without an anchor there is no answer to give: {answer:?}");
+            };
+            assert!(
+                reason.contains("no closed 4h candle"),
+                "the reason is the one `evaluate` uses: {reason}"
+            );
+        }
+    }
+
+    #[test]
+    fn either_is_not_a_position_facing() {
+        let doc = exit_doc(Vec::new(), Some(take_profit_distance("10")));
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "120"]));
+        let either = OwnedPositionContext {
+            entry_price: d("100"),
+            side: PositionSide::Either,
+        };
+
+        let ExitOutcome::Unknown { reason } = &evaluate_exits(&doc, &market, None, &either)[0].outcome else {
+            panic!("`either` is a condition's question, not a facing");
+        };
+        assert!(reason.contains("long or short"), "reason names it: {reason}");
     }
 }

@@ -2956,6 +2956,11 @@
       "orderRefusedInFlight": "„{name}“ hat ausgelöst, aber nichts platziert: Die vorherige Order dieser Regel ist noch nicht abgeschlossen.",
       "orderRefusedPositionOpen": "„{name}“ hat ausgelöst, aber nichts platziert: Auf diesem Symbol ist bereits eine Position in derselben Richtung offen.",
       "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert.",
+      "exitRefusedPaperOff": "„{name}“ wollte aussteigen, hat aber nichts geschlossen: Das Paper-Trading ist ausgeschaltet.",
+      "exitRefusedLevelNotSupported": "„{name}“ will aussteigen, aber eine reine Alarm-Regel besitzt keine Position, die sie schließen könnte.",
+      "exitRefusedInFlight": "„{name}“ wollte aussteigen, aber die vorherige Schließung dieser Position ist noch nicht abgeschlossen.",
+      "exitRefusedCloseRefused": "„{name}“ wollte aussteigen, aber die Schließung wurde abgelehnt — die Position bleibt offen.",
+      "exitRefusedOther": "„{name}“ wollte aussteigen, hat aber nichts geschlossen.",
       "introShort": "Ein Alarm, hochgestuft vom Melden zum Handeln.",
       "simulateOnlyShort": "Bots simulieren nur — nichts von dieser Seite erreicht eine Börse.",
       "promoteHintShort": "Der Alarm bleibt scharf; Hochstufen legt einen Bot an."

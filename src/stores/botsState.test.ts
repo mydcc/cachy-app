@@ -37,6 +37,7 @@ import type { RuleDocument } from "../lib/rules/types";
 import { CONSTANTS } from "../lib/constants";
 import { RULES_STORAGE_KEY } from "../services/alertEngine/migrateAlertsToRules";
 import { recordRuleFiring, RULE_STATE_STORAGE_KEY } from "../services/alertEngine/ruleStateStore";
+import { clearBotClosing, notifyBotClosing } from "../services/alertEngine/botSubmissionBus";
 import { paperExchange, setPaperPriceFeed } from "../services/paperExchange";
 import { alertState } from "./alerts.svelte";
 import { botsState } from "./botsState.svelte";
@@ -102,6 +103,7 @@ beforeEach(() => {
     alertState.rulesVersion += 1;
     alertState.firingsVersion += 1;
     botsState.setSubmitting(new Set());
+    clearBotClosing();
 });
 
 describe("FEAT-0807 — the botsState projection", () => {
@@ -174,6 +176,45 @@ describe("FEAT-0807 — the botsState projection", () => {
         botsState.setSubmitting(new Set(["bot-1"]));
 
         expect(botsState.states.get("bot-1")?.state).toBe("submitting");
+    });
+
+    it("a fired bot whose exit closed everything reads closed — FEAT-0810 AC 6's state half", async () => {
+        seedBots(botDocument("bot-1"));
+        await openAs("bot-1");
+        expect(botsState.states.get("bot-1")?.state).toBe("in_position");
+
+        // The exit story's end: the rule fired once (recorded), and the
+        // position it owned is gone — the projection says "closed", the
+        // state a full close returns the bot to.
+        recordRuleFiring("bot-1", 1);
+        alertState.firingsVersion += 1;
+        paperState.resetBook();
+
+        const life = botsState.states.get("bot-1");
+        expect(life?.state).toBe("closed");
+        expect(life?.hasPosition).toBe(false);
+    });
+
+    it("reads closing from the exit sink's snapshot — FEAT-0810's channel", async () => {
+        seedBots(botDocument("bot-1"));
+        await openAs("bot-1");
+
+        // The exit sink notifies through the closing channel the same way
+        // the entry sink notifies through the submission channel: an exit
+        // in flight over an owned position reads "closing".
+        notifyBotClosing(new Set(["bot-1"]));
+
+        const life = botsState.states.get("bot-1");
+        expect(life?.state).toBe("closing");
+        expect(life?.hasPosition).toBe(true);
+    });
+
+    it("a closing signal without an owned position has nothing to close and reads armed", () => {
+        seedBots(botDocument("bot-1"));
+
+        notifyBotClosing(new Set(["bot-1"]));
+
+        expect(botsState.states.get("bot-1")?.state).toBe("armed");
     });
 
     it("a deleted rule leaves no state but keeps its slot in the owner index", async () => {

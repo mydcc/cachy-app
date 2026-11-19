@@ -37,7 +37,9 @@ import type {
   RuleRefusal,
   ConsequenceLevel,
   EvaluationContext,
+  ExitAnswer,
   OrderIntent,
+  OwnedPositionContext,
   Verdict,
 } from "./types";
 
@@ -57,6 +59,7 @@ interface RuleWasmExports {
     createdAtMs: number,
   ): string;
   rule_evaluate(documentJson: string, ctxJson: string): string;
+  rule_evaluate_exits(documentJson: string, ctxJson: string, positionJson: string): string;
   default: (wasmBinaryPath: string) => Promise<unknown>;
 }
 
@@ -312,6 +315,35 @@ class RuleSchemaService {
     const core = this.require();
     try {
       return JSON.parse(core.rule_evaluate(JSON.stringify(document), JSON.stringify(ctx))) as Verdict;
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /**
+   * FEAT-0810 — evaluate `document.exits` and `document.take_profit` at the
+   * last closed candle of the trigger timeframe, against one owned position.
+   *
+   * The same purity as `evaluate`, over the same condition language. The
+   * lifecycle is deliberately absent: frequency gates announcements and
+   * entries, and an exit's own bound is the caller's
+   * `(rule, anchor, position)` action ledger, which this call knows nothing
+   * about — and must not, because state is the caller's to own.
+   */
+  evaluateExits(
+    document: RuleDocument,
+    ctx: EvaluationContext,
+    position: OwnedPositionContext,
+  ): ExitAnswer[] {
+    const core = this.require();
+    try {
+      return JSON.parse(
+        core.rule_evaluate_exits(
+          JSON.stringify(document),
+          JSON.stringify(ctx),
+          JSON.stringify(position),
+        ),
+      ) as ExitAnswer[];
     } catch (e) {
       throw toRefusedError(e);
     }

@@ -39,7 +39,10 @@
 import type { RuleDocument } from "../lib/rules/types";
 import { readBots } from "../services/alertEngine/botStore";
 import { readRuleStates } from "../services/alertEngine/ruleStateStore";
-import { setBotSubmissionsListener } from "../services/alertEngine/botSubmissionBus";
+import {
+    setBotClosingListener,
+    setBotSubmissionsListener,
+} from "../services/alertEngine/botSubmissionBus";
 import {
     deriveBotState,
     ownedSlots,
@@ -49,8 +52,7 @@ import {
 import { alertState } from "./alerts.svelte";
 import { paperState } from "./paperTrading.svelte";
 
-/** FEAT-0810 wires the exit signal; until then the closing set stays empty. */
-const NO_CLOSING: ReadonlySet<string> = new Set();
+/** FEAT-0810 wires the exit sink's closing snapshot through the bus above. */
 
 /**
  * The rule store throws on a blob it cannot read (FEAT-0542's
@@ -76,6 +78,12 @@ class BotsStateManager {
         // grow the dependency cycle the architecture ratchet freezes, so
         // the channel is the only edge either side holds.
         setBotSubmissionsListener((ids) => this.setSubmitting(ids));
+        // FEAT-0810 — the closing channel, same shape, other side of the
+        // trade: `closing` shows while an exit travels, `submitting` while
+        // an entry does, and neither overwrites the other.
+        setBotClosingListener((ids) => {
+            this.closingIds = new Set(ids);
+        });
     }
 
     /**
@@ -84,6 +92,15 @@ class BotsStateManager {
      * reference would let it change under the projection without a signal.
      */
     private submittingIds = $state<ReadonlySet<string>>(new Set());
+
+    /**
+     * The exit sink's in-flight snapshot (FEAT-0810's guard), observed the
+     * same way. Keyed by `ruleId|positionId` at the sink; the projection
+     * cares only about which rules are closing, so the sink's snapshot is
+     * already rule-keyed where it matters (the projection reads the rule
+     * ids it names).
+     */
+    private closingIds = $state<ReadonlySet<string>>(new Set());
 
     /**
      * FEAT-0807 — the projection's clock, kept as state so `expired` turns
@@ -113,7 +130,7 @@ class BotsStateManager {
         return {
             positions: paperState.positions,
             submitting: this.submittingIds,
-            closing: NO_CLOSING,
+            closing: this.closingIds,
             unevaluable: new Set(alertState.unevaluableReport.map((rule) => rule.ruleId)),
             firedCounts,
         };

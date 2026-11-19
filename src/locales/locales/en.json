@@ -2956,6 +2956,11 @@
       "orderRefusedInFlight": "“{name}” fired, but placed nothing: this rule's previous order has not settled yet.",
       "orderRefusedPositionOpen": "“{name}” fired, but placed nothing: a position in the same direction is already open on this symbol.",
       "orderRefusedOther": "“{name}” fired, but placed nothing.",
+      "exitRefusedPaperOff": "“{name}” wanted to exit, but closed nothing: paper trading is switched off.",
+      "exitRefusedLevelNotSupported": "“{name}” wants to exit, but a notify rule owns no position to close.",
+      "exitRefusedInFlight": "“{name}” wanted to exit, but this position's previous close has not settled yet.",
+      "exitRefusedCloseRefused": "“{name}” wanted to exit, but the close was refused — the position stays open.",
+      "exitRefusedOther": "“{name}” wanted to exit, but closed nothing.",
       "introShort": "An alert promoted to act instead of announce.",
       "simulateOnlyShort": "Bots simulate only — nothing from this page reaches an exchange.",
       "promoteHintShort": "The alert stays armed; promoting adds a bot."
