@@ -22,6 +22,17 @@
   import { _ } from "../../locales/i18n";
   import type { OMSPosition } from "../../services/omsTypes";
   import { tpSlState } from "../../stores/tpsl.svelte";
+  import type { TranslationKey } from "../../locales/schema";
+  import {
+    aggregateFleet,
+    buildFleetRows,
+    filterFleetRows,
+    ownerFilterOptions,
+    positionNotional,
+    sortFleetRows,
+    type FleetRow,
+    type FleetSortKey,
+  } from "../../services/positionFleet";
 
   interface Props {
     positions?: OMSPosition[];
@@ -175,10 +186,107 @@
     row?.scrollIntoView({ block: "nearest" });
   });
 
-  /** FEAT-0808 — the bot that opened this row, when the book stamped one. */
-  function ownerOf(pos: OMSPosition): { botId: string; name: string | null } | undefined {
-    if (!onshowbot || !pos.positionId) return undefined;
-    return botOwners?.get(pos.positionId);
+  /*
+   * FEAT-0824 — the list is a fleet view: N positions, each with an owner or
+   * none, sorted and filtered without ever dropping or doubling a row.
+   *
+   * The owner join keeps FEAT-0808's rule: no badge (and no owner filter)
+   * where nothing links back to the Bots tab. Sort and filter are view state
+   * of this list only — nothing here writes to the book.
+   */
+  const SORT_LABELS: Record<FleetSortKey, TranslationKey> = {
+    symbol: "positionsList.sortSymbol",
+    owner: "positionsList.sortOwner",
+    pnl: "positionsList.sortPnl",
+    age: "positionsList.sortAge",
+  };
+  const SORT_KEYS = Object.keys(SORT_LABELS) as FleetSortKey[];
+
+  let sortKey = $state<FleetSortKey>("symbol");
+  let ownerFilter = $state("all");
+
+  let fleetRows = $derived(buildFleetRows(safePositions, onshowbot ? botOwners : undefined));
+  let ownerOptions = $derived(ownerFilterOptions(fleetRows));
+  // A filter naming a bot whose position just closed falls back to "all"
+  // instead of leaving an empty list behind a control that no longer offers it.
+  let effectiveFilter = $derived(
+    ownerOptions.some((o) => o.value === ownerFilter) ? ownerFilter : "all",
+  );
+  let visibleRows = $derived(sortFleetRows(filterFleetRows(fleetRows, effectiveFilter), sortKey));
+  let hasBotRows = $derived(fleetRows.some((r) => r.owner !== null));
+  // One position needs no sorting; the controls appear when there is a fleet.
+  let showFleetControls = $derived(fleetRows.length > 1);
+
+  /**
+   * The stop a position is protected by, from the shared plan cache the row
+   * already reads. Absent (not zero) when there is none, or the plan carries
+   * no usable price: the aggregate then counts the position as unprotected
+   * instead of pricing its risk as the whole notional.
+   */
+  function stopFor(pos: OMSPosition): Decimal | undefined {
+    if (!tpSlState.hasPlansFor(pos.symbol)) return undefined;
+    const raw = tpSlState.plansFor(pos.symbol).loss?.triggerPrice;
+    if (raw === undefined || raw === null || raw === "") return undefined;
+    try {
+      const price = new Decimal(raw);
+      return price.gt(0) ? price : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  // Over the whole book, not the filtered view: the figures describe the
+  // account and must not move when the trader narrows the list. Derived from
+  // `positions`, so they follow the book on every update with no polling.
+  let aggregate = $derived(aggregateFleet(fleetRows, stopFor));
+
+  function signed(value: Decimal): string {
+    return `${value.gt(0) ? "+" : ""}${formatDynamicDecimal(value)}`;
+  }
+
+  /** Accessible name of a row: what a screen reader needs before any control. */
+  function rowLabel(row: FleetRow): string {
+    const pos = row.position;
+    const owner = row.owner
+      ? (row.owner.name ?? $_("positionsList.botOwner"))
+      : $_("positionsList.ownerManual");
+    return $_("positionsList.rowLabel", {
+      values: {
+        symbol: pos.symbol,
+        side: pos.side,
+        owner,
+        pnl: pos.unpriced ? "–" : signed(pos.unrealizedPnl),
+      },
+    });
+  }
+
+  // Roving tabindex: one tab stop for the whole list, arrows move between
+  // rows. At N=20+ a tab stop per card (each holding several buttons) would
+  // make the list a wall to cross by keyboard.
+  let activeRowKey = $state<string | null>(null);
+  let rowTabStop = $derived(
+    visibleRows.some((r) => r.key === activeRowKey) ? activeRowKey : (visibleRows[0]?.key ?? null),
+  );
+
+  function onRowKeydown(event: KeyboardEvent) {
+    // Only when the card itself holds focus — a key pressed on a button
+    // inside it belongs to that button.
+    if (event.target !== event.currentTarget) return;
+    const cards = Array.from(listHost.querySelectorAll<HTMLElement>("[data-fleet-row]"));
+    const at = cards.indexOf(event.currentTarget as HTMLElement);
+    const targetIndex =
+      event.key === "ArrowDown"
+        ? at + 1
+        : event.key === "ArrowUp"
+          ? at - 1
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? cards.length - 1
+              : null;
+    if (targetIndex === null || at < 0) return;
+    event.preventDefault();
+    cards[Math.min(Math.max(targetIndex, 0), cards.length - 1)]?.focus();
   }
 </script>
 
@@ -202,6 +310,108 @@
     </div>
   {:else}
     <div class="flex flex-col gap-2">
+      {#if showFleetControls}
+        <!-- FEAT-0824 — book totals, over every position whatever the filter. -->
+        <dl
+          class="grid grid-cols-2 gap-x-3 gap-y-0.5 p-2 text-[10px] rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)]"
+          data-testid="fleet-aggregates"
+          aria-label={$_("positionsList.fleetLabel")}
+        >
+          <div class="flex justify-between gap-2">
+            <dt class="text-[var(--text-secondary)]">{$_("positionsList.fleetCount")}</dt>
+            <dd class="font-mono" data-testid="fleet-count">{aggregate.count}</dd>
+          </div>
+          <div class="flex justify-between gap-2">
+            <dt class="text-[var(--text-secondary)]">{$_("positionsList.fleetPnl")}</dt>
+            <dd
+              class="font-mono font-bold"
+              class:text-[var(--success-color)]={aggregate.totalPnl.gt(0)}
+              class:text-[var(--danger-color)]={aggregate.totalPnl.lt(0)}
+              data-testid="fleet-pnl"
+            >
+              {signed(aggregate.totalPnl)}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-2">
+            <dt class="text-[var(--text-secondary)]">{$_("positionsList.fleetExposure")}</dt>
+            <dd class="font-mono" data-testid="fleet-exposure">
+              {formatDynamicDecimal(aggregate.exposure)}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-2">
+            <dt class="text-[var(--text-secondary)]">{$_("positionsList.fleetOpenRisk")}</dt>
+            <dd class="font-mono" data-testid="fleet-open-risk">
+              {formatDynamicDecimal(aggregate.openRisk)}
+            </dd>
+          </div>
+          {#if aggregate.unprotectedCount > 0}
+            <dd
+              class="col-span-2 text-[var(--warning-color)]"
+              data-testid="fleet-unprotected"
+              title={$_("positionsList.fleetUnprotectedHint")}
+            >
+              {$_("positionsList.fleetUnprotected", { values: { count: aggregate.unprotectedCount } })}
+            </dd>
+          {/if}
+          {#if aggregate.unpricedCount > 0}
+            <dd
+              class="col-span-2 text-[var(--warning-color)]"
+              data-testid="fleet-unpriced"
+              title={$_("positionsList.stalePriceHint")}
+            >
+              {$_("positionsList.fleetUnpriced", { values: { count: aggregate.unpricedCount } })}
+            </dd>
+          {/if}
+        </dl>
+
+        <div class="flex flex-wrap items-center gap-2 text-[10px]" data-testid="fleet-toolbar">
+          <label class="flex items-center gap-1 text-[var(--text-secondary)]">
+            {$_("positionsList.sortLabel")}
+            <select
+              class="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-1 py-0.5 text-[var(--text-primary)]"
+              data-testid="fleet-sort"
+              value={sortKey}
+              onchange={(e) => (sortKey = e.currentTarget.value as FleetSortKey)}
+            >
+              {#each SORT_KEYS as key (key)}
+                <option value={key}>{$_(SORT_LABELS[key])}</option>
+              {/each}
+            </select>
+          </label>
+          {#if ownerOptions.length > 0}
+            <label class="flex items-center gap-1 text-[var(--text-secondary)]">
+              {$_("positionsList.filterLabel")}
+              <select
+                class="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-1 py-0.5 text-[var(--text-primary)] max-w-[10rem]"
+                data-testid="fleet-filter"
+                value={effectiveFilter}
+                onchange={(e) => (ownerFilter = e.currentTarget.value)}
+              >
+                {#each ownerOptions as option (option.value)}
+                  <option value={option.value}>
+                    {#if option.kind === "all"}
+                      {$_("positionsList.filterAll", { values: { count: option.count } })}
+                    {:else if option.kind === "manual"}
+                      {$_("positionsList.filterManual", { values: { count: option.count } })}
+                    {:else if option.kind === "bots"}
+                      {$_("positionsList.filterBots", { values: { count: option.count } })}
+                    {:else}
+                      {option.name ?? $_("positionsList.botOwner")} ({option.count})
+                    {/if}
+                  </option>
+                {/each}
+              </select>
+            </label>
+          {/if}
+          {#if visibleRows.length !== fleetRows.length}
+            <span class="text-[var(--text-tertiary)]" data-testid="fleet-showing">
+              {$_("positionsList.fleetShowing", {
+                values: { shown: visibleRows.length, total: fleetRows.length },
+              })}
+            </span>
+          {/if}
+        </div>
+      {/if}
       {#if oncloseAll}
         <button
           type="button"
@@ -211,13 +421,32 @@
           {$_("positionsList.closeAll")}
         </button>
       {/if}
-      {#each safePositions as pos}
-        <!-- Card Container -->
+      <div role="list" class="flex flex-col gap-2" aria-label={$_("positionsList.listLabel", { values: { count: visibleRows.length } })}>
+      {#each visibleRows as row (row.key)}
+        {@const pos = row.position}
+        <!--
+          Card Container. A listitem the keyboard can land on (roving
+          tabindex, arrows in `onRowKeydown`): the card is a landmark in a
+          long list, not a control, so the two a11y rules that say a
+          non-interactive element must not take focus are overridden on
+          purpose — one per comment, as svelte-ignore requires.
+        -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div
           class="bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors relative overflow-hidden group"
           class:border-[var(--accent-color)]={highlightPositionId !== null &&
             pos.positionId === highlightPositionId}
+          class:border-l-[3px]={hasBotRows}
+          class:border-l-[var(--accent-color)]={hasBotRows && row.owner !== null}
+          role="listitem"
+          tabindex={row.key === rowTabStop ? 0 : -1}
+          aria-label={rowLabel(row)}
           data-position-id={pos.positionId}
+          data-fleet-row
+          data-owner={row.owner ? "bot" : "manual"}
+          onkeydown={onRowKeydown}
+          onfocusin={() => (activeRowKey = row.key)}
         >
           {#if viewMode === "detailed"}
             <!-- MODE 1: DETAILED / COMPACT UNIFIED -->
@@ -246,8 +475,8 @@
                       {pos.marginMode}
                     </span>
                   {/if}
-                  {#if ownerOf(pos)}
-                    {@const owner = ownerOf(pos)!}
+                  {#if row.owner}
+                    {@const owner = row.owner}
                     <!--
                       FEAT-0808 — ownership in the direction the trader reads
                       it: this row was opened by a bot, and the badge is the
@@ -265,6 +494,15 @@
                     >
                       {owner.name ?? $_("positionsList.botOwner")}
                     </button>
+                  {:else if hasBotRows}
+                    <!-- FEAT-0824 — among bot positions a manual one says so,
+                         so it is told apart without opening anything. -->
+                    <span
+                      class="text-[9px] px-1 py-0.5 rounded font-bold bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]"
+                      data-testid="manual-badge"
+                    >
+                      {$_("positionsList.ownerManual")}
+                    </span>
                   {/if}
                 </div>
 
@@ -360,9 +598,7 @@
                          price when there is one; entry otherwise, matching
                          how the account summary derives its total. -->
                     <span class="text-[10px] text-[var(--text-tertiary)]"
-                      >≈ {formatDynamicDecimal(
-                        pos.amount.mul(pos.markPrice || pos.entryPrice),
-                      )}</span
+                      >≈ {formatDynamicDecimal(positionNotional(pos))}</span
                     >
                   </span>
                 </div>
@@ -568,8 +804,8 @@
                 >
               </div>
 
-              {#if ownerOf(pos)}
-                {@const owner = ownerOf(pos)!}
+              {#if row.owner}
+                {@const owner = row.owner}
                 <!-- FEAT-0808 — same badge, panic mode: smaller, but the
                      ownership stays visible when the row is at its densest. -->
                 <button
@@ -583,7 +819,16 @@
                 >
                   {owner.name ?? $_("positionsList.botOwner")}
                 </button>
-              {/if}
+              {:else if hasBotRows}
+                    <!-- FEAT-0824 — among bot positions a manual one says so,
+                         so it is told apart without opening anything. -->
+                    <span
+                      class="text-[9px] px-1 py-0.5 rounded font-bold bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]"
+                      data-testid="manual-badge"
+                    >
+                      {$_("positionsList.ownerManual")}
+                    </span>
+                  {/if}
 
               <!--
                 FEAT-0330. The panic mode is where a one-click exit belongs,
@@ -640,6 +885,7 @@
           {/if}
         </div>
       {/each}
+      </div>
     </div>
   {/if}
 </div>

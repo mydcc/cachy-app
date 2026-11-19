@@ -84,4 +84,10 @@ export interface OMSPosition {
      * never render; totals must badge rather than silently absorb it.
      */
     unpriced?: boolean;
+    /**
+     * FEAT-0824 — when the book opened this position, epoch ms. Present for
+     * paper positions (the simulator records it); absent for venue rows, which
+     * carry no reliable open time — age sorting puts those last.
+     */
+    openedAt?: number;
 }
