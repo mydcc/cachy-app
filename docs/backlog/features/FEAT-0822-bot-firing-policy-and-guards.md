@@ -2,7 +2,7 @@
 id: FEAT-0822
 title: Bot firing policy and guards — every rule user-configurable, the safety floor fixed
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: execution
 data_class: A
 adr: ADR-0026
 depends_on: [FEAT-0807, FEAT-0810]
+assignee: opencode
+branch: feature/feat-0822-bot-firing-policy-and-guards
 parent: FEAT-0805
 size: L
 estimate: 13
