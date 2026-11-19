@@ -73,7 +73,7 @@ import { registerKillSwitch, registerRiskLimitCheck } from "../orderGate";
 import { omsService } from "../omsService";
 import { marketState } from "../../stores/market.svelte";
 import { RuleEvaluationLoop, type OwnedBotPosition } from "./ruleEvaluationLoop";
-import { submitBotExit, withBotExits, type BotExitEnvironment } from "./botExits";
+import { withBotExits, type BotExitEnvironment } from "./botExits";
 import {
     exitActionAnchorFor,
     recordExitActionAnchor,
