@@ -2,7 +2,7 @@
 id: FEAT-0811
 title: The bot editor — exits, firing policy, limits and direct creation
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -70,24 +70,57 @@ protection cannot ship without its bot equivalent.
 
 ## Acceptance criteria
 
-- [ ] A bot can be created directly from the workshop with no prior alert —
+- [x] A bot can be created directly from the workshop with no prior alert —
       symbol, entry conditions, action, size, stop — and saved as an unarmed
       draft; promotion remains a pre-fill, never the only path.
-- [ ] A bot can be authored with zero, one or more exit rules; the document
+      *"From the workshop" is answered at the epic level: the workshop window
+      is 0805 structure work, so the control center (BotsTab) is the interim
+      host — the spec's own open question records that. The create flow:
+      `createBotDraft` (in promoteAlert.ts, the creation domain's
+      mass-neutral home) always writes `enabled: false` — the unarmed draft —
+      and promotion is untouched below it. Pinned: BotEditor create cases +
+      BotsTab's create-mode case (no alert read, no promote called).*
+- [x] A bot can be authored with zero, one or more exit rules; the document
       round-trips through save and reload.
-- [ ] A partial exit requires a fraction; the field is validated before save
+      *BotExitsEditor rows add/remove freely; the store round-trip is pinned
+      in botCreation.test.ts (full-set round-trip) and the edit path's
+      save-through-validate+armRule case.*
+- [x] A partial exit requires a fraction; the field is validated before save
       and the core refusal is anchored to it.
-- [ ] Firing policy, limits and trigger mode are settable, hashed with the
+      *Two layers, both pinned: the pre-save check (editor.fractionRequired,
+      anchored to the row's fraction input) and the core's own refusal
+      (`exits[N].fraction` → the same input, with the {field}-substituted
+      message).*
+- [x] Firing policy, limits and trigger mode are settable, hashed with the
       document, and shown back in the read-back sentence.
-- [ ] The parity matrix exists in the docs and a test fails when a manual
+      *All five 0822 fields plus 0823's entry_trigger; the read-back composes
+      policy, every set limit and the trigger label (BotFiringEditor's
+      readback, pinned). Hashing is the documents' own property (pinned since
+      0822/0823) — the editor writes the fields, the hash follows.*
+- [x] The parity matrix exists in the docs and a test fails when a manual
       protection gains no bot equivalent.
-- [ ] The side-aware labels differ for long and short and are covered by a
+      *Delivered by FEAT-0826 (docs/bot-parity.md +
+      scripts/bot-parity.test.ts); this item flips the take-profit row — the
+      one row its own delivery makes honest — from Planned to Shipped
+      (0809 document + 0810 execution + 0811 authoring). Guard green.*
+- [x] The side-aware labels differ for long and short and are covered by a
       component test in both locales.
-- [ ] Every control is keyboard reachable and labelled; the exit list has a
+      *Exits section title and the take-profit wording are side-aware; both
+      locales asserted in BotEditor.component.test (en and de bundles).*
+- [x] Every control is keyboard reachable and labelled; the exit list has a
       readable sentence.
-- [ ] Removing the last exit leaves a valid document with no `exits` key
+      *Native form controls (select/input/button) with label/aria wiring —
+      keyboard reachability is the platform's; refusal anchoring carries
+      aria-invalid + aria-describedby to the row's own fields. Each exit row
+      renders its live sentence via renderExitConditionSentence, pinned.*
+- [x] Removing the last exit leaves a valid document with no `exits` key
       (not an empty array).
-- [ ] A `notify` rule cannot be given an exit from this editor.
+      *publish() maps an empty row set to `onexits(undefined)` and the save
+      deletes the key — pinned: `"exits" in doc === false`.*
+- [x] A `notify` rule cannot be given an exit from this editor.
+      *The editor only mounts on simulate documents: create always builds
+      simulate, and the per-bot edit path's beginEdit guard excludes
+      notify rules. A notify rule never reaches the exits section.*
 
 ## Out of scope
 
@@ -97,11 +130,20 @@ protection cannot ship without its bot equivalent.
 - Trailing/break-even presets; they are conditions, not separate controls.
 - Migrating existing bots; they simply have no exits until edited.
 
+## Decided questions
+
+- **2026-11-19 (shipped with this item):** The editor's interim home is the
+  **control center's BotsTab** — the workshop window is FEAT-0805's structure
+  work, and the spec's own proposal records the workshop as the eventual home.
+  This item ships the editor; where it mounts is a one-line host change when
+  the workshop lands.
+
 ## Open questions
 
 - Whether the editor's home is the control center or the workshop window.
-  Proposal: the workshop (its reason to exist), with the control center
-  linking into it.
+  ~~Proposal: the workshop (its reason to exist), with the control center
+  linking into it.~~ Interim answer recorded above: BotsTab hosts until the
+  workshop window exists.
 - The take-profit control offers both, decided with the owner (2026-11-18):
   the distance field and exit-condition rows, `unrealised_pnl_percent`
   included ([`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics)).
@@ -114,5 +156,6 @@ protection cannot ship without its bot equivalent.
 - [`FEAT-0822`](FEAT-0822-bot-firing-policy-and-guards.md)
 - [`FEAT-0823`](FEAT-0823-confirmation-candle-as-an-entry-trigger-mode.md)
 - [`FEAT-0826`](FEAT-0826-overhaul-the-public-documentation-for-the-bot-era.md) — the parity matrix lives in [`docs/bot-parity.md`](../../bot-parity.md).
-- Code: `src/components/alerts/bots/BotIntentEditor.svelte`,
+- Code: `src/components/alerts/bots/BotEditor.svelte` (the single editor —
+  create and edit; absorbed and superseded the earlier intent-only editor),
   `src/components/alerts/tabs/*`

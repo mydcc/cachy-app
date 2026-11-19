@@ -1,5 +1,5 @@
 {
-  "note": "Burn-down only. Regenerate with `npm run check:cycles -- --update-baseline`, which refuses to raise a value and refuses every cycle change. `static` counts value imports, `combined` adds runtime import(), and only uphill layer pairs are frozen — see the header of scripts/arch-cycles.mjs for why.",
+  "note": "Burn-down only. Regenerate with `npm run check:cycles -- --update-baseline`, which refuses to raise a value and refuses every cycle change. `static` counts value imports, `combined` adds runtime import(), and only uphill layer pairs are frozen \u2014 see the header of scripts/arch-cycles.mjs for why.",
   "static": {
     "sccs": [
       {
@@ -39,7 +39,7 @@
     "sccs": [
       {
         "size": 196,
-        "sample": "src/components/alerts/bots/BotIntentEditor.svelte"
+        "sample": "src/components/alerts/bots/BotEditor.svelte"
       }
     ]
   }
