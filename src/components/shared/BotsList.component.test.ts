@@ -683,7 +683,7 @@ describe("FEAT-0822 — firing limits and the kill switch", () => {
         flushSync();
 
         render();
-        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.awaitingConfirmation"));
+        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.awaiting_confirmation"));
     });
 
     it("renders the confirmation discards in the row's guard line", () => {

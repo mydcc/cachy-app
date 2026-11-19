@@ -299,7 +299,7 @@
     blocked: "botsList.state.blocked",
     expired: "botsList.state.expired",
     limit_reached: "botsList.state.limit_reached",
-    awaiting_confirmation: "botsList.state.awaitingConfirmation",
+    awaiting_confirmation: "botsList.state.awaiting_confirmation",
   };
 
   /**

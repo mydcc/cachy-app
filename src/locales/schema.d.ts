@@ -828,7 +828,7 @@ export type TranslationKey =
   | "botsList.state.blocked"
   | "botsList.state.expired"
   | "botsList.state.limit_reached"
-  | "botsList.state.awaitingConfirmation"
+  | "botsList.state.awaiting_confirmation"
   | "botsList.empty"
   | "botsList.rulesUnreadable"
   | "botsList.bookUnreadable"

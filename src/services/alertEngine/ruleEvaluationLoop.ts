@@ -523,6 +523,16 @@ export class RuleEvaluationLoop {
     string,
     { seriesKey: string; signalAnchorMs: number; ownedAtSignal: boolean }
   >();
+  /**
+   * FEAT-0823 review — the newest anchor this loop instance already decided
+   * for a confirmation rule, whatever the decision was. The memo is the
+   * *wait* state; this is the *decision* state, and it is what makes a
+   * replayed close a no-op: the market cache evicts series on LRU and the
+   * refill replays every already-decided close, and without this floor the
+   * confirmation path re-entered them (the immediate path never had the
+   * problem — the evaluation gate's monotonic floor holds it).
+   */
+  private readonly confirmationDecidedMs = new Map<string, number>();
 
   constructor(options?: RuleEvaluationLoopOptions) {
     if (options) this.configure(options);
@@ -919,9 +929,16 @@ export class RuleEvaluationLoop {
     if (!hasConfirmationRules && !seriesHasMemo) return;
 
     for (const [id, memo] of this.confirmationMemos) {
-      if (memo.seriesKey === seriesKey && !rules.some((rule) => rule.id === id)) {
-        this.confirmationMemos.delete(id);
-      }
+      if (memo.seriesKey !== seriesKey) continue;
+      // FEAT-0823 review — presence alone is not enough: a rule still armed
+      // but edited away from `confirmation` never reaches the branch that
+      // consumes memos again, so its wait would outlive the mode that
+      // earned it — reported forever while the bot fires immediately. The
+      // memo belongs to the mode, not the id.
+      const stillConfirming = rules.some(
+        (rule) => rule.id === id && rule.entry_trigger === "confirmation",
+      );
+      if (!stillConfirming) this.confirmationMemos.delete(id);
     }
     const awaiting: AwaitingEntrySignal[] = [];
     for (const [id, memo] of this.confirmationMemos) {
@@ -1067,6 +1084,22 @@ export class RuleEvaluationLoop {
     asOf?: number,
   ): RuleFiring | undefined {
     const seriesKey = `${symbol}|${timeframe}`;
+    // FEAT-0823 review — one decision per anchor, the discipline the gate
+    // holds for every other rule. The in-session half is the map beside
+    // this class's memos; the durable half is the fire ledger — a
+    // confirmation rule's every firing IS an entry decision (this branch is
+    // the only path that emits one), so its last fired anchor is exactly
+    // "the newest confirmation close this rule already entered on". An
+    // anchor at or below the floor returns quietly: the decision stands,
+    // the memo state stands with it, and a replayed close — the market
+    // cache's LRU eviction refilling the series — re-enters nothing.
+    const floorMs = Math.max(
+      this.confirmationDecidedMs.get(rule.id) ?? Number.NEGATIVE_INFINITY,
+      this.durableConfirmationFloor(rule),
+    );
+    if (anchorMs <= floorMs) return undefined;
+    this.confirmationDecidedMs.set(rule.id, anchorMs);
+
     const memo = this.confirmationMemos.get(rule.id);
     let entry: RuleFiring | undefined;
 
@@ -1085,9 +1118,14 @@ export class RuleEvaluationLoop {
         const confirmed = this.confirmSignal(rule, symbol, timeframe, anchorMs, asOf);
         if (isConfirmationEntry(confirmed)) {
           entry = confirmed;
-        } else {
+        } else if (confirmed === "against") {
           this.onSignalDiscarded?.(rule.id, anchorMs, "confirmation-against-direction");
         }
+        // "no-signal" records nothing: the memo says a signal existed, but
+        // its own candle can no longer be read (a trimmed series, an
+        // eviction) — "the market refused" would be a story about a candle
+        // nobody can see. The wait dies quietly, and the signal derivation
+        // below re-arms from whatever this close does say.
       }
     }
 
@@ -1117,6 +1155,24 @@ export class RuleEvaluationLoop {
       });
     }
     return entry;
+  }
+
+  /**
+   * FEAT-0823 review — the durable half of the confirmation floor.
+   *
+   * A confirmation rule's every firing is an entry decision (the branch
+   * above is the only path that emits one), so the fire ledger's last
+   * anchor is exactly "the newest confirmation close this rule already
+   * entered on" — the floor a reload re-reads instead of entering twice.
+   * Read through `stateFor`, the same guarded reader the trigger path
+   * uses, so an unreadable ledger errs towards acting (no floor), the loud
+   * direction for an entry the lane's own guards still bound.
+   */
+  private durableConfirmationFloor(rule: RuleDocument): number {
+    const fired = this.stateFor(rule)?.last_fired_anchor_ms;
+    return typeof fired === "number" && Number.isFinite(fired)
+      ? fired
+      : Number.NEGATIVE_INFINITY;
   }
 
   /**
@@ -1198,7 +1254,15 @@ export class RuleEvaluationLoop {
     if (markCandles) {
       ctx.mark_candles = markCandles;
     }
-    return ruleSchema.evaluate(resolved.rule, ctx);
+    const verdict = ruleSchema.evaluate(resolved.rule, ctx);
+    // FEAT-0823 review — BUG-0485's clearing discipline, carried into the
+    // path that bypasses the gate: a signal that evaluated says whatever
+    // made the rule inert no longer holds, so the record drops here rather
+    // than waiting for a writer that never comes. After the call, not
+    // before: a refusal throws out of the core and must leave the record
+    // for the catch's steady-state guard to find.
+    if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
+    return verdict;
   }
 
   /**
@@ -1578,6 +1642,13 @@ export class RuleEvaluationLoop {
     this.onFiring = shadowSink;
     this.onClose = () => {};
     this.onUnevaluable = logUnevaluable;
+    // FEAT-0823 review — the held waits die with the engine that formed
+    // them: a shadow pass's memo must never be consumed by the live pass
+    // that follows, and a memo with no engine to evaluate its confirmation
+    // is a promise nobody can keep. The decided-anchor floor survives a
+    // disarm on purpose — decisions are facts about anchors, and a re-init
+    // replaying them (the LRU refill) re-enters nothing either way.
+    this.confirmationMemos.clear();
   }
 
   /**
@@ -1604,6 +1675,11 @@ export class RuleEvaluationLoop {
       this.seriesGapRecords.clear();
       this.emitSeriesGaps();
     }
+    // FEAT-0823 review — the confirmation state is series state too: a
+    // full teardown (HMR, a fresh test) must not inherit another
+    // lifetime's waits or decisions.
+    this.confirmationMemos.clear();
+    this.confirmationDecidedMs.clear();
   }
 }
 

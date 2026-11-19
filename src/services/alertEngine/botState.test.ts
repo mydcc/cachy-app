@@ -283,6 +283,36 @@ const rows: Row[] = [
         hasPosition: false,
     },
     {
+        // The wait loses to every acting and blocking state, pinned
+        // directly now rather than by the comment's word.
+        name: "an in-flight submission beats a held signal",
+        book: {
+            awaiting: new Set(["bot-1"]),
+            submitting: new Set(["bot-1"]),
+        },
+        state: "submitting",
+        hasPosition: false,
+    },
+    {
+        name: "a blocked bot does not promise the awaited entry",
+        book: {
+            awaiting: new Set(["bot-1"]),
+            unevaluable: new Set(["bot-1"]),
+        },
+        state: "blocked",
+        hasPosition: false,
+    },
+    {
+        name: "a closing bot in flight beats a held signal",
+        book: {
+            awaiting: new Set(["bot-1"]),
+            closing: new Set(["bot-1"]),
+            positions: [position()],
+        },
+        state: "closing",
+        hasPosition: true,
+    },
+    {
         name: "a fired bot with a new signal shows the newer fact",
         book: {
             awaiting: new Set(["bot-1"]),

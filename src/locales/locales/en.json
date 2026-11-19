@@ -954,7 +954,7 @@
       "blocked": "Blocked",
       "expired": "Expired",
       "limit_reached": "Limit reached",
-      "awaitingConfirmation": "Awaiting confirmation"
+      "awaiting_confirmation": "Awaiting confirmation"
     },
     "empty": "No bots yet. The control center creates them from your alerts.",
     "rulesUnreadable": "The bot list could not be read. Nothing was changed.",

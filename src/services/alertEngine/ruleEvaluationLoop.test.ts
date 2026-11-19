@@ -2014,26 +2014,89 @@ describe("the confirmation entry mode (FEAT-0823)", () => {
     expect(awaiting.at(-1)?.slice).toEqual([]);
   });
 
-  it("re-announcing the same close does not enter twice", () => {
+  it("a genuine replay — forget the series, refill it — does not re-enter a decided close", () => {
     const onFiring = vi.fn();
-    const candles = [candle(1_000, "100", "100"), candle(61_000, "100", "101")];
+    const onSignalDiscarded = vi.fn();
+    const candles = [
+      candle(1_000, "100", "100"),
+      candle(61_000, "100", "101"),
+      candle(121_000, "101", "100"),
+    ];
     const loop = new RuleEvaluationLoop({
       readCandles: () => candles,
       readRules: () => [confirmationRule()],
       onFiring,
       onAwaiting: vi.fn(),
-      onSignalDiscarded: vi.fn(),
+      onSignalDiscarded,
     });
 
+    // Pass 1: the signal at 1_000 holds, the green close at 61_000 enters,
+    // and the red candle at 121_000 discards the follow-up signal — one
+    // entry, one discard, a fresh wait held.
     mark(loop, 1_000);
     mark(loop, 61_000);
     mark(loop, 121_000);
     expect(onFiring).toHaveBeenCalledTimes(1);
+    expect(onFiring.mock.calls[0][0]).toMatchObject({
+      rule: { id: "bot-1" },
+      anchorMs: 61_000,
+    });
 
-    // A replayed announcement of the confirmation candle finds the memo
-    // already consumed — the same candles produce the same entry, never
-    // two.
+    // The market cache evicts the series and the store refills it — the
+    // normal LRU path. Every replayed close was already decided; the
+    // entry at 61_000 must not happen a second time.
+    loop.forgetSeries("BTCUSDT", "1m");
+    mark(loop, 1_000);
+    mark(loop, 61_000);
     mark(loop, 121_000);
+    mark(loop, 181_000);
+
     expect(onFiring).toHaveBeenCalledTimes(1);
+  });
+
+  it("a rule edited away from confirmation drops its wait with the mode", () => {
+    let trigger: "confirmation" | "immediate" = "confirmation";
+    const { loop, awaiting } = loopWithConfirmation([confirmationRule()], {
+      candles: [candle(1_000, "100", "100"), candle(61_000, "100", "101")],
+      rules: () => [confirmationRule({ entry_trigger: trigger })],
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000);
+    // The signal holds a wait while the mode is confirmation.
+    expect(awaiting.at(-1)?.slice).toEqual([{ ruleId: "bot-1", signalAnchorMs: 1_000 }]);
+
+    // The trader edits the bot to enter immediately: the wait belonged to
+    // the mode, not the id, and the next close must stop promising an entry
+    // the mode no longer waits for.
+    trigger = "immediate";
+    mark(loop, 121_000);
+    expect(awaiting.at(-1)?.slice).toEqual([]);
+  });
+
+  it("a wait whose signal candle can no longer be read dies without a record", () => {
+    let candles = [candle(1_000, "100", "100"), candle(61_000, "100", "101")];
+    const discards: Array<{ ruleId: string; anchorMs: number; reason: string }> = [];
+    const loop = new RuleEvaluationLoop({
+      readCandles: () => candles,
+      readRules: () => [confirmationRule()],
+      onFiring: vi.fn(),
+      onAwaiting: vi.fn(),
+      onSignalDiscarded: (ruleId, anchorMs, reason) => {
+        discards.push({ ruleId, anchorMs, reason });
+      },
+    });
+
+    mark(loop, 1_000);
+    mark(loop, 61_000); // the signal at 1_000 holds a wait
+    expect(discards).toEqual([]);
+
+    // The series is trimmed below the signal candle (an eviction refill
+    // that starts later): the wait's own candle is gone, so the
+    // confirmation close can say nothing about it — no entry, and no
+    // "the market refused" story about a candle nobody can see.
+    candles = [candle(61_000, "100", "101")];
+    mark(loop, 121_000);
+    expect(discards).toEqual([]);
   });
 });

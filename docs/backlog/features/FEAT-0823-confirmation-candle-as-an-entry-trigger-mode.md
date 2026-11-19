@@ -66,10 +66,12 @@ Optional, never forced.
       `awaiting confirmation`, and enters exactly once at the close of a
       confirming candle.
       *Loop tests (9 cases: hold, green entry, red discard, doji-against,
-      stop-out cancel, reload catch-up, quiet catch-up, disabled purge,
-      replay determinism) and the money-path e2e: the entry lands at the
-      confirm close through the same lane every entry takes, counted once,
-      no network.*
+      stop-out cancel, reload catch-up, quiet catch-up, edited-mode purge,
+      genuine replay) — the unit tests pin the entry ANCHOR (the
+      confirmation close, `anchorMs` asserted) — and the money-path e2e
+      pins the lane, the ledger and the network (the entry lands through
+      the same lane every entry takes, counted once, no network; the feed
+      price is constant there, so the anchor claim is the unit side's).*
 - [x] A counter-confirmation candle produces exactly one expiry record and
       returns the bot to armed without an entry.
       *The discard lands in the guard ledger (`confirmation-against-direction`)
@@ -94,10 +96,14 @@ Optional, never forced.
       a guard-locale key, and the cancel wins over the direction check.*
 - [x] Determinism: given the same candles, the same evaluation replay
       produces the same entries — no intrabar peeking.
-      *The signal memo is the replay guard — a replayed confirmation close
-      finds it consumed (loop test); the document refuses
-      `confirmation + intrabar` outright (`confirmationNeedsCloses`, both
-      locales), so the wait can never read a forming candle.*
+      *The decided-anchor floor is the replay guard, review-hardened: an
+      anchor this loop already decided (in-session map) or already entered
+      on (the fire ledger's last anchor, durable across reloads) is never
+      decided twice — pinned by the genuine-replay test (market-cache
+      eviction: forget the series, refill it, no re-entry). The document
+      refuses `confirmation + intrabar` outright
+      (`confirmationNeedsCloses`, both locales), so the wait can never
+      read a forming candle.*
 - [ ] The editor states the trade-off (entry one candle later) in both
       locales, with i18n keys.
       *Deferred to FEAT-0811, the same deferral 0822's editor criterion

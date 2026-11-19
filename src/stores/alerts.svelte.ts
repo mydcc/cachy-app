@@ -900,12 +900,28 @@ let botsSinkGeneration = 0;
 const awaitingBySeries = new Map<string, AwaitingEntrySignal[]>();
 
 /**
+ * FEAT-0823 review — the rules version the mirror was last pruned against.
+ * Pruning is lazy on purpose: the report arrives per close, but a deleted or
+ * edited rule changes nothing until the rules version moves, and a parse per
+ * close would tax the hot path for a check that only matters on writes.
+ */
+let awaitingPrunedRulesVersion = -1;
+
+/**
  * FEAT-0823 — the `onAwaiting` port: replace this series' slice, then
  * republish. An empty slice deletes the key, so a series whose last wait
  * consumed or purged stops answering — the report never carries a wait the
  * loop no longer holds.
+ *
+ * The republish prunes stale rule ids against the rule store (guarded: an
+ * unreadable store prunes nothing this round): a series that stops closing
+ * entirely — the trader removed the bot because they stopped watching the
+ * market — would otherwise keep promising a wait forever, and a rule id
+ * reused later would inherit it. The loop purges its own memos on the next
+ * close of a live series; this is the half for series that never close
+ * again.
  */
-function reportAwaitingSlice(
+export function reportAwaitingSlice(
     symbol: string,
     timeframe: string,
     slice: AwaitingEntrySignal[],
@@ -913,6 +929,25 @@ function reportAwaitingSlice(
     const key = `${symbol}|${timeframe}`;
     if (slice.length === 0) awaitingBySeries.delete(key);
     else awaitingBySeries.set(key, slice);
+    if (alertState.rulesVersion !== awaitingPrunedRulesVersion) {
+        awaitingPrunedRulesVersion = alertState.rulesVersion;
+        try {
+            const stillConfirming = new Set(
+                readBots()
+                    .filter((rule) => rule.entry_trigger === "confirmation")
+                    .map((rule) => rule.id),
+            );
+            for (const [seriesKey, entries] of awaitingBySeries) {
+                const kept = entries.filter((entry) => stillConfirming.has(entry.ruleId));
+                if (kept.length === entries.length) continue;
+                if (kept.length === 0) awaitingBySeries.delete(seriesKey);
+                else awaitingBySeries.set(seriesKey, kept);
+            }
+        } catch {
+            // An unreadable rule store prunes nothing: the projection
+            // degrades on its own, and a wrong prune would drop live waits.
+        }
+    }
     alertState.awaitingReport = [...awaitingBySeries.values()].flat();
 }
 

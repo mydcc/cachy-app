@@ -954,7 +954,7 @@
       "blocked": "Blockiert",
       "expired": "Abgelaufen",
       "limit_reached": "Limit erreicht",
-      "awaitingConfirmation": "Wartet auf Bestätigung"
+      "awaiting_confirmation": "Wartet auf Bestätigung"
     },
     "empty": "Noch keine Bots. Das Kontrollzentrum erstellt sie aus deinen Alarmen.",
     "rulesUnreadable": "Die Bot-Liste konnte nicht gelesen werden. Es wurde nichts geändert.",
