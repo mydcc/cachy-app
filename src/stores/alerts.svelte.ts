@@ -56,7 +56,8 @@ import { alertNotificationKey } from "../lib/notificationPolicy";
 import { channelSelection } from "../lib/alerts/effectiveChannels";
 import type { FiringSink, OwnedBotPosition, SeriesGap, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
-import type { BotExitEnvironment, BotExitRefusal, BotCloseParams } from "../services/alertEngine/botExits";
+import { readBots, setBotEnabled } from "../services/alertEngine/botStore";
+import { submitBotExit, type BotExitEnvironment, type BotExitRefusal, type BotCloseParams } from "../services/alertEngine/botExits";
 import type { AccountSnapshot, RuleDocument } from "../lib/rules/types";
 import type { PaperPosition } from "./paperTrading.svelte";
 import { logger } from "../services/logger";
@@ -421,6 +422,17 @@ const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, TranslationKey> = {
     // and neither reason is one the trader can see from the rule itself.
     "submission-in-flight": "settings.automation.orderRefusedInFlight",
     "position-already-open": "settings.automation.orderRefusedPositionOpen",
+    // FEAT-0822 — the guard refusals: the race the reservation closes, the
+    // policy the document states, and the limits it set on itself. Every one
+    // is a bound the trader wrote (or the platform's floor), not a fault to
+    // fix, and the row's `limit reached` chip is the quiet half of the same
+    // message.
+    "slot-reserved": "settings.automation.orderRefusedSlotReserved",
+    "policy-once": "settings.automation.orderRefusedPolicyOnce",
+    "limit-entries-day": "settings.automation.orderRefusedLimitEntriesDay",
+    "limit-positions": "settings.automation.orderRefusedLimitPositions",
+    "limit-risk": "settings.automation.orderRefusedLimitRisk",
+    "limit-budget": "settings.automation.orderRefusedLimitBudget",
 };
 
 export function reportBotOrderRefusal(
@@ -597,6 +609,68 @@ export function botExitEnvironment(
             };
         },
     };
+}
+
+/**
+ * FEAT-0822 — the kill switch, per bot and fleet.
+ *
+ * Two operations, deliberately not one. Stopping entries is the same
+ * `enabled: false` the pause writes — one mechanism, no second truth to
+ * drift — and the exits keep protecting while it is off, exactly the
+ * paused semantics FEAT-0810 established. Closing what a bot owns rides
+ * the same single-close lane its exits take: the gate, `reduceOnly`,
+ * attribution and the journal are that lane's guarantees, not something
+ * this rebuilds, and a kill switch that opened a second close path would
+ * be a privilege the gate has never seen.
+ *
+ * The close variant closes ONLY rows the bot owns — a manual position on
+ * the same market is another trader decision this never makes — and
+ * reports each row that refused rather than stopping at the first: a kill
+ * switch that halted halfway would leave the fleet half-closed with no
+ * sign of what remains.
+ */
+export async function closeBotOwnedPositions(
+    botId: string,
+): Promise<{ closed: number; refused: string[] }> {
+    const bot = readBots().find((r) => r.id === botId);
+    if (!bot) return { closed: 0, refused: [] };
+
+    const { tradeService } = await import("../services/tradeService");
+    const env = botExitEnvironment((params) => tradeService.closePosition(params));
+    const owned = ownedBotPositions(botId);
+
+    let closed = 0;
+    const refused: string[] = [];
+    for (const row of owned) {
+        const refusal = await submitBotExit(env, {
+            rule: bot,
+            symbol: row.symbol,
+            positionId: row.positionId,
+            close: "all",
+            exitIndex: null,
+            anchorMs: Date.now(),
+        });
+        if (refusal === null) closed += 1;
+        else refused.push(refusal);
+    }
+    return { closed, refused };
+}
+
+/**
+ * FEAT-0822 — the fleet-wide entry stop: every bot, the same one-field
+ * write the per-bot pause makes. Returns how many bots it stopped, so the
+ * caller can say so rather than imply a fleet it did not find.
+ */
+export function stopAllBots(): number {
+    let stopped = 0;
+    for (const bot of readBots()) {
+        if (typeof bot.id !== "string") continue;
+        if (bot.enabled !== false) {
+            setBotEnabled(bot.id, false);
+            stopped += 1;
+        }
+    }
+    return stopped;
 }
 
 /**

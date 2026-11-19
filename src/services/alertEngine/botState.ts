@@ -31,6 +31,13 @@
 
 import type { RuleDocument } from "../../lib/rules/types";
 import type { PaperPosition } from "../../stores/paperTrading.svelte";
+import { Decimal } from "decimal.js";
+import { limitReasonsFor } from "./botGuards";
+
+/** An owned row's risk before anything is known about it — never `null` in
+ * the projection's book, because the enforcement lane refuses on unknown
+ * rather than admitting it as free. */
+const ZERO_RISK = new Decimal(0);
 
 export type BotState =
     | "armed"
@@ -40,7 +47,8 @@ export type BotState =
     | "closed"
     | "paused"
     | "blocked"
-    | "expired";
+    | "expired"
+    | "limit_reached";
 
 /**
  * Everything the rule document cannot know about itself, pre-read by the
@@ -62,6 +70,17 @@ export interface BotBook {
     unevaluable: ReadonlySet<string>;
     /** Fired count per rule id, from the rule-state ledger. */
     firedCounts: ReadonlyMap<string, number>;
+    /**
+     * FEAT-0822 — entries each bot landed today, from the same durable
+     * counter the day cap enforces with. The store keys it by bot id.
+     */
+    entriesToday: ReadonlyMap<string, number>;
+    /**
+     * FEAT-0822 — the open risk each bot's rows still hold (their resting
+     * stops, unknown reads as zero here only because the enforcement lane
+     * refuses on unknown, never admits). Keyed by bot id.
+     */
+    budgetUsed: ReadonlyMap<string, Decimal>;
 }
 
 /** One bot's answer to "what are you doing right now?". */
@@ -106,7 +125,16 @@ export function deriveBotState(rule: RuleDocument, book: BotBook, now: number): 
     //     without a position has nothing left to close and falls through.
     //   in_position — the book is the owner of record.
     //   expired — by definition never fired: a bot that acted is described
-    //     by what it did, not by a deadline that passed under it.
+    //     by what it did, not by a deadline that passed under it. Above
+    //     `limit_reached` on purpose: expiry is terminal, a day cap resets
+    //     tomorrow, and a dead-forever bot must not read as temporarily
+    //     limited.
+    //   limit_reached — FEAT-0822. The standing limits (the day cap, the
+    //     budget) bind an armed bot that cannot act: the trader's question
+    //     is "why is it not firing?", and the limit is the answer. The other
+    //     limit reasons never surface here — a bot at its position cap is
+    //     holding (in_position above), and a once bot that entered reads
+    //     closed, both of which say more than "limited".
     //   closed / armed — fired at least once, or ready to.
     if (book.submitting.has(rule.id)) return { state: "submitting", hasPosition };
     if (rule.enabled === false) return { state: "paused", hasPosition };
@@ -116,8 +144,31 @@ export function deriveBotState(rule: RuleDocument, book: BotBook, now: number): 
     if (rule.valid_until_ms !== undefined && rule.valid_until_ms < now && fired === 0) {
         return { state: "expired", hasPosition };
     }
+    if (standingLimitReached(rule, book)) return { state: "limit_reached", hasPosition };
     if (fired > 0) return { state: "closed", hasPosition };
     return { state: "armed", hasPosition };
+}
+
+/**
+ * FEAT-0822 — whether one of the standing limits (the day cap, the budget)
+ * binds an armed bot. The same pure function the enforcement lane refuses
+ * submissions with, so the row's chip and the engine's refusal can never
+ * disagree — computed with the entry's risk deliberately absent, because the
+ * projection answers "could this bot act at all?", not "may this specific
+ * entry through?".
+ */
+function standingLimitReached(rule: RuleDocument, book: BotBook): boolean {
+    return limitReasonsFor({
+        policy: rule.firing_policy ?? "once_per_candle",
+        entriesTotal: 0,
+        entriesToday: book.entriesToday.get(rule.id) ?? 0,
+        maxEntriesPerDay: rule.max_entries_per_day,
+        maxPositions: rule.max_positions,
+        maxRiskPerPosition: rule.max_risk_per_position,
+        budgetCap: rule.budget_cap,
+        ownedCount: 0,
+        riskUsed: book.budgetUsed.get(rule.id) ?? ZERO_RISK,
+    }).some((reason) => reason === "entries-day" || reason === "budget");
 }
 
 /**

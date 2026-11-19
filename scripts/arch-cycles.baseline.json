@@ -38,7 +38,7 @@
   "combined": {
     "sccs": [
       {
-        "size": 196,
+        "size": 197,
         "sample": "src/components/alerts/bots/BotIntentEditor.svelte"
       }
     ]

@@ -37,8 +37,10 @@
  */
 
 import type { RuleDocument } from "../lib/rules/types";
+import { Decimal } from "decimal.js";
 import { readBots } from "../services/alertEngine/botStore";
-import { readRuleStates } from "../services/alertEngine/ruleStateStore";
+import { botEntryActivity, readRuleStates } from "../services/alertEngine/ruleStateStore";
+import { openRiskOfRow, type OwnedRowLite } from "../services/alertEngine/botGuards";
 import {
     setBotClosingListener,
     setBotSubmissionsListener,
@@ -127,12 +129,34 @@ class BotsStateManager {
         for (const [ruleId, state] of Object.entries(readRuleStates())) {
             firedCounts.set(ruleId, state.fired_count ?? 0);
         }
+        // FEAT-0822 — the standing limits' consumption, read per bot from the
+        // same durable counter the enforcement lane refuses with and the
+        // same resting-stop risk it prices budgets with. The single-truth
+        // rule that made the guard decisions pure: both halves read one
+        // function, so a chip that says `limit reached` and an engine that
+        // refuses can never disagree about whether a limit binds.
+        const entriesToday = new Map<string, number>();
+        const budgetUsed = new Map<string, Decimal>();
+        const orders = paperState.orders;
+        for (const bot of readBotsOrRefusal().bots) {
+            if (typeof bot.id !== "string") continue;
+            entriesToday.set(bot.id, botEntryActivity(bot.id).today);
+            const used = paperState.positions
+                .filter((p) => p.origin === "bot" && p.botId === bot.id)
+                .reduce(
+                    (sum, row) => sum.plus(openRiskOfRow(row as OwnedRowLite, orders) ?? 0),
+                    new Decimal(0),
+                );
+            budgetUsed.set(bot.id, used);
+        }
         return {
             positions: paperState.positions,
             submitting: this.submittingIds,
             closing: this.closingIds,
             unevaluable: new Set(alertState.unevaluableReport.map((rule) => rule.ruleId)),
             firedCounts,
+            entriesToday,
+            budgetUsed,
         };
     }
 

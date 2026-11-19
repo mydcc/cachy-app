@@ -36,7 +36,7 @@ import { Decimal } from "decimal.js";
 import type { RuleDocument } from "../lib/rules/types";
 import { CONSTANTS } from "../lib/constants";
 import { RULES_STORAGE_KEY } from "../services/alertEngine/migrateAlertsToRules";
-import { recordRuleFiring, RULE_STATE_STORAGE_KEY } from "../services/alertEngine/ruleStateStore";
+import { recordBotEntry, recordRuleFiring, RULE_STATE_STORAGE_KEY } from "../services/alertEngine/ruleStateStore";
 import { clearBotClosing, notifyBotClosing } from "../services/alertEngine/botSubmissionBus";
 import { paperExchange, setPaperPriceFeed } from "../services/paperExchange";
 import { alertState } from "./alerts.svelte";
@@ -251,6 +251,20 @@ describe("FEAT-0807 — the botsState projection", () => {
         expect(botsState.states.get("bot-1")?.state).toBe("blocked");
         expect(botsState.states.get("bot-2")?.state).toBe("blocked");
         expect(botsState.states.get("bot-1")?.hasPosition).toBe(false);
+    });
+
+    it("reads limit_reached from the durable day counter", () => {
+        seedBots(
+            botDocument("bot-1", { max_entries_per_day: 1, firing_policy: "multi" }),
+        );
+        expect(botsState.states.get("bot-1")?.state).toBe("armed");
+
+        // One landed entry exhausts the day cap the document states, and
+        // the projection re-reads the durable counter on the version bump.
+        recordBotEntry("bot-1");
+        alertState.firingsVersion += 1;
+
+        expect(botsState.states.get("bot-1")?.state).toBe("limit_reached");
     });
 
     it("introduces no storage key of its own", async () => {
