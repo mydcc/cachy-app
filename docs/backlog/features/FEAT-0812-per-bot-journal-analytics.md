@@ -2,7 +2,7 @@
 id: FEAT-0812
 title: Review a bot's track record in the journal
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -42,15 +42,15 @@ Add per-bot views and statistics to the journal:
 
 ## Acceptance criteria
 
-- [ ] The journal filters by bot, by "bots only", and by "manual only".
-- [ ] Each bot's card shows trades, win rate, average R, expectancy, max
+- [x] The journal filters by bot, by "bots only", and by "manual only".
+- [x] Each bot's card shows trades, win rate, average R, expectancy, max
       drawdown and total PnL, all computed with `Decimal`.
-- [ ] A bot-opened position closed manually is counted and labelled as such; it
+- [x] A bot-opened position closed manually is counted and labelled as such; it
       is not counted as a bot exit.
-- [ ] Unattributed legacy trades are excluded from per-bot stats with a visible
+- [x] Unattributed legacy trades are excluded from per-bot stats with a visible
       explanation.
-- [ ] Deleting a bot keeps its closed trades attributable in the journal.
-- [ ] Component tests cover the empty state, a bot with mixed exits, and a
+- [x] Deleting a bot keeps its closed trades attributable in the journal.
+- [x] Component tests cover the empty state, a bot with mixed exits, and a
       legacy unattributed trade.
 
 ## Out of scope
@@ -60,13 +60,31 @@ Add per-bot views and statistics to the journal:
 - Tax, export or reporting formats.
 - Attribution for trades that predate FEAT-0806.
 
-## Open questions
+## Decided
 
-- Whether "bot-opened, manually closed" counts toward the bot's win rate.
-  Proposal: show it in a separate row, not in the win rate, because the exit was
-  not the bot's decision.
-- Whether stats should be per rule version (`strategyHash`) or per bot id when a
-  rule was edited; proposal: per hash, with the bot name as the grouping label.
+- **"Bot-opened, manually closed" stays out of the win rate.** Both proposals
+  were taken as written. Such a trade is counted, labelled and shown in its own
+  row with its own PnL, and it reaches none of the headline figures — win rate,
+  average R, expectancy, drawdown, total PnL or the equity curve. The bot's
+  exit never ran, so crediting or blaming it would answer the wrong question.
+- **One record per `(botId, strategyHash)`,** with the bot's name as the
+  grouping label and a short version badge shown only when a bot has more than
+  one version.
+
+## What had to be built first
+
+FEAT-0806 recorded who *opened* a trade and deliberately stopped there —
+`paperExchange` stamps attribution on the opening fill only, because
+"attribution is an open-time fact". Nothing recorded who *closed* one, and the
+close lane (`closePosition`) builds a `reduce` intent that carries no origin.
+So the third acceptance criterion was not derivable from stored data.
+
+Rather than overload `origin` on the closing fill (which would contradict that
+decision), `JournalEntry` gained `exitOrigin`: the bot exit lane reports a
+close that actually went through, through a required port, and completion marks
+every other bot-opened entry as a manual exit. An absent value on a closed bot
+trade reads as the bot's own exit, so entries written before this field keep
+the figures they already had instead of being guessed at retroactively.
 
 ## Links
 

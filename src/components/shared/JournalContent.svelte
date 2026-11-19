@@ -436,21 +436,27 @@
      * label does not, and the card says so rather than showing a bare id
      * with no explanation.
      */
+    /**
+     * The rule store's names, or an empty map when it cannot be read. A
+     * broken store costs the labels, not the figures — the ids still
+     * identify the records, so the cards degrade rather than disappear.
+     */
+    function readBotNames(): Map<string, string | null> {
+        try {
+            return new Map(
+                readBots().map((bot) => [bot.id, bot.name ?? null] as const),
+            );
+        } catch {
+            return new Map();
+        }
+    }
+
     let botNames = $derived.by(() => {
         const names = new Map<string, string | null>();
         // Re-read when the journal moves: a new bot trade can introduce an
         // owner this map has never seen.
         void journalState.entries.length;
-        let known = new Map<string, string | null>();
-        try {
-            known = new Map(
-                readBots().map((bot) => [bot.id, bot.name ?? null] as const),
-            );
-        } catch {
-            // A rule store that cannot be read costs the labels, not the
-            // figures — the ids still identify the records.
-            known = new Map();
-        }
+        const known = readBotNames();
         for (const record of botRecords) {
             names.set(record.botId, known.get(record.botId) ?? null);
         }
