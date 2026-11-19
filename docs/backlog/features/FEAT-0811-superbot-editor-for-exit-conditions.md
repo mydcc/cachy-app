@@ -132,6 +132,17 @@ protection cannot ship without its bot equivalent.
 
 ## Decided questions
 
+- **2026-11-19 (review of the shipped editor):** `firing_policy` and
+  `frequency` are two independent gates, and `frequency` runs first — left at
+  its default `once` it disarms a bot after its first announcement, before the
+  order lane that reads the policy ever sees a second firing. So a `multi`
+  policy behind a one-shot gate was advertised and unreachable. The editor
+  now opens the gate for `multi` (`once_per_candle_close`: recurring across
+  closed trigger candles, never more than once within one — the conservative
+  recurring choice, with the entry limits left to the order lane) and never
+  narrows a gate the trader already opened. The default and `once` leave the
+  gate alone, so a bot created without touching the policy behaves as before.
+
 - **2026-11-19 (shipped with this item):** The editor's interim home is the
   **control center's BotsTab** — the workshop window is FEAT-0805's structure
   work, and the spec's own proposal records the workshop as the eventual home.

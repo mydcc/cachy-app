@@ -264,3 +264,18 @@ describe("creating a bot directly (FEAT-0811)", () => {
     expect(stored()).toEqual(before);
   });
 });
+
+describe("a recurring bot's gate is a document the core accepts (FEAT-0811)", () => {
+  it("round-trips firing_policy `multi` together with the derived frequency", () => {
+    const { bot } = createBotDraft(
+      fields({ firing_policy: "multi", frequency: "once_per_candle_close", max_positions: 2 }),
+      CREATED_AT_MS,
+    );
+
+    expect(bot.firing_policy).toBe("multi");
+    expect(bot.frequency).toBe("once_per_candle_close");
+    expect(stored()[0]?.frequency).toBe("once_per_candle_close");
+    // Still an unarmed draft: opening the announcement gate arms nothing.
+    expect(bot.enabled).toBe(false);
+  });
+});

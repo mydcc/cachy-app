@@ -564,3 +564,194 @@ describe("the entry value is answered before the core sees it (FEAT-0811)", () =
         expect(refusalText()).toBe(lookup(en, "settings.automation.editor.valueRequired"));
     });
 });
+
+/**
+ * Typing and saving in one breath must save what is on screen.
+ *
+ * An input that both binds its value and publishes on `oninput` is only
+ * correct if the binding has updated by the time the handler reads the state.
+ * If the handler runs first, the draft the host holds is one keystroke behind
+ * the field — a pasted threshold is saved as whatever was there before, and a
+ * pasted take-profit is saved as nothing. These cases type (or paste) each of
+ * the three inputs and save immediately, asserting the exact submitted values.
+ */
+describe("what is typed is what is saved (FEAT-0811)", () => {
+    it("saves the exit threshold, fraction and take-profit exactly as typed", () => {
+        render(null);
+        setInput(input("bot-create-symbol"), "ETHUSDT");
+        setInput(input("bot-create-entry-value"), "3000");
+        setInput(input("bot-create-stop-distance"), "2");
+
+        addExit();
+        setSelect(select("bot-create-exit-0-close"), "partial");
+        // The three inputs under test, each typed once and never touched again —
+        // no later event is allowed to repair a stale draft.
+        setInput(input("bot-create-exit-0-value"), "4000");
+        setInput(input("bot-create-exit-0-fraction"), "0.5");
+        setInput(input("bot-create-take-profit"), "5");
+
+        save();
+
+        expect(mocks.createBotDraft).toHaveBeenCalledTimes(1);
+        const fields = mocks.createBotDraft.mock.calls[0][0] as {
+            exits?: { when: { right: { value: string } }; fraction?: string }[];
+            take_profit?: { distance: string };
+        };
+        expect(fields.exits?.[0]?.when.right.value).toBe("4000");
+        expect(fields.exits?.[0]?.fraction).toBe("0.5");
+        expect(fields.take_profit?.distance).toBe("5");
+    });
+});
+
+/**
+ * What the editor cannot represent, it keeps — verbatim.
+ *
+ * `ExitRule.when` is a full condition; the row is a price comparison against a
+ * constant on the rule's own timeframe. Rebuilding every row from the row
+ * model on any edit rewrites the rows the trader never touched: a mark-price
+ * exit silently reads the last-traded price, a 4h exit silently reads 1h.
+ * Neither can be seen in the row afterwards.
+ */
+describe("exits the editor cannot represent survive an edit untouched (FEAT-0811)", () => {
+    const markExit = {
+        when: {
+            kind: "compare",
+            left: { kind: "price", field: "close", source: "mark" },
+            op: "gte",
+            right: { kind: "constant", value: "61000" },
+            timeframe: "1h",
+        },
+        close: "all",
+    };
+    const coarserExit = {
+        when: {
+            kind: "compare",
+            left: { kind: "price", field: "close" },
+            op: "lte",
+            right: { kind: "constant", value: "48000" },
+            timeframe: "4h",
+        },
+        close: "all",
+    };
+
+    function savedExits(): unknown[] {
+        const document = mocks.validate.mock.calls[0][0] as RuleDocument;
+        return document.exits ?? [];
+    }
+
+    it("keeps a mark-price exit and a coarser-timeframe exit while another row is added", () => {
+        render(storedBot({ exits: [markExit, coarserExit] } as Partial<RuleDocument>));
+
+        addExit();
+        setInput(input("bot-edit-exit-2-value"), "70000");
+        save();
+
+        const exits = savedExits() as { when: { right: { value: string } } }[];
+        expect(exits).toHaveLength(3);
+        // Byte-identical: the source and the timeframe are the point.
+        expect(exits[0]).toEqual(markExit);
+        expect(exits[1]).toEqual(coarserExit);
+        expect(exits[2].when.right.value).toBe("70000");
+    });
+
+    it("shows such a row read-only, as a sentence, with its remove button", () => {
+        render(storedBot({ exits: [markExit] } as Partial<RuleDocument>));
+
+        expect(host.querySelector("#bot-edit-exit-0-value")).toBeNull();
+        expect(host.querySelector("#bot-edit-exit-0-field")).toBeNull();
+        const sentences = host.querySelectorAll('[data-testid="exit-row-sentence"]');
+        expect(sentences).toHaveLength(1);
+        expect(sentences[0].textContent?.trim()).not.toBe("");
+        const removers = [...host.querySelectorAll("button")].filter(
+            (b) => b.textContent?.trim() === lookup(en, "settings.automation.editor.exitRemove"),
+        );
+        expect(removers).toHaveLength(1);
+    });
+
+    it("lets the trader remove such a row — and only that row", () => {
+        render(storedBot({ exits: [markExit, coarserExit] } as Partial<RuleDocument>));
+
+        const removers = [...host.querySelectorAll("button")].filter(
+            (b) => b.textContent?.trim() === lookup(en, "settings.automation.editor.exitRemove"),
+        );
+        removers[0].click();
+        flushSync();
+        save();
+
+        expect(savedExits()).toEqual([coarserExit]);
+    });
+});
+
+/**
+ * The symbol is matched case-sensitively by the evaluation loop
+ * (`rule.symbol === symbol`). The field only *displays* uppercase, so a bot
+ * created from "btcusdt" would be stored lowercase and never see a candle.
+ */
+describe("the symbol is normalised before it is stored (FEAT-0811)", () => {
+    it("hands the draft an uppercase symbol", () => {
+        render(null);
+        setInput(input("bot-create-symbol"), "  btcusdt ");
+        setInput(input("bot-create-entry-value"), "3000");
+        setInput(input("bot-create-stop-distance"), "2");
+
+        save();
+
+        expect(mocks.createBotDraft).toHaveBeenCalledTimes(1);
+        expect(mocks.createBotDraft.mock.calls[0][0].symbol).toBe("BTCUSDT");
+    });
+});
+
+/**
+ * `firing_policy` and `frequency` are two independent gates. The announcement
+ * gate (`frequency`) runs first and, left at its default `once`, disarms the
+ * bot after its first announcement — whether or not any order was placed. A
+ * `multi` policy behind it is advertised but can never act twice.
+ */
+describe("a recurring policy is not left behind a one-shot gate (FEAT-0811)", () => {
+    function fillCreateMinimum(): void {
+        setInput(input("bot-create-symbol"), "ETHUSDT");
+        setInput(input("bot-create-entry-value"), "3000");
+        setInput(input("bot-create-stop-distance"), "2");
+    }
+
+    it("opens the gate for a created `multi` bot", () => {
+        render(null);
+        fillCreateMinimum();
+        setSelect(select("bot-create-firing-policy"), "multi");
+
+        save();
+
+        expect(mocks.createBotDraft.mock.calls[0][0].frequency).toBe("once_per_candle_close");
+    });
+
+    it("leaves the gate alone for the default and for `once`", () => {
+        render(null);
+        fillCreateMinimum();
+        save();
+        expect("frequency" in mocks.createBotDraft.mock.calls[0][0]).toBe(false);
+    });
+
+    it("opens the gate when an edit switches a one-shot bot to `multi`", () => {
+        render(storedBot());
+        setSelect(select("bot-edit-firing-policy"), "multi");
+
+        save();
+
+        const document = mocks.validate.mock.calls[0][0] as RuleDocument;
+        expect(document.frequency).toBe("once_per_candle_close");
+    });
+
+    it("never narrows a gate the trader already opened", () => {
+        // The edit path re-reads the store, so the stored document — not just
+        // the prop — must carry the opened gate.
+        const opened = storedBot({ frequency: "every_time" } as Partial<RuleDocument>);
+        mocks.readRuleStore.mockReturnValue([opened]);
+        render(opened);
+        setSelect(select("bot-edit-firing-policy"), "once");
+
+        save();
+
+        const document = mocks.validate.mock.calls[0][0] as RuleDocument;
+        expect(document.frequency).toBe("every_time");
+    });
+});

@@ -56,6 +56,14 @@
         close: ExitClose;
         /** Present exactly when `close` is partial; the host anchors to it. */
         fraction: string;
+        /**
+         * Set when the stored exit is something the row cannot say without
+         * losing meaning — a mark-price source, a coarser timeframe, an
+         * indicator, a group. The row then edits nothing: it publishes this
+         * exit verbatim and offers only its sentence and its removal, so an
+         * edit elsewhere can never rewrite it.
+         */
+        original?: ExitRule;
     }
 
     let {
@@ -94,25 +102,51 @@
     // Read once, the same snapshot discipline BotEditor's order fields use:
     // the trader's typing is the state, and a live re-read would rewrite it
     // under their hands whenever the host's derived draft recomputed.
-    let rows = $state<ExitRowState[]>(
-        untrack(() =>
-            exits.map((exit) => ({
-                field: exit.when.kind === "compare" && exit.when.left.kind === "price"
-                    ? exit.when.left.field
-                    : "close",
-                op: exit.when.kind === "compare" ? exit.when.op : "gte",
-                value: exit.when.kind === "compare" && exit.when.right.kind === "constant"
-                    ? exit.when.right.value
-                    : "",
-                close: exit.close,
-                fraction: exit.fraction ?? "",
-            })),
-        ),
-    );
-    let target = $state(untrack(() => takeProfitDistance));
-
     const priceFields: PriceField[] = ["close", "open", "high", "low", "hl2", "hlc3"];
     const ops: CompareOp[] = ["gte", "lte", "gt", "lt"];
+
+    /**
+     * One stored exit as a row — or, when the row cannot say it, as itself.
+     *
+     * A row is "price field, comparison, constant, on the rule's own
+     * timeframe, last-traded price". Anything else — a mark-price source, a
+     * coarser timeframe, an indicator, an account or grouped condition —
+     * keeps its original and is never rebuilt, because rebuilding from the
+     * row model would rewrite what the trader never touched: a mark-price
+     * exit would silently read the last-traded price, a 4h exit would read
+     * the trigger timeframe, and nothing in the row would show it.
+     */
+    function rowOf(exit: ExitRule): ExitRowState {
+        const when = exit.when;
+        if (
+            when.kind === "compare" &&
+            when.timeframe === timeframe &&
+            when.left.kind === "price" &&
+            when.left.source === undefined &&
+            priceFields.includes(when.left.field) &&
+            when.right.kind === "constant" &&
+            ops.includes(when.op)
+        ) {
+            return {
+                field: when.left.field,
+                op: when.op,
+                value: when.right.value,
+                close: exit.close,
+                fraction: exit.fraction ?? "",
+            };
+        }
+        return {
+            field: "close",
+            op: "gte",
+            value: "",
+            close: exit.close,
+            fraction: exit.fraction ?? "",
+            original: exit,
+        };
+    }
+
+    let rows = $state<ExitRowState[]>(untrack(() => exits.map(rowOf)));
+    let target = $state(untrack(() => takeProfitDistance));
 
     function translator(): SentenceTranslator {
         return (key, values) => $_(key as TranslationKey, { values: values || {} });
@@ -120,6 +154,7 @@
 
     /** One row as the document would carry it. */
     function exitOf(row: ExitRowState): ExitRule {
+        if (row.original !== undefined) return $state.snapshot(row.original) as ExitRule;
         return {
             when: {
                 kind: "compare",
@@ -188,6 +223,7 @@
     {#each rows as row, i (targetId(i))}
         <div class="flex flex-col gap-1 rounded border border-[var(--border-color)] p-2">
             <div class="flex flex-wrap items-center gap-2">
+                {#if row.original === undefined}
                 <label class="flex flex-col gap-1 text-xs" for={`${targetId(i)}-field`}>
                     <span class="text-[var(--text-secondary)]">
                         {$_("settings.automation.editor.exitWhen")}
@@ -286,6 +322,8 @@
                                 === `${targetId(i)}-fraction`}
                         />
                     </label>
+                {/if}
+
                 {/if}
 
                 <Button

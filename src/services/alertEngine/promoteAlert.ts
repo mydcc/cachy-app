@@ -48,6 +48,7 @@ import type {
   RuleDocument,
   StopDistance,
   TimeframeString,
+  TriggerFrequency,
 } from "../../lib/rules/types";
 import { armRule, readRuleStore } from "./armRule";
 import { freeRuleId } from "./ruleIdentity";
@@ -119,6 +120,9 @@ export interface BotDraftFields {
   exits?: ExitRule[];
   take_profit?: StopDistance;
   firing_policy?: FiringPolicy;
+  /** The announcement gate behind the policy — see `frequencyFor`. Absent
+   * means `once`, the document's own default. */
+  frequency?: TriggerFrequency;
   max_positions?: number;
   max_entries_per_day?: number;
   max_risk_per_position?: DecimalString;
@@ -180,6 +184,7 @@ export function createBotDraft(
     ...(fields.firing_policy !== undefined
       ? { firing_policy: fields.firing_policy }
       : {}),
+    ...(fields.frequency !== undefined ? { frequency: fields.frequency } : {}),
     ...(fields.max_positions !== undefined
       ? { max_positions: fields.max_positions }
       : {}),

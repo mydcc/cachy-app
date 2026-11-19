@@ -52,6 +52,7 @@
     } from "../../../lib/rules/types";
     import { armRule, readRuleStore, RuleConflictError } from "../../../services/alertEngine/armRule";
     import { createBotDraft } from "../../../services/alertEngine/promoteAlert";
+    import { frequencyFor } from "./botFrequency";
     import { logger } from "../../../services/logger";
     import BotExitsEditor from "./BotExitsEditor.svelte";
     import BotFiringEditor from "./BotFiringEditor.svelte";
@@ -248,6 +249,10 @@
             stop: { basis: "percent_of_entry", distance: stopDistance.trim() },
         };
         const targetDistance = draftTarget.trim();
+        // The announcement gate the chosen policy needs behind it — a `multi`
+        // bot left on the one-shot default is disarmed by its first
+        // announcement, so the policy would be advertised and unreachable.
+        const newFrequency = frequencyFor(draftFiring.policy, undefined);
 
         try {
             if (creating) {
@@ -260,7 +265,10 @@
                 };
                 createBotDraft({
                     ...(name.trim() !== "" ? { name: name.trim() } : {}),
-                    symbol: symbol.trim(),
+                    // Matched case-sensitively by the evaluation loop, and the
+                    // field only *displays* uppercase: stored as typed, a
+                    // lowercase symbol makes a bot that never sees a candle.
+                    symbol: symbol.trim().toUpperCase(),
                     trigger_timeframe: timeframe,
                     conditions: entry,
                     order: intent,
@@ -286,6 +294,7 @@
                     ...(draftFiring.entryTrigger !== undefined
                         ? { entry_trigger: draftFiring.entryTrigger }
                         : {}),
+                    ...(newFrequency !== undefined ? { frequency: newFrequency } : {}),
                 });
                 onsaved();
                 return;
@@ -324,6 +333,11 @@
             else updated.budget_cap = draftFiring.budgetCap.trim();
             if (draftFiring.entryTrigger === undefined) delete updated.entry_trigger;
             else updated.entry_trigger = draftFiring.entryTrigger;
+            // Computed from the freshly re-read document, not the snapshot:
+            // the gate may have been opened in another tab since this opened.
+            const frequency = frequencyFor(draftFiring.policy, current.frequency);
+            if (frequency === undefined) delete updated.frequency;
+            else updated.frequency = frequency;
 
             const validated = ruleSchema.validate(updated);
             armRule(validated, bot);
