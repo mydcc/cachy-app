@@ -23,10 +23,12 @@ import {
   RULE_STATE_STORAGE_KEY,
   clearBotAnchors,
   clearRuleState,
+  exitActionAnchorFor,
   pruneRuleStates,
   readBotAnchors,
   readRuleState,
   readRuleStates,
+  recordExitActionAnchor,
   recordRuleFiring,
   saveBotAnchors,
 } from "./ruleStateStore";
@@ -202,5 +204,65 @@ describe("bot gate anchors survive a reload — BUG-0491", () => {
     clearBotAnchors("nobody");
 
     expect(localStorage.getItem(RULE_STATE_STORAGE_KEY)).toBe(before);
+  });
+});
+
+describe("the exit ledger survives every other writer — FEAT-0810", () => {
+  it("an anchor save keeps the exit anchors a bot's exits acted on", () => {
+    recordExitActionAnchor("bot-1", "paper-pos-1", 5_000);
+    saveBotAnchors("bot-1", {
+      evaluatedAnchorMs: 6_000,
+      intrabarAnchorMs: null,
+      intrabarFiredAnchorMs: null,
+    });
+
+    expect(exitActionAnchorFor("bot-1", "paper-pos-1")).toBe(5_000);
+    // The save did its own job too — both halves of the entry survive.
+    expect(readBotAnchors("bot-1")?.evaluatedAnchorMs).toBe(6_000);
+  });
+
+  it("a firing keeps the exit anchors — the ledger is not the firing's to erase", () => {
+    recordExitActionAnchor("bot-1", "paper-pos-1", 5_000);
+    recordRuleFiring("bot-1", 7_000);
+
+    expect(readRuleState("bot-1")).toEqual({
+      fired_count: 1,
+      last_fired_anchor_ms: 7_000,
+      last_exit_action_anchors: { "paper-pos-1": 5_000 },
+    });
+  });
+
+  it("an exit record keeps the fire count and the gate anchors — read-modify-write, not replace", () => {
+    recordRuleFiring("bot-1", 1_000);
+    saveBotAnchors("bot-1", {
+      evaluatedAnchorMs: 2_000,
+      intrabarAnchorMs: null,
+      intrabarFiredAnchorMs: null,
+    });
+    recordExitActionAnchor("bot-1", "paper-pos-1", 3_000);
+
+    expect(readRuleState("bot-1")).toEqual({
+      fired_count: 1,
+      last_fired_anchor_ms: 1_000,
+      last_evaluated_anchor_ms: 2_000,
+      last_exit_action_anchors: { "paper-pos-1": 3_000 },
+    });
+  });
+
+  it("a corrupt ledger entry drops alone; the readable ones keep answering", () => {
+    recordExitActionAnchor("bot-1", "paper-pos-1", 1_000);
+    recordExitActionAnchor("bot-1", "paper-pos-2", 2_000);
+    const stored = JSON.parse(localStorage.getItem(RULE_STATE_STORAGE_KEY) as string) as {
+      ["bot-1"]: { last_exit_action_anchors: Record<string, unknown> };
+    };
+    stored["bot-1"].last_exit_action_anchors["paper-pos-1"] = "not a number";
+    localStorage.setItem(RULE_STATE_STORAGE_KEY, JSON.stringify(stored));
+
+    expect(exitActionAnchorFor("bot-1", "paper-pos-1")).toBeNull();
+    expect(exitActionAnchorFor("bot-1", "paper-pos-2")).toBe(2_000);
+  });
+
+  it("answers null for an absent rule, the direction that errs towards acting", () => {
+    expect(exitActionAnchorFor("nobody", "nothing")).toBeNull();
   });
 });

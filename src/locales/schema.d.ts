@@ -2577,7 +2577,6 @@ export type TranslationKey =
   | "settings.automation.orderRefusedOther"
   | "settings.automation.exitRefusedPaperOff"
   | "settings.automation.exitRefusedLevelNotSupported"
-  | "settings.automation.exitRefusedPositionGone"
   | "settings.automation.exitRefusedInFlight"
   | "settings.automation.exitRefusedCloseRefused"
   | "settings.automation.exitRefusedOther"

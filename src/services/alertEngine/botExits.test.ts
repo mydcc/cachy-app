@@ -80,6 +80,7 @@ function botDocument(overrides: Partial<RuleDocument> = {}): RuleDocument {
 
 function ownedPosition(overrides: Partial<OwnedBotPosition> = {}): OwnedBotPosition {
     return {
+        symbol: "BTCUSDT",
         positionId: "paper-pos-1",
         side: "long",
         entryPrice: "100",
@@ -92,6 +93,10 @@ function ownedPosition(overrides: Partial<OwnedBotPosition> = {}): OwnedBotPosit
 function exitFiring(overrides: Partial<BotExitFiring> = {}): BotExitFiring {
     return {
         rule: botDocument(),
+        // The row's market. After the loop's ownership filter it equals the
+        // rule's symbol; the lane closes this field either way, so a test
+        // can pin the cross-symbol case by overriding it alone.
+        symbol: "BTCUSDT",
         positionId: "paper-pos-1",
         close: "all",
         exitIndex: 0,
@@ -133,6 +138,13 @@ describe("FEAT-0810 — closeAmountFor", () => {
         const amount = closeAmountFor(exitFiring({ close: "partial", fraction: "0.25" }), "1.4");
         expect(amount).toEqual(new Decimal("0.35"));
     });
+
+    it("a partial without a fraction has no size — undefined, never the full amount", () => {
+        // Fail closed: the validator makes this unreachable, and a
+        // malformed document must not escalate a partial into a full close
+        // by defaulting to everything the book holds.
+        expect(closeAmountFor(exitFiring({ close: "partial", fraction: undefined }), "2")).toBeUndefined();
+    });
 });
 
 describe("FEAT-0810 — submitBotExit", () => {
@@ -157,6 +169,34 @@ describe("FEAT-0810 — submitBotExit", () => {
             positionSide: "long",
             amount: new Decimal("1"),
         });
+    });
+
+    it("the lane closes the row's market, never the rule's current one", async () => {
+        // A rule edited to another symbol never reaches this lane (the
+        // window skips the row), but the lane itself also refuses to trust
+        // the rule: the close names the position's symbol, so even a future
+        // caller that loosens the filter cannot close on the new market.
+        const close = vi.fn(async () => undefined);
+        const firing = exitFiring({ symbol: "ETHUSDT" });
+        (firing.rule as { symbol: string }).symbol = "SOLUSDT";
+        await submitBotExit(firing, env({ close }));
+
+        expect(close).toHaveBeenCalledWith(
+            expect.objectContaining({ symbol: "ETHUSDT" }),
+        );
+    });
+
+    it("a partial without a fraction is refused, never escalated to a full close", async () => {
+        // The validator makes the combination unreachable; this pins the
+        // fail-closed promise for the day a malformed document gets through.
+        const close = vi.fn(async () => undefined);
+        const refusal = await submitBotExit(
+            exitFiring({ close: "partial", fraction: undefined }),
+            env({ close }),
+        );
+
+        expect(refusal).toBe("size-not-positive");
+        expect(close).not.toHaveBeenCalled();
     });
 
     it("refuses when paper trading is off", async () => {

@@ -1472,6 +1472,7 @@ describe("RuleEvaluationLoop", () => {
 
     function ownedRow(overrides: Partial<OwnedBotPosition> = {}): OwnedBotPosition {
       return {
+        symbol: "BTCUSDT",
         positionId: "paper-pos-1",
         side: "long",
         entryPrice: "100",
@@ -1608,6 +1609,42 @@ describe("RuleEvaluationLoop", () => {
 
       expect(onExitFiring).toHaveBeenCalledTimes(1);
       expect((onExitFiring.mock.calls[0][0] as { close: string }).close).toBe("all");
+    });
+
+    it("a rule that owns nothing cannot close another bot's position — AC 4's structural guard, pinned", () => {
+      // The ownership reader is per rule: bot-2 sees no rows even though
+      // its exit condition holds exactly as bot-1's does. The window only
+      // ever asks a rule about its own book rows, so a non-owner's exit
+      // cannot reach the close lane at all — the AC's promise, visible.
+      evaluateExitsMock.mockReturnValue([answer({ result: "fires", close: "all", fraction: null }, 0)]);
+      const onExitFiring = vi.fn();
+      const loop = loopWithExits([exitRule({ id: "bot-1" }), exitRule({ id: "bot-2" })], {
+        ownedPositions: (ruleId) => (ruleId === "bot-1" ? [ownedRow()] : []),
+        onExitFiring,
+      });
+
+      driveOneClose(loop);
+
+      expect(onExitFiring).toHaveBeenCalledTimes(1);
+      expect((onExitFiring.mock.calls[0][0] as { rule: { id: string } }).rule.id).toBe("bot-1");
+    });
+
+    it("a row on another symbol is not owned: the window skips it, however hot its exit", () => {
+      // A rule edited to a new symbol keeps the old book row (armRule
+      // preserves it), but ownership is per market: the exit never governs
+      // a position on a symbol the rule no longer watches, and the rule's
+      // new market never sees a cross-ownership close (ADR-0026).
+      evaluateExitsMock.mockReturnValue([answer({ result: "fires", close: "all", fraction: null }, 0)]);
+      const onExitFiring = vi.fn();
+      const loop = loopWithExits([exitRule()], {
+        ownedPositions: () => [ownedRow({ symbol: "ETHUSDT" })],
+        onExitFiring,
+      });
+
+      driveOneClose(loop);
+
+      expect(onExitFiring).not.toHaveBeenCalled();
+      expect(evaluateExitsMock).not.toHaveBeenCalled();
     });
 
     it("the take-profit answers last and can win its own anchor", () => {

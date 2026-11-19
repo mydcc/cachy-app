@@ -190,6 +190,11 @@ export function recordRuleFiring(ruleId: string, anchorMs: number): RuleState {
   const next: RuleState = {
     fired_count: (previous.fired_count ?? 0) + 1,
     last_fired_anchor_ms: anchorMs,
+    // FEAT-0810 — a firing must not erase the exit ledger either: a bot
+    // that fired and then exits reads its anchors back after this write.
+    ...(previous.last_exit_action_anchors !== undefined
+        ? { last_exit_action_anchors: previous.last_exit_action_anchors }
+        : {}),
   };
 
   if (browser) {
@@ -302,6 +307,15 @@ export function saveBotAnchors(ruleId: string, snapshot: BotAnchorSnapshot): voi
   const next: RuleState = {
     fired_count: previous.fired_count ?? 0,
     last_fired_anchor_ms: asAnchorMs(previous.last_fired_anchor_ms),
+    // FEAT-0810 — this writer knows nothing about the exit ledger, so it
+    // must not erase it: the anchors a bot's exits acted on survive every
+    // anchor save. A full `...previous` spread would be broader, but it
+    // would also keep gate-anchor fields this snapshot deliberately deletes
+    // with `null` above — carrying exactly the one field this function
+    // does not own is the narrow shape that keeps both promises.
+    ...(previous.last_exit_action_anchors !== undefined
+        ? { last_exit_action_anchors: previous.last_exit_action_anchors }
+        : {}),
   };
   // Mirrored exactly, sparsely: a `null` deletes the key rather than writing
   // one, so entries keep the pre-fix shape whenever they carry no anchors.

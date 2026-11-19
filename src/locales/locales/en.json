@@ -2958,7 +2958,6 @@
       "orderRefusedOther": "“{name}” fired, but placed nothing.",
       "exitRefusedPaperOff": "“{name}” wanted to exit, but closed nothing: paper trading is switched off.",
       "exitRefusedLevelNotSupported": "“{name}” wants to exit, but a notify rule owns no position to close.",
-      "exitRefusedPositionGone": "“{name}” wanted to exit, but the position is already closed.",
       "exitRefusedInFlight": "“{name}” wanted to exit, but this position's previous close has not settled yet.",
       "exitRefusedCloseRefused": "“{name}” wanted to exit, but the close was refused — the position stays open.",
       "exitRefusedOther": "“{name}” wanted to exit, but closed nothing.",

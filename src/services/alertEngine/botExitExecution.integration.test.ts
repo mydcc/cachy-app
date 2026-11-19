@@ -179,6 +179,7 @@ function ownedPositionsOf(ruleId: string): OwnedBotPosition[] {
     return paperState.positions
         .filter((p) => p.origin === "bot" && p.botId === ruleId)
         .map((p) => ({
+            symbol: p.symbol,
             positionId: p.positionId,
             side: p.side,
             entryPrice: p.entryPrice,
@@ -311,6 +312,18 @@ describe("FEAT-0810 — a bot exits through the single-close lane", () => {
         expect(appFetchMock).not.toHaveBeenCalled();
         // The durable ledger recorded the action this close was.
         expect(exitActionAnchorFor("bot-1", positionId ?? "missing")).toBe(0);
+        // AC 6's journal half rides on this close: the lane left exactly
+        // the closing fill the completion reconciles from — qty 2 at 121 on
+        // the exited position, inherited attribution by positionId
+        // (FEAT-0806). The journal service's own suite pins what reconcile
+        // does with a fill like this one; here the pin is that a bot's exit
+        // produces it through the shared lane at all.
+        const closeFill = paperState.fills.find(
+            (f) => f.positionId === positionId && f.tradeSide === "CLOSE",
+        );
+        expect(closeFill).toBeDefined();
+        expect(closeFill?.qty).toBe("2");
+        expect(closeFill?.price).toBe("121");
     });
 
     it("does not close when the exit does not hold, and evaluates again on the next anchor", async () => {

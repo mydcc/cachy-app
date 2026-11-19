@@ -84,10 +84,12 @@ export interface BotExitEnvironment {
  * the size); `partial` is the document's own fraction of what the book
  * holds now, never of what the rule's entry size was.
  */
-export function closeAmountFor(firing: BotExitFiring, amount: string): Decimal {
-  if (firing.close !== "partial" || firing.fraction === undefined) {
-    return new Decimal(amount);
-  }
+export function closeAmountFor(firing: BotExitFiring, amount: string): Decimal | undefined {
+  if (firing.close !== "partial") return new Decimal(amount);
+  // A partial without a fraction has no size to close: `undefined` is the
+  // honest answer, and `submitBotExit` refuses it rather than defaulting to
+  // the full amount — a malformed document must fail closed, not escalate.
+  if (firing.fraction === undefined) return undefined;
   return new Decimal(firing.fraction).times(new Decimal(amount));
 }
 
@@ -124,13 +126,17 @@ export async function submitBotExit(
   }
 
   const amount = closeAmountFor(firing, position.amount);
-  if (!amount.isFinite() || amount.lte(0)) return "size-not-positive";
+  // `undefined` is a partial with no fraction: the validator makes the
+  // combination unreachable, but a malformed document must not escalate a
+  // partial into a full close by defaulting — an unmeasurable size is
+  // refused, the position stays open (fail closed, BUG-0509's discipline).
+  if (amount === undefined || !amount.isFinite() || amount.lte(0)) return "size-not-positive";
 
   try {
     await env.close(
       firing.close === "partial"
-        ? { symbol: firing.rule.symbol, positionSide: position.side, amount }
-        : { symbol: firing.rule.symbol, positionSide: position.side, forceFullClose: true },
+        ? { symbol: firing.symbol, positionSide: position.side, amount }
+        : { symbol: firing.symbol, positionSide: position.side, forceFullClose: true },
     );
   } catch (e) {
     // The close lane throws its own (translation-key) errors — gate
@@ -141,7 +147,7 @@ export async function submitBotExit(
     // exists, and the next anchor will try again.
     logger.error(
       "alerts",
-      `[BotExits] Close refused for rule ${firing.rule.id} on ${firing.rule.symbol}`,
+      `[BotExits] Close refused for rule ${firing.rule.id} on ${firing.symbol}`,
       e,
     );
     return "close-refused";
@@ -234,7 +240,15 @@ export function withBotExits(
         if (![...inFlight].some((key) => key.startsWith(`${firing.rule.id}|`))) {
           closingRules.delete(firing.rule.id);
         }
-        onInFlight?.(closingRules);
+        try {
+          onInFlight?.(closingRules);
+        } catch (e) {
+          // The notify sits after the release, so an observer that throws
+          // must not turn a settled submission into an unhandled rejection
+          // — the guard is already released, which is the state the throw
+          // would otherwise have masked.
+          logger.error("alerts", `[BotExits] In-flight observer failed for ${firing.rule.id}`, e);
+        }
       });
   };
 }

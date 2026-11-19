@@ -433,11 +433,10 @@ export function reportBotOrderRefusal(
  * `BOT_REFUSAL_KEYS`: every refusal the exit path can produce has one key,
  * a trader reads one line, and the log carries the id.
  */
-const BOT_EXIT_REFUSAL_KEYS: Record<BotExitRefusal, TranslationKey> = {
+const BOT_EXIT_REFUSAL_KEYS: Record<Exclude<BotExitRefusal, "position-gone">, TranslationKey> = {
     "paper-trading-off": "settings.automation.exitRefusedPaperOff",
     "no-exits": "settings.automation.exitRefusedOther",
     "level-not-supported": "settings.automation.exitRefusedLevelNotSupported",
-    "position-gone": "settings.automation.exitRefusedPositionGone",
     "size-not-positive": "settings.automation.exitRefusedOther",
     "close-in-flight": "settings.automation.exitRefusedInFlight",
     "close-refused": "settings.automation.exitRefusedCloseRefused",
@@ -447,17 +446,19 @@ const BOT_EXIT_REFUSAL_KEYS: Record<BotExitRefusal, TranslationKey> = {
  * The exit path's refusal channel: one toast per rule per reason (the sink
  * already keeps it to once), naming the bot the way the entry path does.
  *
- * `position-gone` is deliberately reported here rather than filtered
- * silently: a stop-out and a manual close are the two honest ways a position
- * disappears, and the toast says the exit did nothing rather than leaving
- * the trader to wonder. The once-per-reason filter keeps it from repeating
- * for the anchors the ledger has not caught up with.
+ * `position-gone` is deliberately NOT toasted: a stop-out and a manual
+ * close are the two honest ways a position disappears, and botExits
+ * documents that case as the story's quiet end — a trader who just closed
+ * by hand does not need the app telling them the bot noticed. It stays in
+ * the log (the warn below), once per rule and reason, so the moment is
+ * still diagnosable.
  */
 export function reportBotExitRefusal(
     firing: { rule: RuleDocument },
     refusal: BotExitRefusal,
 ): void {
     logger.warn("alerts", `bot ${firing.rule.id} exited but closed nothing: ${refusal}`);
+    if (refusal === "position-gone") return;
     toastService.error(
         get(_)(BOT_EXIT_REFUSAL_KEYS[refusal], {
             values: { name: firing.rule.name },
@@ -503,11 +504,33 @@ function exitAccountSnapshot(position: PaperPosition): AccountSnapshot {
     };
 }
 
-/** The book rows a rule owns — the loop's exit window reads the book directly. */
+/**
+ * The book rows a rule owns — the loop's exit window reads the book directly.
+ * The row's own symbol rides along: ownership is per market, and the window
+ * skips rows whose symbol is no longer the rule's (FEAT-0810's cross-ownership
+ * guard).
+ */
+let warnedBookUnreadable = false;
 function ownedBotPositions(ruleId: string): OwnedBotPosition[] {
+    // An unreadable book must not read as "the bot owns nothing": that
+    // would promise protection over inputs the app cannot see. The
+    // projection already surfaces `degraded.book` to the trader (FEAT-0807);
+    // this says the same thing once in the log, and the window honestly
+    // evaluates nothing rather than quietly deciding.
+    if (paperState.bookUnreadable) {
+        if (!warnedBookUnreadable) {
+            warnedBookUnreadable = true;
+            logger.warn(
+                "alerts",
+                "[BotExits] paper book unreadable — owned positions unknown, exit window degraded",
+            );
+        }
+        return [];
+    }
     return paperState.positions
         .filter((p) => p.origin === "bot" && p.botId === ruleId)
         .map((p) => ({
+            symbol: p.symbol,
             positionId: p.positionId,
             side: p.side,
             entryPrice: p.entryPrice,

@@ -189,6 +189,8 @@ export type ThresholdResolver = (
  * reload mid-exit re-reads it and must not close twice on one anchor.
  */
 export interface OwnedBotPosition {
+  /** The market the row lives on — a rule only owns rows on its own symbol. */
+  symbol: string;
   positionId: string;
   side: "long" | "short";
   /** The book row's own entry price, as stored (a decimal string). */
@@ -224,6 +226,13 @@ export type ExitActionRecorder = (
  */
 export interface BotExitFiring {
   rule: RuleDocument;
+  /**
+   * The market the owned position lives on — the row's symbol, not the
+   * rule's current one. A rule edited to another symbol no longer owns the
+   * row (the window skips it), but this field is what the close names, so
+   * the lane can never act on the rule's new market.
+   */
+  symbol: string;
   positionId: string;
   /** How much the document says to close — `all`, or `partial`. */
   close: ExitClose;
@@ -897,6 +906,12 @@ export class RuleEvaluationLoop {
 
     for (const rule of candidates) {
       for (const position of this.ownedPositions(rule.id)) {
+        // Ownership is per market, not per id: a rule edited to another
+        // symbol keeps the book row (armRule preserves it), but its exits
+        // stop governing it — the row stays the trader's to close by hand,
+        // and the rule's new market never sees a cross-ownership close
+        // (ADR-0026).
+        if (position.symbol !== rule.symbol) continue;
         this.evaluateExitsFor(rule, position, symbol, timeframe, anchorMs);
       }
     }
@@ -976,6 +991,10 @@ export class RuleEvaluationLoop {
     try {
       this.onExitFiring?.({
         rule,
+        // The row's market, not the rule's current one — after the
+        // ownership filter they are the same, and the close must name what
+        // it closes even if a future caller loosens that filter.
+        symbol: position.symbol,
         positionId: position.positionId,
         close: fired.outcome.close,
         ...(fired.outcome.close === "partial" && fired.outcome.fraction !== null

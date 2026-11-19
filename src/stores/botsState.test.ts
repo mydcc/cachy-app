@@ -178,6 +178,23 @@ describe("FEAT-0807 — the botsState projection", () => {
         expect(botsState.states.get("bot-1")?.state).toBe("submitting");
     });
 
+    it("a fired bot whose exit closed everything reads closed — FEAT-0810 AC 6's state half", async () => {
+        seedBots(botDocument("bot-1"));
+        await openAs("bot-1");
+        expect(botsState.states.get("bot-1")?.state).toBe("in_position");
+
+        // The exit story's end: the rule fired once (recorded), and the
+        // position it owned is gone — the projection says "closed", the
+        // state a full close returns the bot to.
+        recordRuleFiring("bot-1", 1);
+        alertState.firingsVersion += 1;
+        paperState.resetBook();
+
+        const life = botsState.states.get("bot-1");
+        expect(life?.state).toBe("closed");
+        expect(life?.hasPosition).toBe(false);
+    });
+
     it("reads closing from the exit sink's snapshot — FEAT-0810's channel", async () => {
         seedBots(botDocument("bot-1"));
         await openAs("bot-1");
