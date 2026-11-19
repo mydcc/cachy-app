@@ -2,7 +2,7 @@
 id: FEAT-0811
 title: The bot editor — exits, firing policy, limits and direct creation
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [FEAT-0809, FEAT-0822, FEAT-0823]
+assignee: opencode
+branch: feature/feat-0811-bot-editor
 parent: FEAT-0805
 size: L
 estimate: 8
