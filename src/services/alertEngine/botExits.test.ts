@@ -110,6 +110,7 @@ function env(overrides: Partial<BotExitEnvironment> = {}): BotExitEnvironment {
         paperEnabled: () => true,
         close: vi.fn(async () => undefined),
         ownedPosition: () => ownedPosition(),
+        recordBotExit: vi.fn(),
         ...overrides,
     };
 }
@@ -242,6 +243,30 @@ describe("FEAT-0810 — submitBotExit", () => {
         });
         expect(await submitBotExit(exitFiring(), env({ close }))).toBe("close-refused");
         expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    it("reports the closed position, so the journal can name this exit the bot's", async () => {
+        // FEAT-0812 — without the report the journal cannot tell a bot's own
+        // exit from a human's, and the track record would credit the bot with
+        // a decision it never made.
+        const recordBotExit = vi.fn();
+
+        await submitBotExit(exitFiring({ positionId: "paper-pos-7" }), env({ recordBotExit }));
+
+        expect(recordBotExit).toHaveBeenCalledWith("paper-pos-7");
+    });
+
+    it("reports nothing when the close was refused", async () => {
+        // The position is still open, so the next close may well be the
+        // trader's own — a verdict written now would mislabel it.
+        const recordBotExit = vi.fn();
+        const close = vi.fn(async () => {
+            throw new Error("apiErrors.invalidAmount");
+        });
+
+        await submitBotExit(exitFiring(), env({ close, recordBotExit }));
+
+        expect(recordBotExit).not.toHaveBeenCalled();
     });
 });
 

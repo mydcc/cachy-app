@@ -147,6 +147,25 @@ class PaperJournalService {
         }
     }
 
+    /**
+     * Records that a bot's own exit lane closed this position — FEAT-0812.
+     *
+     * Called by the exit lane after the close actually went through, never on
+     * an attempt: a refused close leaves the position open, and a verdict
+     * written for it would label the trader's later manual close as the bot's.
+     *
+     * Addressed by `tradeId`, not by the journal link, because the link is
+     * cleared the moment the entry completes and the close lane resolves
+     * after that. Both orders converge on the same answer: completion writes
+     * "manual" unless a verdict is already there, and this overwrites that
+     * when the report arrives late.
+     */
+    public recordBotExit(positionId: string): void {
+        const entry = journalState.entries.find((e) => e.tradeId === positionId);
+        if (entry === undefined || entry.exitOrigin === "bot") return;
+        journalState.updateEntry({ ...entry, exitOrigin: "bot" });
+    }
+
     /** Creates or refreshes the entry following each open position. */
     private openEntries(): void {
         for (const position of paperState.positions) {
@@ -336,8 +355,18 @@ class PaperJournalService {
         const netProfit = totals.closeRealized.minus(totals.entryFee);
         const risk = existing.riskAmount ?? new Decimal(0);
 
+        // FEAT-0812 — the other end of FEAT-0806's attribution. A bot's trade
+        // gets a verdict about its exit; a verdict already recorded by the
+        // exit lane stands, and everything else was ended by a human. Only
+        // bot-opened entries carry it: "a manual trade was closed manually"
+        // is a field that says nothing, and an unattributed entry has no bot
+        // whose exit could be judged.
+        const exitOrigin: "bot" | "manual" | undefined =
+            existing.origin === "bot" ? (existing.exitOrigin ?? "manual") : undefined;
+
         journalState.updateEntry({
             ...existing,
+            ...(exitOrigin !== undefined ? { exitOrigin } : {}),
             status: netProfit.gte(0) ? "Won" : "Lost",
             exitPrice,
             exitDate: new Date(totals.lastCloseAt).toISOString(),

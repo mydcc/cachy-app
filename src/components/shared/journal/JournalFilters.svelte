@@ -30,6 +30,16 @@
         availableTags?: string[];
         symbolFilter?: string;
         availableSymbols?: string[];
+        /**
+         * FEAT-0812 — which population the table shows. A trade with no
+         * origin at all predates attribution and belongs to neither side,
+         * so it appears under "all trades" and nowhere else.
+         */
+        originFilter?: "all" | "bots" | "manual";
+        /** The one bot the table is narrowed to, "" for none. */
+        botFilter?: string;
+        /** Bots that have traded, as id and display label. */
+        botOptions?: Array<{ id: string; label: string }>;
         groupBySymbol?: boolean;
         tradeMode?: "live" | "paper" | "all";
         liveCount?: number;
@@ -49,6 +59,9 @@
         availableTags = [],
         symbolFilter = $bindable(""),
         availableSymbols = [],
+        originFilter = $bindable("all"),
+        botFilter = $bindable(""),
+        botOptions = [],
         groupBySymbol = $bindable(false),
         tradeMode = $bindable("live"),
         liveCount = 0,
@@ -119,6 +132,8 @@
         filterDateEnd = "";
         selectedTag = "";
         symbolFilter = "";
+        originFilter = "all";
+        botFilter = "";
     }
 
     let hasActiveFilters = $derived(
@@ -127,8 +142,25 @@
         Boolean(filterDateStart) ||
         Boolean(filterDateEnd) ||
         Boolean(selectedTag) ||
-        Boolean(symbolFilter)
+        Boolean(symbolFilter) ||
+        originFilter !== "all" ||
+        Boolean(botFilter)
     );
+
+    /**
+     * Narrowing to one bot is a statement about origin, so the two controls
+     * cannot be left disagreeing: picking a bot means "bots only", and
+     * leaving "bots only" drops the bot.
+     */
+    function selectOrigin(next: "all" | "bots" | "manual") {
+        originFilter = next;
+        if (next !== "bots") botFilter = "";
+    }
+
+    function selectBot(next: string) {
+        botFilter = next;
+        if (next !== "") originFilter = "bots";
+    }
 </script>
 
 <div class="journal-filters space-y-3">
@@ -147,6 +179,45 @@
                 {/each}
             </select>
         </div>
+
+        <!-- FEAT-0812: who made the trade — everyone, the bots, or the trader -->
+        <div class="filter-group">
+            <select
+                value={originFilter}
+                class="filter-select"
+                data-testid="origin-filter"
+                aria-label={$_("journal.bots.origin")}
+                onchange={(e) =>
+                    selectOrigin(
+                        (e.currentTarget as HTMLSelectElement).value as
+                            | "all"
+                            | "bots"
+                            | "manual",
+                    )}
+            >
+                <option value="all">{$_("journal.bots.allOrigins")}</option>
+                <option value="bots">{$_("journal.bots.botsOnly")}</option>
+                <option value="manual">{$_("journal.bots.manualOnly")}</option>
+            </select>
+        </div>
+
+        {#if botOptions.length > 0}
+            <div class="filter-group">
+                <select
+                    value={botFilter}
+                    class="filter-select"
+                    data-testid="bot-filter"
+                    aria-label={$_("journal.bots.allBots")}
+                    onchange={(e) =>
+                        selectBot((e.currentTarget as HTMLSelectElement).value)}
+                >
+                    <option value="">{$_("journal.bots.allBots")}</option>
+                    {#each botOptions as bot (bot.id)}
+                        <option value={bot.id}>{bot.label}</option>
+                    {/each}
+                </select>
+            </div>
+        {/if}
 
         <!-- Status Filter -->
         <div class="filter-group">

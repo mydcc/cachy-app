@@ -76,6 +76,16 @@ export interface BotExitEnvironment {
    * the last word.
    */
   ownedPosition: (ruleId: string, positionId: string) => OwnedBotPosition | undefined;
+  /**
+   * FEAT-0812 — reports a close that actually went through, so the journal
+   * can record that the bot ended this trade.
+   *
+   * Required rather than optional, and called only on success. Optional would
+   * make a forgotten wiring silent, and the symptom would be a track record
+   * that quietly credits every bot exit to the trader. Called on an attempt,
+   * a refused close would label the trader's own later close as the bot's.
+   */
+  recordBotExit: (positionId: string) => void;
 }
 
 /**
@@ -152,6 +162,11 @@ export async function submitBotExit(
     );
     return "close-refused";
   }
+
+  // FEAT-0812 — the close went through, so the journal gets the one fact it
+  // cannot derive: this exit was the bot's, not the trader's. After the await
+  // on purpose; a refusal above returns before reaching this line.
+  env.recordBotExit(firing.positionId);
 
   return null;
 }
