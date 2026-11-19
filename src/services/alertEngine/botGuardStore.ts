@@ -36,7 +36,6 @@
 import { browser } from "$app/env";
 import type { TranslationKey } from "../../locales/schema";
 import { logger } from "../logger";
-import { safeLocalStorage } from "../../utils/storageWrapper";
 
 export const BOT_GUARD_STORAGE_KEY = "cachy_bot_guards_v1";
 
@@ -106,9 +105,30 @@ function emptyLedger(): GuardLedger {
   return { schema_version: BOT_GUARD_SCHEMA_VERSION, per_rule: {} };
 }
 
+/**
+ * `localStorage` reached directly, not through `utils/storageWrapper`.
+ *
+ * Deliberate, and worth a line of why: the wrapper is a member of the
+ * import-graph's frozen cycle, so a store-layer module importing it joins
+ * that cycle (measured: the 0822 guard ledger grew it 196 → 197 and CI's
+ * baseline guard refused the bump). Every access here is already inside the
+ * try/catch discipline below — reads degrade to an empty ledger, writes
+ * return false and log — so the wrapper's guarded access adds nothing this
+ * module does not already do itself.
+ */
+function storage(): Storage | null {
+  if (!browser) return null;
+  try {
+    return localStorage;
+  } catch {
+    // Security-context or quota errors surface on access, not on the call.
+    return null;
+  }
+}
+
 function readLedger(): GuardLedger {
   try {
-    const raw = safeLocalStorage.getItem(BOT_GUARD_STORAGE_KEY);
+    const raw = storage()?.getItem(BOT_GUARD_STORAGE_KEY) ?? null;
     if (raw === null) return emptyLedger();
     const parsed: unknown = JSON.parse(raw);
     if (!isPlainObject(parsed)) return emptyLedger();
@@ -121,7 +141,10 @@ function readLedger(): GuardLedger {
 
 function writeLedger(ledger: GuardLedger): boolean {
   try {
-    return safeLocalStorage.setItem(BOT_GUARD_STORAGE_KEY, JSON.stringify(ledger));
+    const s = storage();
+    if (s === null) return false;
+    s.setItem(BOT_GUARD_STORAGE_KEY, JSON.stringify(ledger));
+    return true;
   } catch (e) {
     logger.error("alerts", "[BotGuards] Persisting the guard log failed", e);
     return false;

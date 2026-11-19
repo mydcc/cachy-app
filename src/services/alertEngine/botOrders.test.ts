@@ -921,7 +921,6 @@ describe("FEAT-0822 — the firing policy, the limits, and the slot reservation"
     const { env, place } = environment({
       entryActivityOf: entries as unknown as BotOrderEnvironment["entryActivityOf"],
     });
-    const sink = withBotOrders(vi.fn(), env, vi.fn());
 
     const once = guardedRule({ firing_policy: "once" });
     await new Promise<void>((resolve) => {
