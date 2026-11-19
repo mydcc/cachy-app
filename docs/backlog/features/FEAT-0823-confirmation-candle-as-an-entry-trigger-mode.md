@@ -2,7 +2,7 @@
 id: FEAT-0823
 title: Confirmation candle as an entry trigger mode
 type: feature
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: ADR-0012
 depends_on: [FEAT-0807]
+assignee: opencode
+branch: feature/feat-0823-confirmation-candle-entry-mode
 parent: FEAT-0805
 size: S
 estimate: 5
