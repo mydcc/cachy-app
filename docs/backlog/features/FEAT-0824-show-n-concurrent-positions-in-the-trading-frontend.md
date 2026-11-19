@@ -2,7 +2,9 @@
 id: FEAT-0824
 title: Show N concurrent positions in the trading frontend
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: feature/feat-0824-n-concurrent-positions
 priority: P2
 milestone: none
 editions: [community, pro, private]
