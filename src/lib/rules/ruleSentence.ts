@@ -36,6 +36,7 @@ import type {
   CompareOp,
   Condition,
   CrossDirection,
+  ExitRule,
   IndicatorRef,
   LogicOp,
   Operand,
@@ -440,6 +441,28 @@ export function renderConditionClause(
     );
   }
   return parts.join(" ");
+}
+
+/**
+ * One exit's condition as a sentence — "the close is at least 120" — without
+ * the clause that says what closing does.
+ *
+ * FEAT-0811's editor renders each exit row with the same sentence the whole
+ * document would carry, so what the trader saves and what the sidebar later
+ * shows cannot drift into two vocabularies. The anchor is the rule's own
+ * trigger timeframe, exactly as `renderConditionSentence` frames the entry:
+ * an exit reading the trigger's series renders without a suffix, and one
+ * naming a coarser series says so — the row never hides which candle it
+ * waits for.
+ *
+ * Never throws, for the same reason `renderConditionSentence` does not.
+ */
+export function renderExitConditionSentence(
+  exit: ExitRule,
+  anchor: TimeframeString,
+  t: SentenceTranslator,
+): string {
+  return formatCondition(exit.when, anchor, t);
 }
 
 /**

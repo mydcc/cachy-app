@@ -33,6 +33,7 @@ import type { RuleDocument } from "../../../lib/rules/types";
 const mocks = vi.hoisted(() => ({
   armRule: vi.fn(),
   promoteAlertToBot: vi.fn(),
+  createBotDraft: vi.fn(),
   readRuleStore: vi.fn(),
   validate: vi.fn(),
 }));
@@ -47,6 +48,10 @@ vi.mock("../../../services/alertEngine/armRule", () => ({
 
 vi.mock("../../../services/alertEngine/promoteAlert", () => ({
   promoteAlertToBot: mocks.promoteAlertToBot,
+  // FEAT-0811 — the create path goes through the same module (the
+  // mass-neutral home for the creation service); the editor imports it,
+  // so every case in this file needs it servable even when untouched.
+  createBotDraft: mocks.createBotDraft,
 }));
 
 vi.mock("../../../services/alertEngine/botStore", () => ({
@@ -488,5 +493,45 @@ describe("FEAT-0822 review — the guard history renders every row", () => {
     const rows = [...details!.querySelectorAll("li")];
     expect(rows).toHaveLength(3);
     expect(rows.filter((row) => row.textContent?.includes("×1"))).toHaveLength(3);
+  });
+});
+
+describe("FEAT-0811 — direct bot creation", () => {
+  it("mounts the empty editor from the Create-a-bot button and closes it on save", () => {
+    render();
+
+    // The direct path (AC 1): a bot needs no alert to exist. The button sits
+    // beside the promote title; promotion stays the pre-fill shortcut.
+    button(translation(en as Record<string, unknown>, "settings.automation.editor.createButton")).click();
+    flushSync();
+
+    // The create editor: fresh fields, nothing pre-filled from any alert.
+    const name = host.querySelector("#bot-create-name") as HTMLInputElement;
+    expect(name).not.toBeNull();
+    expect(name.value).toBe("");
+    expect((host.querySelector("#bot-create-symbol") as HTMLInputElement).value).toBe("");
+
+    // A minimal draft: name, symbol, an entry condition and the order's own
+    // fields. The service owns the write — the editor only assembles.
+    setInput(name, "RSI dip bot");
+    setInput(host.querySelector("#bot-create-symbol") as HTMLInputElement, "BTCUSDT");
+    setInput(host.querySelector("#bot-create-entry-value") as HTMLInputElement, "60000");
+    setInput(host.querySelector("#bot-create-size") as HTMLInputElement, "2");
+    setInput(host.querySelector("#bot-create-stop-distance") as HTMLInputElement, "2");
+
+    const created = bot({ basis: "percent_of_entry", distance: "2" });
+    mocks.createBotDraft.mockImplementationOnce(() => ({ bot: created, rules: [created] }));
+
+    button(translation(en as Record<string, unknown>, "settings.automation.save")).click();
+    flushSync();
+
+    // The service was handed the assembled draft, and only the service: no
+    // alert was read, no promote ran, the editor closed behind the save.
+    expect(mocks.createBotDraft).toHaveBeenCalledTimes(1);
+    const fields = mocks.createBotDraft.mock.calls[0][0] as Record<string, unknown>;
+    expect(fields.symbol).toBe("BTCUSDT");
+    expect(fields.name).toBe("RSI dip bot");
+    expect(mocks.promoteAlertToBot).not.toHaveBeenCalled();
+    expect(host.querySelector("#bot-create-name")).toBeNull();
   });
 });

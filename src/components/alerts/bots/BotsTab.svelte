@@ -57,7 +57,7 @@
     import { intlTagFor } from "../../../lib/i18n/intlTag";
     import Toggle from "../../shared/Toggle.svelte";
     import InfoTip from "../../shared/InfoTip.svelte";
-    import BotIntentEditor from "./BotIntentEditor.svelte";
+    import BotEditor from "./BotEditor.svelte";
 
     /**
      * What to tell the trader about the last failed promotion: the i18n key and
@@ -79,6 +79,8 @@
     /** The bot whose intent the open editor is editing, if any. */
     let editingBotId = $state<string | null>(null);
     let editingBotSnapshot = $state<RuleDocument | null>(null);
+    /** FEAT-0811 — the direct-creation mode: no snapshot, nothing to edit. */
+    let creatingBot = $state(false);
 
     /**
      * The rule set, re-read whenever it changes.
@@ -258,6 +260,18 @@
         editingBotSnapshot = null;
     }
 
+    /** FEAT-0811 — the create flow's own close: the same store bump the edit
+     * flow uses, so the list the trader lands back on re-reads the store and
+     * the unarmed draft appears in it. */
+    function finishCreate() {
+        creatingBot = false;
+        notifyChanged();
+    }
+
+    function cancelCreate() {
+        creatingBot = false;
+    }
+
     const sizeBases: SizeBasis[] = [
         "percent_of_equity",
         "percent_risk",
@@ -374,7 +388,7 @@
                         {/if}
 
                         {#if editingBotId === bot.id && editingBotSnapshot}
-                            <BotIntentEditor
+                            <BotEditor
                                 bot={editingBotSnapshot}
                                 onsaved={finishEdit}
                                 oncancel={cancelEdit}
@@ -437,9 +451,32 @@
     </section>
 
     <section class="flex flex-col gap-3">
-        <h3 class="text-sm font-semibold text-[var(--text-primary)]">
-            {$_("settings.automation.promoteTitle")}
-        </h3>
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="text-sm font-semibold text-[var(--text-primary)]">
+                {$_("settings.automation.promoteTitle")}
+            </h3>
+            {#if !creatingBot}
+                <!-- FEAT-0811 — the direct path (AC 1): a bot needs no alert to
+                     exist. Promotion stays below as the pre-fill shortcut it
+                     always was; this button is the from-scratch answer. -->
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => (creatingBot = true)}
+                >
+                    {$_("settings.automation.editor.createButton")}
+                </Button>
+            {/if}
+        </div>
+        {#if creatingBot}
+            <!-- The direct path's form (AC 1): the answers are the whole
+                 document, and the draft lands unarmed. -->
+            <BotEditor
+                bot={null}
+                onsaved={finishCreate}
+                oncancel={cancelCreate}
+            />
+        {/if}
         <div class="text-sm text-[var(--text-secondary)] max-w-2xl" data-testid="promote-hint">
             {$_("settings.automation.promoteHintShort")}
             <InfoTip text={$_("settings.automation.promoteHint")} />
