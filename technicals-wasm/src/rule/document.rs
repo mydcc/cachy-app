@@ -217,6 +217,39 @@ pub struct ExitRule {
     pub fraction: Option<rust_decimal::Decimal>,
 }
 
+/// How often a bot may open a position — FEAT-0822.
+///
+/// Absent means `OncePerCandle`, which is the `(rule, anchor)` guard the
+/// engine has always run, now named and user-settable: a rule is evaluated
+/// once per closed candle, and at most one submission per evaluation. `Once`
+/// expires after the first entry that lands — the accidental-double-fire
+/// default the platform ships with, not a hard-coded law. `Multi` allows
+/// deliberate re-entries up to the document's own limits; a grid bot
+/// (FEAT-0819) fires per filled level and answers to its own policy.
+///
+/// Not to be confused with `TriggerFrequency`, which says how often a rule
+/// may *announce* and is not hashed: this one is hashed, because how often a
+/// strategy enters is part of what it means.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum FiringPolicy {
+    Once,
+    /// The absent value: the engine's `(rule, anchor)` cadence, which is what
+    /// every rule before this field already did.
+    #[default]
+    OncePerCandle,
+    Multi,
+}
+
+impl FiringPolicy {
+    /// Drives `skip_serializing_if`: the default never reaches the canonical
+    /// form, so a stored rule is byte-identical before and after this field
+    /// exists — the same mechanism that carried every optional field in.
+    fn is_once_per_candle(&self) -> bool {
+        matches!(self, Self::OncePerCandle)
+    }
+}
+
 /// A serialisable, versioned, schema-validated strategy.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -252,6 +285,28 @@ pub struct RuleDocument {
     /// Hashed, for the same reason the stop is.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub take_profit: Option<StopDistance>,
+    /// FEAT-0822. How often this bot may open a position. Hashed. Absent
+    /// means `once_per_candle`, exactly the cadence every rule before this
+    /// field had.
+    #[serde(default, skip_serializing_if = "FiringPolicy::is_once_per_candle")]
+    pub firing_policy: FiringPolicy,
+    /// FEAT-0822. The most rows this bot may own at once. Hashed. Absent
+    /// means one — the bound FEAT-0488 already enforced, so a document
+    /// without the field keeps the behaviour it always had.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_positions: Option<u32>,
+    /// FEAT-0822. The most entries this bot may land per calendar day.
+    /// Hashed. Absent means unbounded by day.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_entries_per_day: Option<u32>,
+    /// FEAT-0822. The most one entry may risk, in the account currency,
+    /// resolved against the entry and its stop. Hashed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_risk_per_position: Option<rust_decimal::Decimal>,
+    /// FEAT-0822. The total open risk this bot's rows may hold, in the
+    /// account currency. Hashed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budget_cap: Option<rust_decimal::Decimal>,
     /// Armed or not. Not hashed: arming is not a change of strategy.
     #[serde(default)]
     pub enabled: bool,
@@ -371,6 +426,66 @@ impl RuleDocument {
                 "a `notify` rule carries a take-profit nothing would ever place: it owns \
                  no position to close. Author the rule at `simulate` or above",
             ));
+        }
+        // FEAT-0822. A firing policy or a limit describes what an owned
+        // position may do, so it belongs to documents that can own one. Per
+        // field, for the same reason the exits gate above is: a document
+        // carrying several is told about each. The absent policy is the
+        // engine's existing cadence and stays legal everywhere, exactly as a
+        // version 3 rule already was.
+        if !may_read_account && !self.firing_policy.is_once_per_candle() {
+            out.push(RuleRefusal::new(
+                RefusalCode::FieldNotHonouredAtLevel,
+                "firing_policy",
+                "a `notify` rule carries a firing policy but owns no position to fire \
+                 into. Author the rule at `simulate` or above",
+            ));
+        }
+        for (field, present) in [
+            ("max_positions", self.max_positions.is_some()),
+            ("max_entries_per_day", self.max_entries_per_day.is_some()),
+            ("max_risk_per_position", self.max_risk_per_position.is_some()),
+            ("budget_cap", self.budget_cap.is_some()),
+        ] {
+            if may_read_account || !present {
+                continue;
+            }
+            out.push(RuleRefusal::new(
+                RefusalCode::FieldNotHonouredAtLevel,
+                field,
+                "a `notify` rule carries a limit on positions it will never own. \
+                 Author the rule at `simulate` or above",
+            ));
+        }
+        // FEAT-0822. A limit the trader did not write is worse than none:
+        // these are shape refusals, not clamps. Zero or below reads as
+        // `InvalidLimit` naming the field, at every consequence level.
+        if self.max_positions == Some(0) {
+            out.push(RuleRefusal::new(
+                RefusalCode::InvalidLimit,
+                "max_positions",
+                "max_positions `0` is not a limit; absence already means one",
+            ));
+        }
+        if self.max_entries_per_day == Some(0) {
+            out.push(RuleRefusal::new(
+                RefusalCode::InvalidLimit,
+                "max_entries_per_day",
+                "max_entries_per_day `0` is not a limit; absence already means none",
+            ));
+        }
+        for (field, value) in [
+            ("max_risk_per_position", self.max_risk_per_position),
+            ("budget_cap", self.budget_cap),
+        ] {
+            let Some(value) = value else { continue };
+            if value <= rust_decimal::Decimal::ZERO {
+                out.push(RuleRefusal::new(
+                    RefusalCode::InvalidLimit,
+                    field,
+                    format!("`{value}` is not a risk limit: it must be positive"),
+                ));
+            }
         }
         if self.exits.as_ref().is_some_and(|e| e.is_empty()) {
             out.push(RuleRefusal::new(
@@ -809,6 +924,11 @@ mod tests {
             note: None,
             exits: None,
             take_profit: None,
+            firing_policy: FiringPolicy::OncePerCandle,
+            max_positions: None,
+            max_entries_per_day: None,
+            max_risk_per_position: None,
+            budget_cap: None,
         }
     }
 
@@ -2917,5 +3037,169 @@ mod tests {
         assert!(bot_with_exits(OrderSide::Buy, None, Some(profit_target("150")))
             .validate()
             .is_ok());
+    }
+
+    // ---- FEAT-0822: the firing policy and the limits -----------------------
+
+    /// The shape the item is about: a bot that says how often it may enter
+    /// and what it may spend doing so.
+    fn bot_with_policy(
+        policy: FiringPolicy,
+        max_positions: Option<u32>,
+        max_entries_per_day: Option<u32>,
+        max_risk_per_position: Option<rust_decimal::Decimal>,
+        budget_cap: Option<rust_decimal::Decimal>,
+    ) -> RuleDocument {
+        let mut doc = bot_with_exits(OrderSide::Buy, None, None);
+        doc.firing_policy = policy;
+        doc.max_positions = max_positions;
+        doc.max_entries_per_day = max_entries_per_day;
+        doc.max_risk_per_position = max_risk_per_position;
+        doc.budget_cap = budget_cap;
+        doc
+    }
+
+    #[test]
+    fn firing_policy_and_limits_round_trip_through_serialisation() {
+        let doc = bot_with_policy(
+            FiringPolicy::Multi,
+            Some(3),
+            Some(5),
+            Some(d("100")),
+            Some(d("500")),
+        );
+        let json = serialise_document(&doc).unwrap();
+        let back: RuleDocument = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, doc);
+    }
+
+    /// The same alarm the exits test sounds, for the same reason: a v3
+    /// document must serialise byte-identically at v4, or every strategy
+    /// identity recorded before these fields silently moves.
+    #[test]
+    fn a_document_without_them_keeps_its_canonical_form() {
+        let doc = bot_with_policy(FiringPolicy::OncePerCandle, None, None, None, None);
+        let json = serialise_document(&doc).unwrap();
+        for absent in [
+            "firing_policy",
+            "max_positions",
+            "max_entries_per_day",
+            "max_risk_per_position",
+            "budget_cap",
+        ] {
+            assert!(
+                !json.contains(absent),
+                "absent {absent} must stay off the wire: {json}"
+            );
+        }
+    }
+
+    /// How often a strategy enters and what it may spend are strategy, not
+    /// labelling — the same line the exits draw.
+    #[test]
+    fn the_policy_and_limits_are_part_of_the_strategy_identity() {
+        let before =
+            bot_with_policy(FiringPolicy::OncePerCandle, None, None, None, None)
+                .content_hash()
+                .unwrap();
+        let with_policy =
+            bot_with_policy(FiringPolicy::Multi, None, None, None, None)
+                .content_hash()
+                .unwrap();
+        let with_limits =
+            bot_with_policy(FiringPolicy::OncePerCandle, Some(2), Some(4), Some(d("50")), Some(d("250")))
+                .content_hash()
+                .unwrap();
+
+        assert_ne!(with_policy, before, "cadence is what the strategy means");
+        assert_ne!(with_limits, before, "limits are what the strategy means");
+        assert_ne!(with_policy, with_limits);
+    }
+
+    /// One refusal per field, the discipline the exits gate set: a document
+    /// carrying all five is told about all five, in field order.
+    #[test]
+    fn a_notify_document_is_told_about_every_policy_field_it_cannot_honour() {
+        let mut doc = rsi_dip();
+        doc.firing_policy = FiringPolicy::Multi;
+        doc.max_positions = Some(3);
+        doc.max_entries_per_day = Some(5);
+        doc.max_risk_per_position = Some(d("100"));
+        doc.budget_cap = Some(d("500"));
+
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let named: Vec<&str> = refusals
+            .iter()
+            .filter(|r| r.code == RefusalCode::FieldNotHonouredAtLevel)
+            .map(|r| r.field.as_str())
+            .collect();
+        assert_eq!(
+            named,
+            vec![
+                "firing_policy",
+                "max_positions",
+                "max_entries_per_day",
+                "max_risk_per_position",
+                "budget_cap",
+            ]
+        );
+    }
+
+    /// A limit that cannot limit anything is refused, never clamped: a trader
+    /// who wrote zero believes they are protected, and that belief is the
+    /// hazard.
+    #[test]
+    fn zero_limits_are_refused_not_clamped() {
+        let doc = bot_with_policy(
+            FiringPolicy::Multi,
+            Some(0),
+            Some(0),
+            Some(d("0")),
+            Some(d("0")),
+        );
+        let refusals = &doc.validate().unwrap_err().refusals;
+        let named: Vec<&str> = refusals
+            .iter()
+            .filter(|r| r.code == RefusalCode::InvalidLimit)
+            .map(|r| r.field.as_str())
+            .collect();
+        assert_eq!(
+            named,
+            vec![
+                "max_positions",
+                "max_entries_per_day",
+                "max_risk_per_position",
+                "budget_cap",
+            ]
+        );
+
+        // Negative risk money is the same lie as zero.
+        let refusals = &bot_with_policy(
+            FiringPolicy::Multi,
+            None,
+            None,
+            Some(d("-1")),
+            Some(d("-1")),
+        )
+        .validate()
+        .unwrap_err()
+        .refusals;
+        assert!(
+            refusals.iter().any(|r| r.code == RefusalCode::InvalidLimit
+                && r.field == "max_risk_per_position"),
+            "negative risk money must be refused: {refusals:?}"
+        );
+        assert!(
+            refusals.iter().any(|r| r.code == RefusalCode::InvalidLimit
+                && r.field == "budget_cap"),
+            "a negative budget must be refused: {refusals:?}"
+        );
+    }
+
+    /// The absent policy is legal everywhere a v3 rule already was: an alert
+    /// that never heard of the field must not start refusing.
+    #[test]
+    fn the_absent_policy_changes_nothing_for_a_notify_rule() {
+        assert!(rsi_dip().validate().is_ok());
     }
 }

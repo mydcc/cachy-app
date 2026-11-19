@@ -275,6 +275,13 @@ refusal_codes! {
     /// value outside `(0, 1]`. The field path names the exact slot, and the
     /// detail names which of the three it is.
     ExitFractionInvalid => "exitFractionInvalid",
+    /// A limit that cannot limit anything — FEAT-0822.
+    ///
+    /// Zero entries, zero positions, zero risk: each is a field that looks
+    /// like a bound and stops nothing, and a trader who set one believes
+    /// they are protected. Refused rather than clamped, at every consequence
+    /// level, naming the field; absence is the honest way to say "no limit".
+    InvalidLimit => "invalidLimit",
 }
 
 /// One reason a document was refused, naming the field responsible.
@@ -488,6 +495,7 @@ mod tests {
         "exits_at_notify_level",
         "empty_exits_array",
         "exit_fraction_invalid",
+        "invalid_limit",
     ];
 
     #[test]

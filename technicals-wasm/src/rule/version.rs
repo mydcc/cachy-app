@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 use super::refusal::{RefusalCode, RuleRefusal};
 
 /// The version this build authors and evaluates.
-pub const CURRENT_SCHEMA_VERSION: u16 = 3;
+pub const CURRENT_SCHEMA_VERSION: u16 = 4;
 
 /// The oldest version this build can still read. Below it, a document is
 /// refused rather than guessed at.
@@ -115,6 +115,7 @@ fn migration_for(from: u16) -> Option<MigrationStep> {
     match from {
         1 => Some(migrate_v1_to_v2),
         2 => Some(migrate_v2_to_v3),
+        3 => Some(migrate_v3_to_v4),
         _ => None,
     }
 }
@@ -134,6 +135,19 @@ fn migration_for(from: u16) -> Option<MigrationStep> {
 /// needed": a version that silently skips a rung is a version whose future
 /// readers cannot tell a deliberate no-op from a forgotten one.
 fn migrate_v2_to_v3(_raw: &mut serde_json::Value) -> Result<(), RuleRefusal> {
+    Ok(())
+}
+
+/// Version 3 to 4: the firing policy and the limits of FEAT-0822.
+///
+/// The same pure-addition shape as the step below: every new field is
+/// optional on the wire (`skip_serializing_if`) and means exactly what a
+/// version 3 rule already did by not having it — `firing_policy` absent is
+/// the engine's existing `(rule, anchor)` cadence, and no limit is the bound
+/// FEAT-0488 already enforced (one open position per symbol and side).
+/// Nothing to write; the version stamp is the entire step, and it stays
+/// outside the content hash so a migrated strategy keeps its identity.
+fn migrate_v3_to_v4(_raw: &mut serde_json::Value) -> Result<(), RuleRefusal> {
     Ok(())
 }
 
@@ -321,6 +335,27 @@ mod tests {
             doc, expected,
             "a pure addition writes nothing but the version stamp"
         );
+    }
+
+    /// The FEAT-0822 step is the same pure-addition shape: a v3 document
+    /// that already carries a policy or a limit keeps it verbatim, and the
+    /// stamp is all the step writes.
+    #[test]
+    fn a_v3_document_migrates_to_current_with_nothing_but_the_stamp_written() {
+        let mut doc = json!({
+            "schema_version": 3,
+            "name": "x",
+            "firing_policy": "multi",
+            "max_positions": 2
+        });
+        let expected = json!({
+            "schema_version": CURRENT_SCHEMA_VERSION,
+            "name": "x",
+            "firing_policy": "multi",
+            "max_positions": 2
+        });
+        assert_eq!(migrate_to_current(&mut doc).unwrap(), SchemaVersion::CURRENT);
+        assert_eq!(doc, expected, "the v4 step writes nothing but the stamp");
     }
 
     #[test]

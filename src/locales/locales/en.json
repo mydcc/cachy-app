@@ -4977,6 +4977,7 @@
       "exitsAtNotifyLevel": "A notify rule cannot close a position it will never own: author the rule at `simulate` or above.",
       "emptyExitsArray": "An empty exits array is refused — absence already means no exits beyond the stop.",
       "exitFractionInvalid": "The closing fraction in `{field}` is unusable: a partial close needs one in (0, 1], an `all` close needs none.",
+      "invalidLimit": "The limit in `{field}` cannot limit anything: a bound of zero protects nothing. Remove it, or set a real one.",
       "executableTextRejected": "A strategy is checkable data, not executable text. Free-text expressions are refused.",
       "unsupportedSchemaVersion": "This rule uses a schema version this build of the app cannot read.",
       "migrationNotPossible": "The rule cannot be carried to the current schema version with its meaning intact, so it is refused rather than reinterpreted.",

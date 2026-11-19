@@ -41,7 +41,7 @@
 
 use super::condition::{Condition, CrossDirection, Operand, PriceField, PriceSource};
 use super::consequence::{ConsequenceLevel, RuleAction};
-use super::document::{AuthoringSource, EvaluationMode, Provenance, RuleDocument};
+use super::document::{AuthoringSource, EvaluationMode, FiringPolicy, Provenance, RuleDocument};
 use super::lifecycle::TriggerFrequency;
 use super::refusal::Refused;
 use super::timeframe::Timeframe;
@@ -113,6 +113,11 @@ pub fn rule_from_alert(
         // as it never did — FEAT-0809's absent-means-none.
         exits: None,
         take_profit: None,
+        firing_policy: FiringPolicy::OncePerCandle,
+        max_positions: None,
+        max_entries_per_day: None,
+        max_risk_per_position: None,
+        budget_cap: None,
     };
 
     document.validate()?;
