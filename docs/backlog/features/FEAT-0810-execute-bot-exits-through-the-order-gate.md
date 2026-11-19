@@ -2,7 +2,7 @@
 id: FEAT-0810
 title: Execute bot exits through the order gate
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: execution
 data_class: A
 adr: ADR-0026
 depends_on: [FEAT-0806, FEAT-0809]
+assignee: opencode
+branch: feature/feat-0810-execute-bot-exits
 parent: FEAT-0805
 size: L
 estimate: 13
