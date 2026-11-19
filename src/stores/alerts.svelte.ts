@@ -575,6 +575,9 @@ export function botExitEnvironment(
             const position = ownedBotPositionRow(ruleId, positionId);
             if (position === undefined) return undefined;
             return {
+                // The row's market, same as the owned-positions reader: the
+                // close lane names what it closes, never the rule's symbol.
+                symbol: position.symbol,
                 positionId: position.positionId,
                 side: position.side,
                 entryPrice: position.entryPrice,

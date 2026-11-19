@@ -204,6 +204,7 @@ function exitEnv(): BotExitEnvironment {
             );
             if (position === undefined) return undefined;
             return {
+                symbol: position.symbol,
                 positionId: position.positionId,
                 side: position.side,
                 entryPrice: position.entryPrice,
