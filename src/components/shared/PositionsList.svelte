@@ -31,6 +31,7 @@
     positionNotional,
     sortFleetRows,
     type FleetRow,
+    type FleetStop,
     type FleetSortKey,
   } from "../../services/positionFleet";
 
@@ -218,21 +219,16 @@
   let showFleetControls = $derived(fleetRows.length > 1);
 
   /**
-   * The stop a position is protected by, from the shared plan cache the row
-   * already reads. Absent (not zero) when there is none, or the plan carries
-   * no usable price: the aggregate then counts the position as unprotected
-   * instead of pricing its risk as the whole notional.
+   * The stop that protects this position, from the shared plan cache. The
+   * store attributes by position id and side (BUG-0510/0524), so in hedge
+   * mode a long never inherits the short's stop. Absent — not zero — when
+   * nothing is safely attributable: the aggregate then counts it as
+   * unprotected instead of pricing its risk as nothing.
    */
-  function stopFor(pos: OMSPosition): Decimal | undefined {
-    if (!tpSlState.hasPlansFor(pos.symbol)) return undefined;
-    const raw = tpSlState.plansFor(pos.symbol).loss?.triggerPrice;
-    if (raw === undefined || raw === null || raw === "") return undefined;
-    try {
-      const price = new Decimal(raw);
-      return price.gt(0) ? price : undefined;
-    } catch {
-      return undefined;
-    }
+  function stopFor(pos: OMSPosition): FleetStop | undefined {
+    const stop = tpSlState.restingStop(pos.symbol, pos.side, pos.positionId);
+    if (!stop) return undefined;
+    return stop.qty ? { price: stop.price, qty: stop.qty } : { price: stop.price };
   }
 
   // Over the whole book, not the filtered view: the figures describe the

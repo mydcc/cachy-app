@@ -36,13 +36,22 @@ const settings = vi.hoisted(() => ({
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
 
 // Plans by symbol; a symbol absent from the table has no plan cached.
+type Plan = { triggerPrice: string; positionId?: string; qty?: string };
 const plans = vi.hoisted(() => ({
-    table: {} as Record<string, { profit?: { triggerPrice: string }; loss?: { triggerPrice: string } }>,
+    table: {} as Record<string, { profit?: Plan; loss?: Plan }>,
 }));
 vi.mock("../../stores/tpsl.svelte", () => ({
     tpSlState: {
         hasPlansFor: (symbol: string) => symbol in plans.table,
         plansFor: (symbol: string) => plans.table[symbol] ?? {},
+        // Mirrors the real store's attribution: a plan naming another
+        // position's id is not this position's stop.
+        restingStop: (symbol: string, _side: string, positionId?: string | null) => {
+            const loss = plans.table[symbol]?.loss;
+            if (!loss) return null;
+            if (positionId && loss.positionId !== positionId) return null;
+            return { price: new Decimal(loss.triggerPrice), qty: loss.qty ? new Decimal(loss.qty) : null };
+        },
     },
 }));
 
@@ -211,8 +220,8 @@ describe("FEAT-0824 — N positions, mixed ownership", () => {
 describe("FEAT-0824 — aggregates", () => {
     it("are exact under Decimal and state open risk and the unprotected remainder", () => {
         plans.table = {
-            BTCUSDT: { loss: { triggerPrice: "95" } },
-            ETHUSDT: { loss: { triggerPrice: "90" } },
+            BTCUSDT: { loss: { triggerPrice: "95", positionId: "rsi-1" } },
+            ETHUSDT: { loss: { triggerPrice: "90", positionId: "rsi-2" } },
         };
         render({ positions: tenPositions(), botOwners: BOTS, onshowbot: vi.fn() });
 
@@ -221,11 +230,36 @@ describe("FEAT-0824 — aggregates", () => {
         expect(text("fleet-count")).toBe("10");
         // 10 × (2 × 110)
         expect(text("fleet-exposure")).toBe(formatDynamicDecimal(new Decimal("2200")));
-        // Protected longs/shorts on BTC (rsi-1 long, wk-1 short) and ETH
-        // (rsi-2 long, man-1 short). Long: (100-95)*2=10, (100-90)*2=20.
-        // Short with a stop at 95 / 90 is already past entry → 0.
+        // Only rsi-1 (long, stop 95) and rsi-2 (long, stop 90) are protected:
+        // (100-95)*2 + (100-90)*2 = 30. The other eight have no attributable stop.
         expect(text("fleet-open-risk")).toBe(formatDynamicDecimal(new Decimal("30")));
-        expect(text("fleet-unprotected")).toContain("6 without a known stop");
+        expect(text("fleet-unprotected")).toContain("8 not fully covered");
+    });
+
+    it("do not hand one symbol's stop to the other side's position (hedge)", () => {
+        plans.table = { BTCUSDT: { loss: { triggerPrice: "95", positionId: "long-1" } } };
+        render({
+            positions: [
+                position("long-1", "BTCUSDT", "1"),
+                position("short-1", "BTCUSDT", "1", { side: "short" }),
+            ],
+        });
+        // Only the long owns the stop: risk (100-95)*2 = 10, the short is uncovered.
+        expect(text("fleet-open-risk")).toBe(formatDynamicDecimal(new Decimal("10")));
+        expect(text("fleet-unprotected")).toContain("1 not fully covered");
+    });
+
+    it("price only the quantity a partial stop covers", () => {
+        plans.table = { BTCUSDT: { loss: { triggerPrice: "90", positionId: "a", qty: "0.5" } } };
+        render({
+            positions: [
+                position("a", "BTCUSDT", "1", { amount: new Decimal("2") }),
+                position("b", "ETHUSDT", "1"),
+            ],
+        });
+        // (100-90)*0.5 = 5, not (100-90)*2 = 20; the other 1.5 is uncovered.
+        expect(text("fleet-open-risk")).toBe(formatDynamicDecimal(new Decimal("5")));
+        expect(text("fleet-unprotected")).toContain("2 not fully covered");
     });
 
     it("match the book after a reload and after a reconciliation that closed a position", () => {

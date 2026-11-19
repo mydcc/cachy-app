@@ -45,6 +45,13 @@ export function positionNotional(position: OMSPosition): Decimal {
   return position.amount.mul(position.markPrice ?? position.entryPrice);
 }
 
+/** A resting stop for one position: where it triggers and how much it closes. */
+export interface FleetStop {
+  price: Decimal;
+  /** Quantity the plan closes; absent means position-wide. */
+  qty?: Decimal;
+}
+
 export interface FleetAggregate {
   count: number;
   totalPnl: Decimal;
@@ -146,11 +153,12 @@ export function filterFleetRows(rows: FleetRow[], filter: FleetOwnerFilter): Fle
  * `|entry − stop| × size` on the losing side, floored at zero once a stop has
  * moved past entry. A position with no stop contributes nothing and is
  * counted in `unprotectedCount` — a bare sum would read as "covered" while
- * hiding exactly the positions with no cap.
+ * hiding exactly the positions with no cap. A partially covered position
+ * counts as unprotected too, and only its covered quantity enters the sum.
  */
 export function aggregateFleet(
   rows: FleetRow[],
-  stopFor: (position: OMSPosition) => Decimal | undefined,
+  stopFor: (position: OMSPosition) => FleetStop | undefined,
 ): FleetAggregate {
   let totalPnl = new Decimal(0);
   let exposure = new Decimal(0);
@@ -169,8 +177,12 @@ export function aggregateFleet(
       unprotectedCount += 1;
       continue;
     }
-    const perUnit = p.side === "long" ? p.entryPrice.minus(stop) : stop.minus(p.entryPrice);
-    if (perUnit.gt(0)) openRisk = openRisk.plus(perUnit.mul(p.amount));
+    // A partial plan protects only the quantity it closes; pricing the whole
+    // position at its trigger would understate the uncapped remainder.
+    const covered = stop.qty !== undefined ? Decimal.min(stop.qty, p.amount) : p.amount;
+    if (covered.lt(p.amount)) unprotectedCount += 1;
+    const perUnit = p.side === "long" ? p.entryPrice.minus(stop.price) : stop.price.minus(p.entryPrice);
+    if (perUnit.gt(0)) openRisk = openRisk.plus(perUnit.mul(covered));
   }
 
   return { count: rows.length, totalPnl, exposure, openRisk, unprotectedCount, unpricedCount };

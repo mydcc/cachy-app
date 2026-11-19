@@ -194,7 +194,7 @@ describe("FEAT-0824 — aggregates", () => {
       pos({ positionId: "s", symbol: "S", side: "short", amount: new Decimal("3"), entryPrice: new Decimal("50") }),
     ]);
     const stops: Record<string, Decimal> = { L: new Decimal("95"), S: new Decimal("52") };
-    const agg = aggregateFleet(rows, (p) => stops[p.symbol]);
+    const agg = aggregateFleet(rows, (p) => ({ price: stops[p.symbol] }));
     // long: (100-95)*2 = 10; short: (52-50)*3 = 6
     expect(agg.openRisk.toString()).toBe("16");
     expect(agg.unprotectedCount).toBe(0);
@@ -202,7 +202,24 @@ describe("FEAT-0824 — aggregates", () => {
 
   it("a stop already past entry (locked-in profit) risks nothing, never a negative number", () => {
     const rows = buildFleetRows([pos({ positionId: "l", symbol: "L", entryPrice: new Decimal("100") })]);
-    expect(aggregateFleet(rows, () => new Decimal("105")).openRisk.toString()).toBe("0");
+    expect(aggregateFleet(rows, () => ({ price: new Decimal("105") })).openRisk.toString()).toBe("0");
+  });
+
+  it("prices only the quantity a partial stop covers and flags the remainder as uncovered", () => {
+    // 10 long @100, stop at 90 covering 4: risk (100-90)*4 = 40, not 100.
+    const rows = buildFleetRows([
+      pos({ positionId: "a", symbol: "A", amount: new Decimal("10"), entryPrice: new Decimal("100") }),
+    ]);
+    const agg = aggregateFleet(rows, () => ({ price: new Decimal("90"), qty: new Decimal("4") }));
+    expect(agg.openRisk.toString()).toBe("40");
+    expect(agg.unprotectedCount).toBe(1);
+  });
+
+  it("a stop whose quantity covers the whole position leaves nothing uncovered", () => {
+    const rows = buildFleetRows([pos({ positionId: "a", symbol: "A", amount: new Decimal("2") })]);
+    const agg = aggregateFleet(rows, () => ({ price: new Decimal("90"), qty: new Decimal("5") }));
+    expect(agg.openRisk.toString()).toBe("20");
+    expect(agg.unprotectedCount).toBe(0);
   });
 
   it("counts a position with no stop as unprotected instead of silently risking zero", () => {
@@ -210,13 +227,13 @@ describe("FEAT-0824 — aggregates", () => {
       pos({ positionId: "a", symbol: "A" }),
       pos({ positionId: "b", symbol: "B" }),
     ]);
-    const agg = aggregateFleet(rows, (p) => (p.symbol === "A" ? new Decimal("90") : undefined));
+    const agg = aggregateFleet(rows, (p) => (p.symbol === "A" ? { price: new Decimal("90") } : undefined));
     expect(agg.unprotectedCount).toBe(1);
     expect(agg.openRisk.toString()).toBe("10");
   });
 
   it("is order-independent and equals a fresh computation over the same book (reload)", () => {
-    const stop = (p: OMSPosition) => new Decimal(p.entryPrice).minus(7);
+    const stop = (p: OMSPosition) => ({ price: new Decimal(p.entryPrice).minus(7) });
     const rows = buildFleetRows(fleet(), owners);
     const a = aggregateFleet(rows, stop);
     const b = aggregateFleet(buildFleetRows([...fleet()].reverse(), owners), stop);
