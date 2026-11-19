@@ -264,6 +264,43 @@ export interface ExitRule {
   fraction?: DecimalString;
 }
 
+/** Mirrors `evaluate::ExitKind`. */
+export type ExitKind = "exit" | "take_profit";
+
+/**
+ * One exit's verdict at one anchor. Mirrors `evaluate::ExitOutcome`.
+ *
+ * Three-valued for the same reason `Verdict` is: an exit whose operands
+ * cannot be read must neither act nor silently veto the exits that could.
+ */
+export type ExitOutcome =
+  | { result: "fires"; close: ExitClose; fraction: DecimalString | null }
+  | { result: "does_not_fire" }
+  | { result: "unknown"; reason: string };
+
+/** One owned position's answers at one anchor. Mirrors `evaluate::ExitAnswer`. */
+export interface ExitAnswer {
+  kind: ExitKind;
+  /** The exit's position in `exits`; `null` on the take-profit answer. */
+  index: number | null;
+  outcome: ExitOutcome;
+}
+
+/**
+ * The position an exit evaluates against — FEAT-0810, mirroring
+ * `evaluate::OwnedPositionContext`.
+ *
+ * The trade's own entry price and facing, as the position book states them:
+ * a distance resolves from the price the bot actually paid, never from a
+ * stored target. `either` is deliberately absent — it is a condition's
+ * question, not a facing a position has, and the core refuses it at the
+ * boundary.
+ */
+export interface OwnedPositionContext {
+  entry_price: DecimalString;
+  side: "long" | "short";
+}
+
 export interface Provenance {
   source: "human" | "model";
   created_at_ms: number;

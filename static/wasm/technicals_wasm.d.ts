@@ -35,6 +35,11 @@ export function rule_content_hash(document_json: string): string;
 
 export function rule_evaluate(document_json: string, ctx_json: string): string;
 
+/**
+ * FEAT-0810 — [`evaluate_exits_json`] behind the wasm boundary.
+ */
+export function rule_evaluate_exits(document_json: string, ctx_json: string, position_json: string): string;
+
 export function rule_from_alert_json(alert_json: string, timeframe: string, created_at_ms: number): string;
 
 /**
@@ -87,6 +92,7 @@ export interface InitOutput {
     readonly rule_authorise: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly rule_content_hash: (a: number, b: number, c: number) => void;
     readonly rule_evaluate: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly rule_evaluate_exits: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly rule_from_alert_json: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly rule_indicator_registry: (a: number) => void;
     readonly rule_mark_timeframes: (a: number, b: number, c: number) => void;

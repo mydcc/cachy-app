@@ -45,8 +45,12 @@ use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
 use super::consequence::{ConsequenceLevel, OrderIntent};
+use super::condition::PositionSide;
 use super::document::{parse_document, serialise_document};
-use super::evaluate::{evaluate_with_lifecycle, AccountSnapshot, Candle, InMemoryMarket};
+use super::evaluate::{
+    evaluate_exits, evaluate_with_lifecycle, AccountSnapshot, Candle, InMemoryMarket,
+    OwnedPositionContext,
+};
 use super::indicator::IndicatorRef;
 use super::lifecycle::RuleState;
 use super::refusal::{RefusalCode, Refused};
@@ -234,23 +238,16 @@ struct IndicatorSeries {
     values: Vec<Option<Decimal>>,
 }
 
-/// Evaluate `document` against a JSON-carried market/account snapshot.
+/// The market and account snapshot of `ctx_json`, assembled once for every
+/// evaluation call.
 ///
-/// Assembles an [`InMemoryMarket`] from `ctx_json` and hands it to
-/// [`evaluate`](super::evaluate::evaluate) — this function decides nothing about
-/// the rule itself, only about what the caller sent. Refuses rather than panics
-/// on anything malformed, same as every other export in this module.
-pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refused> {
-    let document = parse_document(document_json)?;
-
-    let payload: CtxPayload = serde_json::from_str(ctx_json).map_err(|e| {
-        Refused::one(
-            RefusalCode::UnknownField,
-            "ctx",
-            format!("ctx is not valid JSON: {e}"),
-        )
-    })?;
-
+/// Extracted when FEAT-0810 added the second consumer: the trigger pass and
+/// the exit pass must read the same payload the same way, and a copy of the
+/// assembly would be a second place for a time frame to be parsed
+/// differently. Returns the parsed state alongside, because the trigger's
+/// lifecycle consumes it and the exit pass deliberately does not — an exit's
+/// bound is the caller's action ledger, not the rule's announcement history.
+fn market_from_ctx(payload: CtxPayload) -> Result<(InMemoryMarket, Option<AccountSnapshot>, RuleState), Refused> {
     let mut market = InMemoryMarket::new();
 
     for (raw_timeframe, candles) in payload.candles {
@@ -282,13 +279,101 @@ pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refu
         market = market.with_feed(&feed, value);
     }
 
-    let verdict =
-        evaluate_with_lifecycle(&document, &market, payload.account.as_ref(), payload.state);
+    Ok((market, payload.account, payload.state))
+}
+
+/// FEAT-0810 — the owned position an exit evaluates against, on the wire.
+///
+/// `deny_unknown_fields` like every boundary struct here: a caller that
+/// invents a field is told, not silently ignored.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnedPositionPayload {
+    entry_price: Decimal,
+    side: PositionSide,
+}
+
+/// Evaluate `document` against a JSON-carried market/account snapshot.
+///
+/// Assembles an [`InMemoryMarket`] from `ctx_json` and hands it to
+/// [`evaluate`](super::evaluate::evaluate) — this function decides nothing about
+/// the rule itself, only about what the caller sent. Refuses rather than panics
+/// on anything malformed, same as every other export in this module.
+pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refused> {
+    let document = parse_document(document_json)?;
+
+    let payload: CtxPayload = serde_json::from_str(ctx_json).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "ctx",
+            format!("ctx is not valid JSON: {e}"),
+        )
+    })?;
+    let (market, account, state) = market_from_ctx(payload)?;
+
+    let verdict = evaluate_with_lifecycle(&document, &market, account.as_ref(), state);
     serde_json::to_string(&verdict).map_err(|e| {
         Refused::one(
             RefusalCode::UnknownField,
             "verdict",
             format!("verdict could not be serialised: {e}"),
+        )
+    })
+}
+
+/// FEAT-0810 — a document's exit answers for one owned position, against a
+/// JSON-carried market/account snapshot.
+///
+/// The same discipline as [`evaluate_json`]: this decides nothing about the
+/// rule, only about what the caller sent. The lifecycle is deliberately
+/// absent — [`evaluate_exits`](super::evaluate::evaluate_exits) states why —
+/// and the position's `side` may be `long` or `short` but never `either`,
+/// which is a condition's question and not a facing a position has.
+pub fn evaluate_exits_json(
+    document_json: &str,
+    ctx_json: &str,
+    position_json: &str,
+) -> Result<String, Refused> {
+    let document = parse_document(document_json)?;
+
+    let payload: CtxPayload = serde_json::from_str(ctx_json).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "ctx",
+            format!("ctx is not valid JSON: {e}"),
+        )
+    })?;
+    let (market, account, _) = market_from_ctx(payload)?;
+
+    let position: OwnedPositionPayload = serde_json::from_str(position_json).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "position",
+            format!("position is not valid JSON: {e}"),
+        )
+    })?;
+    if position.side == PositionSide::Either {
+        return Err(Refused::one(
+            RefusalCode::UnknownField,
+            "position.side",
+            "a position faces long or short; `either` is a condition's question",
+        ));
+    }
+
+    let answers = evaluate_exits(
+        &document,
+        &market,
+        account.as_ref(),
+        &OwnedPositionContext {
+            entry_price: position.entry_price,
+            side: position.side,
+        },
+    );
+    serde_json::to_string(&answers).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "answers",
+            format!("exit answers could not be serialised: {e}"),
         )
     })
 }
@@ -369,6 +454,16 @@ pub fn rule_promote(
 #[wasm_bindgen]
 pub fn rule_evaluate(document_json: &str, ctx_json: &str) -> Result<String, JsValue> {
     evaluate_json(document_json, ctx_json).map_err(refused_to_js)
+}
+
+/// FEAT-0810 — [`evaluate_exits_json`] behind the wasm boundary.
+#[wasm_bindgen]
+pub fn rule_evaluate_exits(
+    document_json: &str,
+    ctx_json: &str,
+    position_json: &str,
+) -> Result<String, JsValue> {
+    evaluate_exits_json(document_json, ctx_json, position_json).map_err(refused_to_js)
 }
 
 #[cfg(test)]
@@ -585,6 +680,86 @@ mod tests {
     fn malformed_ctx_json_is_refused_with_a_field_not_a_panic() {
         let err = evaluate_json(EVAL_DOC, "{not json").unwrap_err();
         assert_eq!(err.refusals[0].field, "ctx");
+    }
+
+    // ---- FEAT-0810: the exit boundary ---------------------------------------
+
+    /// A simulate document with one exit that does not hold and a take-profit
+    /// target that does, so the two answers differ in one call.
+    const EXIT_EVAL_DOC: &str = r#"{
+        "schema_version": 3,
+        "id": "exit-doc",
+        "name": "exit boundary fixture",
+        "symbol": "BTCUSDT",
+        "trigger_timeframe": "4h",
+        "conditions": {
+            "kind": "compare",
+            "left": { "kind": "price", "field": "close" },
+            "op": "gte",
+            "right": { "kind": "constant", "value": "1" },
+            "timeframe": "4h"
+        },
+        "action": {
+            "consequence_level": "simulate",
+            "order": { "side": "buy", "size_basis": "percent_of_equity", "size": "10" }
+        },
+        "enabled": true,
+        "provenance": { "source": "human", "created_at_ms": 1700000000000 },
+        "exits": [
+            {
+                "when": {
+                    "kind": "compare",
+                    "left": { "kind": "price", "field": "close" },
+                    "op": "gte",
+                    "right": { "kind": "constant", "value": "120" },
+                    "timeframe": "4h"
+                },
+                "close": "all"
+            }
+        ],
+        "take_profit": { "basis": "percent_of_entry", "distance": "10" }
+    }"#;
+
+    fn exit_ctx_json(last_close: &str) -> String {
+        format!(
+            r#"{{ "candles": {{ "4h": [
+                {{"open_time_ms":0,"open":"100","high":"100","low":"100","close":"100","volume":"0"}},
+                {{"open_time_ms":14400000,"open":"100","high":"100","low":"100","close":"{last_close}","volume":"0"}}
+            ] }} }}"#
+        )
+    }
+
+    #[test]
+    fn exits_answer_per_exit_and_take_profit_resolves_from_the_owned_entry() {
+        let answers = evaluate_exits_json(
+            EXIT_EVAL_DOC,
+            &exit_ctx_json("115"),
+            r#"{ "entry_price": "100", "side": "long" }"#,
+        )
+        .unwrap();
+        // The exit's 120 is not reached by a 115 close; the 10 % long target
+        // off a 100 entry is 110, and 115 reaches it. Two answers, one call.
+        assert_eq!(
+            answers,
+            r#"[{"kind":"exit","index":0,"outcome":{"result":"does_not_fire"}},{"kind":"take_profit","index":null,"outcome":{"result":"fires","close":"all","fraction":null}}]"#
+        );
+    }
+
+    #[test]
+    fn either_is_refused_as_a_position_facing_at_the_boundary() {
+        let err = evaluate_exits_json(
+            EXIT_EVAL_DOC,
+            &exit_ctx_json("115"),
+            r#"{ "entry_price": "100", "side": "either" }"#,
+        )
+        .unwrap_err();
+        assert_eq!(err.refusals[0].field, "position.side");
+    }
+
+    #[test]
+    fn a_malformed_position_is_refused_with_a_field_not_a_panic() {
+        let err = evaluate_exits_json(EXIT_EVAL_DOC, &exit_ctx_json("115"), "{not json").unwrap_err();
+        assert_eq!(err.refusals[0].field, "position");
     }
 
     #[test]
