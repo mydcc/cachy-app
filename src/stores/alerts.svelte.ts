@@ -31,6 +31,8 @@ import {
     exitActionAnchorFor,
     recordExitActionAnchor,
 } from "../services/alertEngine/ruleStateStore";
+import { botEntryActivity, recordBotEntry } from "../services/alertEngine/ruleStateStore";
+import { recordBotGuard } from "../services/alertEngine/botGuardStore";
 import {
     reconcileStoredRules,
     type OrphanReconciliation,
@@ -54,7 +56,8 @@ import { alertNotificationKey } from "../lib/notificationPolicy";
 import { channelSelection } from "../lib/alerts/effectiveChannels";
 import type { FiringSink, OwnedBotPosition, SeriesGap, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
-import type { BotExitEnvironment, BotExitRefusal, BotCloseParams } from "../services/alertEngine/botExits";
+import { readBots, setBotEnabled } from "../services/alertEngine/botStore";
+import { submitBotExit, type BotExitEnvironment, type BotExitRefusal, type BotCloseParams } from "../services/alertEngine/botExits";
 import type { AccountSnapshot, RuleDocument } from "../lib/rules/types";
 import type { PaperPosition } from "./paperTrading.svelte";
 import { logger } from "../services/logger";
@@ -161,6 +164,15 @@ class AlertsManager {
      * throttled background tab.
      */
     seriesGapReport = $state<SeriesGap[]>([]);
+
+    /**
+     * FEAT-0822 — bumped by every guard-log write, so the rows that render
+     * the newest guard event re-read the ledger. The same counter-per-
+     * localStorage pattern the two above established: the guard log is
+     * deliberately not mirrored into a rune, and this is the smallest thing
+     * that closes the gap.
+     */
+    guardsVersion = $state(0);
 }
 
 export const alertState = new AlertsManager();
@@ -360,6 +372,25 @@ export function botOrderEnvironment(
             (paperState.enabled ? paperState.positions : accountState.positions).some(
                 (p) => p.symbol === symbol && p.side === side,
             ),
+        // FEAT-0822 — the guard ports: the stores this wiring already owns,
+        // handed to the lane so it stays testable and store-free. The
+        // ownership read is the same degraded one the exits use: an
+        // unreadable book answers "no owned rows" only after warning once.
+        entryActivityOf: (botId) => botEntryActivity(botId),
+        recordEntry: (botId) => recordBotEntry(botId),
+        ownedPositionsOf: (botId) =>
+            // FEAT-0822 review — the order lane's cap reads are fail-closed:
+            // a book the app cannot read refuses the entry outright
+            // (`book-unreadable`) rather than answering "no owned rows",
+            // which would unbind the position and budget caps exactly when
+            // the trader cannot check them. The exit window keeps its own
+            // degraded answer over the same store.
+            paperState.bookUnreadable ? null : ownedBotPositions(botId),
+        restingOrders: () => paperState.orders,
+        recordGuard: (botId, reason, anchorMs) => {
+            recordBotGuard(botId, reason, anchorMs);
+            alertState.guardsVersion += 1;
+        },
         // Imported at the moment an order is actually placed, not at startup.
         // `orderPlacementService` pulls the TP/SL stores and the trade service
         // in behind it, and the alert engine starts on every session —
@@ -404,12 +435,27 @@ const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, TranslationKey> = {
     "stale-anchor-price": "settings.automation.orderRefusedStaleAnchor",
     "no-equity": "settings.automation.orderRefusedOther",
     "size-not-positive": "settings.automation.orderRefusedOther",
+    // The caps cannot bind over a book the app cannot read — fail-closed,
+    // with its own word so the trader is not sent looking for a stop or a
+    // price that was never the problem.
+    "book-unreadable": "settings.automation.orderRefusedBookUnreadable",
     "level-not-supported": "settings.automation.orderRefusedLevelNotSupported",
     // FEAT-0488 — both of these are limits rather than faults. A bot that says
     // nothing about why it stopped is the failure this channel exists to avoid,
     // and neither reason is one the trader can see from the rule itself.
     "submission-in-flight": "settings.automation.orderRefusedInFlight",
     "position-already-open": "settings.automation.orderRefusedPositionOpen",
+    // FEAT-0822 — the guard refusals: the race the reservation closes, the
+    // policy the document states, and the limits it set on itself. Every one
+    // is a bound the trader wrote (or the platform's floor), not a fault to
+    // fix, and the row's `limit reached` chip is the quiet half of the same
+    // message.
+    "slot-reserved": "settings.automation.orderRefusedSlotReserved",
+    "policy-once": "settings.automation.orderRefusedPolicyOnce",
+    "limit-entries-day": "settings.automation.orderRefusedLimitEntriesDay",
+    "limit-positions": "settings.automation.orderRefusedLimitPositions",
+    "limit-risk": "settings.automation.orderRefusedLimitRisk",
+    "limit-budget": "settings.automation.orderRefusedLimitBudget",
 };
 
 export function reportBotOrderRefusal(
@@ -586,6 +632,98 @@ export function botExitEnvironment(
             };
         },
     };
+}
+
+/**
+ * FEAT-0822 — the kill switch, per bot and fleet.
+ *
+ * Two operations, deliberately not one. Stopping entries is the same
+ * `enabled: false` the pause writes — one mechanism, no second truth to
+ * drift — and the exits keep protecting while it is off, exactly the
+ * paused semantics FEAT-0810 established. Closing what a bot owns rides
+ * the same single-close lane its exits take: the gate, `reduceOnly`,
+ * attribution and the journal are that lane's guarantees, not something
+ * this rebuilds, and a kill switch that opened a second close path would
+ * be a privilege the gate has never seen.
+ *
+ * The close variant closes ONLY rows the bot owns — a manual position on
+ * the same market is another trader decision this never makes — and
+ * reports each row that refused rather than stopping at the first: a kill
+ * switch that halted halfway would leave the fleet half-closed with no
+ * sign of what remains.
+ */
+export async function closeBotOwnedPositions(
+    botId: string,
+): Promise<{ closed: number; refused: string[] }> {
+    const bot = readBots().find((r) => r.id === botId);
+    if (!bot) return { closed: 0, refused: [] };
+
+    const { tradeService } = await import("../services/tradeService");
+    const env = botExitEnvironment((params) => tradeService.closePosition(params));
+    const owned = ownedBotPositions(botId);
+
+    let closed = 0;
+    const refused: string[] = [];
+    for (const row of owned) {
+        const refusal = await submitBotExit(
+            {
+                rule: bot,
+                symbol: row.symbol,
+                positionId: row.positionId,
+                close: "all",
+                exitIndex: null,
+                anchorMs: Date.now(),
+            },
+            env,
+        );
+        if (refusal === null) closed += 1;
+        else refused.push(refusal);
+    }
+    // A refusal the trader never hears is a position they believe is gone
+    // while it is still owned: each refused close reports through the exit
+    // lane's own channel, once per reason, naming the bot. The kill's
+    // caller still gets the full {closed, refused} answer for its own
+    // accounting and tests.
+    for (const refusal of refused) {
+        reportBotExitRefusal({ rule: bot }, refusal as BotExitRefusal);
+    }
+    return { closed, refused };
+}
+
+/**
+ * FEAT-0822 — the fleet-wide entry stop: every bot, the same one-field
+ * write the per-bot pause makes. Returns how many bots it stopped, so the
+ * caller can say so rather than imply a fleet it did not find.
+ */
+export function stopAllBots(): number {
+    // The rule store's unreadable blob is a routine degradation — the
+    // Manage tab renders its refusal rather than dying, and Stop-all must
+    // not become an unhandled rejection on top of it. Nothing can be
+    // listed, so nothing was stopped.
+    let bots: RuleDocument[];
+    try {
+        bots = readBots();
+    } catch (e) {
+        logger.warn("alerts", "[StopAllBots] rule store unreadable — nothing stopped", e);
+        return 0;
+    }
+    let stopped = 0;
+    for (const bot of bots) {
+        if (typeof bot.id !== "string") continue;
+        if (bot.enabled !== false) {
+            setBotEnabled(bot.id, false);
+            stopped += 1;
+        }
+    }
+    // The count is said rather than implied: a button that stops three of
+    // five bots and reports nothing leaves the two it found disabled
+    // looking like an oversight.
+    if (stopped > 0) {
+        toastService.success(
+            get(_)("settings.automation.stopAllDone", { values: { count: stopped } }),
+        );
+    }
+    return stopped;
 }
 
 /**

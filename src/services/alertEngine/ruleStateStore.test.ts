@@ -21,6 +21,7 @@ vi.mock("$app/env", () => ({ browser: true }));
 
 import {
   RULE_STATE_STORAGE_KEY,
+  botEntryActivity,
   clearBotAnchors,
   clearRuleState,
   exitActionAnchorFor,
@@ -32,6 +33,7 @@ import {
   recordRuleFiring,
   saveBotAnchors,
 } from "./ruleStateStore";
+import { localDayKey } from "./botGuards";
 
 beforeEach(() => {
   localStorage.clear();
@@ -264,5 +266,39 @@ describe("the exit ledger survives every other writer — FEAT-0810", () => {
 
   it("answers null for an absent rule, the direction that errs towards acting", () => {
     expect(exitActionAnchorFor("nobody", "nothing")).toBeNull();
+  });
+});
+
+describe("the day cap answers the day it is, never the day it was — FEAT-0822", () => {
+  it("reads a stored today from another local day as zero, keeping the total", () => {
+    // A cap spent yesterday, straight off a stored ledger: the writer that
+    // would stamp today's date is the submission the cap refuses, so the
+    // reader is the half that has to answer the rollover — a `today` from
+    // another day read verbatim would refuse the bot forever.
+    localStorage.setItem(
+      RULE_STATE_STORAGE_KEY,
+      JSON.stringify({
+        "bot-1": {
+          fired_count: 0,
+          bot_entries: { total: 3, day: "2000-01-01", today: 3 },
+        },
+      }),
+    );
+
+    const activity = botEntryActivity("bot-1");
+    expect(activity.total).toBe(3);
+    expect(activity.today).toBe(0);
+    expect(activity.day).toBe("2000-01-01");
+  });
+
+  it("reads a stored today of the current local day as itself", () => {
+    const today = localDayKey();
+    localStorage.setItem(
+      RULE_STATE_STORAGE_KEY,
+      JSON.stringify({
+        "bot-1": { fired_count: 0, bot_entries: { total: 1, day: today, today: 1 } },
+      }),
+    );
+    expect(botEntryActivity("bot-1")).toEqual({ total: 1, day: today, today: 1 });
   });
 });

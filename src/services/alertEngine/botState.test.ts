@@ -26,6 +26,8 @@
 
 import { describe, expect, it } from "vitest";
 
+import { Decimal } from "decimal.js";
+
 import type { RuleDocument } from "../../lib/rules/types";
 import type { PaperPosition } from "../../stores/paperTrading.svelte";
 import {
@@ -83,6 +85,8 @@ function book(overrides: Partial<BotBook> = {}): BotBook {
         closing: new Set<string>(),
         unevaluable: new Set<string>(),
         firedCounts: new Map<string, number>(),
+        entriesToday: new Map<string, number>(),
+        budgetUsed: new Map<string, Decimal>(),
         ...overrides,
     };
 }
@@ -237,6 +241,65 @@ const rows: Row[] = [
         book: { positions: [position()] },
         state: "in_position",
         hasPosition: true,
+    },
+    {
+        name: "a bot at its day cap reads limit_reached, never armed",
+        rule: { max_entries_per_day: 3 },
+        book: { entriesToday: new Map([["bot-1", 3]]) },
+        state: "limit_reached",
+        hasPosition: false,
+    },
+    {
+        name: "a day below the cap keeps the bot armed",
+        rule: { max_entries_per_day: 3 },
+        book: { entriesToday: new Map([["bot-1", 2]]) },
+        state: "armed",
+        hasPosition: false,
+    },
+    {
+        name: "a bot whose rows hold the whole budget reads limit_reached",
+        rule: { budget_cap: "100" },
+        book: { budgetUsed: new Map([["bot-1", new Decimal("100")]]) },
+        state: "limit_reached",
+        hasPosition: false,
+    },
+    {
+        // The budget's unknown half: a row whose stop does not answer
+        // makes the whole budget unmeasurable, and unmeasurable is the
+        // chip's `limit reached` — never a zero that would promise room
+        // nobody could check.
+        name: "a bot with an unmeasurable budget reads limit_reached, never free room",
+        rule: { budget_cap: "1000000" },
+        book: { budgetUsed: new Map([["bot-1", null]]) },
+        state: "limit_reached",
+        hasPosition: false,
+    },
+    {
+        name: "a holding bot at its day cap reads in_position — the position is the stronger truth",
+        rule: { max_entries_per_day: 1 },
+        book: {
+            entriesToday: new Map([["bot-1", 1]]),
+            positions: [position()],
+        },
+        state: "in_position",
+        hasPosition: true,
+    },
+    {
+        name: "a fired bot at its day cap reads limit_reached — the cap answers why it is not firing again",
+        rule: { max_entries_per_day: 1 },
+        book: {
+            entriesToday: new Map([["bot-1", 1]]),
+            firedCounts: new Map([["bot-1", 1]]),
+        },
+        state: "limit_reached",
+        hasPosition: false,
+    },
+    {
+        name: "an expired bot stays expired even at its day cap — expiry is terminal, the cap is daily",
+        rule: { valid_until_ms: 999, max_entries_per_day: 1 },
+        book: { entriesToday: new Map([["bot-1", 1]]) },
+        state: "expired",
+        hasPosition: false,
     },
 ];
 

@@ -131,6 +131,13 @@ function environment(overrides: Partial<BotOrderEnvironment> = {}) {
     closeAt: () => new Decimal("50000"),
     livePrice: () => new Decimal("50000"),
     hasOpenPosition: () => false,
+    // FEAT-0822 — the guard ports, defaulted to "nothing on record": a
+    // test that does not seed them asserts the defaults, not the guards.
+    entryActivityOf: () => ({ total: 0, day: "", today: 0 }),
+    recordEntry: vi.fn(),
+    ownedPositionsOf: () => [],
+    restingOrders: () => [],
+    recordGuard: () => {},
     place,
     ...overrides,
   };
@@ -732,6 +739,11 @@ describe("one submission in flight per rule — FEAT-0488", () => {
     // a single busy flag would serialise independent bots against each other —
     // and every other case in this file would stay green, because they all use
     // one rule. Verified by replacing the Set with a boolean: 34 passed.
+    //
+    // FEAT-0822 gives "independent" a sharper meaning: two bots on the same
+    // (symbol, side) slot are NOT independent — one of them loses the
+    // reservation, in its own test below. Independence here means different
+    // slots, which is the only shape a fleet of bots actually fans out into.
     const { place, release } = pendingPlace();
     const { env } = environment({ place } as Partial<BotOrderEnvironment>);
     const onRefusal = vi.fn();
@@ -741,6 +753,7 @@ describe("one submission in flight per rule — FEAT-0488", () => {
     first.id = "bot-a";
     const second = botDocument();
     second.id = "bot-b";
+    second.symbol = "ETHUSDT";
 
     sink(firingOf(first));
     sink(firingOf(second));
@@ -827,6 +840,257 @@ describe("no second order on the same candle after a reload — BUG-0491", () =>
     expectFiring(later);
     sink({ rule, verdict: later, anchorMs: next.anchorMs });
     await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("FEAT-0822 — the firing policy, the limits, and the slot reservation", () => {
+  function pendingPlace() {
+    // The gates-array shape from the FEAT-0488 suite above: a stable
+    // `release(i)`, because rebinding a captured `release` inside the
+    // promise executor never reaches a caller that destructured it.
+    const gates: Array<() => void> = [];
+    const place = vi.fn(async () => {
+      await new Promise<void>((resolve) => gates.push(resolve));
+      return {
+        entryPlaced: true,
+        stopLoss: "attached" as const,
+        takeProfit: "none" as const,
+        unprotected: false,
+      };
+    });
+    return { place, release: (i: number) => gates[i]?.() };
+  }
+
+  function guardedRule(overrides: Partial<RuleDocument> = {}): RuleDocument {
+    return { ...botDocument(), ...overrides };
+  }
+
+  it("refuses the second bot on a (symbol, side) slot, naming the race", async () => {
+    const { place, release } = pendingPlace();
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const onRefusal = vi.fn();
+    const guardLog = vi.fn();
+    const sink = withBotOrders(vi.fn(), { ...env, recordGuard: guardLog }, onRefusal);
+
+    // Same symbol, same direction, same close: the netting window
+    // `hasOpenPosition`'s own documentation names. The reservation is the
+    // one thing that closes it synchronously.
+    const first = guardedRule({ id: "bot-a" });
+    const second = guardedRule({ id: "bot-b" });
+
+    sink(firingOf(first));
+    sink(firingOf(second));
+
+    expect(place).toHaveBeenCalledTimes(1);
+    expect(onRefusal).toHaveBeenCalledWith(expect.objectContaining({ rule: second }), "slot-reserved");
+    // The loser's suppression lands in the guard log with its anchor.
+    expect(guardLog).toHaveBeenCalledWith("bot-b", "slot-reserved", ANCHOR_MS);
+
+    release(0);
+    await settle();
+  });
+
+  it("releases the reservation when the submission settles, so the next close may re-take the slot", async () => {
+    const { place, release } = pendingPlace();
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const onRefusal = vi.fn();
+    const onInFlight = vi.fn();
+    const sink = withBotOrders(vi.fn(), env, onRefusal, onInFlight);
+
+    sink(firingOf(guardedRule({ id: "bot-a" })));
+    sink(firingOf(guardedRule({ id: "bot-b" })));
+    expect(place).toHaveBeenCalledTimes(1);
+
+    release(0);
+    await settle();
+    // The in-flight observer fires at sink creation, when the slot is
+    // taken, and when the chain settles — its count here says the
+    // `finally` ran at all.
+    expect(onInFlight).toHaveBeenCalledTimes(3);
+
+    // The winner settled (entry landed, then the book guard owns the next
+    // close); the loser's next firing may take the slot it lost.
+    sink(firingOf(guardedRule({ id: "bot-b" })));
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
+    release(1);
+    await settle();
+  });
+
+  it("expires a once bot after the first landed entry, never after a refused attempt", async () => {
+    const entries = vi.fn(() => ({ total: 0, day: "", today: 0 }));
+    const { env, place } = environment({
+      entryActivityOf: entries as unknown as BotOrderEnvironment["entryActivityOf"],
+    });
+
+    const once = guardedRule({ firing_policy: "once" });
+    await new Promise<void>((resolve) => {
+      const inner: FiringSink = () => resolve();
+      withBotOrders(inner, env, vi.fn())(firingOf(once));
+    });
+    await settle();
+    expect(place).toHaveBeenCalledTimes(1);
+    // The entry landed, so the counter counted it — the call, not the
+    // fixture's existence, is the fact under test.
+    expect(env.recordEntry).toHaveBeenCalledWith(once.id);
+
+    // Total 1: the same document refuses from here on.
+    const refused = await submitBotOrder(firingOf(guardedRule({ firing_policy: "once" })), {
+      ...env,
+      entryActivityOf: () => ({ total: 1, day: "", today: 1 }),
+    });
+    expect(refused).toBe("policy-once");
+
+    // A firing that never landed (total 0) may still try.
+    const again = await submitBotOrder(firingOf(guardedRule({ firing_policy: "once" })), {
+      ...env,
+      entryActivityOf: () => ({ total: 0, day: "", today: 0 }),
+    });
+    expect(again).toBeNull();
+  });
+
+  it("refuses at the day cap the document states, in account words", async () => {
+    const { env } = environment();
+    const atCap = await submitBotOrder(
+      firingOf(guardedRule({ max_entries_per_day: 3 })),
+      { ...env, entryActivityOf: () => ({ total: 9, day: "2026-11-19", today: 3 }) },
+    );
+    expect(atCap).toBe("limit-entries-day");
+
+    const belowCap = await submitBotOrder(
+      firingOf(guardedRule({ max_entries_per_day: 3 })),
+      { ...env, entryActivityOf: () => ({ total: 9, day: "2026-11-19", today: 2 }) },
+    );
+    expect(belowCap).toBeNull();
+  });
+
+  it("refuses at an explicit position cap before the book's own open guard", async () => {
+    const { env } = environment();
+    const row = { positionId: "p-1", symbol: "BTCUSDT", side: "long" as const, amount: "1", entryPrice: "50000" };
+
+    const atCap = await submitBotOrder(firingOf(guardedRule({ max_positions: 2 })), {
+      ...env,
+      ownedPositionsOf: () => [row, row],
+    });
+    expect(atCap).toBe("limit-positions");
+
+    // One row under a cap of two: the limit binds nothing, and the next
+    // guard in line (here: none, the book reads closed) decides.
+    const belowCap = await submitBotOrder(firingOf(guardedRule({ max_positions: 2 })), {
+      ...env,
+      ownedPositionsOf: () => [row],
+    });
+    expect(belowCap).toBeNull();
+  });
+
+  it("prices the risk ceiling against the entry being submitted", async () => {
+    const { env } = environment();
+    // Defaults: entry 50 000, stop 2 % below (49 000), 1 % of 10 000 equity
+    // = 0.002 BTC, so the entry risks 0.002 × 1 000 = 2.
+    const over = await submitBotOrder(firingOf(guardedRule({ max_risk_per_position: "1" })), env);
+    expect(over).toBe("limit-risk");
+
+    const atTheCeiling = await submitBotOrder(
+      firingOf(guardedRule({ max_risk_per_position: "2" })),
+      env,
+    );
+    expect(atTheCeiling).toBeNull();
+  });
+
+  it("prices the budget against the rows held plus the entry pending", async () => {
+    const { env } = environment();
+    const heldRow = {
+      positionId: "p-1",
+      symbol: "BTCUSDT",
+      side: "long" as const,
+      amount: "1",
+      entryPrice: "50000",
+    };
+    const heldStop = { orderId: "o-1", symbol: "BTCUSDT", planType: "SL", triggerPrice: "49000", reduceOnly: true, positionId: "p-1" };
+
+    // Held risk: 1 BTC entered at 50 000 with its stop resting at 49 000
+    // still carries 1 000 of risk. The pending entry adds 2 (0.002 BTC over
+    // the same 1 000 distance). A budget of 1 001 refuses the sum; 1 002
+    // admits it.
+    const over = await submitBotOrder(firingOf(guardedRule({ budget_cap: "1001" })), {
+      ...env,
+      ownedPositionsOf: () => [heldRow],
+      restingOrders: () => [heldStop],
+    });
+    expect(over).toBe("limit-budget");
+
+    const fits = await submitBotOrder(firingOf(guardedRule({ budget_cap: "1002" })), {
+      ...env,
+      ownedPositionsOf: () => [heldRow],
+      restingOrders: () => [heldStop],
+    });
+    expect(fits).toBeNull();
+  });
+
+  it("refuses an entry against a budget it cannot measure, never prices it free", async () => {
+    const { env } = environment();
+    const heldRow = {
+      positionId: "p-1",
+      symbol: "BTCUSDT",
+      side: "long" as const,
+      amount: "1",
+      entryPrice: "50000",
+    };
+
+    // The row's stop no longer rests (it filled, or was cancelled): its
+    // risk is unknown, and a budget with an unknown component has no
+    // provable room. Unknown was never zero — zero here admitted an entry
+    // against a cap nobody could check.
+    const unmeasured = await submitBotOrder(
+      firingOf(guardedRule({ budget_cap: "1000000" })),
+      {
+        ...env,
+        ownedPositionsOf: () => [heldRow],
+        restingOrders: () => [],
+      },
+    );
+    expect(unmeasured).toBe("limit-budget");
+
+    // The same unknown with no budget stated binds nothing: the pure
+    // function refuses only limits the document actually set.
+    const unbound = await submitBotOrder(firingOf(guardedRule()), {
+      ...env,
+      ownedPositionsOf: () => [heldRow],
+      restingOrders: () => [],
+    });
+    expect(unbound).toBeNull();
+  });
+
+  it("refuses outright when the book it would cap against is unreadable", async () => {
+    const { env } = environment();
+
+    // `null` is the degraded read — not "no owned rows", which would unbind
+    // the position and budget caps exactly when the trader cannot check
+    // them. Fail-closed, before any market read or limit arithmetic runs.
+    const refused = await submitBotOrder(firingOf(guardedRule()), {
+      ...env,
+      ownedPositionsOf: () => null,
+    });
+    expect(refused).toBe("book-unreadable");
+  });
+
+  it("counts a landed entry once, and never counts an attempt that refused", async () => {
+    const recordEntry = vi.fn();
+    const { env, place } = environment({ recordEntry });
+    const sink = withBotOrders(vi.fn(), env, vi.fn());
+
+    sink(firingOf(guardedRule()));
+    await settle();
+    expect(recordEntry).toHaveBeenCalledTimes(1);
+    expect(place).toHaveBeenCalledTimes(1);
+
+    // A refused attempt (the day cap is the cheapest to bind) counts
+    // nothing: `fired_count` counts attempts, the policy counts entries.
+    const refused = await submitBotOrder(firingOf(guardedRule({ max_entries_per_day: 1 })), {
+      ...env,
+      entryActivityOf: () => ({ total: 1, day: "2026-11-19", today: 1 }),
+    });
+    expect(refused).toBe("limit-entries-day");
+    expect(recordEntry).toHaveBeenCalledTimes(1);
   });
 });
 

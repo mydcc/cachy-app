@@ -268,6 +268,16 @@ export interface ExitRule {
 export type ExitKind = "exit" | "take_profit";
 
 /**
+ * How often a bot may open a position — FEAT-0822. Mirrors `FiringPolicy`
+ * in `technicals-wasm/src/rule/document.rs`.
+ *
+ * `once` expires after the first entry that lands; `once_per_candle` is the
+ * absent default (the engine's `(rule, anchor)` guard, now named); `multi`
+ * allows deliberate re-entries up to the document's own limits.
+ */
+export type FiringPolicy = "once" | "once_per_candle" | "multi";
+
+/**
  * One exit's verdict at one anchor. Mirrors `evaluate::ExitOutcome`.
  *
  * Three-valued for the same reason `Verdict` is: an exit whose operands
@@ -372,6 +382,31 @@ export interface RuleDocument {
    * Hashed, for the same reason the stop is.
    */
   take_profit?: StopDistance;
+  /**
+   * FEAT-0822. How often this bot may open a position. Hashed — cadence is
+   * part of what the strategy means. Absent means `once_per_candle`, the
+   * engine's `(rule, anchor)` guard, which is what every rule before this
+   * field already did. Not the announce cadence — that is `frequency`, which
+   * is not hashed.
+   */
+  firing_policy?: FiringPolicy;
+  /**
+   * FEAT-0822. The most rows this bot may own at once. Hashed. Absent means
+   * one — the bound FEAT-0488 already enforced.
+   */
+  max_positions?: number;
+  /** FEAT-0822. The most entries this bot may land per calendar day. Hashed. */
+  max_entries_per_day?: number;
+  /**
+   * FEAT-0822. The most one entry may risk, in the account currency,
+   * resolved against the entry and its stop. Hashed.
+   */
+  max_risk_per_position?: DecimalString;
+  /**
+   * FEAT-0822. The total open risk this bot's rows may hold, in the account
+   * currency. Hashed.
+   */
+  budget_cap?: DecimalString;
   enabled?: boolean;
   provenance: Provenance;
 
@@ -428,6 +463,22 @@ export interface RuleState {
   fired_count?: number;
   /** Close instant of the trigger candle the last announcement was anchored on. */
   last_fired_anchor_ms?: number | null;
+  /**
+   * FEAT-0822 — the entries that landed, TS-side only.
+   *
+   * `fired_count` counts firings, including ones that submitted nothing; the
+   * firing policy and the day cap count ENTRIES — attempts that actually
+   * opened a row. Kept beside `fired_count` in this ledger, sparse and
+   * tolerant of the writers below, which carry the field exactly.
+   */
+  bot_entries?: {
+    /** Entries that landed, ever — what `firing_policy: "once"` expires against. */
+    total: number;
+    /** The local day `today` counts, as `YYYY-MM-DD`. */
+    day: string;
+    /** Entries that landed on that local day. */
+    today: number;
+  };
   /**
    * BUG-0491 — the gate's durable record for bots, TS-side only.
    *

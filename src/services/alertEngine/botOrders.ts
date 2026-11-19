@@ -59,8 +59,17 @@ import { logger } from "../logger";
 import { BOT_PAPER_ONLY_MESSAGE_KEY } from "../orderGate";
 import type { orderPlacementService } from "../orderPlacementService";
 import { isBot } from "./botStore";
+import {
+    entryRiskAmount,
+    limitReasonsFor,
+    openRiskOfRow,
+    type BotLimitReason,
+    type OwnedRowLite,
+    type RestingOrderLite,
+} from "./botGuards";
 import type { FiringSink, RuleFiring } from "./ruleEvaluationLoop";
 import { readClosedCandles, readFormingCandles } from "./ruleLoopWiring";
+import { slotKey } from "./botState";
 
 /**
  * Where the stop sits, given the entry the order is about to take.
@@ -140,9 +149,30 @@ export type BotOrderRefusal =
   | "stale-anchor-price"
   | "no-equity"
   | "size-not-positive"
+  | "book-unreadable"
   | "level-not-supported"
   | "submission-in-flight"
-  | "position-already-open";
+  | "position-already-open"
+  | "slot-reserved"
+  | "policy-once"
+  | "limit-entries-day"
+  | "limit-positions"
+  | "limit-risk"
+  | "limit-budget";
+
+/**
+ * FEAT-0822 — the pure limit reasons translated into this lane's refusal
+ * vocabulary. One table, both directions readable: a refusal here always
+ * names a limit the document states, and a limit the document states always
+ * has a refusal word for itself.
+ */
+const LIMIT_REFUSALS: Record<BotLimitReason, BotOrderRefusal> = {
+    "policy-once": "policy-once",
+    "entries-day": "limit-entries-day",
+    positions: "limit-positions",
+    risk: "limit-risk",
+    budget: "limit-budget",
+};
 
 /**
  * Which way a position on a symbol faces, as the position books spell it.
@@ -203,6 +233,33 @@ export interface BotOrderEnvironment {
    * evaluation gate, and only the count was unbounded.
    */
   hasOpenPosition: (symbol: string, side: PositionSide) => boolean;
+  /**
+   * FEAT-0822 — the entries this bot has landed, durable: `total` is what the
+   * `once` policy expires against, `today` what the day cap counts.
+   */
+  entryActivityOf: (botId: string) => { total: number; day: string; today: number };
+  /** FEAT-0822 — count one landed entry; never for an attempt that refused. */
+  recordEntry: (botId: string) => void;
+  /**
+   * FEAT-0822 — the rows this bot owns, plain, for the position cap and the
+   * budget. The same book `hasOpenPosition` reads, filtered to ownership.
+   *
+   * `null` when the book could not be read at all: a degraded read is not
+   * "no owned rows" (that would unbind the position and budget caps exactly
+   * when the trader cannot check them), it is a refusal of its own —
+   * fail-closed, the same word the exit lane gives the same state.
+   */
+  ownedPositionsOf: (botId: string) => OwnedRowLite[] | null;
+  /**
+   * FEAT-0822 — the resting orders, so each owned row's stop can be read
+   * where the risk arithmetic lives once (`botGuards.openRiskOfRow`).
+   */
+  restingOrders: () => readonly RestingOrderLite[];
+  /**
+   * FEAT-0822 — every suppressed or refused action, for the guard log. The
+   * store counts repeats per reason; this is the collector, not the filter.
+   */
+  recordGuard: (botId: string, reason: string, anchorMs?: number) => void;
   place: typeof orderPlacementService.placeEntryGroup;
 }
 
@@ -302,6 +359,43 @@ export async function submitBotOrder(
 
   if (!order.stop) return "no-stop";
 
+  // FEAT-0822 — the document's own limits, checked before any market state:
+  // these are facts about the bot, not about the market it is entering. The
+  // pure function answers for both the enforcement question and the row's
+  // `limit reached` state, so the two can never disagree.
+  //
+  // The risk and budget halves wait until the quantity exists below — they
+  // price the entry being submitted, which is not knowable yet.
+  const owned = env.ownedPositionsOf(firing.rule.id);
+  if (owned === null) return "book-unreadable";
+  const resting = env.restingOrders();
+  const risks = owned.map((row) => openRiskOfRow(row, resting));
+  // `null` (an unmeasurable row) never reads as zero: the budget's room
+  // becomes unprovable, and an unprovable budget is a refused entry, not a
+  // free one. The pure function holds that word via `riskUnmeasurable`.
+  const riskUnmeasurable = risks.some((risk) => risk === null);
+  const riskUsed = risks.reduce<Decimal>(
+      (sum, risk) => sum.plus(risk ?? 0),
+      new Decimal(0),
+  );
+  const activity = env.entryActivityOf(firing.rule.id);
+  const limitReasons = limitReasonsFor({
+      policy: firing.rule.firing_policy ?? "once_per_candle",
+      entriesTotal: activity.total,
+      entriesToday: activity.today,
+      maxPositions: firing.rule.max_positions,
+      maxEntriesPerDay: firing.rule.max_entries_per_day,
+      maxRiskPerPosition: firing.rule.max_risk_per_position,
+      budgetCap: firing.rule.budget_cap,
+      ownedCount: owned.length,
+      riskUsed,
+      riskUnmeasurable,
+  });
+  const earlyLimit = limitReasons.find(
+      (reason) => reason !== "risk" && reason !== "budget",
+  ) as BotLimitReason | undefined;
+  if (earlyLimit) return LIMIT_REFUSALS[earlyLimit];
+
   // FEAT-0488 — after every shape refusal and before every market-state one.
   // A bot that already holds the position has a durable explanation, and a
   // trader who is told `no-live-price` instead will go looking for a price
@@ -336,6 +430,25 @@ export async function submitBotOrder(
   const stopPrice = stopPriceFor(entryPrice, order.side, order.stop);
   const quantity = quantityFor(order, equity, entryPrice, stopPrice);
   if (!quantity.isFinite() || quantity.lte(0)) return "size-not-positive";
+
+  // FEAT-0822 — the priced halves of the limits, checked the moment the
+  // entry's risk is knowable: what this submission would add, against the
+  // document's own ceiling and the budget its rows already hold.
+  const entryRisk = entryRiskAmount(entryPrice, quantity, stopPrice);
+  const pricedLimit = limitReasonsFor({
+      policy: firing.rule.firing_policy ?? "once_per_candle",
+      entriesTotal: activity.total,
+      entriesToday: activity.today,
+      maxPositions: firing.rule.max_positions,
+      maxEntriesPerDay: firing.rule.max_entries_per_day,
+      maxRiskPerPosition: firing.rule.max_risk_per_position,
+      budgetCap: firing.rule.budget_cap,
+      ownedCount: owned.length,
+      riskUsed,
+      riskUnmeasurable,
+      entryRisk,
+  }).find((reason) => reason === "risk" || reason === "budget") as BotLimitReason | undefined;
+  if (pricedLimit) return LIMIT_REFUSALS[pricedLimit];
 
   const result = await env.place({
     exchange: env.exchange(),
@@ -386,6 +499,15 @@ export async function submitBotOrder(
     return "paper-trading-off";
   }
 
+  // FEAT-0822 — the entry landed, so the counters count it: `fired_count`
+  // counts attempts (a firing that announced and submitted nothing still
+  // fired), while the `once` policy and the day cap count entries. Counted
+  // here rather than in the sink, so a future lane that places through a
+  // different decorator cannot forget it.
+  if (result.entryPlaced) {
+    env.recordEntry(firing.rule.id);
+  }
+
   return null;
 }
 
@@ -421,13 +543,40 @@ export function withBotOrders(
    *
    * Shared by all three refusal paths so the in-flight guard cannot drift from
    * the other two: a refusal that skipped this would toast once a candle.
+   *
+   * FEAT-0822 — every refusal lands in the guard log first, before the
+   * toast throttle: the log is where "why did my bot not act?" is answered,
+   * and its store counts repeats per reason itself, so the toast's
+   * once-per-reason must not mute the counting.
    */
   const report = (firing: RuleFiring, refusal: BotOrderRefusal): void => {
+    try {
+      env.recordGuard(firing.rule.id, refusal, firing.anchorMs);
+    } catch (e) {
+      // A diagnostic log must not take down the lane it diagnoses.
+      logger.error(
+        "alerts",
+        `[BotOrders] Guard log write failed for ${firing.rule.id}: ${refusal}`,
+        e,
+      );
+    }
     const seen = `${firing.rule.id}:${refusal}`;
     if (reported.has(seen)) return;
     reported.add(seen);
     onRefusal(firing, refusal);
   };
+
+  /**
+   * FEAT-0822 — the ownership reservations this sink holds: `(symbol, side)`
+   * → the rule id whose submission is traveling. Cross-rule, because the
+   * in-flight guard above is deliberately per-rule and the netting window
+   * is exactly two different rules on one close. Held only while the
+   * submission is outstanding — the book read on the *next* close is the
+   * durable guard, and a reservation that outlived its submission would
+   * refuse a re-entry the trader legitimately wants after a refusal was
+   * fixed.
+   */
+  const reserved = new Map<string, string>();
 
   /**
    * FEAT-0488 — the rule ids with a submission still outstanding.
@@ -460,6 +609,30 @@ export function withBotOrders(
       return;
     }
 
+    // FEAT-0822 — the ownership reservation, same synchronous discipline as
+    // the in-flight check below: the loop dispatches one close's firings in
+    // a single turn, so this map is the only thing standing between two
+    // rules reading "no position" and the simulator averaging them into one
+    // row (the window `hasOpenPosition`'s own documentation names as not its
+    // to close). Checked BEFORE the in-flight guard takes its slot — a
+    // refused firing must leave no state behind it, and the in-flight slot
+    // is released by the submission's `finally`, which a refused firing
+    // never starts. The loser is refused with a reason that names the race;
+    // the reservation releases when the submission settles — the next
+    // close's book read is the durable guard.
+    const slot = slotKey(
+      firing.rule.symbol,
+      // A missing intent (the core refuses that combination) reads as a
+      // long slot here only so the reservation still runs: the submission
+      // below refuses with its own reason before anything is placed.
+      firing.rule.action.order?.side === "sell" ? "short" : "long",
+    );
+    const holder = reserved.get(slot);
+    if (holder !== undefined && holder !== firing.rule.id) {
+      report(firing, "slot-reserved");
+      return;
+    }
+
     // Taken and checked synchronously, before `submitBotOrder` is entered: the
     // promise it returns is precisely what "in flight" means, so a guard
     // consulted after an `await` would already be one firing too late. Refused
@@ -469,7 +642,17 @@ export function withBotOrders(
       return;
     }
     inFlight.add(firing.rule.id);
-    onInFlight?.(inFlight);
+    // Contained on this side too, for the same reason as the release-side
+    // notify below: an observer that throws here would leak the slot for
+    // the whole session — the `.finally` release still runs (it is a
+    // separate chain link), but this call must not turn a taken guard into
+    // an unhandled rejection either.
+    try {
+      onInFlight?.(inFlight);
+    } catch (e) {
+      logger.error("alerts", `[BotOrders] In-flight observer failed for ${firing.rule.id}`, e);
+    }
+    reserved.set(slot, firing.rule.id);
 
     void submitBotOrder(firing, env)
       .then((refusal) => {
@@ -487,6 +670,13 @@ export function withBotOrders(
       })
       .finally(() => {
         inFlight.delete(firing.rule.id);
+        // FEAT-0822 — the reservation releases with the submission, and
+        // only if this rule still holds it: a settled refusal frees the
+        // slot for the next close, and a map a later fire already re-took
+        // is not this rule's to delete.
+        if (reserved.get(slot) === firing.rule.id) {
+          reserved.delete(slot);
+        }
         try {
           onInFlight?.(inFlight);
         } catch (e) {

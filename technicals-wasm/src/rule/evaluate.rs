@@ -51,7 +51,7 @@ use super::condition::{
     PriceSource, WindowAgg,
 };
 use super::consequence::StopDistance;
-use super::document::{ExitClose, RuleDocument};
+use super::document::{ExitClose, FiringPolicy, RuleDocument};
 /// Only the test documents below name the mode; evaluation itself reads the
 /// anchor it is handed and never asks how that anchor was chosen.
 #[cfg(test)]
@@ -1078,6 +1078,11 @@ mod tests {
             note: None,
             exits: None,
             take_profit: None,
+            firing_policy: FiringPolicy::OncePerCandle,
+            max_positions: None,
+            max_entries_per_day: None,
+            max_risk_per_position: None,
+            budget_cap: None,
         }
     }
 
@@ -1179,6 +1184,11 @@ mod tests {
             note: None,
             exits: None,
             take_profit: None,
+            firing_policy: FiringPolicy::OncePerCandle,
+            max_positions: None,
+            max_entries_per_day: None,
+            max_risk_per_position: None,
+            budget_cap: None,
         }
     }
 
@@ -2073,6 +2083,11 @@ mod tests {
             note: None,
             exits: if exits.is_empty() { None } else { Some(exits) },
             take_profit,
+            firing_policy: FiringPolicy::OncePerCandle,
+            max_positions: None,
+            max_entries_per_day: None,
+            max_risk_per_position: None,
+            budget_cap: None,
         }
     }
 

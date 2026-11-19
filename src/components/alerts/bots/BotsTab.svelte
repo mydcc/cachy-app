@@ -49,7 +49,12 @@
     } from "../../../services/alertEngine/botStore";
     import { promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
     import { logger } from "../../../services/logger";
-    import { alertState } from "../../../stores/alerts.svelte";
+    import { alertState, stopAllBots } from "../../../stores/alerts.svelte";
+    import {
+        readBotGuards,
+        BOT_GUARD_REASON_KEYS as GUARD_REASON_KEYS,
+    } from "../../../services/alertEngine/botGuardStore";
+    import { intlTagFor } from "../../../lib/i18n/intlTag";
     import Toggle from "../../shared/Toggle.svelte";
     import InfoTip from "../../shared/InfoTip.svelte";
     import BotIntentEditor from "./BotIntentEditor.svelte";
@@ -106,6 +111,28 @@
 
     let bots = $derived(read.rules.filter(isBot));
     let alerts = $derived(read.rules.filter((rule) => !isBot(rule)));
+
+    /**
+     * FEAT-0822 — one bot's guard history, newest first. Read through the
+     * version counter so the history is as fresh as the log writes: the
+     * ledger itself is localStorage and deliberately not a rune.
+     */
+    function guardRowsOf(botId: string) {
+        void alertState.guardsVersion;
+        return readBotGuards(botId);
+    }
+
+    /** The guard reasons, in this tab's register — one map, shared with the
+     * sidebar row's, so the two surfaces can never disagree about a word. */
+    function guardLabel(reason: string): string {
+        const key = GUARD_REASON_KEYS[reason];
+        return key === undefined ? reason : $_(key);
+    }
+
+    /** Locale-aware timestamps, the sidebar row's own discipline. */
+    function formatAt(ms: number): string {
+        return new Date(ms).toLocaleString(intlTagFor($locale));
+    }
 
     // The notice is what the trader sees; the cause belongs in the log.
     $effect(() => {
@@ -263,9 +290,29 @@
     </header>
 
     <section class="flex flex-col gap-3">
-        <h3 class="text-sm font-semibold text-[var(--text-primary)]">
-            {$_("settings.automation.yourBots")}
-        </h3>
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="text-sm font-semibold text-[var(--text-primary)]">
+                {$_("settings.automation.yourBots")}
+            </h3>
+            {#if bots.length > 0}
+                <!-- FEAT-0822 — the fleet variant of the kill switch: one
+                     click stops every bot's entries, the same one-field
+                     write each row's pause makes. Closing positions stays
+                     a per-bot decision with its own confirmation — a
+                     fleet-wide close is the open question this tab's
+                     proposal records, and it will not ship by side effect. -->
+                <Button
+                    variant="ghost-danger"
+                    size="sm"
+                    onClick={() => {
+                        stopAllBots();
+                        alertState.rulesVersion += 1;
+                    }}
+                >
+                    {$_("settings.automation.stopAll")}
+                </Button>
+            {/if}
+        </div>
 
         {#if bots.length === 0}
             <p class="text-sm text-[var(--text-secondary)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
@@ -342,6 +389,46 @@
                                     },
                                 })}
                             </p>
+                        {/if}
+
+                        {#if guardRowsOf(bot.id).length > 0}
+                            <!-- FEAT-0822 — the bot's guard history, newest
+                                 first, one row per reason with the count of
+                                 repeats. Collapsed by default: the history
+                                 is a diagnostic, not the row's headline.
+                                 The version counter below is what makes it
+                                 fresh — the ledger is localStorage. -->
+                            <details data-testid="bot-guard-history-{bot.id}">
+                                <summary class="text-xs text-[var(--text-secondary)] cursor-pointer">
+                                    {$_("settings.automation.guardHistory", {
+                                        values: { count: guardRowsOf(bot.id).length },
+                                    })}
+                                </summary>
+                                <ul class="flex flex-col gap-1 mt-1">
+                                    <!-- Keyed by index, on purpose: the ledger
+                                         opens a second row when a reason
+                                         recurs after another intervened,
+                                         and rows opened in the same
+                                         millisecond share their reason AND
+                                         their firstAtMs — no field of the
+                                         record is unique. A synthetic key
+                                         would throw `each_key_duplicate` on
+                                         exactly the busy history this view
+                                         exists for; the list is capped at
+                                         twenty static rows, so index-keyed
+                                         reconciliation costs nothing. -->
+                                    {#each guardRowsOf(bot.id) as guard, i (i)}
+                                        <li
+                                            class="text-xs text-[var(--text-secondary)] flex justify-between gap-2"
+                                        >
+                                            <span>{guardLabel(guard.reason)}</span>
+                                            <span class="font-mono">
+                                                ×{guard.count} · {formatAt(guard.lastAtMs)}
+                                            </span>
+                                        </li>
+                                    {/each}
+                                </ul>
+                            </details>
                         {/if}
                     </li>
                 {/each}

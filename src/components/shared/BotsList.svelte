@@ -48,7 +48,8 @@
   import type { BotLifeState } from "../../services/alertEngine/botState";
   import { readBots, setBotEnabled } from "../../services/alertEngine/botStore";
   import { readRuleStates } from "../../services/alertEngine/ruleStateStore";
-  import { alertState } from "../../stores/alerts.svelte";
+  import { alertState, closeBotOwnedPositions } from "../../stores/alerts.svelte";
+  import { readBotGuards, BOT_GUARD_REASON_KEYS } from "../../services/alertEngine/botGuardStore";
   import { botsState } from "../../stores/botsState.svelte";
   import { paperState, type PaperPosition } from "../../stores/paperTrading.svelte";
 
@@ -104,6 +105,12 @@
     /** The paper position this bot owns, when it owns one. */
     position: PaperPosition | null;
     paused: boolean;
+    /**
+     * FEAT-0822 — the newest guard event, when one exists: the reason the
+     * bot last did nothing, with how often it repeated. The ledger counts
+     * repeats per reason, so one row answers "why is it not firing?".
+     */
+    guard: { reason: string; count: number } | null;
   }
 
   /**
@@ -133,8 +140,9 @@
     armed: 3,
     paused: 4,
     blocked: 5,
-    closed: 6,
-    expired: 7,
+    limit_reached: 6,
+    closed: 7,
+    expired: 8,
   };
 
   /**
@@ -142,12 +150,15 @@
    * anchor: the projection re-reads the rule store and the fire ledger on
    * every version bump and rebuilds its Map, so this derived re-reads the
    * documents in step. Reading `botsState.now` here is what makes both
-   * `expired` and the holding time move with the tick above.
+   * `expired` and the holding time move with the tick above, and
+   * `guardsVersion` is what keeps the newest guard event (FEAT-0822) from
+   * going stale: the ledger it reads is localStorage, not a rune.
    */
   let rows = $derived.by<Row[]>(() => {
     const states = botsState.states;
     const degraded = botsState.degraded;
     const positions = paperState.positions;
+    void alertState.guardsVersion;
 
     // The rule store is the input that could not be read (FEAT-0542's
     // refusal): nothing can be listed, and the notice below says so. The
@@ -195,6 +206,10 @@
         lastFiredMs: fired[bot.id]?.last_fired_anchor_ms ?? null,
         position,
         paused: bot.enabled === false,
+        // FEAT-0822 — newest first is the ledger's own order; one row per
+        // reason, counted while it repeats. The version counter below is
+        // what makes this read fresh: the ledger itself is localStorage.
+        guard: readBotGuards(bot.id)[0] ?? null,
       });
     }
 
@@ -279,10 +294,56 @@
     paused: "botsList.state.paused",
     blocked: "botsList.state.blocked",
     expired: "botsList.state.expired",
+    limit_reached: "botsList.state.limit_reached",
   };
+
+  /**
+   * FEAT-0822 — the guard reasons, in this row's register. The toast keys
+   * say who fired and what it refused to place; a row already names the bot,
+   * so these say only the bound itself. Shared from the ledger's own module
+   * so every surface renders one vocabulary.
+   */
+  const GUARD_REASON_KEYS = BOT_GUARD_REASON_KEYS;
 
   function stateLabel(state: BotLifeState["state"]): string {
     return $_(STATE_KEY[state]);
+  }
+
+  function guardLabel(reason: string): string {
+    const key = GUARD_REASON_KEYS[reason];
+    return key === undefined ? reason : $_(key);
+  }
+
+  /**
+   * FEAT-0822 — the kill switch's confirmation state: the bot whose owned
+   * positions the trader was asked about, or null when nobody is asked.
+   */
+  let killArmedId = $state<string | null>(null);
+
+  /**
+   * The kill switch, per row. Entries stop the moment it is clicked — the
+   * same one-field write the pause makes, so there is one mechanism and no
+   * second truth to drift — and the owned positions are the part that asks
+   * first: one confirmation names what will close, and cancelling keeps
+   * them open without re-arming the bot. A bot that owns nothing is simply
+   * stopped, which is the honest whole of what was asked.
+   */
+  function killBot(row: BotRow): void {
+    setBotEnabled(row.id, false);
+    alertState.rulesVersion += 1;
+    killArmedId = row.life.hasPosition ? row.id : null;
+  }
+
+  async function confirmKill(row: BotRow): Promise<void> {
+    killArmedId = null;
+    // Only the rows this bot owns, through the same close lane its exits
+    // take — the gate, `reduceOnly` and attribution are the lane's, and a
+    // refusal on one row costs that row alone, not the rest.
+    await closeBotOwnedPositions(row.id);
+  }
+
+  function cancelKill(): void {
+    killArmedId = null;
   }
 </script>
 
@@ -338,7 +399,8 @@
                 <span
                   class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider border border-[var(--border-color)]"
                   class:bg-success-paired={row.life.state === "in_position"}
-                  class:bg-warning-paired={row.life.state === "submitting" || row.life.state === "closing"}
+                  class:bg-warning-paired={row.life.state === "submitting" ||
+                    row.life.state === "closing" || row.life.state === "limit_reached"}
                   class:bg-accent-paired={row.life.state === "armed"}
                   class:bg-danger-paired={row.life.state === "blocked"}
                   class:bg-[var(--bg-secondary)]={row.life.state === "paused" ||
@@ -348,21 +410,65 @@
                   {stateLabel(row.life.state)}
                 </span>
               </div>
-              <!-- The accessible name says which bot the control acts on: the
-                   visible label reads in row context, a screen reader reads
-                   the label alone. -->
-              <button
-                type="button"
-                class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
-                data-testid="bot-pause-toggle"
-                aria-label={row.paused
-                  ? $_("botsList.resumeNamed", { values: { name: row.name } })
-                  : $_("botsList.pauseNamed", { values: { name: row.name } })}
-                onclick={() => togglePaused(row)}
-              >
-                {row.paused ? $_("botsList.resume") : $_("botsList.pause")}
-              </button>
+              <div class="flex items-center gap-1">
+                <!-- The accessible name says which bot the control acts on: the
+                     visible label reads in row context, a screen reader reads
+                     the label alone. -->
+                <button
+                  type="button"
+                  class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                  data-testid="bot-pause-toggle"
+                  aria-label={row.paused
+                    ? $_("botsList.resumeNamed", { values: { name: row.name } })
+                    : $_("botsList.pauseNamed", { values: { name: row.name } })}
+                  onclick={() => togglePaused(row)}
+                >
+                  {row.paused ? $_("botsList.resume") : $_("botsList.pause")}
+                </button>
+                <!-- FEAT-0822 — the kill switch: entries stop on the click,
+                     the owned positions ask first, and a bot that owns
+                     nothing is simply stopped. Same accessible-name
+                     contract as the pause beside it. -->
+                <button
+                  type="button"
+                  class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                  data-testid="bot-kill"
+                  aria-label={$_("botsList.stopNamed", { values: { name: row.name } })}
+                  onclick={() => killBot(row)}
+                >
+                  {$_("botsList.stop")}
+                </button>
+              </div>
             </div>
+
+            {#if killArmedId === row.id}
+              <!-- One confirmation, naming what will close (FEAT-0822 AC 6):
+                   the entries are already stopped — cancelling keeps the
+                   positions open without re-arming the bot. -->
+              <p
+                class="text-xs text-[var(--warning-color)] flex items-center gap-2 flex-wrap"
+                data-testid="bot-kill-confirm"
+                role="alert"
+              >
+                {$_("botsList.killAsk", { values: { symbol: row.symbol } })}
+                <button
+                  type="button"
+                  class="py-0.5 px-2 text-[10px] bg-[var(--danger-color)] text-[var(--text-on-danger)] rounded border border-[var(--border-color)]"
+                  data-testid="bot-kill-confirm-close"
+                  onclick={() => confirmKill(row)}
+                >
+                  {$_("botsList.killClose")}
+                </button>
+                <button
+                  type="button"
+                  class="py-0.5 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)]"
+                  data-testid="bot-kill-confirm-keep"
+                  onclick={cancelKill}
+                >
+                  {$_("botsList.killKeep")}
+                </button>
+              </p>
+            {/if}
 
             <!-- The trigger timeframe qualifies the condition, not the order —
                  with a visible label, because a bare `1h` at the end of a
@@ -417,6 +523,19 @@
                    this line says what it means for the trader. -->
               <p class="text-xs text-[var(--danger-color)]" data-testid="bot-blocked-reason">
                 {$_("botsList.blockedReason")}
+              </p>
+            {/if}
+
+            {#if row.guard}
+              <!-- FEAT-0822 — the newest guard event, counted while it
+                   repeated: the answer to "why did my bot not act?". The
+                   ledger holds it durable and reload-safe; this row names
+                   the bound in the trader's words, never the lane's
+                   vocabulary. -->
+              <p class="text-[10px] text-[var(--warning-color)]" data-testid="bot-guard-line">
+                {$_("botsList.guardLatest", {
+                  values: { reason: guardLabel(row.guard.reason), count: row.guard.count },
+                })}
               </p>
             {/if}
 
