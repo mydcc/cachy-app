@@ -31,6 +31,7 @@
 
 import { browser } from "$app/env";
 import type { BotAnchorSnapshot, RuleState } from "../../lib/rules/types";
+import { localDayKey } from "./botGuards";
 import { logger } from "../logger";
 import { safeLocalStorage } from "../../utils/storageWrapper";
 
@@ -92,6 +93,12 @@ function normalizeState(stored: unknown): RuleState {
   // position that no longer exists.
   const exitAnchors = asExitAnchors(stored.last_exit_action_anchors);
   if (exitAnchors !== undefined) state.last_exit_action_anchors = exitAnchors;
+
+  // FEAT-0822 — the entry activity. Sparse for the same reason; a corrupt
+  // activity reads as absent, which errs towards acting: the cost of a lost
+  // count is one entry the document's own limits then bound.
+  const activity = asBotEntries(stored.bot_entries);
+  if (activity !== undefined) state.bot_entries = activity;
   return state;
 }
 
@@ -116,6 +123,32 @@ function asExitAnchors(value: unknown): Record<string, number> | undefined {
     any = true;
   }
   return any ? anchors : undefined;
+}
+
+/**
+ * FEAT-0822 — one stored entry activity, or absent. A corrupt activity reads
+ * as absent rather than half-kept: a count that cannot be trusted must not
+ * quietly pretend to be zero either, and absent errs towards acting.
+ */
+function asBotEntries(
+  value: unknown,
+): { total: number; day: string; today: number } | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const total = value.total;
+  const today = value.today;
+  const day = value.day;
+  if (
+    typeof total !== "number" ||
+    !Number.isFinite(total) ||
+    total < 0 ||
+    typeof today !== "number" ||
+    !Number.isFinite(today) ||
+    today < 0 ||
+    typeof day !== "string"
+  ) {
+    return undefined;
+  }
+  return { total: Math.floor(total), day, today: Math.floor(today) };
 }
 
 /** The stored gate anchors as the persistence port carries them. */
@@ -195,6 +228,9 @@ export function recordRuleFiring(ruleId: string, anchorMs: number): RuleState {
     ...(previous.last_exit_action_anchors !== undefined
         ? { last_exit_action_anchors: previous.last_exit_action_anchors }
         : {}),
+    // FEAT-0822 — nor the entry activity: the firing path announces, the
+    // submit path counts entries, and neither may cost the other its half.
+    ...(previous.bot_entries !== undefined ? { bot_entries: previous.bot_entries } : {}),
   };
 
   if (browser) {
@@ -202,6 +238,56 @@ export function recordRuleFiring(ruleId: string, anchorMs: number): RuleState {
     writeRuleStates(states);
   }
   return next;
+}
+
+/**
+ * FEAT-0822 — the entries this bot has landed, durable.
+ *
+ * Zeros on absent or unreadable, which errs towards acting: the failure
+ * mode of a lost count is an entry the document's own limits then bound,
+ * not a bot that silently stops.
+ */
+export function botEntryActivity(ruleId: string): { total: number; day: string; today: number } {
+  try {
+    const activity = readRuleStates()[ruleId]?.bot_entries;
+    if (activity === undefined) return { total: 0, day: "", today: 0 };
+    return activity;
+  } catch {
+    return { total: 0, day: "", today: 0 };
+  }
+}
+
+/**
+ * FEAT-0822 — counts one landed entry against `ruleId`.
+ *
+ * Called from the submit path when a placement has actually opened a row —
+ * never for a firing that submitted nothing, because the `once` policy and
+ * the day cap count entries, not attempts.
+ *
+ * Read-modify-write with a full spread, like the exit anchor's writer: this
+ * function owns exactly one field, and the narrow-carry discipline belongs
+ * to the writers that deliberately drop fields (`saveBotAnchors`), not to
+ * this one. Never throws — a persistence hiccup must not take down the
+ * submission that just succeeded; the cost of a lost count is one entry
+ * the document's own limits then bound.
+ */
+export function recordBotEntry(ruleId: string): void {
+  if (!browser) return;
+  try {
+    const states = readRuleStates();
+    const previous = states[ruleId] ?? { ...NEVER_FIRED };
+    const today = localDayKey();
+    const carried = previous.bot_entries;
+    const next = {
+      total: (carried?.total ?? 0) + 1,
+      day: today,
+      today: carried !== undefined && carried.day === today ? carried.today + 1 : 1,
+    };
+    states[ruleId] = { ...previous, bot_entries: next };
+    writeRuleStates(states);
+  } catch (e) {
+    logger.error("alerts", `[RuleState] Recording entry for ${ruleId} failed`, e);
+  }
 }
 
 /**
@@ -316,6 +402,8 @@ export function saveBotAnchors(ruleId: string, snapshot: BotAnchorSnapshot): voi
     ...(previous.last_exit_action_anchors !== undefined
         ? { last_exit_action_anchors: previous.last_exit_action_anchors }
         : {}),
+    // FEAT-0822 — same narrow carry for the entry activity.
+    ...(previous.bot_entries !== undefined ? { bot_entries: previous.bot_entries } : {}),
   };
   // Mirrored exactly, sparsely: a `null` deletes the key rather than writing
   // one, so entries keep the pre-fix shape whenever they carry no anchors.

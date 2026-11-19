@@ -464,6 +464,22 @@ export interface RuleState {
   /** Close instant of the trigger candle the last announcement was anchored on. */
   last_fired_anchor_ms?: number | null;
   /**
+   * FEAT-0822 — the entries that landed, TS-side only.
+   *
+   * `fired_count` counts firings, including ones that submitted nothing; the
+   * firing policy and the day cap count ENTRIES — attempts that actually
+   * opened a row. Kept beside `fired_count` in this ledger, sparse and
+   * tolerant of the writers below, which carry the field exactly.
+   */
+  bot_entries?: {
+    /** Entries that landed, ever — what `firing_policy: "once"` expires against. */
+    total: number;
+    /** The local day `today` counts, as `YYYY-MM-DD`. */
+    day: string;
+    /** Entries that landed on that local day. */
+    today: number;
+  };
+  /**
    * BUG-0491 — the gate's durable record for bots, TS-side only.
    *
    * The Rust `RuleState` knows two fields and the wire stays exactly that:
