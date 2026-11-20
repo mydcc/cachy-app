@@ -193,6 +193,9 @@ refusal_codes! {
     /// condition comparing a value against itself, which is a rule that cannot
     /// discriminate rather than one that is wrong.
     InvalidWindowLookback => "invalidWindowLookback",
+    /// FEAT-0815 — a session window that is not two `HH:MM` times in UTC with
+    /// a length: a malformed time, another timezone, or `from == to`.
+    InvalidSessionWindow => "invalidSessionWindow",
     /// A cumulative indicator (OBV) compared against anything but a window over
     /// itself. Its level is a running total from the first candle it is handed,
     /// and the alert path hands it a rolling buffer, so "OBV above 1,000,000"
@@ -487,6 +490,7 @@ mod tests {
         "operand_dimension_mismatch",
         "nested_window",
         "invalid_window_lookback",
+        "invalid_session_window",
         "cumulative_needs_own_window",
         "rule_warmup_too_deep",
         "invalid_note",

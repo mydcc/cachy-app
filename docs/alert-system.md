@@ -103,7 +103,7 @@ device, model-proposed rules included. See
 |---|---|
 | `schema_version` | Migrated on read, refused if unreadable |
 | `symbol`, `trigger_timeframe` | The market and the evaluation anchor |
-| `conditions` | A tree: `Compare`, `Cross`, `Pattern`, `Group{all\|any\|none}`, `Position`, `Account`, `ExternalFeed` |
+| `conditions` | A tree: `Compare`, `Cross`, `Pattern`, `Group{all\|any\|none}`, `Position`, `Account`, `ExternalFeed`, `Session` (a daily UTC window, FEAT-0815). Operands include `atr_percentile`, the rank of the current ATR among its last N values |
 | `veto` | Optional suppression. The only place a third-party feed is legal |
 | `action` | `consequence_level` and, above `notify`, an `OrderIntent`: side, size, size basis, an optional `reduce_only`, and the `stop` distance the size is measured against |
 | `id`, `name`, `enabled` | Local identity, display name, arm state. None hashed, none affecting what the rule means |
@@ -195,7 +195,7 @@ adjustment.
 | Tab | Builds |
 |---|---|
 | Templates | A ready `RuleDocument` from a named strategy, editable before arming |
-| Combo | Up to sixteen conditions, mixed indicator, price and pattern rows, joined with AND/OR, with one level of nested groups as cards (FEAT-0813); a rule beyond that opens read-only with the reason named |
+| Combo | Up to sixteen conditions, mixed indicator, price, pattern, volatility-regime and session rows (FEAT-0815), joined with AND/OR, with one level of nested groups as cards (FEAT-0813); a rule beyond that opens read-only with the reason named |
 | Price | Rises above / falls below / rise reaches / fall reaches, last or mark price |
 | Indicators | Indicator, trigger object, rule (Threshold or Crossing), the comparison operand (a value, the price, another indicator, or its own window high/low), parameters |
 | Candlesticks | Single, multiple and structural patterns |

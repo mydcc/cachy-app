@@ -755,7 +755,9 @@
           "indicator": "Indikator",
           "price": "Preis",
           "pattern": "Kerzenmuster",
-          "feed": "Externer Feed"
+          "feed": "Externer Feed",
+          "regime": "Volatilitäts-Regime",
+          "session": "Handelszeit (UTC)"
         },
         "patternLabel": "Muster",
         "addGroup": "Gruppe hinzufügen",
@@ -765,7 +767,22 @@
         "removeGroup": "Gruppe {index} entfernen",
         "warmup": "Diese Regel braucht {count} geschlossene Kerzen Vorlauf, bevor sie urteilen kann (höchstens {max}).",
         "incomplete": "Eine Bedingung ist noch nicht fertig ausgefüllt. Sie fehlt im Satz oben, und die Regel lässt sich erst scharf schalten, wenn sie vollständig ist.",
-        "warmupTooDeep": "Diese Regel braucht mehr als {max} Kerzen Vorlauf. Das ist mehr, als der Core lädt; scharf geschaltet würde sie nie urteilen. Verkürze einen Zeitraum oder ein Fenster."
+        "warmupTooDeep": "Diese Regel braucht mehr als {max} Kerzen Vorlauf. Das ist mehr, als der Core lädt; scharf geschaltet würde sie nie urteilen. Verkürze einen Zeitraum oder ein Fenster.",
+        "regimePeriod": "ATR-Periode",
+        "regimeLookback": "Vergleich über Kerzen",
+        "regimeOp": "Rang",
+        "regimeValue": "Perzentil (0–100)",
+        "regimeHint": "Wo die aktuelle ATR unter ihren letzten Werten liegt: 75 heißt oberstes Viertel. Braucht Periode + Kerzen Vorlauf.",
+        "sessionPreset": "Vorlage",
+        "sessionFrom": "Von (UTC)",
+        "sessionTo": "Bis (UTC)",
+        "sessionHint": "Gilt, wenn die Kerze in diesem Fenster schließt: Beginn inklusive, Ende exklusive. Ein Fenster über Mitternacht (22:00–02:00) ist erlaubt. Die Zeiten sind UTC und verschieben sich nicht mit der Sommerzeit.",
+        "sessionPresetOption": {
+          "custom": "Eigenes Fenster",
+          "asia": "Asien, {from}–{to} UTC",
+          "europe": "Europa, {from}–{to} UTC",
+          "us": "USA, {from}–{to} UTC"
+        }
       },
       "manageList": {
         "tabAlerts": "Alarme ({count})",
@@ -5163,7 +5180,8 @@
       "invalidDerivedFromHash": "Die Herkunftsangabe in `{field}` ist kein gültiger Content-Hash, deshalb lässt sich die Strategie nicht bestimmen, aus der dieser Bot hervorgegangen ist.",
       "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden.",
       "stopRequiredForRiskSizing": "`{field}` fehlt: Eine Größe in Prozent des Risikos misst sich zwischen Einstieg und Stop, hat also ohne Stop keinen Wert.",
-      "stopNotHonoured": "`{field}` würde nie platziert: Eine Reduce-only-Order schließt eine bestehende Position, statt eine neue zu eröffnen, die abgesichert werden müsste."
+      "stopNotHonoured": "`{field}` würde nie platziert: Eine Reduce-only-Order schließt eine bestehende Position, statt eine neue zu eröffnen, die abgesichert werden müsste.",
+      "invalidSessionWindow": "Ein Handelszeit-Fenster braucht zwei Uhrzeiten als HH:MM in UTC und eine Länge: Beginn und Ende dürfen nicht gleich sein."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -5256,7 +5274,9 @@
         "funding_rate": "die Funding-Rate",
         "open_interest_change": "die Open-Interest-Veränderung",
         "fear_greed": "der Fear-&-Greed-Index"
-      }
+      },
+      "atrPercentile": "der Rang der ATR({period}) unter ihren letzten {lookback} Werten",
+      "session": "die Kerze zwischen {from} und {to} UTC schließt"
     }
   },
   "storage": {

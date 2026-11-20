@@ -36,6 +36,8 @@
     import ComboIndicatorLeaf from "./ComboIndicatorLeaf.svelte";
     import ComboPatternLeaf from "./ComboPatternLeaf.svelte";
     import ComboPriceLeaf from "./ComboPriceLeaf.svelte";
+    import ComboRegimeLeaf from "./ComboRegimeLeaf.svelte";
+    import ComboSessionLeaf from "./ComboSessionLeaf.svelte";
 
     let {
         leaf,
@@ -79,6 +81,10 @@
         <ComboPriceLeaf {leaf} {onpatch} />
     {:else if leaf.kind === "feed"}
         <ComboFeedLeaf {leaf} {onpatch} />
+    {:else if leaf.kind === "regime"}
+        <ComboRegimeLeaf {leaf} {onpatch} />
+    {:else if leaf.kind === "session"}
+        <ComboSessionLeaf {leaf} {onpatch} />
     {:else}
         <ComboPatternLeaf {leaf} {onpatch} />
     {/if}

@@ -124,6 +124,19 @@ describe("the shipped template library", () => {
             }
         }
     });
+
+    it("FEAT-0815: names ATR for a template that ranks volatility", () => {
+        const entry = {
+            conditions: {
+                kind: "compare",
+                left: { kind: "atr_percentile", period: 14, lookback: 100 },
+                op: "gte",
+                right: { kind: "constant", value: "75" },
+                timeframe: "1h",
+            },
+        } as unknown as Parameters<typeof templateIndicators>[0];
+        expect(templateIndicators(entry)).toEqual(["atr"]);
+    });
 });
 
 describe("the document a template becomes", () => {

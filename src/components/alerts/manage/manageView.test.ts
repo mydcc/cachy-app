@@ -120,6 +120,31 @@ describe("kindOf", () => {
     ).toBe("indicator");
   });
 
+  it("FEAT-0815: calls a bare session a combo and a bare rank an indicator rule", () => {
+    expect(
+      kindOf(
+        ruleDoc({
+          conditions: { kind: "session", from: "08:00", to: "16:00", timezone: "UTC" },
+        } as never),
+        false,
+      ),
+    ).toBe("combo");
+    expect(
+      kindOf(
+        ruleDoc({
+          conditions: {
+            kind: "compare",
+            left: { kind: "atr_percentile", period: 14, lookback: 100 },
+            op: "gte",
+            right: { kind: "constant", value: "75" },
+            timeframe: "1h",
+          },
+        } as never),
+        false,
+      ),
+    ).toBe("indicator");
+  });
+
   it("calls a group a combo", () => {
     expect(
       kindOf(
