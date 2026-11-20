@@ -44,12 +44,20 @@
  */
 
 import { Decimal } from "decimal.js";
+import {
+  feedsNamedBy,
+  freshReadings,
+  unavailableVetoFeeds,
+  withoutVeto,
+  type FeedReading,
+} from "../../lib/rules/feedReadings";
 import { collectIndicators } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { isRuleRefusedError, ruleSchema } from "../../lib/rules/ruleSchema";
 import type {
   AccountSnapshot,
+  DecimalString,
   EvaluationCandle,
   EvaluationContext,
   EvaluationIndicatorSeries,
@@ -102,6 +110,14 @@ export interface RuleSuppression {
   rule: RuleDocument;
   /** Open time of the closed candle the trigger held on. */
   anchorMs: number;
+  /**
+   * FEAT-0816 — the feed readings the veto was judged against, present only
+   * when the veto reads a feed. The condition already carries the feed and the
+   * threshold; this carries the number it was compared with and when that
+   * number was current, which is what makes a suppression readable a year
+   * later (ADR-0029 decision 6).
+   */
+  feeds?: FeedReading[];
 }
 
 export type SuppressionSink = (suppression: RuleSuppression) => void;
@@ -182,6 +198,44 @@ export interface SeriesGap {
  * settings live on the other side of `ruleLoopWiring`.
  */
 export type UnevaluableSink = (rule: UnevaluableRule) => void;
+
+/**
+ * FEAT-0816 — every third-party feed reading currently held for one market.
+ *
+ * Injected like every other reader here: fetching a funding rate is a network
+ * concern on the other side of `ruleLoopWiring`, and the loop must stay
+ * callable in a test with no network. Freshness is not the reader's job — it
+ * hands over what it has, and the loop refuses what is too old to use.
+ *
+ * Absent by default, which means every feed is unavailable. That is the honest
+ * default rather than an inconvenient one: a loop nobody wired to a provider
+ * has no business answering "funding is low" with silence.
+ */
+export type FeedReader = (symbol: string) => readonly FeedReading[];
+
+/**
+ * FEAT-0816 — a veto the engine had to drop because the feed it reads had no
+ * fresh value.
+ *
+ * Its own record, not a `UnevaluableRule`: that one says "this rule cannot
+ * produce a verdict", and this rule did produce one — without the protection
+ * its author wrote. Carries the rule's identity and the feed ids, never the
+ * veto condition itself, which is Class A strategy (ADR-0001).
+ */
+export interface DroppedVeto {
+  ruleId: string;
+  /** The trader's own name for the rule, for a message they have to act on. */
+  name: string;
+  symbol: string;
+  /** The feeds the veto reads that nothing could answer. */
+  feeds: string[];
+}
+
+/**
+ * Told once per rule while the same feeds stay unavailable — ADR-0029
+ * decision 5. An outage lasting an hour is one report, not one per candle.
+ */
+export type DroppedVetoSink = (dropped: DroppedVeto) => void;
 
 /**
  * What a rule actually compares against at one anchor — FEAT-0029.
@@ -396,6 +450,16 @@ export interface RuleEvaluationLoopOptions {
   /** Defaults to `logUnevaluable`. */
   onUnevaluable?: UnevaluableSink;
   /**
+   * FEAT-0816 — the third-party feed readings each market currently has.
+   *
+   * Absent means every feed is unavailable, which under ADR-0029 decision 3
+   * drops a feed-reading veto and reports it. A rule whose veto names no feed
+   * is unaffected either way.
+   */
+  readFeeds?: FeedReader;
+  /** FEAT-0816 — defaults to `logDroppedVeto`: said in the log and nowhere else. */
+  onDroppedVeto?: DroppedVetoSink;
+  /**
    * FEAT-0810 — which owned positions each rule may exit.
    *
    * Absent by default: without it no exit is evaluated, which keeps a
@@ -439,6 +503,8 @@ export interface RuleEvaluationLoopOptions {
  */
 const NO_RULES: RuleReader = () => [];
 const NO_CANDLES: CandleReader = () => [];
+/** No provider wired: every feed is unavailable, and a feed veto is dropped. */
+const NO_FEEDS: FeedReader = () => [];
 /** Every rule compares against the constant it was stored with. */
 const PASS_THROUGH_THRESHOLD: ThresholdResolver = (rule) => ({ rule });
 
@@ -470,6 +536,20 @@ export const logUnevaluable: UnevaluableSink = ({ ruleId, symbol, reason }) => {
   logger.error(
     "alerts",
     `Rule ${ruleId} on ${symbol} cannot be evaluated and will never fire: ${reason}`,
+  );
+};
+
+/**
+ * The default report for a dropped veto: say it in the log and nowhere else.
+ *
+ * `error`, like `logUnevaluable` and for the same reason — a rule that just
+ * traded without the veto its author wrote is not a routine event. The feed
+ * ids are developer-facing; a UI renders its own wording.
+ */
+export const logDroppedVeto: DroppedVetoSink = ({ ruleId, symbol, feeds }) => {
+  logger.error(
+    "alerts",
+    `[RuleEngine] Veto dropped for rule ${ruleId} on ${symbol}: no fresh reading for ${feeds.join(", ")}`,
   );
 };
 
@@ -524,6 +604,19 @@ export class RuleEvaluationLoop {
   private onSuppressed: SuppressionSink = () => {};
   private onClose: SeriesCloseHook = () => {};
   private onUnevaluable: UnevaluableSink = logUnevaluable;
+  private readFeeds: FeedReader = NO_FEEDS;
+  private onDroppedVeto: DroppedVetoSink = logDroppedVeto;
+  /**
+   * Which feeds each rule's veto is currently missing, keyed by rule id and
+   * joined into one string.
+   *
+   * The interruption budget for an outage: as long as the same feeds stay
+   * unavailable the report has already been made, and a *different* feed going
+   * down is a different fact that is reported again. Cleared for a rule the
+   * moment its feeds answer, so a recovery followed by a second outage is news
+   * twice -- which is the point of a signal that can be acted on.
+   */
+  private readonly droppedVetoes = new Map<string, string>();
   private resolveThreshold: ThresholdResolver = PASS_THROUGH_THRESHOLD;
   private ownedPositions: OwnedPositionsReader = () => [];
   private accountForPosition: PositionAccountReader = () => undefined;
@@ -577,6 +670,8 @@ export class RuleEvaluationLoop {
     this.onSuppressed = options.onSuppressed ?? (() => {});
     this.onClose = options.onClose ?? (() => {});
     this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
+    this.readFeeds = options.readFeeds ?? NO_FEEDS;
+    this.onDroppedVeto = options.onDroppedVeto ?? logDroppedVeto;
     this.resolveThreshold = options.resolveThreshold ?? PASS_THROUGH_THRESHOLD;
     this.ownedPositions = options.ownedPositions ?? (() => []);
     this.accountForPosition = options.accountForPosition ?? (() => undefined);
@@ -1062,9 +1157,15 @@ export class RuleEvaluationLoop {
     // anchor it has already decided, the intrabar path may look at the same
     // forming candle again and again, and the two keep separate records so one
     // cannot swallow the other's anchor.
+    // FEAT-0816 — a veto whose feed nobody can answer is dropped for this
+    // candle and reported once. Asking the core with that veto in place would
+    // answer `indeterminate`, which freezes every strategy naming a feed for
+    // as long as a third party is down (ADR-0029 decision 3).
+    const asked = this.askableRule(rule, ctx);
+
     const verdict = intrabar
-      ? ruleEvaluationGate.evaluateIntrabar(rule, ctx, anchorMs)
-      : ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
+      ? ruleEvaluationGate.evaluateIntrabar(asked, ctx, anchorMs)
+      : ruleEvaluationGate.evaluate(asked, ctx, anchorMs);
     // BUG-0485 — returning from the gate means the rule evaluated again: its
     // threshold resolved, its context built, and the core produced a verdict
     // attempt. Whatever made the rule inert no longer holds, so the record
@@ -1281,7 +1382,7 @@ export class RuleEvaluationLoop {
     if (markCandles) {
       ctx.mark_candles = markCandles;
     }
-    const verdict = ruleSchema.evaluate(resolved.rule, ctx);
+    const verdict = ruleSchema.evaluate(this.askableRule(resolved.rule, ctx), ctx);
     // FEAT-0823 review — BUG-0485's clearing discipline, carried into the
     // path that bypasses the gate: a signal that evaluated says whatever
     // made the rule inert no longer holds, so the record drops here rather
@@ -1515,6 +1616,14 @@ export class RuleEvaluationLoop {
     const state = this.stateFor(rule);
     if (state !== undefined) ctx.state = state;
 
+    // FEAT-0816 — only the feeds this rule's veto actually reads, and only
+    // while they are fresh. A rule that names no feed sends the payload it
+    // sent before this existed, and a stale reading is left out rather than
+    // passed as a value the core cannot tell from a current one (ADR-0029
+    // decision 2).
+    const feeds = this.feedsFor(rule, symbol);
+    if (feeds !== undefined) ctx.feeds = feeds;
+
     return ctx;
   }
 
@@ -1549,10 +1658,96 @@ export class RuleEvaluationLoop {
    * suppression recorder that throws must not stop the rules after this one.
    */
   private reportSuppressed(rule: RuleDocument, anchorMs: number): void {
+    // Read again rather than carried over from the evaluation: the reader
+    // answers from a held snapshot, so this costs no request, and nothing
+    // hidden has to travel between building the context and writing the
+    // record. For a rule whose veto reads no feed this is an empty array and
+    // the record keeps the shape it had before FEAT-0816.
+    const feeds = this.feedReadingsFor(rule, rule.symbol);
     try {
-      this.onSuppressed({ rule, anchorMs });
+      this.onSuppressed({ rule, anchorMs, ...(feeds.length > 0 ? { feeds } : {}) });
     } catch (e) {
       logger.error("alerts", `[RuleEngine] Suppression sink failed for rule ${rule.id}`, e);
+    }
+  }
+
+  /**
+   * FEAT-0816 — the fresh readings for the feeds this rule's veto names.
+   *
+   * Narrowed to the named feeds on purpose: what the engine happens to hold
+   * for a market is not what this rule asked about, and a record that listed
+   * every feed would claim the veto was judged against numbers it never read.
+   */
+  private feedReadingsFor(rule: RuleDocument, symbol: string): FeedReading[] {
+    const named = feedsNamedBy(rule.veto);
+    if (named.length === 0) return [];
+    return freshReadings(this.readFeeds(symbol), Date.now()).filter((reading) =>
+      named.includes(reading.feed),
+    );
+  }
+
+  /**
+   * The `feeds` map for one rule, or `undefined` when it reads none.
+   *
+   * `undefined` rather than an empty object, for the same reason
+   * `markCandlesFor` returns it: a rule that names no feed must produce the
+   * same wire payload it produced before this key existed.
+   */
+  private feedsFor(rule: RuleDocument, symbol: string): Record<string, DecimalString> | undefined {
+    const readings = this.feedReadingsFor(rule, symbol);
+    if (readings.length === 0) return undefined;
+
+    const values: Record<string, DecimalString> = {};
+    for (const reading of readings) values[reading.feed] = reading.value;
+    return values;
+  }
+
+  /**
+   * FEAT-0816 — the document the core may be asked about at this candle.
+   *
+   * Usually the rule itself. When its veto reads a feed nothing can answer,
+   * the whole veto is dropped and the trader is told: the core answers an
+   * unreadable veto with `indeterminate` and would otherwise hold the rule
+   * silent for as long as a third party is down (ADR-0029 decisions 3 and 4).
+   *
+   * The stored document is never touched, and the firing the caller returns
+   * still carries the rule as authored -- the dropped copy exists for the
+   * length of one question, so nothing downstream sees a strategy whose
+   * content hash differs from the one the trader armed.
+   */
+  private askableRule(rule: RuleDocument, ctx: EvaluationContext): RuleDocument {
+    const unavailable = unavailableVetoFeeds(rule, ctx.feeds ?? {});
+    if (unavailable.length === 0) {
+      // Answered, or never asked: the next outage is news again.
+      this.droppedVetoes.delete(rule.id);
+      return rule;
+    }
+
+    this.reportDroppedVeto(rule, unavailable);
+    return withoutVeto(rule);
+  }
+
+  /**
+   * Tell the sink once per rule while the same feeds stay unavailable.
+   *
+   * Contained like every other sink here: a toast that throws must not stop
+   * the rules after this one. The record is written before the sink runs, so a
+   * throwing sink cannot buy itself a second report on the next candle.
+   */
+  private reportDroppedVeto(rule: RuleDocument, feeds: readonly string[]): void {
+    const outage = feeds.join(",");
+    if (this.droppedVetoes.get(rule.id) === outage) return;
+    this.droppedVetoes.set(rule.id, outage);
+
+    try {
+      this.onDroppedVeto({
+        ruleId: rule.id,
+        name: rule.name,
+        symbol: rule.symbol,
+        feeds: [...feeds],
+      });
+    } catch (e) {
+      logger.error("alerts", `[RuleEngine] Dropped-veto sink failed for rule ${rule.id}`, e);
     }
   }
 
@@ -1680,6 +1875,8 @@ export class RuleEvaluationLoop {
     this.readRuleState = NO_STATE;
     this.onFiring = shadowSink;
     this.onSuppressed = () => {};
+    this.readFeeds = NO_FEEDS;
+    this.droppedVetoes.clear();
     this.onClose = () => {};
     this.onUnevaluable = logUnevaluable;
     // FEAT-0823 review — the held waits die with the engine that formed

@@ -64,5 +64,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0026](0026-a-bot-owns-the-position-it-opens.md) | A bot owns the position it opens | Accepted |
 | [0027](0027-a-grid-bot-owns-an-order-set-and-its-position.md) | A grid bot owns an order set and its position | Proposed |
 | [0028](0028-a-bot-executes-against-one-account.md) | A bot executes against one account, and only that account's bots are shown | Accepted |
+| [0029](0029-an-external-feed-names-its-source-and-its-age.md) | An external feed names its source and its age, and an unreadable veto fails open | Accepted |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._

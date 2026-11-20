@@ -20,8 +20,10 @@
  * wires into `EvaluationContext.feeds`. One list for the editor and the
  * sentence, so a feed the editor offers is always one the sentence can name.
  *
- * Until a source delivers a feed, the core reads it as unavailable and the
- * rule's verdict is indeterminate: it does not fire. The editor says so.
+ * A feed with no fresh reading is unavailable, and FEAT-0816 decided what that
+ * means: the veto is dropped for that evaluation and the trader is told
+ * (ADR-0029 decision 3). A feed id outside this list has no source at all and
+ * is therefore always unavailable; the editor says so.
  */
 export const EXTERNAL_FEEDS = ["funding_rate", "open_interest_change", "fear_greed"] as const;
 
