@@ -2,7 +2,7 @@
 id: FEAT-0815
 title: Add volatility-regime and session operands for rule conditions
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,8 @@ depends_on: []
 parent: FEAT-0805
 size: M
 estimate: 5
+assignee: claude
+branch: feature/feat-0815-regime-session
 ---
 
 # FEAT-0815 — Add volatility-regime and session operands for rule conditions
@@ -50,20 +52,39 @@ third-party feed, so ADR-0012 decision 7 is untouched.
 
 ## Acceptance criteria
 
-- [ ] `atr_percentile` evaluates against a known series and matches a JS
+- [x] `atr_percentile` evaluates against a known series and matches a JS
       reference within the project's indicator tolerance; it is refused with a
       clear reason when the series is shorter than warmup.
-- [ ] A session window evaluates correctly at the boundary (inclusive start,
+- [x] A session window evaluates correctly at the boundary (inclusive start,
       exclusive end), across midnight, and at a DST-free UTC reference.
-- [ ] Both are usable in a group with existing conditions and render in the
+- [x] Both are usable in a group with existing conditions and render in the
       sentence in both locales.
-- [ ] Warmup is reported correctly: ATR percentile adds `period + lookback` to
+- [x] Warmup is reported correctly: ATR percentile adds `period + lookback` to
       the requirement and the builder shows it.
-- [ ] A session window with `from == to` is refused (empty or full day is
+- [x] A session window with `from == to` is refused (empty or full day is
       ambiguous); a malformed time is refused with the field path.
-- [ ] The content hash changes when either operand changes; existing documents
+- [x] The content hash changes when either operand changes; existing documents
       keep their hash.
-- [ ] Tests: core parity, boundary times, wraparound, warmup refusal.
+- [x] Tests: core parity, boundary times, wraparound, warmup refusal.
+
+## Decisions
+
+- **Session is a `Condition`**, as proposed: "in session" is a truth value.
+  `{ kind: "session", from, to, timezone: "UTC" }`, `from` inclusive, `to`
+  exclusive, `from > to` wraps midnight; `from == to`, a malformed `HH:MM` and
+  any timezone but `UTC` are refused (`invalid_session_window`) with the field
+  path. The instant tested is the anchor candle's **close**, the moment the
+  verdict is made — so a 1h candle closing at 16:00 is outside 08:00–16:00.
+- **ATR rank definition.** The share of the last `lookback` ATR values (the
+  current one included) at or below the current one, times 100 — the maximum of
+  the window reads 100 and ties cannot make the answer order-dependent. Built on
+  the ATR series the alert path already computes (`atr` with `period`);
+  `lookback` 2..=500, warmup `period + lookback`.
+- **UI presets are not edition-specific** and expand to fixed UTC windows whose
+  times are always shown in the label (Asia 00–08, Europe 07–16, US 13–21); the
+  document stores the window, never a name.
+- Existing documents keep their hash: no existing variant's serialisation
+  changed, and the refusal wire-name test still pins every old code.
 
 ## Out of scope
 
