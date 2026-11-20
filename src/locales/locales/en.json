@@ -717,7 +717,7 @@
         "limitHint": "Up to {max} conditions per rule.",
         "empty": "No condition yet. Add one to build a combination.",
         "lockedTitle": "This rule cannot be edited here",
-        "lockedBody": "It uses a structure the combo builder does not offer — a nested group, a condition of another kind, or a join this builder withholds. It is left exactly as it is.",
+        "lockedBody": "It uses a structure the combo builder does not offer — a group inside a group inside a group, a condition of another kind, or a join this builder withholds. It is left exactly as it is.",
         "indicatorLabel": "Indicator",
         "outputLabel": "Line",
         "relationLabel": "Relation",
@@ -747,7 +747,21 @@
           "close": "Close",
           "hl2": "Median (HL2)",
           "hlc3": "Typical (HLC3)"
-        }
+        },
+        "lockedTooManyBody": "It has more than {max} conditions, more than this builder edits. It is left exactly as it is and keeps firing as before.",
+        "leafKindLabel": "Type",
+        "leafKind": {
+          "indicator": "Indicator",
+          "price": "Price",
+          "pattern": "Candlestick pattern"
+        },
+        "patternLabel": "Pattern",
+        "addGroup": "Add group",
+        "groupLabel": "Group {index}",
+        "groupLogicLabel": "Within the group",
+        "groupAddRow": "Add condition to group {index}",
+        "removeGroup": "Remove group {index}",
+        "warmup": "This rule needs {count} closed candles of history before it can judge (at most {max})."
       },
       "manageList": {
         "tabAlerts": "Alerts ({count})",

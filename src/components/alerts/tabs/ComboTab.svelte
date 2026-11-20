@@ -17,59 +17,47 @@
 
 <!--
   FEAT-0030 -- combine several conditions into one rule.
+  FEAT-0813 -- up to sixteen of them, mixed kinds, one level of groups.
 
   The plain-language read-back is not rendered here: AlertPanelView already
   derives it from the whole draft, so this tab's job is to write a correct
-  document and let the sentence follow.
+  document and let the sentence follow. Groups are cards rather than an
+  indented list: the sentence is the read-back, the cards are the edit
+  surface.
 -->
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { alertPanelState, refusalsForField } from "../../../stores/alertPanel.svelte";
-    import {
-        INDICATOR_CATALOGUE,
-        catalogueEntry,
-        defaultRef,
-        dimensionOf,
-        nameKey,
-        outputKey,
-        paramKey,
-        type CatalogueEntry,
-    } from "../../../lib/alerts/indicatorCatalogue";
-    import {
-        CROSS_DIRECTIONS,
-        MAX_WINDOW_LOOKBACK,
-        MIN_WINDOW_LOOKBACK,
-        committedWindowLookback,
-        compareOpsFor,
-        compatibleIndicators,
-        defaultForm,
-        defaultWindowReference,
-        isReferenceCompatible,
-        referenceKindsFor,
-        type Reference,
-        type Relation,
-    } from "../../../lib/alerts/indicatorConditionForm";
+    import { ruleSchema } from "../../../lib/rules/ruleSchema";
     import {
         COMBO_OPS,
         MAX_COMBO_CONDITIONS,
+        RULE_WARMUP_CEILING,
+        addGroup,
         addRow,
         buildComboCondition,
+        canAddGroup,
         canAddRow,
+        changeLeafKind,
+        comboLockReason,
         emptyComboForm,
+        leafPaths,
         readComboForm,
+        refusalPath,
         removeRow,
         replaceRow,
         setLogicOp,
         type ComboForm,
-        type ComboRow,
+        type ComboLeaf,
+        type ComboLeafKind,
+        type ComboLeafPatch,
     } from "../../../lib/alerts/comboConditionForm";
-    import type { CompareOp, CrossDirection, LogicOp, ParamValue, PriceField, WindowAgg } from "../../../lib/rules/types";
+    import type { LogicOp, RuleRefusal } from "../../../lib/rules/types";
     import type { TranslationKey } from "../../../locales/schema";
+    import ComboLeafRow from "./combo/ComboLeafRow.svelte";
 
     let { symbol: _symbol }: { symbol: string } = $props();
-
-    const PRICE_FIELDS: readonly PriceField[] = ["open", "high", "low", "close", "hl2", "hlc3"];
 
     // Read once at init, like every other builder in this panel.
     const initial = readComboForm(
@@ -77,17 +65,44 @@
         alertPanelState.draft.trigger_timeframe,
     );
 
-    // A document this builder cannot represent -- a nested group, a `none`
-    // join, a price or pattern condition from another tab -- leaves the tab
-    // locked. The write-through effect below never runs in that state, so
-    // opening this tab on a rule it does not understand cannot erase it.
-    // Losing a five-condition rule to a stray click is the one outcome this
-    // tab must make impossible.
-    const locked = initial === null;
+    // A document this builder cannot represent -- a third level of groups, a
+    // `none` join, more than sixteen conditions -- leaves the tab locked. The
+    // write-through effect below never runs in that state, so opening this
+    // tab on a rule it does not understand cannot erase it.
+    const lockReason =
+        initial === null
+            ? (comboLockReason(alertPanelState.draft.conditions, alertPanelState.draft.trigger_timeframe) ??
+              "unsupported")
+            : null;
+    const locked = lockReason !== null;
 
     let form = $state<ComboForm>(initial ?? emptyComboForm());
 
     let conditionRefusals = $derived(refusalsForField(alertPanelState.refusals, "conditions"));
+    // Refusals no row claimed: the tree as a whole (an empty group, the
+    // warmup ceiling) rather than one leaf of it. Computed from the leaves
+    // actually rendered, so a refusal on a group's own field is never lost.
+    let treeRefusals = $derived.by(() => {
+        const claimed = leafPaths(form);
+        return conditionRefusals.filter(
+            (refusal) =>
+                !claimed.some((path) => refusal.field === path || refusal.field.startsWith(`${path}.`)),
+        );
+    });
+
+    /**
+     * Candles the draft needs before it can judge, from the core -- the one
+     * authority on warmup. `null` while the core is not loaded or the draft
+     * is not a document yet; the line then stays away rather than guessing.
+     */
+    let warmup = $derived.by(() => {
+        if (locked || form.rows.length === 0 || !ruleSchema.isReady()) return null;
+        try {
+            return ruleSchema.warmupCandles($state.snapshot(alertPanelState.draft));
+        } catch {
+            return null;
+        }
+    });
 
     $effect(() => {
         if (locked) return;
@@ -96,335 +111,128 @@
         );
     });
 
-    function entryFor(row: ComboRow): CatalogueEntry | null {
-        return catalogueEntry(row.form.subject.id);
+    function refusalsAt(rootIndex: number, memberIndex?: number): RuleRefusal[] {
+        return refusalsForField(conditionRefusals, refusalPath(rootIndex, memberIndex));
     }
 
-    function dimensionFor(row: ComboRow) {
-        const entry = entryFor(row);
-        return entry ? dimensionOf(entry, row.form.subject.output ?? "value") : "unitless";
+    function patch(leaf: ComboLeaf, next: ComboLeafPatch): void {
+        form = replaceRow(form, leaf.id, next);
     }
 
-    function chooseIndicator(row: ComboRow, id: string): void {
-        const next = catalogueEntry(id);
-        if (!next) return;
-        // A whole fresh form rather than a swapped id: the previous
-        // indicator's params and reference may be in another unit, and
-        // carrying them over would build a document the core refuses on arm.
-        form = replaceRow(form, row.id, { form: defaultForm(next) });
-    }
-
-    function chooseOutput(row: ComboRow, output: string): void {
-        const entry = entryFor(row);
-        if (!entry) return;
-        const reference = isReferenceCompatible(dimensionOf(entry, output), row.form.reference)
-            ? row.form.reference
-            : ({ kind: "constant", value: "0" } as Reference);
-        form = replaceRow(form, row.id, {
-            form: { ...row.form, subject: { ...row.form.subject, output }, reference },
-        });
-    }
-
-    function setParam(row: ComboRow, name: string, raw: string, kind: "period" | "factor"): void {
-        // A factor stays a string all the way to the document: these values
-        // are compared against prices, and parsing one into a float here is
-        // the rounding decimal.js exists to avoid.
-        const params: Record<string, ParamValue> = {
-            ...row.form.subject.params,
-            [name]: kind === "period" ? Number(raw) : raw,  // audit: safe — indicator lookback in bars, not a price
-        };
-        form = replaceRow(form, row.id, {
-            form: { ...row.form, subject: { ...row.form.subject, params } },
-        });
-    }
-
-    function setRelation(row: ComboRow, relation: Relation): void {
-        form = replaceRow(form, row.id, { form: { ...row.form, relation } });
-    }
-
-    function setReference(row: ComboRow, reference: Reference): void {
-        // A comparison that cannot fire against the new reference moves to one
-        // that can: `>` against a window's highest is never true.
-        const ops = compareOpsFor(reference);
-        const relation =
-            row.form.relation.kind === "compare" && !ops.includes(row.form.relation.op)
-                ? ({ kind: "compare", op: ops[0] } as Relation)
-                : row.form.relation;
-        form = replaceRow(form, row.id, { form: { ...row.form, reference, relation } });
-    }
-
-    function chooseReferenceKind(row: ComboRow, kind: Reference["kind"]): void {
-        if (kind === "constant") return setReference(row, { kind: "constant", value: "0" });
-        if (kind === "price") return setReference(row, { kind: "price", field: "close" });
-        if (kind === "window") return setReference(row, defaultWindowReference());
-        const dimension = dimensionFor(row);
-        const first = compatibleIndicators(dimension, INDICATOR_CATALOGUE)[0];
-        if (!first) return;
-        const line = first.outputs.find((candidate) => candidate.dimension === dimension);
-        setReference(row, {
-            kind: "indicator",
-            indicator: { ...defaultRef(first), output: line?.name ?? first.outputs[0].name },
-        });
-    }
-
-    function chooseReferenceIndicator(row: ComboRow, id: string): void {
-        const next = catalogueEntry(id);
-        if (!next) return;
-        const dimension = dimensionFor(row);
-        const line = next.outputs.find((candidate) => candidate.dimension === dimension);
-        setReference(row, {
-            kind: "indicator",
-            indicator: { ...defaultRef(next), output: line?.name ?? next.outputs[0].name },
-        });
+    function switchKind(leaf: ComboLeaf, kind: ComboLeafKind): void {
+        form = changeLeafKind(form, leaf.id, kind);
     }
 
     const key = (raw: string): TranslationKey => raw as TranslationKey;
 </script>
 
+{#snippet opPicker(current: LogicOp, legend: string, onpick: (op: LogicOp) => void)}
+    <fieldset class="logic">
+        <legend>{legend}</legend>
+        <div class="ops">
+            {#each COMBO_OPS as op (op)}
+                <button
+                    type="button"
+                    class="tile"
+                    class:selected={current === op}
+                    aria-pressed={current === op}
+                    onclick={() => onpick(op)}
+                >
+                    {$_(key(`dashboard.alerts.combo.op.${op}`))}
+                </button>
+            {/each}
+        </div>
+        <p class="hint">{$_(key(`dashboard.alerts.combo.opHint.${current}`))}</p>
+    </fieldset>
+{/snippet}
+
 {#if locked}
-    <div class="locked" role="status">
+    <div class="locked" role="status" data-testid="combo-locked" data-lock-reason={lockReason}>
         <h4>{$_("dashboard.alerts.combo.lockedTitle")}</h4>
-        <p>{$_("dashboard.alerts.combo.lockedBody")}</p>
+        <p>
+            {lockReason === "too_many"
+                ? $_("dashboard.alerts.combo.lockedTooManyBody", { values: { max: MAX_COMBO_CONDITIONS } })
+                : $_("dashboard.alerts.combo.lockedBody")}
+        </p>
     </div>
 {:else}
     <div class="builder">
-        <fieldset class="logic">
-            <legend>{$_("dashboard.alerts.combo.logicLabel")}</legend>
-            <div class="ops">
-                {#each COMBO_OPS as op (op)}
-                    <button
-                        type="button"
-                        class="tile"
-                        class:selected={form.op === op}
-                        aria-pressed={form.op === op}
-                        onclick={() => (form = setLogicOp(form, op as LogicOp))}
-                    >
-                        {$_(key(`dashboard.alerts.combo.op.${op}`))}
-                    </button>
-                {/each}
-            </div>
-            <p class="hint">{$_(key(`dashboard.alerts.combo.opHint.${form.op}`))}</p>
-        </fieldset>
+        {@render opPicker(form.op, $_("dashboard.alerts.combo.logicLabel"), (op) => (form = setLogicOp(form, op)))}
 
         {#if form.rows.length === 0}
             <p class="empty">{$_("dashboard.alerts.combo.empty")}</p>
         {/if}
 
-        {#each form.rows as row, index (row.id)}
-            {@const entry = entryFor(row)}
-            <fieldset class="row">
-                <legend>
-                    {$_("dashboard.alerts.combo.rowLabel", { values: { index: index + 1 } })}
-                </legend>
-
-                <label class="field">
-                    <span>{$_("dashboard.alerts.combo.indicatorLabel")}</span>
-                    <select
-                        value={row.form.subject.id}
-                        onchange={(e) => chooseIndicator(row, e.currentTarget.value)}
-                    >
-                        {#each INDICATOR_CATALOGUE as candidate (candidate.id)}
-                            <option value={candidate.id}>{$_(key(nameKey(candidate.id)))}</option>
-                        {/each}
-                    </select>
-                </label>
-
-                {#if entry && entry.outputs.length > 1}
-                    <label class="field">
-                        <span>{$_("dashboard.alerts.combo.outputLabel")}</span>
-                        <select
-                            value={row.form.subject.output ?? entry.outputs[0].name}
-                            onchange={(e) => chooseOutput(row, e.currentTarget.value)}
-                        >
-                            {#each entry.outputs as line (line.name)}
-                                <option value={line.name}>{$_(key(outputKey(line.name)))}</option>
-                            {/each}
-                        </select>
-                    </label>
-                {/if}
-
-                {#if entry}
-                    {#each entry.params as param (param.name)}
-                        <label class="field narrow">
-                            <span>{$_(key(paramKey(param.name)))}</span>
-                            <input
-                                type="number"
-                                value={row.form.subject.params[param.name]}
-                                onchange={(e) => setParam(row, param.name, e.currentTarget.value, param.kind)}
-                            />
-                        </label>
+        {#each form.rows as node, index (node.id)}
+            {#if node.kind === "group"}
+                <section class="group" data-testid="combo-group">
+                    <header>
+                        <h5>{$_("dashboard.alerts.combo.groupLabel", { values: { index: index + 1 } })}</h5>
+                        <button type="button" class="remove" onclick={() => (form = removeRow(form, node.id))}>
+                            {$_("dashboard.alerts.combo.removeGroup", { values: { index: index + 1 } })}
+                        </button>
+                    </header>
+                    {@render opPicker(
+                        node.op,
+                        $_("dashboard.alerts.combo.groupLogicLabel"),
+                        (op) => (form = setLogicOp(form, op, node.id)),
+                    )}
+                    {#each node.members as leaf, memberIndex (leaf.id)}
+                        <ComboLeafRow
+                            {leaf}
+                            label={$_("dashboard.alerts.combo.rowLabel", {
+                                values: { index: `${index + 1}.${memberIndex + 1}` },
+                            })}
+                            removeLabel={$_("dashboard.alerts.combo.removeRow", {
+                                values: { index: `${index + 1}.${memberIndex + 1}` },
+                            })}
+                            refusals={refusalsAt(index, memberIndex)}
+                            onpatch={(next) => patch(leaf, next)}
+                            onkind={(kind) => switchKind(leaf, kind)}
+                            onremove={() => (form = removeRow(form, leaf.id))}
+                        />
                     {/each}
-                {/if}
-
-                <label class="field">
-                    <span>{$_("dashboard.alerts.combo.relationLabel")}</span>
-                    <select
-                        value={row.form.relation.kind}
-                        onchange={(e) =>
-                            setRelation(
-                                row,
-                                e.currentTarget.value === "compare"
-                                    ? { kind: "compare", op: compareOpsFor(row.form.reference)[0] }
-                                    : { kind: "cross", direction: "above" },
-                            )}
+                    <button
+                        type="button"
+                        class="add"
+                        disabled={!canAddRow(form)}
+                        onclick={() => (form = addRow(form, "indicator", node.id))}
                     >
-                        <option value="compare">{$_("dashboard.alerts.combo.relation.compare")}</option>
-                        <option value="cross">{$_("dashboard.alerts.combo.relation.cross")}</option>
-                    </select>
-                </label>
-
-                {#if row.form.relation.kind === "compare"}
-                    <label class="field">
-                        <span class="visually-hidden">{$_("dashboard.alerts.combo.relationLabel")}</span>
-                        <select
-                            value={row.form.relation.op}
-                            onchange={(e) =>
-                                setRelation(row, {
-                                    kind: "compare",
-                                    op: e.currentTarget.value as CompareOp,
-                                })}
-                        >
-                            {#each compareOpsFor(row.form.reference) as op (op)}
-                                <option value={op}>
-                                    {$_(key(`dashboard.alerts.combo.compareOp.${op}`))}
-                                </option>
-                            {/each}
-                        </select>
-                    </label>
-                {:else}
-                    <label class="field">
-                        <span class="visually-hidden">{$_("dashboard.alerts.combo.relationLabel")}</span>
-                        <select
-                            value={row.form.relation.direction}
-                            onchange={(e) =>
-                                setRelation(row, {
-                                    kind: "cross",
-                                    direction: e.currentTarget.value as CrossDirection,
-                                })}
-                        >
-                            {#each CROSS_DIRECTIONS as direction (direction)}
-                                <option value={direction}>
-                                    {$_(key(`rules.sentence.cross.${direction}`))}
-                                </option>
-                            {/each}
-                        </select>
-                    </label>
-                {/if}
-
-                <label class="field">
-                    <span>{$_("dashboard.alerts.combo.referenceLabel")}</span>
-                    <select
-                        value={row.form.reference.kind}
-                        onchange={(e) =>
-                            chooseReferenceKind(row, e.currentTarget.value as Reference["kind"])}
-                    >
-                        {#if entry}
-                            {#each referenceKindsFor(entry, dimensionFor(row)) as kind (kind)}
-                                <option value={kind}>{$_(key(`dashboard.alerts.combo.reference.${kind}`))}</option>
-                            {/each}
-                        {/if}
-                    </select>
-                </label>
-
-                {#if row.form.reference.kind === "window"}
-                    {@const window = row.form.reference}
-                    <label class="field">
-                        <span class="visually-hidden">{$_("dashboard.alerts.indicators.windowAggLabel")}</span>
-                        <select
-                            value={window.agg}
-                            onchange={(e) => setReference(row, { ...window, agg: e.currentTarget.value as WindowAgg })}
-                        >
-                            <option value="max">{$_("dashboard.alerts.indicators.windowAgg.max")}</option>
-                            <option value="min">{$_("dashboard.alerts.indicators.windowAgg.min")}</option>
-                        </select>
-                    </label>
-                    <label class="field narrow">
-                        <span>{$_("dashboard.alerts.indicators.lookbackLabel")}</span>
-                        <input
-                            type="number"
-                            min={MIN_WINDOW_LOOKBACK}
-                            max={MAX_WINDOW_LOOKBACK}
-                            step="1"
-                            value={window.lookback}
-                            onchange={(e) => {
-                                const lookback = committedWindowLookback(e.currentTarget.value, window.lookback);
-                                // Written back to the field too: a clamp onto the span the
-                                // row already holds changes no state, so nothing re-renders.
-                                e.currentTarget.value = String(lookback);
-                                setReference(row, { ...window, lookback });
-                            }}
-                        />
-                    </label>
-                {:else if row.form.reference.kind === "constant"}
-                    <label class="field narrow">
-                        <span class="visually-hidden">{$_("dashboard.alerts.combo.reference.constant")}</span>
-                        <input
-                            type="text"
-                            inputmode="decimal"
-                            value={row.form.reference.value}
-                            onchange={(e) =>
-                                setReference(row, { kind: "constant", value: e.currentTarget.value })}
-                        />
-                    </label>
-                {:else if row.form.reference.kind === "price"}
-                    <label class="field">
-                        <span class="visually-hidden">{$_("dashboard.alerts.combo.reference.price")}</span>
-                        <select
-                            value={row.form.reference.field}
-                            onchange={(e) =>
-                                setReference(row, {
-                                    kind: "price",
-                                    field: e.currentTarget.value as PriceField,
-                                })}
-                        >
-                            {#each PRICE_FIELDS as field (field)}
-                                <option value={field}>
-                                    {$_(key(`dashboard.alerts.combo.priceField.${field}`))}
-                                </option>
-                            {/each}
-                        </select>
-                    </label>
-                {:else}
-                    <label class="field">
-                        <span class="visually-hidden">{$_("dashboard.alerts.combo.reference.indicator")}</span>
-                        <select
-                            value={row.form.reference.indicator.id}
-                            onchange={(e) => chooseReferenceIndicator(row, e.currentTarget.value)}
-                        >
-                            {#each compatibleIndicators(dimensionFor(row), INDICATOR_CATALOGUE) as candidate (candidate.id)}
-                                <option value={candidate.id}>{$_(key(nameKey(candidate.id)))}</option>
-                            {/each}
-                        </select>
-                    </label>
-                {/if}
-
-                <button
-                    type="button"
-                    class="remove"
-                    onclick={() => (form = removeRow(form, row.id))}
-                >
-                    {$_("dashboard.alerts.combo.removeRow", { values: { index: index + 1 } })}
-                </button>
-            </fieldset>
+                        {$_("dashboard.alerts.combo.groupAddRow", { values: { index: index + 1 } })}
+                    </button>
+                </section>
+            {:else}
+                <ComboLeafRow
+                    leaf={node}
+                    label={$_("dashboard.alerts.combo.rowLabel", { values: { index: index + 1 } })}
+                    removeLabel={$_("dashboard.alerts.combo.removeRow", { values: { index: index + 1 } })}
+                    refusals={refusalsAt(index)}
+                    onpatch={(next) => patch(node, next)}
+                    onkind={(kind) => switchKind(node, kind)}
+                    onremove={() => (form = removeRow(form, node.id))}
+                />
+            {/if}
         {/each}
 
         <div class="actions">
-            <button
-                type="button"
-                class="add"
-                disabled={!canAddRow(form)}
-                onclick={() => (form = addRow(form))}
-            >
+            <button type="button" class="add" disabled={!canAddRow(form)} onclick={() => (form = addRow(form))}>
                 {$_("dashboard.alerts.combo.addRow")}
             </button>
+            <button type="button" class="add" disabled={!canAddGroup(form)} onclick={() => (form = addGroup(form))}>
+                {$_("dashboard.alerts.combo.addGroup")}
+            </button>
             <p class="hint">
-                {$_("dashboard.alerts.combo.limitHint", {
-                    values: { max: MAX_COMBO_CONDITIONS },
-                })}
+                {$_("dashboard.alerts.combo.limitHint", { values: { max: MAX_COMBO_CONDITIONS } })}
             </p>
         </div>
 
-        {#each conditionRefusals as refusal (refusal.field + refusal.code)}
+        {#if warmup !== null}
+            <p class="hint" data-testid="combo-warmup">
+                {$_("dashboard.alerts.combo.warmup", { values: { count: warmup, max: RULE_WARMUP_CEILING } })}
+            </p>
+        {/if}
+
+        {#each treeRefusals as refusal (refusal.field + refusal.code)}
             <p class="refusal" role="alert">{$_(key(refusal.i18n_key))}</p>
         {/each}
     </div>
@@ -464,26 +272,25 @@
         border-color: var(--accent);
         background: var(--bg-tertiary);
     }
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: end;
-        gap: var(--space-3);
-    }
-    .field {
+    .group {
         display: flex;
         flex-direction: column;
-        gap: var(--space-1);
-        min-width: 10rem;
-        flex: 1 1 10rem;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        border: 1px solid var(--accent);
+        border-radius: var(--radius-sm);
+        background: var(--bg-secondary);
     }
-    .field.narrow {
-        min-width: 6rem;
-        flex: 0 1 8rem;
+    .group header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
     }
-    .field span {
-        color: var(--text-secondary);
-        font-size: 0.8rem;
+    .group h5 {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-primary);
     }
     .actions {
         display: flex;
@@ -499,6 +306,7 @@
         background: var(--bg-secondary);
         color: var(--text-primary);
         cursor: pointer;
+        align-self: flex-start;
     }
     .add:disabled {
         opacity: 0.5;
@@ -533,13 +341,5 @@
         margin: 0;
         line-height: 1.5;
         font-size: 0.85rem;
-    }
-    .visually-hidden {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
     }
 </style>

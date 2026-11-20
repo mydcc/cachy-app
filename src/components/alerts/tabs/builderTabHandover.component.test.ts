@@ -234,8 +234,12 @@ describe("BUG-0443: switching builder tabs", () => {
 
     const rows = [...el.querySelectorAll("fieldset.row")];
     expect(rows).toHaveLength(2);
+    // FEAT-0813: a row's first select is its kind, the second its indicator.
     expect(
-      rows.map((row) => (row.querySelector("select") as HTMLSelectElement).value),
+      rows.map((row) => (row.querySelectorAll("select")[0] as HTMLSelectElement).value),
+    ).toEqual(["indicator", "indicator"]);
+    expect(
+      rows.map((row) => (row.querySelectorAll("select")[1] as HTMLSelectElement).value),
     ).toEqual(["rsi", "ema"]);
     // Whole-document equality, not just the ids: a rebuild that drops the
     // periods, the right operand or the operator must fail this.

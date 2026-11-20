@@ -29,9 +29,18 @@ import {
     isOfferedOp,
     setLogicOp,
     type ComboForm,
+    type IndicatorLeaf,
 } from "./comboConditionForm";
 
 const TRIGGER = "15m";
+
+/** The form's root rows as indicator rows, which is all `formWith` builds. */
+function indicatorRows(form: ComboForm | null | undefined): IndicatorLeaf[] {
+    return (form?.rows ?? []).map((row) => {
+        if (row.kind !== "indicator") throw new Error(`expected an indicator row, got ${row.kind}`);
+        return row;
+    });
+}
 
 function formWith(count: number): ComboForm {
     let form = emptyComboForm();
@@ -91,7 +100,7 @@ describe("buildComboCondition", () => {
 });
 
 describe("row editing", () => {
-    it("refuses a row beyond the five FEAT-0030 allows", () => {
+    it("refuses a row beyond the sixteen FEAT-0813 allows", () => {
         const full = formWith(MAX_COMBO_CONDITIONS);
         expect(full.rows).toHaveLength(MAX_COMBO_CONDITIONS);
         expect(addRow(full).rows).toHaveLength(MAX_COMBO_CONDITIONS);
@@ -127,14 +136,14 @@ describe("readComboForm", () => {
         expect(read).not.toBeNull();
         expect(read?.op).toBe("any");
         expect(read?.rows).toHaveLength(2);
-        expect(read?.rows.map((row) => row.form)).toEqual(form.rows.map((row) => row.form));
+        expect(indicatorRows(read).map((row) => row.form)).toEqual(indicatorRows(form).map((row) => row.form));
     });
 
     it("round-trips a row measured against its own window", () => {
         // FEAT-0446 group 4: the combo rows share the Indicators tab's form, so
         // a window reference built in one row reads back as that row.
         const one = formWith(1);
-        const row = one.rows[0];
+        const row = indicatorRows(one)[0];
         const windowed = replaceRow(one, row.id, {
             form: {
                 ...row.form,
@@ -143,14 +152,14 @@ describe("readComboForm", () => {
             },
         });
         const read = readComboForm(buildComboCondition(windowed, TRIGGER), TRIGGER);
-        expect(read?.rows[0].form).toEqual(windowed.rows[0].form);
+        expect(indicatorRows(read)[0].form).toEqual(indicatorRows(windowed)[0].form);
     });
 
     it("round-trips a row over the price its indicator is computed over", () => {
         // FEAT-0454: a condition seeded from a card drawn over hl2 reaches this
         // tab too. The row does not offer the price, but must not drop it.
         const one = formWith(1);
-        const row = one.rows[0];
+        const row = indicatorRows(one)[0];
         const overHl2 = replaceRow(one, row.id, {
             form: {
                 subject: { id: "rsi", params: { period: 14 }, output: "value", field: "hl2" },
@@ -160,7 +169,7 @@ describe("readComboForm", () => {
         });
         const built = buildComboCondition(overHl2, TRIGGER);
         const read = readComboForm(built, TRIGGER);
-        expect(read?.rows[0].form).toEqual(overHl2.rows[0].form);
+        expect(indicatorRows(read)[0].form).toEqual(indicatorRows(overHl2)[0].form);
         expect(buildComboCondition(read!, TRIGGER)).toEqual(built);
     });
 
@@ -176,7 +185,7 @@ describe("readComboForm", () => {
         expect(read?.rows[0].timeframe).toBeNull();
     });
 
-    it("refuses a nested group rather than dropping what it cannot show", () => {
+    it("refuses an empty nested group rather than dropping what it cannot show", () => {
         const nested = {
             kind: "group",
             op: "all",
