@@ -328,16 +328,53 @@ describe("FEAT-0808 — the bots tab", () => {
         expect(host.querySelectorAll("li")).toHaveLength(0);
     });
 
-    it("degrades every bot to blocked with a notice while the book cannot be read", async () => {
+    it("names the unreadable book first and lists nothing while it cannot be read", async () => {
         seedBots(botDocument("bot-1"));
         await openAs("bot-1");
 
+        // An unreadable book leaves paper trading off (the safe default in
+        // `paperState.load`), so FEAT-0825's account filter hides the bot —
+        // and the book notice still names the cause before the account one.
         localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, "{not json");
         paperState.reloadFromStorage();
         render();
 
+        expect(paperState.enabled).toBe(false);
         expect(host.querySelector('[data-testid="bots-book-degraded"]')).not.toBeNull();
-        expect(chipOf(rowOf("bot-1"))).toBe(lookup(en, "botsList.state.blocked"));
+        expect(host.querySelector('[data-testid="bots-account-inactive"]')).not.toBeNull();
+        expect(rowOf("bot-1")).toBeNull();
+    });
+
+    // FEAT-0825 / ADR-0028 — only the executing account's bots are listed.
+    it("hides paper bots and their positions while a live account is active, and says how many", async () => {
+        seedBots(botDocument("bot-1"), botDocument("bot-2", { symbol: "ETHUSDT" }));
+        await openAs("bot-1");
+        expect(paperState.positions).toHaveLength(1);
+
+        paperState.setEnabled(false);
+        render();
+
+        expect(rowOf("bot-1")).toBeNull();
+        expect(rowOf("bot-2")).toBeNull();
+        // No position facts of the paper book beside a live account.
+        expect(host.querySelector('[data-testid="bot-position-facts"]')).toBeNull();
+        expect(host.querySelector('[data-testid="bots-empty"]')).toBeNull();
+        const notice = host.querySelector<HTMLElement>('[data-testid="bots-account-inactive"]');
+        expect(notice, "the hidden bots were not announced").not.toBeNull();
+        expect(notice!.textContent).toContain("2");
+    });
+
+    it("lists the bots again the moment paper trading is back on", async () => {
+        seedBots(botDocument("bot-1"));
+        paperState.setEnabled(false);
+        render();
+        expect(rowOf("bot-1")).toBeNull();
+
+        paperState.setEnabled(true);
+        flushSync();
+
+        expect(rowOf("bot-1")).not.toBeNull();
+        expect(host.querySelector('[data-testid="bots-account-inactive"]')).toBeNull();
     });
 
     it("renders the row of a position whose bot was deleted", async () => {

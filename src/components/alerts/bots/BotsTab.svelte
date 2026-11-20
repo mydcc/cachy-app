@@ -48,6 +48,8 @@
         setBotEnabled,
     } from "../../../services/alertEngine/botStore";
     import { promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
+    import { executingBotAccount } from "../../../services/alertEngine/botAccount";
+    import { paperState } from "../../../stores/paperTrading.svelte";
     import { logger } from "../../../services/logger";
     import { alertState, stopAllBots } from "../../../stores/alerts.svelte";
     import {
@@ -111,7 +113,16 @@
         }
     });
 
-    let bots = $derived(read.rules.filter(isBot));
+    /**
+     * FEAT-0825 / ADR-0028 — the desk lists only the executing account's
+     * bots. While a live account is active no bot account executes, so the
+     * paper bots are hidden and the notice says how many and where they are;
+     * the list is never a filter a trader has to discover.
+     */
+    let executingAccount = $derived(executingBotAccount(paperState.enabled));
+    let allBots = $derived(read.rules.filter(isBot));
+    let bots = $derived(executingAccount === null ? [] : allBots);
+    let hiddenBotCount = $derived(executingAccount === null ? allBots.length : 0);
     let alerts = $derived(read.rules.filter((rule) => !isBot(rule)));
 
     /**
@@ -328,7 +339,15 @@
             {/if}
         </div>
 
-        {#if bots.length === 0}
+        {#if hiddenBotCount > 0}
+            <p
+                class="text-sm text-[var(--warning-color)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
+                role="status"
+                data-testid="bots-account-inactive"
+            >
+                {$_("settings.automation.accountInactive", { values: { count: hiddenBotCount } })}
+            </p>
+        {:else if bots.length === 0}
             <p class="text-sm text-[var(--text-secondary)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
                 {$_("settings.automation.noBots")}
             </p>

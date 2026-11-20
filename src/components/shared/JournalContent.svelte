@@ -19,6 +19,7 @@
     import { tradeState } from "../../stores/trade.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { journalState } from "../../stores/journal.svelte";
+    import { paperState } from "../../stores/paperTrading.svelte";
     import { uiState } from "../../stores/ui.svelte";
     import { app } from "../../services/app";
     import { imgbbService } from "../../services/imgbbService";
@@ -200,7 +201,12 @@
     let selectedTag = $state("");
     let groupBySymbol = $state(false);
     let showColumnSettings = $state(false);
-    let tradeMode: "live" | "paper" | "all" = $state("live");
+    // FEAT-0825 / ADR-0028 — the journal opens on the active account's
+    // trades: the paper account's while paper trading is on, the live ones
+    // otherwise. Read once at open, never followed: the switch is the
+    // trader's from then on, and "all" stays the explicit, opt-in way to see
+    // both accounts side by side.
+    let tradeMode: "live" | "paper" | "all" = $state(paperState.enabled ? "paper" : "live");
 
     let liveTradesCount = $derived(
         journalState.entries.filter((t) => !t.isPaper).length,
