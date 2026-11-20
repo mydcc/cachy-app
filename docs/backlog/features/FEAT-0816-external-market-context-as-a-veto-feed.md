@@ -2,7 +2,7 @@
 id: FEAT-0816
 title: Wire external market context as a veto feed
 type: feature
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [pro, private]
@@ -13,6 +13,8 @@ depends_on: [FEAT-0814]
 parent: FEAT-0805
 size: L
 estimate: 8
+assignee: claude
+branch: feature/feat-0816-external-feed-veto
 ---
 
 # FEAT-0816 — Wire external market context as a veto feed
