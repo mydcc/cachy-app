@@ -62,6 +62,7 @@
     import { uiState } from "../../stores/ui.svelte";
     import { logger } from "../../services/logger";
     import RuleLifecycleFields from "./RuleLifecycleFields.svelte";
+    import VetoSection from "./veto/VetoSection.svelte";
 
 let rootElement: HTMLElement | null = null;
 
@@ -203,6 +204,7 @@ let rootElement: HTMLElement | null = null;
 
     let hasCondition = $derived(
         !alertPanelState.incompleteConditions &&
+            !alertPanelState.incompleteVeto &&
             (alertPanelState.draft.conditions.kind !== "group" ||
                 alertPanelState.draft.conditions.of.length > 0),
     );
@@ -235,7 +237,14 @@ let rootElement: HTMLElement | null = null;
         }
     });
 
-    let otherRefusals = $derived(unclaimedRefusals(alertPanelState.refusals, SHELL_FIELDS));
+    // `veto` is claimed while the veto section is on screen -- it renders its
+    // own refusals, anchored to the leaf -- and falls back here otherwise.
+    let otherRefusals = $derived(
+        unclaimedRefusals(
+            alertPanelState.refusals,
+            alertPanelState.drawingDraft ? SHELL_FIELDS : [...SHELL_FIELDS, "veto"],
+        ),
+    );
 
     function selectTab(tab: AlertPanelTab) {
         alertPanelState.activeTab = tab;
@@ -385,7 +394,7 @@ let rootElement: HTMLElement | null = null;
         // FEAT-0813: an unfinished combo leaf is left out of the draft, so the
         // draft is not the rule on screen. The button is disabled too; this
         // keeps a keyboard or programmatic arm from slipping past it.
-        if (alertPanelState.incompleteConditions) return;
+        if (alertPanelState.incompleteConditions || alertPanelState.incompleteVeto) return;
         const accepted = alertPanelState.validateDraft();
         if (!accepted) return;
         try {
@@ -608,6 +617,18 @@ let rootElement: HTMLElement | null = null;
         <RuleLifecycleFields />
 
         <!--
+          FEAT-0814 -- the veto belongs to the rule, not to one builder, so it
+          sits in the shared footer. Keyed on the draft object: a reset or a
+          rule loaded for editing replaces the draft, and the section must
+          read the new one instead of writing its old form over it.
+        -->
+        {#if !alertPanelState.drawingDraft}
+            {#key alertPanelState.draft}
+                <VetoSection {translate} />
+            {/key}
+        {/if}
+
+        <!--
           The rule in words, above the arm button and never behind a toggle.
           For every builder except a drawing draft this is what a trader arms
           from: the sentence is rendered from the document the core will be
@@ -652,7 +673,7 @@ let rootElement: HTMLElement | null = null;
             disabled={!hasCondition}
             title={hasCondition
                 ? undefined
-                : alertPanelState.incompleteConditions
+                : alertPanelState.incompleteConditions || alertPanelState.incompleteVeto
                   ? $_("dashboard.alerts.panel.armIncomplete")
                   : $_("dashboard.alerts.panel.armDisabled")}
         >

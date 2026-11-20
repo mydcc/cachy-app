@@ -2,7 +2,7 @@
 id: FEAT-0814
 title: Author and audit veto conditions
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,8 @@ depends_on: []
 parent: FEAT-0805
 size: M
 estimate: 5
+assignee: claude
+branch: feature/feat-0814-veto
 ---
 
 # FEAT-0814 — Author and audit veto conditions
@@ -45,18 +47,36 @@ Make the existing contract usable and visible:
 
 ## Acceptance criteria
 
-- [ ] A veto can be added, edited and removed; a document without one keeps its
+- [x] A veto can be added, edited and removed; a document without one keeps its
       existing hash.
-- [ ] A trigger whose conditions hold but whose veto refuses writes a
+- [x] A trigger whose conditions hold but whose veto refuses writes a
       suppression entry naming the veto clause, and the bot does not submit.
-- [ ] A trigger with no veto writes exactly today's entries — no new noise.
-- [ ] `external_feed` is accepted inside the veto editor and still refused
+- [x] A trigger with no veto writes exactly today's entries — no new noise.
+- [x] `external_feed` is accepted inside the veto editor and still refused
       inside the trigger editor with a field-naming error.
-- [ ] A rule with a veto shows a badge on its list row; the sentence is not
+- [x] A rule with a veto shows a badge on its list row; the sentence is not
       duplicated.
-- [ ] Suppression entries survive a reload and are filterable in the log.
-- [ ] Tests: veto suppresses, veto allows, removal restores firing, and the
+- [x] Suppression entries survive a reload and are filterable in the log.
+- [x] Tests: veto suppresses, veto allows, removal restores firing, and the
       refusal path.
+
+## Decisions
+
+- **One ledger, own source.** A suppression is written to the firing ledger as
+  `source: "veto"`, `verdict: "suppressed"` — one chronology, as proposed — but
+  not as a `rule` record: every existing reader (unread badge, "last fired",
+  the shadow comparison) counts a `rule` record as an announcement.
+- **Bounded.** Suppressions keep at most `SUPPRESSION_MAX_RECORDS` (100) of the
+  ledger's 500 and drop their own oldest first; one record per rule and candle.
+- **Separate sink.** The loop hands a vetoed close to `onSuppressed`, never to
+  `onFiring`, so no notifier or order wrapper can treat it as "act now".
+  Close path and confirmation-signal path; intrabar and shadow mode record none.
+- **The veto does not block exits.** Unchanged; exits are the bot's safety.
+- **Feeds.** The editor offers the three ids FEAT-0816 wires
+  (`lib/rules/externalFeeds.ts`); until then a feed reads as unavailable, the
+  verdict is indeterminate, and the feed row says the rule does not fire.
+- **Writes only on edit.** Opening the veto writes nothing; a stored bare-leaf
+  veto keeps its exact document and hash.
 
 ## Out of scope
 

@@ -34,6 +34,7 @@
  * `$state`; this module owns the rules about what a legal combination is.
  */
 
+import { Decimal } from "decimal.js";
 import { generateId } from "../../utils/utils";
 import {
     buildIndicatorCondition,
@@ -43,8 +44,15 @@ import {
 } from "./indicatorConditionForm";
 import { INDICATOR_CATALOGUE, catalogueEntry } from "./indicatorCatalogue";
 import { ALL_PATTERNS, buildPatternCondition } from "./patternCatalogue";
+import { EXTERNAL_FEEDS } from "../rules/externalFeeds";
 import { buildPriceCondition, priceReadingOf, type PriceReading } from "./priceFormLeaf";
-import type { CandlePatternName, Condition, LogicOp, TimeframeString } from "../rules/types";
+import type {
+    CandlePatternName,
+    CompareOp,
+    Condition,
+    LogicOp,
+    TimeframeString,
+} from "../rules/types";
 
 /**
  * Sixteen leaves per rule, decided 2026-11-20 (TODO.md #35).
@@ -98,8 +106,20 @@ export function isOfferedOp(op: LogicOp): boolean {
 }
 
 /** The kinds of leaf a row can be. */
-export type ComboLeafKind = "indicator" | "price" | "pattern";
+export type ComboLeafKind = "indicator" | "price" | "pattern" | "feed";
+/** What the trigger editor offers. A feed is refused there by the core (ADR-0012 decision 7). */
 export const COMBO_LEAF_KINDS: readonly ComboLeafKind[] = ["indicator", "price", "pattern"];
+/** What the veto editor offers (FEAT-0814): the trigger's kinds plus a third-party feed. */
+export const VETO_LEAF_KINDS: readonly ComboLeafKind[] = [...COMBO_LEAF_KINDS, "feed"];
+
+
+export const FEED_OPS: readonly CompareOp[] = ["gt", "gte", "lt", "lte"];
+
+/** How a reader treats a leaf kind the call site does not offer. */
+export interface ComboReadOptions {
+    /** Read `external_feed` leaves (the veto editor). Default: lock on them. */
+    allowFeed?: boolean;
+}
 
 interface LeafBase {
     /**
@@ -137,7 +157,16 @@ export interface PatternLeaf extends LeafBase {
     readonly pattern: CandlePatternName;
 }
 
-export type ComboLeaf = IndicatorLeaf | PriceLeaf | PatternLeaf;
+/** A third-party feed against a threshold; legal only inside a veto. */
+export interface FeedLeaf extends LeafBase {
+    readonly kind: "feed";
+    readonly feed: string;
+    readonly op: CompareOp;
+    /** Decimal string as typed; built only once it parses. */
+    readonly value: string;
+}
+
+export type ComboLeaf = IndicatorLeaf | PriceLeaf | PatternLeaf | FeedLeaf;
 
 /** An indicator row. Kept as a name because it was the only row kind in v1. */
 export type ComboRow = IndicatorLeaf;
@@ -162,6 +191,9 @@ export type ComboLeafPatch = Partial<{
     form: IndicatorForm;
     reading: PriceReading;
     pattern: CandlePatternName;
+    feed: string;
+    op: CompareOp;
+    value: string;
     timeframe: TimeframeString | null;
 }>;
 
@@ -182,7 +214,16 @@ export function newComboRow(): IndicatorLeaf {
  * level the trader did not choose, and an empty one keeps the rule unarmable
  * until they type theirs.
  */
-export function newComboLeaf(kind: ComboLeafKind): ComboLeaf {
+/**
+ * What a new price leaf reads: the panel header's field and series, the
+ * same defaults the Price tab applies, so "High" in the header is not
+ * silently a close in a combo row.
+ */
+export type LeafDefaults = Pick<PriceReading, "field" | "source">;
+
+const CLOSE_LAST: LeafDefaults = { field: "close", source: "last" };
+
+export function newComboLeaf(kind: ComboLeafKind, defaults: LeafDefaults = CLOSE_LAST): ComboLeaf {
     if (kind === "indicator") return newComboRow();
     if (kind === "price") {
         return {
@@ -190,13 +231,32 @@ export function newComboLeaf(kind: ComboLeafKind): ComboLeaf {
             kind: "price",
             reading: {
                 form: { kind: "rises_above", threshold: "", lookback: 1 },
-                field: "close",
-                source: "last",
+                field: defaults.field,
+                source: defaults.source,
             },
             timeframe: null,
         };
     }
+    if (kind === "feed") {
+        return { id: generateId(), kind: "feed", feed: EXTERNAL_FEEDS[0], op: "gt", value: "", timeframe: null };
+    }
     return { id: generateId(), kind: "pattern", pattern: ALL_PATTERNS[0], timeframe: null };
+}
+
+/**
+ * A feed threshold as the document stores it, or null while it is not a
+ * number. Decimal, not `Number`: a funding rate of 0.0001 is a value a
+ * float would print as 1e-4 and a trader would not recognise.
+ */
+function feedValue(raw: string): string | null {
+    const trimmed = raw.trim();
+    if (trimmed === "") return null;
+    try {
+        const value = new Decimal(trimmed);
+        return value.isFinite() ? value.toFixed() : null;
+    } catch {
+        return null;
+    }
 }
 
 export function emptyComboForm(op: LogicOp = "all"): ComboForm {
@@ -284,6 +344,15 @@ function patchLeaf(leaf: ComboLeaf, next: ComboLeafPatch): ComboLeaf {
     const timeframe = next.timeframe === undefined ? leaf.timeframe : next.timeframe;
     if (leaf.kind === "indicator") return { ...leaf, form: next.form ?? leaf.form, timeframe };
     if (leaf.kind === "price") return { ...leaf, reading: next.reading ?? leaf.reading, timeframe };
+    if (leaf.kind === "feed") {
+        // A feed has no timeframe of its own: it is read as of the close.
+        return {
+            ...leaf,
+            feed: next.feed ?? leaf.feed,
+            op: next.op ?? leaf.op,
+            value: next.value ?? leaf.value,
+        };
+    }
     return { ...leaf, pattern: next.pattern ?? leaf.pattern, timeframe };
 }
 
@@ -304,10 +373,15 @@ export function replaceRow(form: ComboForm, id: string, next: ComboLeafPatch): C
 }
 
 /** Swap the leaf `id` for a fresh leaf of `kind`, keeping its place and timeframe. */
-export function changeLeafKind(form: ComboForm, id: string, kind: ComboLeafKind): ComboForm {
+export function changeLeafKind(
+    form: ComboForm,
+    id: string,
+    kind: ComboLeafKind,
+    defaults: LeafDefaults = CLOSE_LAST,
+): ComboForm {
     const swap = (leaf: ComboLeaf): ComboLeaf =>
         leaf.id === id && leaf.kind !== kind
-            ? { ...newComboLeaf(kind), id: leaf.id, timeframe: leaf.timeframe }
+            ? { ...newComboLeaf(kind, defaults), id: leaf.id, timeframe: leaf.timeframe }
             : leaf;
     return {
         ...form,
@@ -332,6 +406,10 @@ function buildLeaf(leaf: ComboLeaf, triggerTimeframe: TimeframeString): Conditio
     const timeframe = leaf.timeframe ?? triggerTimeframe;
     if (leaf.kind === "indicator") return buildIndicatorCondition(leaf.form, timeframe);
     if (leaf.kind === "price") return buildPriceCondition(leaf.reading, timeframe);
+    if (leaf.kind === "feed") {
+        const value = feedValue(leaf.value);
+        return value === null ? null : { kind: "external_feed", feed: leaf.feed, op: leaf.op, value };
+    }
     return buildPatternCondition(leaf.pattern, timeframe);
 }
 
@@ -443,7 +521,14 @@ function ownTimeframe(timeframe: TimeframeString, trigger: TimeframeString): Tim
     return timeframe === trigger ? null : timeframe;
 }
 
-function readLeaf(child: Condition, trigger: TimeframeString): ComboLeaf | null {
+function readLeaf(child: Condition, trigger: TimeframeString, options: ComboReadOptions): ComboLeaf | null {
+    if (child.kind === "external_feed") {
+        if (!options.allowFeed) return null;
+        // Claimed only when the rebuild is the stored leaf, so opening the
+        // veto cannot rewrite a threshold ("0.010" stays locked, not "0.01").
+        if (feedValue(child.value) !== child.value) return null;
+        return { id: generateId(), kind: "feed", feed: child.feed, op: child.op, value: child.value, timeframe: null };
+    }
     if (child.kind === "pattern") {
         return {
             id: generateId(),
@@ -477,7 +562,11 @@ function readLeaf(child: Condition, trigger: TimeframeString): ComboLeaf | null 
     return null;
 }
 
-function readTree(conditions: Condition | null | undefined, trigger: TimeframeString): TreeReading {
+function readTree(
+    conditions: Condition | null | undefined,
+    trigger: TimeframeString,
+    options: ComboReadOptions = {},
+): TreeReading {
     if (!conditions || conditions.kind !== "group") return { reason: "unsupported" };
     // A `none` group is legal in the core and may arrive from a template, an
     // import or a model proposal. The builder does not offer that operator,
@@ -494,7 +583,7 @@ function readTree(conditions: Condition | null | undefined, trigger: TimeframeSt
             for (const grandchild of child.of) {
                 // A third level is legal in the core but deeper than this
                 // builder edits; flattening it would change what it means.
-                const leaf = readLeaf(grandchild, trigger);
+                const leaf = readLeaf(grandchild, trigger, options);
                 if (!leaf) return { reason: "unsupported" };
                 members.push(leaf);
             }
@@ -502,7 +591,7 @@ function readTree(conditions: Condition | null | undefined, trigger: TimeframeSt
             rows.push({ id: generateId(), kind: "group", op: child.op, members });
             continue;
         }
-        const leaf = readLeaf(child, trigger);
+        const leaf = readLeaf(child, trigger, options);
         if (!leaf) return { reason: "unsupported" };
         leaves += 1;
         rows.push(leaf);
@@ -523,8 +612,9 @@ function readTree(conditions: Condition | null | undefined, trigger: TimeframeSt
 export function readComboForm(
     conditions: Condition | null | undefined,
     triggerTimeframe: TimeframeString,
+    options: ComboReadOptions = {},
 ): ComboForm | null {
-    const reading = readTree(conditions, triggerTimeframe);
+    const reading = readTree(conditions, triggerTimeframe, options);
     return "form" in reading ? reading.form : null;
 }
 
@@ -536,7 +626,19 @@ export function readComboForm(
 export function comboLockReason(
     conditions: Condition | null | undefined,
     triggerTimeframe: TimeframeString,
+    options: ComboReadOptions = {},
 ): ComboLockReason | null {
-    const reading = readTree(conditions, triggerTimeframe);
+    const reading = readTree(conditions, triggerTimeframe, options);
     return "reason" in reading ? reading.reason : null;
+}
+
+/**
+ * A stored veto as a group the tree editor can open (FEAT-0814). A veto may
+ * be a bare leaf -- the core does not require a group there -- so a single
+ * leaf is read as a one-member `all` group. The editor writes back only once
+ * the trader edits, so opening a bare veto never rewrites its hash.
+ */
+export function vetoAsGroup(veto: Condition | null | undefined): Condition | null {
+    if (!veto) return null;
+    return veto.kind === "group" ? veto : { kind: "group", op: "all", of: [veto] };
 }

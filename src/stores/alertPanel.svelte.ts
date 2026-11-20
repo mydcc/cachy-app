@@ -233,6 +233,9 @@ class AlertPanelStore {
    */
   incompleteConditions = $state(false);
 
+  /** The same for the veto editor (FEAT-0814): a veto leaf that does not build yet. */
+  incompleteVeto = $state(false);
+
   /**
    * True while a seed from outside the panel is waiting to be honoured.
    *
@@ -315,6 +318,7 @@ class AlertPanelStore {
     this.hasValidated = false;
     this.coreUnavailable = false;
     this.incompleteConditions = false;
+    this.incompleteVeto = false;
   }
 
   /**
@@ -408,6 +412,22 @@ class AlertPanelStore {
   setConditionGroup(group: Condition | null) {
     this.draft.conditions =
       group && group.kind === "group" ? group : { kind: "group", op: "all", of: [] };
+  }
+
+  /**
+   * Set or remove the draft's veto (FEAT-0814).
+   *
+   * Removing deletes the key rather than writing `undefined` or an empty
+   * group: a document without a veto must keep exactly the hash it had
+   * before the field was ever touched, and an empty group is a veto that
+   * can never hold -- a different document under the same sentence.
+   */
+  setVeto(veto: Condition | null) {
+    if (veto === null) {
+      delete this.draft.veto;
+      return;
+    }
+    this.draft.veto = veto;
   }
 
   /**

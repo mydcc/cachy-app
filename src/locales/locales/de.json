@@ -754,7 +754,8 @@
         "leafKind": {
           "indicator": "Indikator",
           "price": "Preis",
-          "pattern": "Kerzenmuster"
+          "pattern": "Kerzenmuster",
+          "feed": "Externer Feed"
         },
         "patternLabel": "Muster",
         "addGroup": "Gruppe hinzufügen",
@@ -763,7 +764,8 @@
         "groupAddRow": "Bedingung zur Gruppe {index} hinzufügen",
         "removeGroup": "Gruppe {index} entfernen",
         "warmup": "Diese Regel braucht {count} geschlossene Kerzen Vorlauf, bevor sie urteilen kann (höchstens {max}).",
-        "incomplete": "Eine Bedingung ist noch nicht fertig ausgefüllt. Sie fehlt im Satz oben, und die Regel lässt sich erst scharf schalten, wenn sie vollständig ist."
+        "incomplete": "Eine Bedingung ist noch nicht fertig ausgefüllt. Sie fehlt im Satz oben, und die Regel lässt sich erst scharf schalten, wenn sie vollständig ist.",
+        "warmupTooDeep": "Diese Regel braucht mehr als {max} Kerzen Vorlauf. Das ist mehr, als der Core lädt; scharf geschaltet würde sie nie urteilen. Verkürze einen Zeitraum oder ein Fenster."
       },
       "manageList": {
         "tabAlerts": "Alarme ({count})",
@@ -803,7 +805,30 @@
         "logDeletedRule": "Regel gelöscht",
         "logBotRule": "Automation-Regel",
         "openRule": "Regel {name} öffnen",
-        "logCandle": "Kerze {time}"
+        "logCandle": "Kerze {time}",
+        "logFilter": "Anzeigen",
+        "logSuppressed": "Unterdrückt (Veto)",
+        "logVetoClause": "Veto: {clause}",
+        "vetoBadge": "Veto",
+        "logFilterOption": {
+          "all": "Alle",
+          "fired": "Ausgelöst",
+          "suppressed": "Unterdrückt"
+        }
+      },
+      "veto": {
+        "title": "Veto",
+        "empty": "Kein Veto. Die Regel löst aus, sobald ihre Bedingungen erfüllt sind.",
+        "add": "Veto hinzufügen",
+        "remove": "Veto entfernen",
+        "explain": "Gilt eine dieser Bedingungen zum Kerzenschluss, wird der Trigger unterdrückt: keine Benachrichtigung, keine Order. Das Log hält die Unterdrückung fest.",
+        "locked": "Dieses Veto kann der Editor nicht darstellen. Es bleibt unverändert erhalten; du kannst es nur entfernen.",
+        "incomplete": "Eine Veto-Bedingung ist noch nicht fertig ausgefüllt. Sie fehlt im Veto, und die Regel lässt sich erst scharf schalten, wenn sie vollständig ist.",
+        "sentence": "Unterdrückt, wenn {condition}.",
+        "feedLabel": "Feed",
+        "opLabel": "Vergleich",
+        "valueLabel": "Schwelle",
+        "feedUnwired": "Für diesen Feed liefert noch keine Quelle Werte. Solange er fehlt, ist das Urteil unbestimmt und die Regel löst nicht aus."
       }
     },
     "generalInputs": {
@@ -995,7 +1020,8 @@
       "submissionInFlight": "ein Einstieg ist noch unterwegs",
       "positionAlreadyOpen": "in dieser Richtung ist bereits eine Position offen",
       "confirmationAgainstDirection": "die Bestätigungskerze schloss gegen den Einstieg",
-      "signalStoppedOut": "die Position war vor der Bestätigung weg"
+      "signalStoppedOut": "die Position war vor der Bestätigung weg",
+      "vetoed": "Trigger erfüllt, aber vom Veto der Regel blockiert"
     },
     "created": "Erstellt {when}",
     "fired": "{count}-mal ausgelöst, zuletzt {when}",
@@ -5225,7 +5251,12 @@
       "percentValue": "{value} %",
       "volume": "das Volumen",
       "windowMin": "der tiefste Wert von {of} über die letzten {lookback} Schlusskurse",
-      "windowMax": "der höchste Wert von {of} über die letzten {lookback} Schlusskurse"
+      "windowMax": "der höchste Wert von {of} über die letzten {lookback} Schlusskurse",
+      "feed": {
+        "funding_rate": "die Funding-Rate",
+        "open_interest_change": "die Open-Interest-Veränderung",
+        "fear_greed": "der Fear-&-Greed-Index"
+      }
     }
   },
   "storage": {

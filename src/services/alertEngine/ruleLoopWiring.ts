@@ -44,6 +44,7 @@ import {
   type ConfirmationLoopPorts,
   type ExitLoopPorts,
   type FiringSink,
+  type SuppressionSink,
   type SeriesCloseHook,
   type UnevaluableSink,
 } from "./ruleEvaluationLoop";
@@ -442,6 +443,9 @@ export function startRuleEvaluationLoop(
   // store layer (the awaiting report it maintains, the guard ledger it
   // records into) and passed through untouched.
   confirmation?: ConfirmationLoopPorts,
+  // FEAT-0814 — where a vetoed trigger goes. Absent (shadow mode) records
+  // nothing.
+  onSuppressed?: SuppressionSink,
 ): () => void {
   // A no-op disposer rather than `undefined`: SSR must not hand the caller a
   // value it has to null-check, and there is nothing armed to stop.
@@ -458,6 +462,7 @@ export function startRuleEvaluationLoop(
     // `frequency` is a field the builder writes and nothing reads.
     readRuleState,
     onFiring,
+    onSuppressed,
     onClose,
     onUnevaluable: settingsAwareUnevaluableSink,
     // FEAT-0029: without this a drawing-anchored rule evaluates against the

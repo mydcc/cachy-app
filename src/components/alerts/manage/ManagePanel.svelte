@@ -48,13 +48,14 @@
         type SetRuleEnabledReason,
     } from "../../../services/alertEngine/ruleActions";
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
-    import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
-    import { readBotLogRows } from "../../../services/alertEngine/botStore";
+    import { readShadowLedger, type ShadowFiringRecord } from "../../../services/alertEngine/shadowLedger";
+    import { readBotLogRows, readBots } from "../../../services/alertEngine/botStore";
+    import { logger } from "../../../services/logger";
     import { sendTestAnnouncement } from "../../../stores/alertDelivery";
     import { channelsLabel } from "../../../lib/alerts/lifecycleLabels";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
     import { uiState } from "../../../stores/ui.svelte";
-    import type { SentenceTranslator } from "../../../lib/rules/ruleSentence";
+    import { renderVetoSentence, type SentenceTranslator } from "../../../lib/rules/ruleSentence";
     import type { RuleDocument } from "../../../lib/rules/types";
     import type { TranslationKey } from "../../../locales/schema";
     import AlertFilters from "../manage/AlertFilters.svelte";
@@ -167,7 +168,42 @@
         void alertState.rulesVersion;
         return readBotLogRows();
     });
-    let logEntries = $derived(buildFiringLog(records, baseRows, botRows));
+    // FEAT-0814 — a suppression names the veto clause that refused: the veto
+    // the record stored, phrased in the reader's language, so editing the
+    // veto later cannot re-attribute old entries. Only a record without one
+    // falls back to the rule as it stands now; bots are looked up too, since
+    // a vetoed bot is exactly the entry that must not read as "found no setup".
+    let vetoClauseOf = $derived.by(() => {
+        void alertState.rulesVersion;
+        const documents = new Map<string, RuleDocument>();
+        for (const row of baseRows) documents.set(row.id, row.rule as RuleDocument);
+        try {
+            for (const bot of readBots()) if (typeof bot.id === "string") documents.set(bot.id, bot);
+        } catch (e) {
+            // An unreadable store costs the bots their fallback clause, not
+            // the log; `readBotLogRows` reports the store itself.
+            logger.warn("alerts", "Could not read bots for the veto clauses", e);
+        }
+        return (record: ShadowFiringRecord): string | null => {
+            const current = documents.get(record.id);
+            // Stored data from `localStorage`: a malformed veto costs its entry
+            // the clause, never the whole log -- like `sentenceFor` for a row.
+            try {
+                if (record.veto) {
+                    const asRecorded = {
+                        veto: record.veto,
+                        trigger_timeframe: record.timeframe ?? current?.trigger_timeframe ?? "",
+                    } as RuleDocument;
+                    return renderVetoSentence(asRecorded, translator);
+                }
+                return current ? renderVetoSentence(current, translator) : null;
+            } catch (e) {
+                logger.warn("alerts", `Could not phrase the veto of a suppression for ${record.id}`, e);
+                return null;
+            }
+        };
+    });
+    let logEntries = $derived(buildFiringLog(records, baseRows, botRows, vetoClauseOf));
     let timeframeChoices = $derived(timeframeOptions(baseRows));
 
     // The shells own their tab labels; the counts come from the one place that
