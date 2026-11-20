@@ -990,14 +990,18 @@ function recordConfirmationDiscard(
  * no toast, for the same per-candle reason as a confirmation discard.
  */
 export const vetoSuppressionSink: SuppressionSink = ({ rule, anchorMs }) => {
-    const written = recordSuppression({
+    const write = recordSuppression({
         id: rule.id,
         symbol: rule.symbol,
         timeframe: rule.trigger_timeframe,
         anchorMs,
+        ...(rule.veto ? { veto: rule.veto } : {}),
     });
-    if (!written) return;
-    alertState.firingsVersion += 1;
+    // A duplicate is this candle again: everything below already happened.
+    // A failed write is not -- the bot's guard line is then the only trace
+    // of the veto, so it is written regardless.
+    if (write === "duplicate") return;
+    if (write === "written") alertState.firingsVersion += 1;
     if (!isBot(rule)) return;
     recordBotGuard(rule.id, "vetoed", anchorMs);
     alertState.guardsVersion += 1;

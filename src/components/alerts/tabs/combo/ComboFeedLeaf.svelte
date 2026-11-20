@@ -85,7 +85,7 @@
     }
     input {
         padding: var(--space-2);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         background: var(--bg-primary);
         color: var(--text-primary);

@@ -40,6 +40,7 @@
         type ComboLeaf,
         type ComboLeafKind,
         type ComboLeafPatch,
+        type LeafDefaults,
     } from "../../../../lib/alerts/comboConditionForm";
     import type { LogicOp, RuleRefusal } from "../../../../lib/rules/types";
     import type { TranslationKey } from "../../../../locales/schema";
@@ -50,12 +51,15 @@
         onchange,
         refusalsAt,
         kinds = COMBO_LEAF_KINDS,
+        leafDefaults,
     }: {
         form: ComboForm;
         onchange: (next: ComboForm) => void;
         /** The refusals the core anchored to the leaf at this position. */
         refusalsAt: (rootIndex: number, memberIndex?: number) => RuleRefusal[];
         kinds?: readonly ComboLeafKind[];
+        /** The panel header's price field and series, for a leaf switched to price. */
+        leafDefaults?: LeafDefaults;
     } = $props();
 
     /** "Group 1", "Group 2" by groups, not by root position. */
@@ -70,7 +74,7 @@
     }
 
     function switchKind(leaf: ComboLeaf, kind: ComboLeafKind): void {
-        onchange(changeLeafKind(form, leaf.id, kind));
+        onchange(changeLeafKind(form, leaf.id, kind, leafDefaults));
     }
 
     const key = (raw: string): TranslationKey => raw as TranslationKey;
@@ -169,7 +173,7 @@
 
 <style>
     fieldset {
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         padding: var(--space-3);
         margin: 0;
@@ -186,14 +190,14 @@
     }
     .tile {
         padding: var(--space-2) var(--space-3);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         background: var(--bg-secondary);
         color: var(--text-primary);
         cursor: pointer;
     }
     .tile.selected {
-        border-color: var(--accent);
+        border-color: var(--accent-color);
         background: var(--bg-tertiary);
     }
     .group {
@@ -201,7 +205,7 @@
         flex-direction: column;
         gap: var(--space-3);
         padding: var(--space-3);
-        border: 1px solid var(--accent);
+        border: 1px solid var(--accent-color);
         border-radius: var(--radius-sm);
         background: var(--bg-secondary);
     }
@@ -225,7 +229,7 @@
     .add,
     .remove {
         padding: var(--space-2) var(--space-3);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         background: var(--bg-secondary);
         color: var(--text-primary);

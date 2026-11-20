@@ -96,7 +96,7 @@
         flex-wrap: wrap;
         align-items: end;
         gap: var(--space-3);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         padding: var(--space-3);
         margin: 0;
@@ -119,7 +119,7 @@
     }
     .remove {
         padding: var(--space-2) var(--space-3);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         background: var(--bg-secondary);
         color: var(--text-primary);

@@ -435,7 +435,7 @@
         gap: var(--space-3);
     }
     fieldset {
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         padding: var(--space-2);
         margin: 0;
@@ -461,7 +461,7 @@
     }
     .tile {
         padding: var(--space-1) var(--space-2);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         background: var(--bg-secondary);
         color: var(--text-primary);
@@ -469,7 +469,7 @@
         cursor: pointer;
     }
     .tile.selected {
-        border-color: var(--accent);
+        border-color: var(--accent-color);
         background: var(--bg-tertiary);
     }
     .field {
@@ -489,7 +489,7 @@
         padding: var(--space-1);
         background: var(--bg-secondary);
         color: var(--text-primary);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
     }
     .hint {

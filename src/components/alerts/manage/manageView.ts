@@ -173,8 +173,8 @@ export interface FiringEntry {
   /** FEAT-0814 — the trigger held and the rule's veto refused it. */
   suppressed: boolean;
   /**
-   * The veto clause that refused, phrased from the rule as it is now; null
-   * for an announcement, or when the rule (or its veto) is gone.
+   * The veto clause that refused, phrased from the veto the record stored;
+   * null for an announcement, or when no veto can be found for it.
    */
   vetoClause: string | null;
 }
@@ -375,7 +375,7 @@ export function buildFiringLog(
   records: readonly ShadowFiringRecord[],
   rows: readonly ManageRow[],
   bots: ReadonlyMap<string, BotLogRow> = new Map(),
-  vetoClauseOf: (ruleId: string) => string | null = () => null,
+  vetoClauseOf: (record: ShadowFiringRecord) => string | null = () => null,
 ): FiringEntry[] {
   const rowById = new Map(rows.map((row) => [row.id, row]));
   const announced = new Set<string>();
@@ -400,7 +400,7 @@ export function buildFiringLog(
       ruleExists: row !== undefined || bots.has(record.id),
       ruleIsBot: row === undefined && bots.has(record.id),
       suppressed,
-      vetoClause: suppressed ? vetoClauseOf(record.id) : null,
+      vetoClause: suppressed ? vetoClauseOf(record) : null,
     });
   }
 

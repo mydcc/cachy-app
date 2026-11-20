@@ -69,6 +69,15 @@
 
     let built = $derived(buildComboDraft(form, alertPanelState.draft.trigger_timeframe));
 
+    // A leaf on the trigger's timeframe is read as "the trigger's", like in
+    // Combo. When the trigger moves, an untouched veto must move with it, or
+    // the stored veto keeps the old timeframe while the editor shows the new.
+    const openedOn = alertPanelState.draft.trigger_timeframe;
+    $effect(() => {
+        if (locked !== null || alertPanelState.draft.veto === undefined) return;
+        if (alertPanelState.draft.trigger_timeframe !== openedOn) touched = true;
+    });
+
     $effect(() => {
         if (!touched || locked !== null) return;
         alertPanelState.setVeto(built.condition);
@@ -137,7 +146,13 @@
         </button>
     {:else}
         <p class="hint">{$_("dashboard.alerts.veto.explain")}</p>
-        <ConditionTree {form} onchange={edit} {refusalsAt} kinds={VETO_LEAF_KINDS} />
+        <ConditionTree
+            {form}
+            onchange={edit}
+            {refusalsAt}
+            kinds={VETO_LEAF_KINDS}
+            leafDefaults={{ field: alertPanelState.priceField, source: alertPanelState.priceSeries }}
+        />
         {#if built.incomplete && touched}
             <p class="hint" role="status" data-testid="veto-incomplete">
                 {$_("dashboard.alerts.veto.incomplete")}
@@ -162,7 +177,7 @@
         flex-direction: column;
         gap: var(--space-3);
         padding: var(--space-3);
-        border: 1px dashed var(--border);
+        border: 1px dashed var(--border-color);
         border-radius: var(--radius-sm);
     }
     header {
@@ -195,7 +210,7 @@
     .add,
     .remove {
         padding: var(--space-2) var(--space-3);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm);
         background: var(--bg-secondary);
         color: var(--text-primary);

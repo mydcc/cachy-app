@@ -39,6 +39,7 @@
 import { browser } from "$app/env";
 import { logger } from "../logger";
 import { safeLocalStorage } from "../../utils/storageWrapper";
+import type { Condition } from "../../lib/rules/types";
 
 export const SHADOW_LEDGER_STORAGE_KEY = "cachy_shadow_firings_v1";
 
@@ -96,6 +97,12 @@ export interface ShadowFiringRecord {
   verdict?: string;
   /** Legacy only: the price that tripped the alert. */
   price?: string;
+  /**
+   * Veto only (FEAT-0814): the veto as it stood when it refused. Data, not a
+   * sentence, so the log phrases it in the reader's language -- and stored,
+   * so editing or removing the veto later cannot re-attribute old entries.
+   */
+  veto?: Condition;
 }
 
 export interface ShadowLedger {
@@ -186,24 +193,28 @@ export function recordFiring(record: ShadowFiringRecord): boolean {
  */
 export const SUPPRESSION_MAX_RECORDS = 100;
 
+/** What `recordSuppression` did; a duplicate and a failed write mean different things. */
+export type SuppressionWrite = "written" | "duplicate" | "failed";
+
 /**
  * FEAT-0814 — records one vetoed trigger, once per rule and candle.
  *
  * The oldest suppression goes first when its share is full, so announcements
- * keep the rest of the cap. Returns whether a record was written; a repeat of
- * a candle already recorded writes nothing and returns false.
+ * keep the rest of the cap. A repeat of a candle already recorded writes
+ * nothing and says `duplicate`; a storage failure says `failed`, so a caller
+ * can still surface the veto elsewhere instead of going silent.
  */
 export function recordSuppression(
-  record: Pick<ShadowFiringRecord, "id" | "symbol" | "timeframe" | "anchorMs">,
+  record: Pick<ShadowFiringRecord, "id" | "symbol" | "timeframe" | "anchorMs" | "veto">,
   recordedAtMs: number = Date.now(),
-): boolean {
-  if (!browser) return false;
+): SuppressionWrite {
+  if (!browser) return "failed";
 
   try {
     const { records } = readShadowLedger();
     const isSuppression = (r: ShadowFiringRecord) => r.source === "veto";
     if (records.some((r) => isSuppression(r) && r.id === record.id && r.anchorMs === record.anchorMs)) {
-      return false;
+      return "duplicate";
     }
     let next = [...records, { ...record, source: "veto" as const, recordedAtMs, verdict: "suppressed" }];
     const suppressions = next.filter(isSuppression).length;
@@ -213,13 +224,14 @@ export function recordSuppression(
     }
     if (next.length > SHADOW_LEDGER_MAX_RECORDS) next = next.slice(next.length - SHADOW_LEDGER_MAX_RECORDS);
 
-    return safeLocalStorage.setItem(
+    const landed = safeLocalStorage.setItem(
       SHADOW_LEDGER_STORAGE_KEY,
       JSON.stringify({ schema_version: SHADOW_LEDGER_SCHEMA_VERSION, records: next }),
     );
+    return landed ? "written" : "failed";
   } catch (e) {
     logger.warn("alerts", "[Shadow] Could not record a suppression", e);
-    return false;
+    return "failed";
   }
 }
 

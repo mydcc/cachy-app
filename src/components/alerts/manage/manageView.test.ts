@@ -420,7 +420,7 @@ describe("buildFiringLog", () => {
       [firingRecord({ source: "veto", verdict: "suppressed", recordedAtMs: 2_000 })],
       [manageRow({ id: "rule-a" })],
       new Map(),
-      (ruleId) => (ruleId === "rule-a" ? "the close is above 150" : null),
+      (record) => (record.id === "rule-a" ? "the close is above 150" : null),
     );
 
     expect(entries).toEqual([

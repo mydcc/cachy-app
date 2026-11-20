@@ -764,7 +764,8 @@
         "groupAddRow": "Add condition to group {index}",
         "removeGroup": "Remove group {index}",
         "warmup": "This rule needs {count} closed candles of history before it can judge (at most {max}).",
-        "incomplete": "One condition is not filled in yet. It is missing from the sentence above, and the rule can be armed only once it is complete."
+        "incomplete": "One condition is not filled in yet. It is missing from the sentence above, and the rule can be armed only once it is complete.",
+        "warmupTooDeep": "This rule needs more than {max} candles of history. That is more than the core loads; armed, it would never reach a verdict. Shorten a period or a window."
       },
       "manageList": {
         "tabAlerts": "Alerts ({count})",

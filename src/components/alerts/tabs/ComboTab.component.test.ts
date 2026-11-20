@@ -252,6 +252,49 @@ describe("FEAT-0813: Combo tab", () => {
     expect(el.querySelectorAll(".refusal")).toHaveLength(1);
   });
 
+  it("says so when the draft needs more history than the ceiling, instead of hiding the line", () => {
+    const rsiRef = { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } } as const;
+    alertPanelState.draft.conditions = {
+      kind: "group",
+      op: "all",
+      of: [
+        {
+          kind: "compare",
+          left: rsiRef,
+          op: "gte",
+          right: { kind: "window", agg: "max", lookback: 500, of: rsiRef },
+          timeframe: alertPanelState.draft.trigger_timeframe,
+        } as Condition,
+      ],
+    };
+
+    const el = open();
+
+    expect(el.querySelector('[data-testid="combo-locked"]')).toBeNull();
+    expect(el.querySelector('[data-testid="combo-warmup"]')?.getAttribute("data-too-deep")).toBe("true");
+  });
+
+  it("a row switched to price reads the field and series chosen in the panel header", () => {
+    alertPanelState.priceField = "high";
+    alertPanelState.priceSeries = "mark";
+    const el = open();
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addRow")));
+    const kind = el.querySelector('[data-testid="combo-leaf"]')?.querySelector<HTMLSelectElement>("select");
+    if (!kind) throw new Error("no kind select");
+    kind.value = "price";
+    kind.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    const input = el.querySelector<HTMLInputElement>('[data-testid="combo-leaf"] input[inputmode="decimal"]');
+    if (!input) throw new Error("no threshold input");
+    input.value = "60000";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+
+    const tree = alertPanelState.draft.conditions;
+    if (tree?.kind !== "group") throw new Error("expected a group in the draft");
+    expect(plain(tree.of[0])).toMatchObject({ left: { kind: "price", field: "high", source: "mark" } });
+  });
+
   it("states the warmup the core computes for the draft", () => {
     alertPanelState.draft.conditions = { kind: "group", op: "all", of: [rsi("70")] };
 

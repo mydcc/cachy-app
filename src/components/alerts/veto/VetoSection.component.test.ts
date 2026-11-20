@@ -176,6 +176,18 @@ describe("FEAT-0814: the veto section", () => {
     expect(el.querySelector('[data-testid="veto-locked"]')).toBeNull();
   });
 
+  it("moves an untouched veto with the trigger timeframe, as Combo does", () => {
+    const tf = alertPanelState.draft.trigger_timeframe;
+    alertPanelState.draft.veto = { kind: "group", op: "all", of: [{ ...closeAbove("150"), timeframe: tf } as Condition] };
+    open();
+    const next = tf === "4h" ? "1d" : "4h";
+    alertPanelState.draft.trigger_timeframe = next;
+    flushSync();
+    const veto = plain(alertPanelState.draft.veto);
+    if (veto?.kind !== "group") throw new Error("expected a group veto");
+    expect((veto.of[0] as { timeframe: string }).timeframe).toBe(next);
+  });
+
   it("anchors a refusal on the veto leaf the core named", () => {
     alertPanelState.draft.veto = { kind: "group", op: "all", of: [closeAbove("150"), closeAbove("160")] };
     const el = open();

@@ -48,8 +48,9 @@
         type SetRuleEnabledReason,
     } from "../../../services/alertEngine/ruleActions";
     import { readDrawingAnchorLedger } from "../../../services/alertEngine/drawingAnchors";
-    import { readShadowLedger } from "../../../services/alertEngine/shadowLedger";
+    import { readShadowLedger, type ShadowFiringRecord } from "../../../services/alertEngine/shadowLedger";
     import { readBotLogRows, readBots } from "../../../services/alertEngine/botStore";
+    import { logger } from "../../../services/logger";
     import { sendTestAnnouncement } from "../../../stores/alertDelivery";
     import { channelsLabel } from "../../../lib/alerts/lifecycleLabels";
     import { alertPanelState } from "../../../stores/alertPanel.svelte";
@@ -167,22 +168,32 @@
         void alertState.rulesVersion;
         return readBotLogRows();
     });
-    // FEAT-0814 — a suppression names the veto clause that refused, phrased
-    // from the rule as it stands now; bots are looked up too, since a vetoed
-    // bot is exactly the entry that must not read as "found no setup".
+    // FEAT-0814 — a suppression names the veto clause that refused: the veto
+    // the record stored, phrased in the reader's language, so editing the
+    // veto later cannot re-attribute old entries. Only a record without one
+    // falls back to the rule as it stands now; bots are looked up too, since
+    // a vetoed bot is exactly the entry that must not read as "found no setup".
     let vetoClauseOf = $derived.by(() => {
         void alertState.rulesVersion;
         const documents = new Map<string, RuleDocument>();
         for (const row of baseRows) documents.set(row.id, row.rule as RuleDocument);
         try {
             for (const bot of readBots()) if (typeof bot.id === "string") documents.set(bot.id, bot);
-        } catch {
-            // An unreadable store costs the bots their clause, not the log:
-            // `readBotLogRows` already reports the store itself.
+        } catch (e) {
+            // An unreadable store costs the bots their fallback clause, not
+            // the log; `readBotLogRows` reports the store itself.
+            logger.warn("alerts", "Could not read bots for the veto clauses", e);
         }
-        return (ruleId: string): string | null => {
-            const document = documents.get(ruleId);
-            return document ? renderVetoSentence(document, translator) : null;
+        return (record: ShadowFiringRecord): string | null => {
+            const current = documents.get(record.id);
+            if (record.veto) {
+                const asRecorded = {
+                    veto: record.veto,
+                    trigger_timeframe: record.timeframe ?? current?.trigger_timeframe ?? "",
+                } as RuleDocument;
+                return renderVetoSentence(asRecorded, translator);
+            }
+            return current ? renderVetoSentence(current, translator) : null;
         };
     });
     let logEntries = $derived(buildFiringLog(records, baseRows, botRows, vetoClauseOf));

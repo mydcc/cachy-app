@@ -167,12 +167,18 @@ describe("the suppression record", () => {
   const at = (anchorMs: number) => ({ id: RULE_ID, symbol: "BTCUSDT", timeframe: TF, anchorMs });
 
   it("is written once per rule and candle, under its own source", () => {
-    expect(recordSuppression(at(START_MS), 1)).toBe(true);
-    expect(recordSuppression(at(START_MS), 2)).toBe(false);
+    expect(recordSuppression(at(START_MS), 1)).toBe("written");
+    expect(recordSuppression(at(START_MS), 2)).toBe("duplicate");
     const { records } = readShadowLedger();
     expect(records).toEqual([
       { ...at(START_MS), source: "veto", recordedAtMs: 1, verdict: "suppressed" },
     ]);
+  });
+
+  it("stores the veto that refused, so a later edit cannot re-attribute it", () => {
+    const veto = { kind: "external_feed", feed: "funding_rate", op: "gt", value: "0.01" } as const;
+    recordSuppression({ ...at(START_MS), veto }, 1);
+    expect(readShadowLedger().records[0].veto).toEqual(veto);
   });
 
   it("survives a reload: it is read back from storage", () => {

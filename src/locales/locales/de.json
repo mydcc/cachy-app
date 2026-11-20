@@ -764,7 +764,8 @@
         "groupAddRow": "Bedingung zur Gruppe {index} hinzufügen",
         "removeGroup": "Gruppe {index} entfernen",
         "warmup": "Diese Regel braucht {count} geschlossene Kerzen Vorlauf, bevor sie urteilen kann (höchstens {max}).",
-        "incomplete": "Eine Bedingung ist noch nicht fertig ausgefüllt. Sie fehlt im Satz oben, und die Regel lässt sich erst scharf schalten, wenn sie vollständig ist."
+        "incomplete": "Eine Bedingung ist noch nicht fertig ausgefüllt. Sie fehlt im Satz oben, und die Regel lässt sich erst scharf schalten, wenn sie vollständig ist.",
+        "warmupTooDeep": "Diese Regel braucht mehr als {max} Kerzen Vorlauf. Das ist mehr, als der Core lädt; scharf geschaltet würde sie nie urteilen. Verkürze einen Zeitraum oder ein Fenster."
       },
       "manageList": {
         "tabAlerts": "Alarme ({count})",

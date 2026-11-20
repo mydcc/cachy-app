@@ -214,7 +214,16 @@ export function newComboRow(): IndicatorLeaf {
  * level the trader did not choose, and an empty one keeps the rule unarmable
  * until they type theirs.
  */
-export function newComboLeaf(kind: ComboLeafKind): ComboLeaf {
+/**
+ * What a new price leaf reads: the panel header's field and series, the
+ * same defaults the Price tab applies, so "High" in the header is not
+ * silently a close in a combo row.
+ */
+export type LeafDefaults = Pick<PriceReading, "field" | "source">;
+
+const CLOSE_LAST: LeafDefaults = { field: "close", source: "last" };
+
+export function newComboLeaf(kind: ComboLeafKind, defaults: LeafDefaults = CLOSE_LAST): ComboLeaf {
     if (kind === "indicator") return newComboRow();
     if (kind === "price") {
         return {
@@ -222,8 +231,8 @@ export function newComboLeaf(kind: ComboLeafKind): ComboLeaf {
             kind: "price",
             reading: {
                 form: { kind: "rises_above", threshold: "", lookback: 1 },
-                field: "close",
-                source: "last",
+                field: defaults.field,
+                source: defaults.source,
             },
             timeframe: null,
         };
@@ -364,10 +373,15 @@ export function replaceRow(form: ComboForm, id: string, next: ComboLeafPatch): C
 }
 
 /** Swap the leaf `id` for a fresh leaf of `kind`, keeping its place and timeframe. */
-export function changeLeafKind(form: ComboForm, id: string, kind: ComboLeafKind): ComboForm {
+export function changeLeafKind(
+    form: ComboForm,
+    id: string,
+    kind: ComboLeafKind,
+    defaults: LeafDefaults = CLOSE_LAST,
+): ComboForm {
     const swap = (leaf: ComboLeaf): ComboLeaf =>
         leaf.id === id && leaf.kind !== kind
-            ? { ...newComboLeaf(kind), id: leaf.id, timeframe: leaf.timeframe }
+            ? { ...newComboLeaf(kind, defaults), id: leaf.id, timeframe: leaf.timeframe }
             : leaf;
     return {
         ...form,

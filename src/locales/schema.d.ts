@@ -670,6 +670,7 @@ export type TranslationKey =
   | "dashboard.alerts.combo.removeGroup"
   | "dashboard.alerts.combo.warmup"
   | "dashboard.alerts.combo.incomplete"
+  | "dashboard.alerts.combo.warmupTooDeep"
   | "dashboard.alerts.manageList.tabAlerts"
   | "dashboard.alerts.manageList.tabLog"
   | "dashboard.alerts.manageList.searchLabel"

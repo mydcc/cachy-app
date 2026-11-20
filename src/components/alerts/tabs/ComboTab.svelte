@@ -29,7 +29,7 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { alertPanelState, refusalsForField } from "../../../stores/alertPanel.svelte";
-    import { ruleSchema } from "../../../lib/rules/ruleSchema";
+    import { RuleRefusedError, ruleSchema } from "../../../lib/rules/ruleSchema";
     import {
         MAX_COMBO_CONDITIONS,
         RULE_WARMUP_CEILING,
@@ -84,11 +84,17 @@
      * authority on warmup. `null` while the core is not loaded or the draft
      * is not a document yet; the line then stays away rather than guessing.
      */
-    let warmup = $derived.by(() => {
+    let warmup = $derived.by((): number | "too_deep" | null => {
         if (locked || form.rows.length === 0 || !ruleSchema.isReady()) return null;
         try {
             return ruleSchema.warmupCandles($state.snapshot(alertPanelState.draft));
-        } catch {
+        } catch (e) {
+            // Past the ceiling the core refuses to count at all. That is the
+            // case the line exists for, so it says so instead of vanishing
+            // until the arm press.
+            if (e instanceof RuleRefusedError && e.refusals.some((r) => r.code === "rule_warmup_too_deep")) {
+                return "too_deep";
+            }
             return null;
         }
     });
@@ -133,7 +139,12 @@
     </div>
 {:else}
     <div class="builder">
-        <ConditionTree {form} onchange={(next) => (form = next)} {refusalsAt} />
+        <ConditionTree
+            {form}
+            onchange={(next) => (form = next)}
+            {refusalsAt}
+            leafDefaults={{ field: alertPanelState.priceField, source: alertPanelState.priceSeries }}
+        />
 
         {#if built.incomplete}
             <p class="hint" role="status" data-testid="combo-incomplete">
@@ -141,7 +152,11 @@
             </p>
         {/if}
 
-        {#if warmup !== null}
+        {#if warmup === "too_deep"}
+            <p class="refusal" role="status" data-testid="combo-warmup" data-too-deep="true">
+                {$_("dashboard.alerts.combo.warmupTooDeep", { values: { max: RULE_WARMUP_CEILING } })}
+            </p>
+        {:else if warmup !== null}
             <p class="hint" data-testid="combo-warmup">
                 {$_("dashboard.alerts.combo.warmup", { values: { count: warmup, max: RULE_WARMUP_CEILING } })}
             </p>
@@ -176,7 +191,7 @@
         color: var(--text-secondary);
         background: var(--bg-secondary);
         border-radius: var(--radius-sm);
-        border: 1px dashed var(--border);
+        border: 1px dashed var(--border-color);
     }
     .locked h4 {
         margin: 0 0 var(--space-2) 0;
