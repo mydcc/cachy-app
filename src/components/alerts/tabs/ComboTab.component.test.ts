@@ -313,6 +313,26 @@ describe("FEAT-0813: Combo tab", () => {
     expect(plain(tree.of[0])).toEqual({ kind: "session", from: "00:00", to: "08:00", timezone: "UTC" });
   });
 
+  it("FEAT-0815: a regime count that is not whole snaps back to the draft's value", () => {
+    const el = open();
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addRow")));
+    const kind = el.querySelector('[data-testid="combo-leaf"]')?.querySelector<HTMLSelectElement>("select");
+    if (!kind) throw new Error("no kind select");
+    kind.value = "regime";
+    kind.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    const period = el.querySelector<HTMLInputElement>('[data-testid="combo-leaf"] input[inputmode="numeric"]');
+    if (!period) throw new Error("no period input");
+    period.value = "14.5";
+    period.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+
+    expect(period.value).toBe("14");
+    const tree = alertPanelState.draft.conditions;
+    if (tree?.kind !== "group") throw new Error("expected a group in the draft");
+    expect(plain(tree.of[0])).toMatchObject({ left: { kind: "atr_percentile", period: 14 } });
+  });
+
   it("states the warmup the core computes for the draft", () => {
     alertPanelState.draft.conditions = { kind: "group", op: "all", of: [rsi("70")] };
 

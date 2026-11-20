@@ -47,7 +47,10 @@
         value={String(leaf.period)}
         onchange={(e) => {
             const period = count(e.currentTarget.value);
-            if (period !== null) onpatch({ period });
+            // Not a whole count: show the value the draft still holds rather
+            // than text the saved rule would silently not contain.
+            if (period === null) e.currentTarget.value = String(leaf.period);
+            else onpatch({ period });
         }}
     />
 </label>
@@ -60,7 +63,10 @@
         value={String(leaf.lookback)}
         onchange={(e) => {
             const lookback = count(e.currentTarget.value);
-            if (lookback !== null) onpatch({ lookback });
+            // Not a whole count: show the value the draft still holds rather
+            // than text the saved rule would silently not contain.
+            if (lookback === null) e.currentTarget.value = String(leaf.lookback);
+            else onpatch({ lookback });
         }}
     />
 </label>
