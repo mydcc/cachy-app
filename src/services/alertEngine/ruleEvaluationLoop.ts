@@ -90,6 +90,23 @@ export interface RuleFiring {
 export type FiringSink = (firing: RuleFiring) => void;
 
 /**
+ * FEAT-0814 — a trigger whose conditions held but whose veto refused it.
+ *
+ * A separate sink, never `FiringSink` with a different verdict: every firing
+ * consumer (the notifier, the bot order wrapper) treats a call as "act now",
+ * and a suppressed trigger must reach none of them. Close path only -- an
+ * intrabar rule re-reads the same forming candle many times, and one veto
+ * would otherwise be logged once per tick.
+ */
+export interface RuleSuppression {
+  rule: RuleDocument;
+  /** Open time of the closed candle the trigger held on. */
+  anchorMs: number;
+}
+
+export type SuppressionSink = (suppression: RuleSuppression) => void;
+
+/**
  * Called once per genuine close of any series, before that close is
  * evaluated — regardless of whether any rule ends up firing.
  *
@@ -365,6 +382,8 @@ export interface RuleEvaluationLoopOptions {
   readRuleState?: RuleStateReader;
   /** Defaults to the shadow sink, which reports and notifies nobody. */
   onFiring?: FiringSink;
+  /** FEAT-0814 — where a vetoed trigger goes. Absent: nothing is recorded. */
+  onSuppressed?: SuppressionSink;
   /** No-op by default — most callers have nothing that depends on this. */
   onClose?: SeriesCloseHook;
   /**
@@ -502,6 +521,7 @@ export class RuleEvaluationLoop {
   private readRules: RuleReader = NO_RULES;
   private readRuleState: RuleStateReader = NO_STATE;
   private onFiring: FiringSink = shadowSink;
+  private onSuppressed: SuppressionSink = () => {};
   private onClose: SeriesCloseHook = () => {};
   private onUnevaluable: UnevaluableSink = logUnevaluable;
   private resolveThreshold: ThresholdResolver = PASS_THROUGH_THRESHOLD;
@@ -554,6 +574,7 @@ export class RuleEvaluationLoop {
     this.readRules = options.readRules;
     this.readRuleState = options.readRuleState ?? NO_STATE;
     this.onFiring = options.onFiring ?? shadowSink;
+    this.onSuppressed = options.onSuppressed ?? (() => {});
     this.onClose = options.onClose ?? (() => {});
     this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
     this.resolveThreshold = options.resolveThreshold ?? PASS_THROUGH_THRESHOLD;
@@ -1053,6 +1074,7 @@ export class RuleEvaluationLoop {
     // and stays silent through the steady-state guard instead of churning
     // delete/re-add on every close.
     if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
+    if (verdict?.verdict === "suppressed" && !intrabar) this.reportSuppressed(rule, anchorMs);
     if (verdict === undefined || verdict.verdict !== "fires") return undefined;
     return { rule, verdict, anchorMs };
   }
@@ -1518,6 +1540,18 @@ export class RuleEvaluationLoop {
   }
 
   /**
+   * Hands a vetoed close to its sink, contained like the firing sink: a
+   * suppression recorder that throws must not stop the rules after this one.
+   */
+  private reportSuppressed(rule: RuleDocument, anchorMs: number): void {
+    try {
+      this.onSuppressed({ rule, anchorMs });
+    } catch (e) {
+      logger.error("alerts", `[RuleEngine] Suppression sink failed for rule ${rule.id}`, e);
+    }
+  }
+
+  /**
    * Record a rule as inert, and tell the sink once per rule per session.
    *
    * The record is the part that matters and is stored first, so a sink that
@@ -1640,6 +1674,7 @@ export class RuleEvaluationLoop {
     this.readRules = NO_RULES;
     this.readRuleState = NO_STATE;
     this.onFiring = shadowSink;
+    this.onSuppressed = () => {};
     this.onClose = () => {};
     this.onUnevaluable = logUnevaluable;
     // FEAT-0823 review — the held waits die with the engine that formed

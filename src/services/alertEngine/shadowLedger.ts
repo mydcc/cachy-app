@@ -63,7 +63,14 @@ export const SHADOW_LEDGER_MAX_RECORDS = 500;
  * has to stay readable afterwards, and "would have fired" and "did fire" are
  * not the same event no matter how similar the row looks.
  */
-export type FiringSource = "legacy" | "shadow" | "rule";
+/**
+ * `veto` (FEAT-0814) is a trigger that held but was suppressed by the rule's
+ * veto. A source of its own rather than a `rule` record with another verdict,
+ * because every existing reader counts a `rule` record as an announcement --
+ * the unread badge, "last fired", the shadow comparison -- and a suppression
+ * is precisely not one.
+ */
+export type FiringSource = "legacy" | "shadow" | "rule" | "veto";
 
 export interface ShadowFiringRecord {
   source: FiringSource;
@@ -106,7 +113,8 @@ function isRecord(value: unknown): value is ShadowFiringRecord {
   return (
     (candidate.source === "legacy" ||
       candidate.source === "shadow" ||
-      candidate.source === "rule") &&
+      candidate.source === "rule" ||
+      candidate.source === "veto") &&
     typeof candidate.recordedAtMs === "number" &&
     typeof candidate.symbol === "string" &&
     typeof candidate.id === "string"
@@ -167,6 +175,50 @@ export function recordFiring(record: ShadowFiringRecord): boolean {
     );
   } catch (e) {
     logger.warn("alerts", "[Shadow] Could not record a firing", e);
+    return false;
+  }
+}
+
+/**
+ * How many suppression records the ledger keeps, out of its total cap. A veto
+ * that refuses on every 1m close writes 1440 a day; without a share of its
+ * own it would push every real announcement out of the log within hours.
+ */
+export const SUPPRESSION_MAX_RECORDS = 100;
+
+/**
+ * FEAT-0814 — records one vetoed trigger, once per rule and candle.
+ *
+ * The oldest suppression goes first when its share is full, so announcements
+ * keep the rest of the cap. Returns whether a record was written; a repeat of
+ * a candle already recorded writes nothing and returns false.
+ */
+export function recordSuppression(
+  record: Pick<ShadowFiringRecord, "id" | "symbol" | "timeframe" | "anchorMs">,
+  recordedAtMs: number = Date.now(),
+): boolean {
+  if (!browser) return false;
+
+  try {
+    const { records } = readShadowLedger();
+    const isSuppression = (r: ShadowFiringRecord) => r.source === "veto";
+    if (records.some((r) => isSuppression(r) && r.id === record.id && r.anchorMs === record.anchorMs)) {
+      return false;
+    }
+    let next = [...records, { ...record, source: "veto" as const, recordedAtMs, verdict: "suppressed" }];
+    const suppressions = next.filter(isSuppression).length;
+    if (suppressions > SUPPRESSION_MAX_RECORDS) {
+      let drop = suppressions - SUPPRESSION_MAX_RECORDS;
+      next = next.filter((r) => !(isSuppression(r) && drop-- > 0));
+    }
+    if (next.length > SHADOW_LEDGER_MAX_RECORDS) next = next.slice(next.length - SHADOW_LEDGER_MAX_RECORDS);
+
+    return safeLocalStorage.setItem(
+      SHADOW_LEDGER_STORAGE_KEY,
+      JSON.stringify({ schema_version: SHADOW_LEDGER_SCHEMA_VERSION, records: next }),
+    );
+  } catch (e) {
+    logger.warn("alerts", "[Shadow] Could not record a suppression", e);
     return false;
   }
 }

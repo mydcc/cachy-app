@@ -59,6 +59,8 @@ export const BOT_GUARD_REASON_KEYS: Record<string, TranslationKey> = {
     // an answer the same log exists to give.
     "confirmation-against-direction": "botsList.guard.confirmationAgainstDirection",
     "signal-stopped-out": "botsList.guard.signalStoppedOut",
+    // FEAT-0814 — the trigger held and the rule's own veto refused it.
+    vetoed: "botsList.guard.vetoed",
 };
 
 export const BOT_GUARD_SCHEMA_VERSION = 1;

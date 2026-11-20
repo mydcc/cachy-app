@@ -49,7 +49,7 @@ import {
 import { runLegacyHandoff } from "../services/alertEngine/legacyHandoff";
 import { ruleSchema } from "../lib/rules/ruleSchema";
 import { disarmRule } from "../services/alertEngine/armRule";
-import { recordFiring } from "../services/alertEngine/shadowLedger";
+import { recordFiring, recordSuppression } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
 import { alertNotificationKey } from "../lib/notificationPolicy";
@@ -60,10 +60,11 @@ import type {
     OwnedBotPosition,
     SeriesGap,
     SignalDiscardReason,
+    SuppressionSink,
     UnevaluableRule,
 } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
-import { readBots, setBotEnabled } from "../services/alertEngine/botStore";
+import { isBot, readBots, setBotEnabled } from "../services/alertEngine/botStore";
 import { submitBotExit, type BotExitEnvironment, type BotExitRefusal, type BotCloseParams } from "../services/alertEngine/botExits";
 import type { AccountSnapshot, RuleDocument } from "../lib/rules/types";
 import type { PaperPosition } from "./paperTrading.svelte";
@@ -982,6 +983,26 @@ function recordConfirmationDiscard(
     alertState.guardsVersion += 1;
 }
 
+/**
+ * FEAT-0814 — a trigger that held but was vetoed: one log entry per rule and
+ * candle, and for a bot the guard line "not traded: veto" so it does not read
+ * as a strategy that found no setup. Live mode only, like every consequence;
+ * no toast, for the same per-candle reason as a confirmation discard.
+ */
+export const vetoSuppressionSink: SuppressionSink = ({ rule, anchorMs }) => {
+    const written = recordSuppression({
+        id: rule.id,
+        symbol: rule.symbol,
+        timeframe: rule.trigger_timeframe,
+        anchorMs,
+    });
+    if (!written) return;
+    alertState.firingsVersion += 1;
+    if (!isBot(rule)) return;
+    recordBotGuard(rule.id, "vetoed", anchorMs);
+    alertState.guardsVersion += 1;
+};
+
 export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<void> {
     if (!browser) return;
 
@@ -1186,5 +1207,8 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
                   onSignalDiscarded: recordConfirmationDiscard,
               }
             : undefined,
+        // FEAT-0814 — vetoed triggers are logged in live mode only; a shadow
+        // run measures the evaluator and leaves no trace in the trader's log.
+        mode === "live" ? vetoSuppressionSink : undefined,
     );
 }

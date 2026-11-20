@@ -995,7 +995,8 @@
       "submissionInFlight": "an entry is still in flight",
       "positionAlreadyOpen": "a position in this direction is already open",
       "confirmationAgainstDirection": "the confirmation candle closed against the entry",
-      "signalStoppedOut": "the position left before confirmation"
+      "signalStoppedOut": "the position left before confirmation",
+      "vetoed": "the trigger held, but the rule's veto refused it"
     },
     "created": "Created {when}",
     "fired": "Fired {count} times, last {when}",

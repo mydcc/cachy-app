@@ -995,7 +995,8 @@
       "submissionInFlight": "ein Einstieg ist noch unterwegs",
       "positionAlreadyOpen": "in dieser Richtung ist bereits eine Position offen",
       "confirmationAgainstDirection": "die Bestätigungskerze schloss gegen den Einstieg",
-      "signalStoppedOut": "die Position war vor der Bestätigung weg"
+      "signalStoppedOut": "die Position war vor der Bestätigung weg",
+      "vetoed": "Trigger erfüllt, aber vom Veto der Regel blockiert"
     },
     "created": "Erstellt {when}",
     "fired": "{count}-mal ausgelöst, zuletzt {when}",
