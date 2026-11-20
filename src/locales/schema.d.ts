@@ -833,6 +833,7 @@ export type TranslationKey =
   | "botsList.empty"
   | "botsList.rulesUnreadable"
   | "botsList.accountInactive"
+  | "botsList.accountInactiveLingering"
   | "botsList.bookUnreadable"
   | "botsList.blockedReason"
   | "botsList.stop"

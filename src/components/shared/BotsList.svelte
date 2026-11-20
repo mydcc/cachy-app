@@ -265,6 +265,21 @@
     botsState.executingAccount === null ? botsState.states.size : 0,
   );
 
+  /**
+   * FEAT-0825 review — the open positions of deleted bots this list hides
+   * too. They are not bots, so the count above misses them; without this a
+   * fleet of zero bots with one orphaned paper position read "No bots yet"
+   * and the position vanished without a word. Same join as the lingering
+   * rows: bot-stamped, owner not in the projection.
+   */
+  let hiddenLingeringCount = $derived.by(() => {
+    if (botsState.executingAccount !== null) return 0;
+    const states = botsState.states;
+    return paperState.positions.filter(
+      (p) => p.origin === "bot" && p.botId !== undefined && !states.has(p.botId),
+    ).length;
+  });
+
   /** Locale-aware timestamps: `Intl` follows the app language, not the OS. */
   function formatAt(ms: number): string {
     void $locale;
@@ -387,7 +402,7 @@
     >
       {$_("botsList.rulesUnreadable")}
     </p>
-  {:else if hiddenBotCount > 0}
+  {:else if hiddenBotCount > 0 || hiddenLingeringCount > 0}
     {#if bookUnreadable}
       <!-- An unreadable book leaves paper trading off by its safe default
            (`paperState.load`), so this branch is where that case lands. The
@@ -409,6 +424,9 @@
       data-testid="bots-account-inactive"
     >
       {$_("botsList.accountInactive", { values: { count: hiddenBotCount } })}
+      {#if hiddenLingeringCount > 0}
+        {$_("botsList.accountInactiveLingering", { values: { count: hiddenLingeringCount } })}
+      {/if}
     </p>
   {:else if rows.length === 0}
     <div

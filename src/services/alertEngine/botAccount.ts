@@ -34,8 +34,28 @@
  * template carries no account.
  */
 
-import type { RuleDocument } from "../../lib/rules/types";
-import { isBot } from "./botStore";
+import type { ConsequenceLevel, RuleDocument } from "../../lib/rules/types";
+
+/**
+ * The level that makes a rule a bot.
+ *
+ * Named rather than inlined at each call site because it is the definition of
+ * what the bots surface manages, and three literals that happen to agree are
+ * not a definition. `send` is deliberately not included: there is no `send`
+ * path until FEAT-0035 builds one, gate, risk limits and confirmation
+ * included.
+ *
+ * Moved here from `botStore.ts` (which re-exports it) by FEAT-0825: this
+ * module is a leaf on purpose — no runtime import — so the projection and
+ * both lanes can resolve a bot's account without joining the rule store's
+ * import cycle.
+ */
+export const BOT_CONSEQUENCE_LEVEL: ConsequenceLevel = "simulate";
+
+/** Whether a stored rule belongs on the bots surface. */
+export function isBot(rule: RuleDocument): boolean {
+    return rule.action?.consequence_level === BOT_CONSEQUENCE_LEVEL;
+}
 
 /** The paper account — the only account a bot can execute against today. */
 export const PAPER_ACCOUNT = "paper" as const;

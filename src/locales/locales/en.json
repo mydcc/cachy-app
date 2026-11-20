@@ -960,6 +960,7 @@
     "empty": "No bots yet. The control center creates them from your alerts.",
     "rulesUnreadable": "The bot list could not be read. Nothing was changed.",
     "accountInactive": "Bots on the paper account: {count}. While a live account is active they do not trade and are not shown here. Turn on Paper Trading (Settings → Trading & Market → Paper Trading) to see them.",
+    "accountInactiveLingering": "Open paper positions of deleted bots: {count}; they are hidden too.",
     "bookUnreadable": "The paper book could not be read, so every bot reads as blocked and positions cannot be checked.",
     "blockedReason": "Cannot be evaluated right now, so it will not fire.",
     "stop": "Stop",

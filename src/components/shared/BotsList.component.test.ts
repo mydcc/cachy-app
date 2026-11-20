@@ -364,6 +364,24 @@ describe("FEAT-0808 — the bots tab", () => {
         expect(notice!.textContent).toContain("2");
     });
 
+    it("announces a deleted bot's hidden paper position instead of reading empty", async () => {
+        // Review finding: zero bots left, one orphaned paper position — the
+        // bot count was 0, so the list fell through to "No bots yet".
+        seedBots(botDocument("bot-1"));
+        await openAs("bot-1");
+        seedBots();
+        paperState.setEnabled(false);
+        render();
+
+        expect(host.querySelector('[data-testid="bots-empty"]')).toBeNull();
+        const notice = host.querySelector<HTMLElement>('[data-testid="bots-account-inactive"]');
+        expect(notice, "the hidden position was not announced").not.toBeNull();
+        expect(notice!.textContent).toContain(
+            lookup(en, "botsList.accountInactiveLingering").split(":")[0],
+        );
+        expect(host.querySelector('[data-testid^="bot-row-lingering-"]')).toBeNull();
+    });
+
     it("lists the bots again the moment paper trading is back on", async () => {
         seedBots(botDocument("bot-1"));
         paperState.setEnabled(false);
