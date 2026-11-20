@@ -51,6 +51,10 @@
   import { alertState, closeBotOwnedPositions } from "../../stores/alerts.svelte";
   import { readBotGuards, BOT_GUARD_REASON_KEYS } from "../../services/alertEngine/botGuardStore";
   import { botsState } from "../../stores/botsState.svelte";
+  import {
+    PAPER_ACCOUNT,
+    isBotAccountExecuting,
+  } from "../../services/alertEngine/botAccount";
   import { paperState, type PaperPosition } from "../../stores/paperTrading.svelte";
 
   interface Props {
@@ -175,12 +179,14 @@
     // corrupts the store between the two reads.
     if (degraded.rules) return [];
 
-    // FEAT-0825 / ADR-0028 — only the executing account's bots are listed.
-    // While a live account is active, no bot account executes, so the paper
-    // bots and the paper positions they own stay off this list: simulated
-    // money beside a live account is the mixing the item forbids. The
-    // notice below says how many are hidden and how to see them.
-    if (botsState.executingAccount === null) return [];
+    // FEAT-0825 / ADR-0028 — only the executing account's bots are listed,
+    // decided per bot through the binding (a future `send` bot on an
+    // exchange account sorts itself correctly). While a live account is
+    // active no bot account executes, so the paper bots and the paper
+    // positions they own stay off this list: simulated money beside a live
+    // account is the mixing the item forbids. The notice below says how many
+    // are hidden and how to see them.
+    const executing = botsState.executingAccount;
     let bots: RuleDocument[];
     try {
       bots = readBots();
@@ -195,6 +201,7 @@
       // A document without a string id would key a phantom row; the
       // projection skips it and so does the surface that renders it.
       if (typeof bot.id !== "string") continue;
+      if (!isBotAccountExecuting(bot, executing)) continue;
       const life = states.get(bot.id);
       if (!life) continue;
 
@@ -233,7 +240,10 @@
     // the same rule read, so "no entry" is settled, not racy.
     const ownedIds = new Set(botRows.map((row) => row.id));
     const lingering: LingeringRow[] = [];
-    for (const position of positions) {
+    // The lingering rows live on the paper book, so they follow the paper
+    // account: listed only while it executes.
+    const paperExecuting = executing === PAPER_ACCOUNT;
+    for (const position of paperExecuting ? positions : []) {
       if (position.origin !== "bot" || position.botId === undefined) continue;
       if (ownedIds.has(position.botId)) continue;
       lingering.push({ kind: "lingering", botId: position.botId, position });
@@ -258,12 +268,24 @@
 
   /**
    * FEAT-0825 / ADR-0028 — how many bots this list hides because their
-   * account is not the executing one. The projection keys every listable bot,
-   * so its size is the count; zero while their account executes.
+   * account is not the executing one, counted through the same per-bot
+   * binding the rows use, so the notice and the list can never disagree.
    */
-  let hiddenBotCount = $derived(
-    botsState.executingAccount === null ? botsState.states.size : 0,
-  );
+  let hiddenBotCount = $derived.by(() => {
+    const states = botsState.states;
+    if (botsState.degraded.rules) return 0;
+    const executing = botsState.executingAccount;
+    try {
+      return readBots().filter(
+        (bot) =>
+          typeof bot.id === "string" &&
+          states.has(bot.id) &&
+          !isBotAccountExecuting(bot, executing),
+      ).length;
+    } catch {
+      return 0;
+    }
+  });
 
   /**
    * FEAT-0825 review — the open positions of deleted bots this list hides
@@ -273,7 +295,7 @@
    * rows: bot-stamped, owner not in the projection.
    */
   let hiddenLingeringCount = $derived.by(() => {
-    if (botsState.executingAccount !== null) return 0;
+    if (botsState.executingAccount === PAPER_ACCOUNT) return 0;
     const states = botsState.states;
     return paperState.positions.filter(
       (p) => p.origin === "bot" && p.botId !== undefined && !states.has(p.botId),

@@ -112,6 +112,19 @@ The owner decided two open questions on 2026-11-20:
   a function. A reviewer has to know that `simulate` means the paper account.
 - Paper bots on different exchange accounts are impossible. Rehearsing
   "twenty bots on A, twenty on B" in paper is not supported.
+- While paper trading is off the paper book stands still:
+  `paperTradingService.tickBook` and `onPrice` return early, so a bot's open
+  paper position, its stop and its take-profit are not simulated further.
+  That predates this ADR. Decision 3 makes it visible (the state and the
+  notice say so) rather than fixing it. A grid bot
+  ([`ADR-0027`](0027-a-grid-bot-owns-an-order-set-and-its-position.md),
+  FEAT-0819) inherits the same state and the same frozen ladder; its
+  lifecycle must name `account_unavailable` instead of promising exits that
+  keep running.
+- The lifecycle list in [`ADR-0026`](0026-a-bot-owns-the-position-it-opens.md)
+  decision 1 predates `limit_reached`, `awaiting_confirmation` and
+  `account_unavailable`. `BotState` in `src/services/alertEngine/botState.ts`
+  is the list of record.
 
 ### What is now forbidden
 

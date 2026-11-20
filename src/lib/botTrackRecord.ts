@@ -156,12 +156,29 @@ export function matchesOriginFilter(
 export type JournalTradeMode = "live" | "paper" | "all";
 
 /**
+ * FEAT-0825 / ADR-0028 — the entries one side of the journal's account switch
+ * shows. The bot cards read through this, so a `live` journal lists no paper
+ * bot's track record beside live money; `all` stays the explicit way to see
+ * both accounts together.
+ */
+export function entriesForTradeMode(
+    entries: readonly JournalEntry[],
+    mode: JournalTradeMode,
+): JournalEntry[] {
+    if (mode === "all") return [...entries];
+    const wantsPaper = mode === "paper";
+    return entries.filter((entry) => (entry.isPaper === true) === wantsPaper);
+}
+
+/**
  * The trade mode a bot's rows need, or `null` to leave the mode alone.
  *
  * The journal applies its live/paper switch before the bot filter, and every
  * bot trade is a paper trade — both bot lanes refuse while paper trading is
- * off — so from the default `live` view, clicking a card the trader can see
- * left the table empty (Devin review). Widening only when the current mode
+ * off — so from a `live` view, clicking a card the trader can see left the
+ * table empty (Devin review). Since FEAT-0825 the cards themselves follow
+ * the mode (`entriesForTradeMode`), so this widening only matters for the
+ * dropdown and for a bot that ever trades on both sides. Widening only when the current mode
  * hides every one of that bot's trades leaves a deliberate `paper` choice
  * alone, and keeps working if a bot ever trades live.
  */

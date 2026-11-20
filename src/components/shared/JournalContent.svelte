@@ -52,6 +52,7 @@
     import JournalBotCards from "./journal/JournalBotCards.svelte";
     import {
         botTrackRecords,
+        entriesForTradeMode,
         matchesOriginFilter,
         modeForBot,
         unattributedClosedCount,
@@ -430,8 +431,14 @@
      * The track record is the bot's whole history, not the table's current
      * slice. Narrowing a card to the rows it already produced would shrink
      * the card the moment the trader clicked it, which answers no question.
+     *
+     * FEAT-0825 / ADR-0028 — the whole history *of the account on screen*:
+     * the account switch is not a slice of the table but the boundary the
+     * item draws, so a `live` journal shows no paper bot's record.
      */
-    let botRecords = $derived(botTrackRecords(journalState.entries));
+    let botRecords = $derived(
+        botTrackRecords(entriesForTradeMode(journalState.entries, tradeMode)),
+    );
 
     let unattributedTrades = $derived(
         unattributedClosedCount(journalState.entries),

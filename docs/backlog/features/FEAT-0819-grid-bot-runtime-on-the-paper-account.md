@@ -83,6 +83,10 @@ Implement the grid as its own bot kind, per
       applied.
 - [ ] The estimated budget (levels × size plus a fee buffer) is displayed
       before the grid starts.
+- [ ] A grid is bound to the paper account through `botAccount.ts`
+      (ADR-0028). While paper trading is off, it reads `account_unavailable`
+      and says that its ladder and its stop-out are frozen with the paper
+      book. It never claims that its protective exits keep running.
 
 ## Out of scope
 

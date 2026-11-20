@@ -48,7 +48,10 @@
         setBotEnabled,
     } from "../../../services/alertEngine/botStore";
     import { promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
-    import { executingBotAccount } from "../../../services/alertEngine/botAccount";
+    import {
+        executingBotAccount,
+        isBotAccountExecuting,
+    } from "../../../services/alertEngine/botAccount";
     import { paperState } from "../../../stores/paperTrading.svelte";
     import { logger } from "../../../services/logger";
     import { alertState, stopAllBots } from "../../../stores/alerts.svelte";
@@ -121,8 +124,11 @@
      */
     let executingAccount = $derived(executingBotAccount(paperState.enabled));
     let allBots = $derived(read.rules.filter(isBot));
-    let bots = $derived(executingAccount === null ? [] : allBots);
-    let hiddenBotCount = $derived(executingAccount === null ? allBots.length : 0);
+    // Per bot, through the binding — not "all or nothing": a future `send`
+    // bot on an exchange account (FEAT-0035) sorts itself correctly here
+    // without this surface learning what an account is.
+    let bots = $derived(allBots.filter((bot) => isBotAccountExecuting(bot, executingAccount)));
+    let hiddenBotCount = $derived(allBots.length - bots.length);
     let alerts = $derived(read.rules.filter((rule) => !isBot(rule)));
 
     /**
