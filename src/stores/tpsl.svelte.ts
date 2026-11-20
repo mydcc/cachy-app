@@ -189,6 +189,20 @@ class TpSlManager {
         side: "long" | "short",
         positionId?: string | null,
     ): Decimal | null {
+        return this.restingStop(symbol, side, positionId)?.price ?? null;
+    }
+
+    /**
+     * Same attribution as `restingStopPrice`, plus the quantity the plan
+     * closes (FEAT-0824). `qty` is null for a position-wide plan and for one
+     * whose quantity cannot be read — the caller then treats it as covering
+     * the whole position, which is what the venue does for a plan naming none.
+     */
+    public restingStop(
+        symbol: string,
+        side: "long" | "short",
+        positionId?: string | null,
+    ): { price: Decimal; qty: Decimal | null } | null {
         const entrySide = side === "short" ? "SELL" : "BUY";
         const losses = this.ordersFor(symbol).filter((o) => planTypeOf(o) === "LOSS");
         const scoped = positionId
@@ -199,7 +213,16 @@ class TpSlManager {
             try {
                 const price = new Decimal(loss.triggerPrice);
                 if (!price.isFinite() || price.lte(0)) continue;
-                return price;
+                let qty: Decimal | null = null;
+                if (loss.qty !== undefined && loss.qty !== "") {
+                    try {
+                        const parsed = new Decimal(loss.qty);
+                        if (parsed.isFinite() && parsed.gt(0)) qty = parsed;
+                    } catch {
+                        qty = null;
+                    }
+                }
+                return { price, qty };
             } catch {
                 // Not a normal absence: the store holds this leg and its stored
                 // trigger cannot be read, which would otherwise surface as "no

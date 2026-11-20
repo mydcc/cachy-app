@@ -80,6 +80,7 @@
   import BotsList from "./BotsList.svelte";
   import { botsState } from "../../stores/botsState.svelte";
   import { readBots } from "../../services/alertEngine/botStore";
+  import { positionNotional } from "../../services/positionFleet";
 
   let { fetchEnabled = true }: { fetchEnabled?: boolean } = $props();
 
@@ -280,6 +281,12 @@
   // position can still be at the placeholder 0 — see updatePositionFromWs —
   // in which case fall back to the account-channel value rather than
   // produce a nonsense PnL).
+  // FEAT-0824 — open time for the age sort. Only the paper book records one;
+  // a venue row has none and sorts last.
+  let openedAtById = $derived(
+    new Map(paperState.positions.map((p) => [p.positionId, p.openedAt])),
+  );
+
   let mappedPositions = $derived(
     accountState.positions.map((p): OMSPosition => {
       const resolved = resolveMarkPrice(p);
@@ -299,6 +306,7 @@
         // must survive the mapping — dropping it left `position.positionId`
         // undefined in every modal fed from this list.
         positionId: p.positionId,
+        openedAt: openedAtById.get(p.positionId),
         symbol: p.symbol,
         side: p.side,
         amount: p.size, // Map size to amount
@@ -328,10 +336,7 @@
   // mark/entry price), matching how Bitunix's own Assets panel derives it;
   // there is no API field for it.
   let totalPositionSize = $derived(
-    mappedPositions.reduce(
-      (sum, p) => sum.plus(p.amount.mul(p.markPrice || p.entryPrice)),
-      new Decimal(0),
-    ),
+    mappedPositions.reduce((sum, p) => sum.plus(positionNotional(p)), new Decimal(0)),
   );
 
   // Sum of the live-recomputed per-position PnL above, NOT

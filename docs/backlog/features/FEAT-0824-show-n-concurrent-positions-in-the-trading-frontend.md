@@ -2,7 +2,9 @@
 id: FEAT-0824
 title: Show N concurrent positions in the trading frontend
 type: feature
-status: specced
+status: done
+assignee: claude
+branch: feature/feat-0824-n-concurrent-positions
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -51,15 +53,15 @@ era requires.
 
 ## Acceptance criteria
 
-- [ ] Ten simultaneous positions across five symbols and three bots render
+- [x] Ten simultaneous positions across five symbols and three bots render
       correctly, each with its own owner attribution and stop/TP data.
-- [ ] Aggregates are exact under `Decimal` and match the book after a reload
+- [x] Aggregates are exact under `Decimal` and match the book after a reload
       (reconciliation included).
-- [ ] Sorting, filtering and grouping never drop or duplicate a position row.
-- [ ] A manual position among bot positions is distinguishable without
+- [x] Sorting, filtering and grouping never drop or duplicate a position row.
+- [x] A manual position among bot positions is distinguishable without
       opening anything.
-- [ ] Keyboard navigation and accessible names cover the list at N=20+ rows.
-- [ ] Component tests cover: N positions mixed ownership, reload
+- [x] Keyboard navigation and accessible names cover the list at N=20+ rows.
+- [x] Component tests cover: N positions mixed ownership, reload
       reconciliation, aggregate math, empty and single states.
 
 ## Out of scope
