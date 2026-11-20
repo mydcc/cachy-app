@@ -1341,7 +1341,7 @@ Three decisions before the grid leaves `specced`:
 3. **Edition** — community, pro or private. Proposal: community, because the
    grid is local and paper-only.
 
-## 35. Condition builder: limit and nesting
+## 35. ✅ Condition builder: limit and nesting
 
 **From:** [`FEAT-0813`](backlog/features/FEAT-0813-condition-builder-v2-more-conditions-and-nested-groups.md).
 
@@ -1352,6 +1352,13 @@ warmup warning) and whether `none`/NOR is exposed.
 **Proposal:** 16, with nested groups two levels deep in the UI (the core stays
 deeper); NOR stays out until the sentence renderer can say it without
 ambiguity.
+
+**DECIDED (2026-11-20).** The proposal, as shipped in FEAT-0813: the UI caps a
+rule at **16 conditions**, counted across groups; groups nest **two levels**
+(root plus one level of group cards), while the core keeps its eight; NOR is
+not offered. A stored rule beyond any of these limits opens read-only with the
+reason named, never truncated. The warmup line beside the builder comes from
+the core, so the 500-candle ceiling is visible before arming.
 
 ## 36. ✅ Public naming for the bot stages
 

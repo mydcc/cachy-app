@@ -2,7 +2,9 @@
 id: FEAT-0813
 title: Raise the condition limit and allow nested groups in the builder
 type: feature
-status: specced
+status: done
+assignee: claude
+branch: feature/feat-0813-condition-builder-v2
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -50,20 +52,30 @@ ambiguity; the core supports it, the builder does not have to.
 
 ## Acceptance criteria
 
-- [ ] A rule with 12 conditions can be built, saved, reloaded and edited in the
+- [x] A rule with 12 conditions can be built, saved, reloaded and edited in the
       panel without losing rows.
-- [ ] A two-level nested group round-trips: build → document → read back →
+- [x] A two-level nested group round-trips: build → document → read back →
       identical sentence.
-- [ ] A group can mix a price comparison, an indicator comparison and a pattern;
+- [x] A group can mix a price comparison, an indicator comparison and a pattern;
       the core accepts it and the sentence names each leaf.
-- [ ] A document with more conditions than the new cap opens read-only with a
+- [x] A document with more conditions than the new cap opens read-only with a
       notice instead of being truncated or erased.
-- [ ] The warmup requirement is shown for the current draft and updates as
+- [x] The warmup requirement is shown for the current draft and updates as
       conditions change.
-- [ ] The existing refusal anchoring still points at the offending leaf after
+- [x] The existing refusal anchoring still points at the offending leaf after
       nesting.
-- [ ] Tests: build/read-back for nested groups, mixed leaves, the cap boundary,
+- [x] Tests: build/read-back for nested groups, mixed leaves, the cap boundary,
       and a document the builder cannot represent (locked, not erased).
+
+## Decisions
+
+- Cap: 16 conditions, counted across groups (`MAX_COMBO_CONDITIONS`).
+- Nesting: root plus one level of groups in the UI (`MAX_COMBO_DEPTH = 2`);
+  a deeper stored tree opens locked as `unsupported`.
+- Groups render as cards; a new group takes the operator opposite the root's.
+- Leaves: indicator, price and pattern rows, switchable in place.
+- Warmup comes from the core (`ruleSchema.warmupCandles`), never estimated.
+- NOR stays out, root and nested.
 
 ## Out of scope
 
@@ -76,7 +88,7 @@ ambiguity; the core supports it, the builder does not have to.
 
 - The exact new cap: 12, 16, or "unlimited with a warmup warning". Proposal: 16
   in the UI, with the core unchanged. Tracked in
-  [`TODO.md`](../../TODO.md#35-condition-builder-limit-and-nesting).
+  [`TODO.md`](../../TODO.md#35--condition-builder-limit-and-nesting).
 - Whether the builder should show the tree as an indented list or as collapsible
   group cards. Proposal: group cards, because the sentence is already the
   read-back and the tree is the edit surface.

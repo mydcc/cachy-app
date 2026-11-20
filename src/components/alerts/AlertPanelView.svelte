@@ -202,8 +202,9 @@ let rootElement: HTMLElement | null = null;
     let sentence = $derived(renderRuleSentence(alertPanelState.draft, translate));
 
     let hasCondition = $derived(
-        alertPanelState.draft.conditions.kind !== "group" ||
-            alertPanelState.draft.conditions.of.length > 0,
+        !alertPanelState.incompleteConditions &&
+            (alertPanelState.draft.conditions.kind !== "group" ||
+                alertPanelState.draft.conditions.of.length > 0),
     );
 
     /**
@@ -381,6 +382,10 @@ let rootElement: HTMLElement | null = null;
             armDrawing();
             return;
         }
+        // FEAT-0813: an unfinished combo leaf is left out of the draft, so the
+        // draft is not the rule on screen. The button is disabled too; this
+        // keeps a keyboard or programmatic arm from slipping past it.
+        if (alertPanelState.incompleteConditions) return;
         const accepted = alertPanelState.validateDraft();
         if (!accepted) return;
         try {
@@ -645,7 +650,11 @@ let rootElement: HTMLElement | null = null;
             type="button"
             onclick={arm}
             disabled={!hasCondition}
-            title={hasCondition ? undefined : $_("dashboard.alerts.panel.armDisabled")}
+            title={hasCondition
+                ? undefined
+                : alertPanelState.incompleteConditions
+                  ? $_("dashboard.alerts.panel.armIncomplete")
+                  : $_("dashboard.alerts.panel.armDisabled")}
         >
             {$_("dashboard.alerts.panel.arm")}
         </button>

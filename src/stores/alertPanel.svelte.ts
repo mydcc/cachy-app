@@ -226,6 +226,14 @@ class AlertPanelStore {
   coreUnavailable = $state(false);
 
   /**
+   * True while a builder holds a leaf that does not build yet (FEAT-0813),
+   * e.g. a combo price row with no threshold. The draft then carries only the
+   * leaves that do build, so it is not the rule on screen: arming stays off
+   * until this clears. UI state, never part of the document or its hash.
+   */
+  incompleteConditions = $state(false);
+
+  /**
    * True while a seed from outside the panel is waiting to be honoured.
    *
    * The shell resets the draft on mount, and an entry point necessarily seeds
@@ -306,6 +314,7 @@ class AlertPanelStore {
     this.refusals = [];
     this.hasValidated = false;
     this.coreUnavailable = false;
+    this.incompleteConditions = false;
   }
 
   /**
