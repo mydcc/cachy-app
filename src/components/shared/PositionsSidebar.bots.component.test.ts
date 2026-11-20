@@ -268,22 +268,18 @@ describe("FEAT-0808 — the sidebar's bot glue, end to end", () => {
         expect(botRow()).not.toBeNull();
     });
 
-    it("withdraws the position link while the Positions tab shows no paper book", async () => {
+    it("shows no paper bot or paper position under a live account, and says so", async () => {
+        // FEAT-0825 / ADR-0028 — this case used to render the bot's row with
+        // its paper position facts and only withdraw the link. That was the
+        // mixing the item forbids: simulated money beside a live account.
         seedBots(botDocument("bot-1"));
         await openAs("bot-1");
         paperState.setEnabled(false);
         await mountSidebar();
 
         clickTab("bots");
-        const row = botRow()!;
-        // The bot still owns the position and the row still says so — the
-        // facts come from the book, not from the tab.
-        expect(row.querySelector<HTMLElement>('[data-testid="bot-state-chip"]')?.textContent).toContain(
-            lookup("botsList.state.in_position"),
-        );
-        expect(row.querySelector('[data-testid="bot-position-facts"]')).not.toBeNull();
-        // But the link resolves into a tab that is not showing that row, so
-        // it is absent rather than dead.
-        expect(row.querySelector('[data-testid="bot-view-position"]')).toBeNull();
+        expect(botRow()).toBeNull();
+        expect(document.querySelector('[data-testid="bot-position-facts"]')).toBeNull();
+        expect(document.querySelector('[data-testid="bots-account-inactive"]')).not.toBeNull();
     });
 });

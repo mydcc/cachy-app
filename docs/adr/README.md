@@ -63,5 +63,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0025](0025-academy-lesson-fields.md) | Academy lesson fields are four prose keys, placement is a catalogue property | Proposed |
 | [0026](0026-a-bot-owns-the-position-it-opens.md) | A bot owns the position it opens | Accepted |
 | [0027](0027-a-grid-bot-owns-an-order-set-and-its-position.md) | A grid bot owns an order set and its position | Proposed |
+| [0028](0028-a-bot-executes-against-one-account.md) | A bot executes against one account, and only that account's bots are shown | Accepted |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._

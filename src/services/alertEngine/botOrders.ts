@@ -59,6 +59,7 @@ import { logger } from "../logger";
 import { BOT_PAPER_ONLY_MESSAGE_KEY } from "../orderGate";
 import type { orderPlacementService } from "../orderPlacementService";
 import { isBot } from "./botStore";
+import { botAccountUnavailable, executingBotAccount } from "./botAccount";
 import {
     entryRiskAmount,
     limitReasonsFor,
@@ -341,7 +342,13 @@ export async function submitBotOrder(
   // sends whoever reads the log looking for a stop that was never the problem.
   if (!order) return "no-order";
 
-  if (!env.paperEnabled()) return "paper-trading-off";
+  // FEAT-0825 / ADR-0028 — the bot's own account must be the executing one.
+  // Resolved through the one binding function rather than read as "is paper
+  // on?", so the lifecycle chip (`account_unavailable`) and this refusal can
+  // never disagree, and FEAT-0035's exchange accounts change one place.
+  if (botAccountUnavailable(firing.rule, executingBotAccount(env.paperEnabled()))) {
+    return "paper-trading-off";
+  }
 
   // Refused here rather than caught by the stop check below.
   //

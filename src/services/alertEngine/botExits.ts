@@ -34,6 +34,7 @@ import { Decimal } from "decimal.js";
 
 import { logger } from "../logger";
 import type { BotExitFiring, OwnedBotPosition } from "./ruleEvaluationLoop";
+import { botAccountUnavailable, executingBotAccount } from "./botAccount";
 
 /** Why a bot's exit did not close. Developer-facing English. */
 export type BotExitRefusal =
@@ -114,7 +115,11 @@ export async function submitBotExit(
   firing: BotExitFiring,
   env: BotExitEnvironment,
 ): Promise<BotExitRefusal | null> {
-  if (!env.paperEnabled()) return "paper-trading-off";
+  // FEAT-0825 / ADR-0028 — the same binding check the entry lane makes: a
+  // bot closes only on its own account's book, never on whatever is active.
+  if (botAccountUnavailable(firing.rule, executingBotAccount(env.paperEnabled()))) {
+    return "paper-trading-off";
+  }
 
   // The loop only fires what the document carries; a firing without either
   // is a wiring bug, and it gets its own reason instead of borrowing

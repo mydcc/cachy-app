@@ -51,6 +51,10 @@
   import { alertState, closeBotOwnedPositions } from "../../stores/alerts.svelte";
   import { readBotGuards, BOT_GUARD_REASON_KEYS } from "../../services/alertEngine/botGuardStore";
   import { botsState } from "../../stores/botsState.svelte";
+  import {
+    PAPER_ACCOUNT,
+    isBotAccountExecuting,
+  } from "../../services/alertEngine/botAccount";
   import { paperState, type PaperPosition } from "../../stores/paperTrading.svelte";
 
   interface Props {
@@ -139,14 +143,18 @@
     closing: 2,
     armed: 3,
     paused: 4,
-    blocked: 5,
-    limit_reached: 6,
+    // FEAT-0825 — beside `blocked`: both are a bot that cannot act. The list
+    // filters these out while a live account is active, so the rank only
+    // matters for a row whose account goes away under an open tab.
+    account_unavailable: 5,
+    blocked: 6,
+    limit_reached: 7,
     // FEAT-0823 — a held signal ranks between the limits and a done bot:
     // it is the newest thing an armed bot is doing, and sorting it above
     // `closed` keeps a waiting bot from sinking under its own history.
-    awaiting_confirmation: 7,
-    closed: 8,
-    expired: 9,
+    awaiting_confirmation: 8,
+    closed: 9,
+    expired: 10,
   };
 
   /**
@@ -170,6 +178,15 @@
     // documents are read; the catch guards only the race where another tab
     // corrupts the store between the two reads.
     if (degraded.rules) return [];
+
+    // FEAT-0825 / ADR-0028 — only the executing account's bots are listed,
+    // decided per bot through the binding (a future `send` bot on an
+    // exchange account sorts itself correctly). While a live account is
+    // active no bot account executes, so the paper bots and the paper
+    // positions they own stay off this list: simulated money beside a live
+    // account is the mixing the item forbids. The notice below says how many
+    // are hidden and how to see them.
+    const executing = botsState.executingAccount;
     let bots: RuleDocument[];
     try {
       bots = readBots();
@@ -184,6 +201,7 @@
       // A document without a string id would key a phantom row; the
       // projection skips it and so does the surface that renders it.
       if (typeof bot.id !== "string") continue;
+      if (!isBotAccountExecuting(bot, executing)) continue;
       const life = states.get(bot.id);
       if (!life) continue;
 
@@ -222,7 +240,10 @@
     // the same rule read, so "no entry" is settled, not racy.
     const ownedIds = new Set(botRows.map((row) => row.id));
     const lingering: LingeringRow[] = [];
-    for (const position of positions) {
+    // The lingering rows live on the paper book, so they follow the paper
+    // account: listed only while it executes.
+    const paperExecuting = executing === PAPER_ACCOUNT;
+    for (const position of paperExecuting ? positions : []) {
       if (position.origin !== "bot" || position.botId === undefined) continue;
       if (ownedIds.has(position.botId)) continue;
       lingering.push({ kind: "lingering", botId: position.botId, position });
@@ -244,6 +265,42 @@
   let rulesRefused = $derived(botsState.degraded.rules);
   /** Every bot reads blocked while the book cannot be read (FEAT-0807). */
   let bookUnreadable = $derived(botsState.degraded.book);
+
+  /**
+   * FEAT-0825 / ADR-0028 — how many bots this list hides because their
+   * account is not the executing one, counted through the same per-bot
+   * binding the rows use, so the notice and the list can never disagree.
+   */
+  let hiddenBotCount = $derived.by(() => {
+    const states = botsState.states;
+    if (botsState.degraded.rules) return 0;
+    const executing = botsState.executingAccount;
+    try {
+      return readBots().filter(
+        (bot) =>
+          typeof bot.id === "string" &&
+          states.has(bot.id) &&
+          !isBotAccountExecuting(bot, executing),
+      ).length;
+    } catch {
+      return 0;
+    }
+  });
+
+  /**
+   * FEAT-0825 review — the open positions of deleted bots this list hides
+   * too. They are not bots, so the count above misses them; without this a
+   * fleet of zero bots with one orphaned paper position read "No bots yet"
+   * and the position vanished without a word. Same join as the lingering
+   * rows: bot-stamped, owner not in the projection.
+   */
+  let hiddenLingeringCount = $derived.by(() => {
+    if (botsState.executingAccount === PAPER_ACCOUNT) return 0;
+    const states = botsState.states;
+    return paperState.positions.filter(
+      (p) => p.origin === "bot" && p.botId !== undefined && !states.has(p.botId),
+    ).length;
+  });
 
   /** Locale-aware timestamps: `Intl` follows the app language, not the OS. */
   function formatAt(ms: number): string {
@@ -296,6 +353,7 @@
     closing: "botsList.state.closing",
     closed: "botsList.state.closed",
     paused: "botsList.state.paused",
+    account_unavailable: "botsList.state.account_unavailable",
     blocked: "botsList.state.blocked",
     expired: "botsList.state.expired",
     limit_reached: "botsList.state.limit_reached",
@@ -366,6 +424,32 @@
     >
       {$_("botsList.rulesUnreadable")}
     </p>
+  {:else if hiddenBotCount > 0 || hiddenLingeringCount > 0}
+    {#if bookUnreadable}
+      <!-- An unreadable book leaves paper trading off by its safe default
+           (`paperState.load`), so this branch is where that case lands. The
+           book is the cause; it is named first. -->
+      <p
+        class="text-xs text-[var(--warning-color)] p-2 text-center"
+        role="status"
+        data-testid="bots-book-degraded"
+      >
+        {$_("botsList.bookUnreadable")}
+      </p>
+    {/if}
+    <!-- FEAT-0825 — the account switch made visible, never a filter to
+         discover: the bots exist, they are not trading, and this says where
+         they are. -->
+    <p
+      class="text-xs text-[var(--warning-color)] p-2 text-center"
+      role="status"
+      data-testid="bots-account-inactive"
+    >
+      {$_("botsList.accountInactive", { values: { count: hiddenBotCount } })}
+      {#if hiddenLingeringCount > 0}
+        {$_("botsList.accountInactiveLingering", { values: { count: hiddenLingeringCount } })}
+      {/if}
+    </p>
   {:else if rows.length === 0}
     <div
       class="text-xs text-[var(--text-secondary)] text-center p-4"
@@ -408,7 +492,8 @@
                     row.life.state === "closing" || row.life.state === "limit_reached" ||
                     row.life.state === "awaiting_confirmation"}
                   class:bg-accent-paired={row.life.state === "armed"}
-                  class:bg-danger-paired={row.life.state === "blocked"}
+                  class:bg-danger-paired={row.life.state === "blocked" ||
+                    row.life.state === "account_unavailable"}
                   class:bg-[var(--bg-secondary)]={row.life.state === "paused" ||
                     row.life.state === "closed" || row.life.state === "expired"}
                   data-testid="bot-state-chip"

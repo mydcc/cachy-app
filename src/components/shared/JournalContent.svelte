@@ -19,6 +19,7 @@
     import { tradeState } from "../../stores/trade.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { journalState } from "../../stores/journal.svelte";
+    import { paperState } from "../../stores/paperTrading.svelte";
     import { uiState } from "../../stores/ui.svelte";
     import { app } from "../../services/app";
     import { imgbbService } from "../../services/imgbbService";
@@ -51,6 +52,7 @@
     import JournalBotCards from "./journal/JournalBotCards.svelte";
     import {
         botTrackRecords,
+        entriesForTradeMode,
         matchesOriginFilter,
         modeForBot,
         unattributedClosedCount,
@@ -200,7 +202,12 @@
     let selectedTag = $state("");
     let groupBySymbol = $state(false);
     let showColumnSettings = $state(false);
-    let tradeMode: "live" | "paper" | "all" = $state("live");
+    // FEAT-0825 / ADR-0028 — the journal opens on the active account's
+    // trades: the paper account's while paper trading is on, the live ones
+    // otherwise. Read once at open, never followed: the switch is the
+    // trader's from then on, and "all" stays the explicit, opt-in way to see
+    // both accounts side by side.
+    let tradeMode: "live" | "paper" | "all" = $state(paperState.enabled ? "paper" : "live");
 
     let liveTradesCount = $derived(
         journalState.entries.filter((t) => !t.isPaper).length,
@@ -424,8 +431,14 @@
      * The track record is the bot's whole history, not the table's current
      * slice. Narrowing a card to the rows it already produced would shrink
      * the card the moment the trader clicked it, which answers no question.
+     *
+     * FEAT-0825 / ADR-0028 — the whole history *of the account on screen*:
+     * the account switch is not a slice of the table but the boundary the
+     * item draws, so a `live` journal shows no paper bot's record.
      */
-    let botRecords = $derived(botTrackRecords(journalState.entries));
+    let botRecords = $derived(
+        botTrackRecords(entriesForTradeMode(journalState.entries, tradeMode)),
+    );
 
     let unattributedTrades = $derived(
         unattributedClosedCount(journalState.entries),

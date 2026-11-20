@@ -94,6 +94,7 @@ import { readBots, setBotEnabled } from "../../../services/alertEngine/botStore"
 import { recordBotGuard } from "../../../services/alertEngine/botGuardStore";
 import { alertState } from "../../../stores/alerts.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
+import { paperState } from "../../../stores/paperTrading.svelte";
 
 const alert: RuleDocument = {
   schema_version: 2,
@@ -171,12 +172,40 @@ beforeEach(() => {
   });
   host = document.createElement("div");
   document.body.appendChild(host);
+  // FEAT-0825 / ADR-0028 — the desk lists bots only while their account
+  // (paper) executes; every case here is about a listed bot unless it says
+  // otherwise.
+  paperState.setEnabled(true);
 });
 
 afterEach(() => {
   if (component) unmount(component);
   component = null;
   host.remove();
+  paperState.setEnabled(false);
+});
+
+describe("FEAT-0825 — the desk shows only the executing account's bots", () => {
+  it("hides paper bots while a live account is active and says how many", () => {
+    storedRules = [alert, bot({ basis: "percent_of_entry", distance: "2" })];
+    paperState.setEnabled(false);
+    render();
+
+    expect(host.textContent).not.toContain("Breakout bot");
+    const notice = host.querySelector<HTMLElement>('[data-testid="bots-account-inactive"]');
+    expect(notice, "the hidden bots were not announced").not.toBeNull();
+    expect(notice!.textContent).toContain("1");
+    // Not the empty-state line: the bots exist, they are elsewhere.
+    expect(host.textContent).not.toContain(translation(en, "settings.automation.noBots"));
+  });
+
+  it("lists the same bot while the paper account executes", () => {
+    storedRules = [alert, bot({ basis: "percent_of_entry", distance: "2" })];
+    render();
+
+    expect(host.textContent).toContain("Breakout bot");
+    expect(host.querySelector('[data-testid="bots-account-inactive"]')).toBeNull();
+  });
 });
 
 describe("BotsTab order intent", () => {

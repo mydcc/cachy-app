@@ -32,26 +32,21 @@
  * Class A (ADR-0001): strategy, `localStorage` only.
  */
 
-import type { ConsequenceLevel, RuleDocument } from "../../lib/rules/types";
+import type { RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
 import { armRule, readRuleStore, removeRule } from "./armRule";
 import { readRuleStates } from "./ruleStateStore";
 import { clearBotGuards } from "./botGuardStore";
+import { isBot } from "./botAccount";
 
 /**
- * The level that makes a rule a bot.
- *
- * Named rather than inlined at each call site because it is the definition of
- * what this tab manages, and three literals that happen to agree are not a
- * definition. `send` is deliberately not included: there is no `send` path
- * until FEAT-0035 builds one, gate, risk limits and confirmation included.
+ * What makes a rule a bot lives in `botAccount.ts` since FEAT-0825: the level
+ * is also what binds a bot to its account, and that module has to stay a leaf
+ * so the lifecycle projection and both lanes can read it without pulling the
+ * rule store (and its import cycle) in behind them. Re-exported here so every
+ * existing reader keeps its import.
  */
-export const BOT_CONSEQUENCE_LEVEL: ConsequenceLevel = "simulate";
-
-/** Whether a stored rule belongs on the bots surface. */
-export function isBot(rule: RuleDocument): boolean {
-  return rule.action?.consequence_level === BOT_CONSEQUENCE_LEVEL;
-}
+export { BOT_CONSEQUENCE_LEVEL, isBot } from "./botAccount";
 
 /**
  * Every bot in the store, disabled ones included.

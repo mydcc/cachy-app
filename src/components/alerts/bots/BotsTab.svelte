@@ -48,6 +48,11 @@
         setBotEnabled,
     } from "../../../services/alertEngine/botStore";
     import { promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
+    import {
+        executingBotAccount,
+        isBotAccountExecuting,
+    } from "../../../services/alertEngine/botAccount";
+    import { paperState } from "../../../stores/paperTrading.svelte";
     import { logger } from "../../../services/logger";
     import { alertState, stopAllBots } from "../../../stores/alerts.svelte";
     import {
@@ -111,7 +116,19 @@
         }
     });
 
-    let bots = $derived(read.rules.filter(isBot));
+    /**
+     * FEAT-0825 / ADR-0028 — the desk lists only the executing account's
+     * bots. While a live account is active no bot account executes, so the
+     * paper bots are hidden and the notice says how many and where they are;
+     * the list is never a filter a trader has to discover.
+     */
+    let executingAccount = $derived(executingBotAccount(paperState.enabled));
+    let allBots = $derived(read.rules.filter(isBot));
+    // Per bot, through the binding — not "all or nothing": a future `send`
+    // bot on an exchange account (FEAT-0035) sorts itself correctly here
+    // without this surface learning what an account is.
+    let bots = $derived(allBots.filter((bot) => isBotAccountExecuting(bot, executingAccount)));
+    let hiddenBotCount = $derived(allBots.length - bots.length);
     let alerts = $derived(read.rules.filter((rule) => !isBot(rule)));
 
     /**
@@ -328,7 +345,15 @@
             {/if}
         </div>
 
-        {#if bots.length === 0}
+        {#if hiddenBotCount > 0}
+            <p
+                class="text-sm text-[var(--warning-color)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
+                role="status"
+                data-testid="bots-account-inactive"
+            >
+                {$_("settings.automation.accountInactive", { values: { count: hiddenBotCount } })}
+            </p>
+        {:else if bots.length === 0}
             <p class="text-sm text-[var(--text-secondary)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
                 {$_("settings.automation.noBots")}
             </p>

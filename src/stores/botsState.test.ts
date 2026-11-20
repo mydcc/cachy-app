@@ -355,6 +355,12 @@ describe("FEAT-0807 — the botsState projection", () => {
         // the flag describes the storage, not the session's worst moment.
         await openAs("bot-1");
         expect(botsState.degraded.book).toBe(false);
+        // FEAT-0825 — the unreadable blob also left paper trading off (the
+        // safe default in `paperState.load`), so the bot's account is not
+        // executing yet; it reads as such until the trader turns paper on.
+        expect(paperState.enabled).toBe(false);
+        expect(botsState.states.get("bot-1")?.state).toBe("account_unavailable");
+        paperState.setEnabled(true);
         expect(botsState.states.get("bot-1")?.state).toBe("in_position");
     });
 

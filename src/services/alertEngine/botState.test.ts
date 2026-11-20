@@ -80,6 +80,7 @@ function position(overrides: Partial<PaperPosition> = {}): PaperPosition {
 
 function book(overrides: Partial<BotBook> = {}): BotBook {
     return {
+        executingAccount: "paper",
         positions: [],
         submitting: new Set<string>(),
         closing: new Set<string>(),
@@ -155,6 +156,50 @@ const rows: Row[] = [
         name: "a closing signal without an open position has nothing to close and reads armed",
         book: { closing: new Set(["bot-1"]) },
         state: "armed",
+        hasPosition: false,
+    },
+    // FEAT-0825 / ADR-0028 — the bot's own account is not executing.
+    {
+        name: "a bot whose account is not executing reads account_unavailable, never armed",
+        book: { executingAccount: null },
+        state: "account_unavailable",
+        hasPosition: false,
+    },
+    {
+        name: "an unavailable account still reports the position its bot holds",
+        book: { executingAccount: null, positions: [position()] },
+        state: "account_unavailable",
+        hasPosition: true,
+    },
+    {
+        name: "the trader's pause beats an unavailable account",
+        rule: { enabled: false },
+        book: { executingAccount: null },
+        state: "paused",
+        hasPosition: false,
+    },
+    {
+        name: "an entry already in flight reads submitting even as the account goes away",
+        book: { executingAccount: null, submitting: new Set(["bot-1"]) },
+        state: "submitting",
+        hasPosition: false,
+    },
+    {
+        name: "an unavailable account beats the engine's own reports",
+        book: {
+            executingAccount: null,
+            unevaluable: new Set(["bot-1"]),
+            awaiting: new Set(["bot-1"]),
+            entriesToday: new Map([["bot-1", 99]]),
+        },
+        rule: { max_entries_per_day: 1 },
+        state: "account_unavailable",
+        hasPosition: false,
+    },
+    {
+        name: "a rule that is not a bot has no account to be available on",
+        rule: { action: { consequence_level: "notify" } } as Partial<RuleDocument>,
+        state: "account_unavailable",
         hasPosition: false,
     },
     {

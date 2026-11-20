@@ -31,6 +31,7 @@ import {
     botTrackRecords,
     unattributedClosedCount,
     type BotTrackRecord,
+    entriesForTradeMode,
     modeForBot,
 } from "./botTrackRecord";
 import type { JournalEntry } from "../stores/types";
@@ -303,5 +304,28 @@ describe("FEAT-0812 — the trade mode a bot's rows need", () => {
     it("keeps the live view when that bot's trades are live", () => {
         const live = { ...paperBotTrade(), isPaper: false };
         expect(modeForBot([live], "bot-1", "live")).toBeNull();
+    });
+});
+
+describe("FEAT-0825 — the bot cards follow the journal's account switch", () => {
+    const paper = { ...entry({ origin: "bot", botId: "bot-1" }), isPaper: true } as JournalEntry;
+    const live = { ...entry({ origin: "manual" }), isPaper: false } as JournalEntry;
+    const { isPaper: _drop, ...unmarkedBase } = entry({ origin: "manual" });
+    void _drop;
+    const unmarked = unmarkedBase as JournalEntry;
+
+    it("shows no paper bot's record on the live side", () => {
+        const shown = entriesForTradeMode([paper, live, unmarked], "live");
+        expect(shown).toEqual([live, unmarked]);
+        expect(botTrackRecords(shown)).toEqual([]);
+    });
+
+    it("shows only paper trades on the paper side", () => {
+        expect(entriesForTradeMode([paper, live, unmarked], "paper")).toEqual([paper]);
+        expect(botTrackRecords(entriesForTradeMode([paper, live], "paper"))).toHaveLength(1);
+    });
+
+    it("shows both accounts only when the trader asks for all", () => {
+        expect(entriesForTradeMode([paper, live], "all")).toEqual([paper, live]);
     });
 });
