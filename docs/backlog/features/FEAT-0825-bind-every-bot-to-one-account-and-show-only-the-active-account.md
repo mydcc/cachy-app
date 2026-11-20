@@ -2,10 +2,10 @@
 id: FEAT-0825
 title: Bind every bot to one account and show only the active account
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
-editions: [pro, private]
+editions: [community, pro, private]
 area: exchange
 data_class: A
 adr: required
@@ -13,6 +13,8 @@ depends_on: [FEAT-0807]
 parent: FEAT-0805
 size: XL
 estimate: 21
+assignee: claude
+branch: feature/feat-0825-bot-account-binding
 ---
 
 # FEAT-0825 — Bind every bot to one account and show only the active account
