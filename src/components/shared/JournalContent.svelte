@@ -48,6 +48,15 @@
     import JournalTable from "./journal/JournalTable.svelte";
     import JournalCharts from "./journal/JournalCharts.svelte";
     import JournalDeepDive from "./journal/JournalDeepDive.svelte";
+    import JournalBotCards from "./journal/JournalBotCards.svelte";
+    import {
+        botTrackRecords,
+        matchesOriginFilter,
+        modeForBot,
+        unattributedClosedCount,
+        type JournalOriginFilter,
+    } from "../../lib/botTrackRecord";
+    import { readBots } from "../../services/alertEngine/botStore";
     import TradeDetailDrawer from "./journal/TradeDetailDrawer.svelte";
 
   import Button from "./Button.svelte";
@@ -407,6 +416,82 @@
 
     let selectedSymbol = $state("");
 
+    // --- FEAT-0812: the per-bot review surface ---
+    let originFilter: JournalOriginFilter = $state("all");
+    let selectedBotId = $state("");
+
+    /**
+     * The track record is the bot's whole history, not the table's current
+     * slice. Narrowing a card to the rows it already produced would shrink
+     * the card the moment the trader clicked it, which answers no question.
+     */
+    let botRecords = $derived(botTrackRecords(journalState.entries));
+
+    let unattributedTrades = $derived(
+        unattributedClosedCount(journalState.entries),
+    );
+
+    /**
+     * botId → the rule's name today, or `null` when the rule is gone. The
+     * record itself survives deletion (it lives on the entries); only the
+     * label does not, and the card says so rather than showing a bare id
+     * with no explanation.
+     */
+    /**
+     * The rule store's names, or an empty map when it cannot be read. A
+     * broken store costs the labels, not the figures — the ids still
+     * identify the records, so the cards degrade rather than disappear.
+     */
+    /**
+     * FEAT-0812 — a card the trader can see has to lead to rows they can see.
+     *
+     * Both entry points go through here (the card and the dropdown), because
+     * the rule is about the selection, not about which control made it.
+     */
+    function selectBot(botId: string) {
+        selectedBotId = botId;
+        originFilter = botId === "" ? "all" : "bots";
+        const needed = modeForBot(journalState.entries, botId, tradeMode);
+        if (needed !== null) tradeMode = needed;
+    }
+
+    function readBotNames(): Map<string, string | null> {
+        try {
+            return new Map(
+                readBots().map((bot) => [bot.id, bot.name ?? null] as const),
+            );
+        } catch {
+            return new Map();
+        }
+    }
+
+    let botNames = $derived.by(() => {
+        const names = new Map<string, string | null>();
+        // Re-read when the journal moves: a new bot trade can introduce an
+        // owner this map has never seen.
+        void journalState.entries.length;
+        const known = readBotNames();
+        for (const record of botRecords) {
+            names.set(record.botId, known.get(record.botId) ?? null);
+        }
+        return names;
+    });
+
+    let botOptions = $derived.by(() => {
+        const seen = new Set<string>();
+        const options: Array<{ id: string; label: string }> = [];
+        for (const record of botRecords) {
+            if (seen.has(record.botId)) continue;
+            seen.add(record.botId);
+            const name = botNames.get(record.botId);
+            options.push({
+                id: record.botId,
+                label: name === null || name === undefined ? record.botId : name,
+            });
+        }
+        return options;
+    });
+
     // Drop a symbol selection the active mode no longer offers, so the table
     // cannot end up silently empty after switching Live/Paper/All.
     $effect(() => {
@@ -434,6 +519,8 @@
             if (filterByLive && trade.isPaper) return false;
             if (filterByPaper && !trade.isPaper) return false;
             if (!matchesAllStatus && trade.status !== journalFilterStatus) return false;
+            // FEAT-0812 — who made the trade, and optionally which bot.
+            if (!matchesOriginFilter(trade, originFilter, selectedBotId)) return false;
             if (selectedSymbol && trade.symbol?.trim() !== selectedSymbol) return false;
             if (!noTagSelected && (!trade.tags || !trade.tags.includes(selectedTag))) return false;
             if (hasDateFilter && !isJournalDateInRange(trade.date, dateRange)) return false;
@@ -511,6 +598,8 @@
             journalFilterStatus,
             selectedTag,
             tradeMode,
+            originFilter,
+            selectedBotId,
             filterDateStart,
             filterDateEnd,
             groupBySymbol,
@@ -690,6 +779,10 @@
                 availableTags={allAvailableTags}
                 bind:symbolFilter={selectedSymbol}
                 {availableSymbols}
+                bind:originFilter
+                bind:botFilter={selectedBotId}
+                onBotChange={selectBot}
+                {botOptions}
                 bind:groupBySymbol
                 bind:tradeMode
                 liveCount={liveTradesCount}
@@ -698,6 +791,15 @@
                 filteredCount={processedTrades.length}
                 ontoggleSettings={() => (showColumnSettings = !showColumnSettings)}
                 actions={syncAction}
+            />
+
+            <!-- FEAT-0812: one card per bot, above the rows they produced -->
+            <JournalBotCards
+                records={botRecords}
+                {botNames}
+                unattributedCount={unattributedTrades}
+                {selectedBotId}
+                onselect={selectBot}
             />
 
             <!-- Column Settings Dialog Popover -->

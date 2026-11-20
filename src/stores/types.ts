@@ -261,6 +261,21 @@ export interface JournalEntry {
   botId?: string;
   ruleId?: string;
   strategyHash?: string;
+  /**
+   * FEAT-0812 — who ended the trade, stamped once when the entry completes.
+   *
+   * `origin` is an open-time fact and deliberately stays one (see
+   * `paperExchange`: attribution is stamped on the opening fill only), so the
+   * exit needs a fact of its own. Without it a position a bot opened and a
+   * human closed by hand reads as the bot's own exit, and the track record
+   * credits the bot with a decision it never made.
+   *
+   * Absent means the entry is still open, or closed before this field
+   * existed. The track record reads an absent value on a closed bot trade as
+   * the bot's exit — which is what the figures said before this shipped, and
+   * a back-filled guess would be worse than leaving history unchanged.
+   */
+  exitOrigin?: "bot" | "manual";
 }
 
 export interface JournalGroupSummary {

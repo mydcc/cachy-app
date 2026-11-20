@@ -650,6 +650,24 @@ export function botExitEnvironment(
                 lastExitActionAnchorMs: null,
             };
         },
+        // FEAT-0812 — the journal learns that this exit was the bot's. Loaded
+        // lazily for the same reason the close port is passed in: a session
+        // with no bot never pays for the paper journal module. A failure here
+        // must not turn a completed close into a crash on the market path —
+        // the trade happened; this is the report of it.
+        recordBotExit: (positionId) => {
+            void import("../services/paperJournalService")
+                .then(({ paperJournalService }) => {
+                    paperJournalService.recordBotExit(positionId);
+                })
+                .catch((e: unknown) => {
+                    logger.error(
+                        "alerts",
+                        `[BotExits] Could not record the bot's exit for ${positionId}`,
+                        e,
+                    );
+                });
+        },
     };
 }
 

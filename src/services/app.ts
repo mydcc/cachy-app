@@ -254,6 +254,14 @@ export const app = {
       id: generateId(),
       date: new Date().toISOString(),
       entryDate: new Date().toISOString(),
+      /*
+       * FEAT-0812 — the trader typed this one. History written before
+       * attribution existed stays unattributed, which is the honest answer
+       * for it; a record created here is not that case, and leaving it blank
+       * hid new entries from the manual-only filter and counted them as
+       * predating the field (Devin review).
+       */
+      origin: "manual" as const,
     } as JournalEntry;
 
     const added = journalState.addEntry(newTrade);

@@ -76,6 +76,16 @@ export interface BotExitEnvironment {
    * the last word.
    */
   ownedPosition: (ruleId: string, positionId: string) => OwnedBotPosition | undefined;
+  /**
+   * FEAT-0812 — reports a close that actually went through, so the journal
+   * can record that the bot ended this trade.
+   *
+   * Required rather than optional, and called only on success. Optional would
+   * make a forgotten wiring silent, and the symptom would be a track record
+   * that quietly credits every bot exit to the trader. Called on an attempt,
+   * a refused close would label the trader's own later close as the bot's.
+   */
+  recordBotExit: (positionId: string) => void;
 }
 
 /**
@@ -151,6 +161,20 @@ export async function submitBotExit(
       e,
     );
     return "close-refused";
+  }
+
+  // FEAT-0812 — the close went through, so the journal gets the one fact it
+  // cannot derive: this exit was the bot's, not the trader's. After the await
+  // on purpose; a refusal above returns before reaching this line.
+  //
+  // Only a close that ended the trade counts. A partial reduction leaves the
+  // position open, and whoever closes the rest owns that decision — stamping
+  // the entry here would let one successful partial claim a later manual
+  // close and its PnL (Devin review). The book is re-read rather than
+  // `firing.close` trusted, because a `partial` whose fraction covers the
+  // whole position closes it too.
+  if (env.ownedPosition(firing.rule.id, firing.positionId) === undefined) {
+    env.recordBotExit(firing.positionId);
   }
 
   return null;
