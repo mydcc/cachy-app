@@ -295,6 +295,24 @@ describe("FEAT-0813: Combo tab", () => {
     expect(plain(tree.of[0])).toMatchObject({ left: { kind: "price", field: "high", source: "mark" } });
   });
 
+  it("FEAT-0815: a session row with a preset writes a UTC window into the draft", () => {
+    const el = open();
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addRow")));
+    const kind = el.querySelector('[data-testid="combo-leaf"]')?.querySelector<HTMLSelectElement>("select");
+    if (!kind) throw new Error("no kind select");
+    kind.value = "session";
+    kind.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    const presets = el.querySelectorAll<HTMLSelectElement>('[data-testid="combo-leaf"] select')[1];
+    presets.value = "asia";
+    presets.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+
+    const tree = alertPanelState.draft.conditions;
+    if (tree?.kind !== "group") throw new Error("expected a group in the draft");
+    expect(plain(tree.of[0])).toEqual({ kind: "session", from: "00:00", to: "08:00", timezone: "UTC" });
+  });
+
   it("states the warmup the core computes for the draft", () => {
     alertPanelState.draft.conditions = { kind: "group", op: "all", of: [rsi("70")] };
 

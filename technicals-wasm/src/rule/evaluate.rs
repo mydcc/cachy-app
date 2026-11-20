@@ -48,7 +48,7 @@ use serde::{Deserialize, Serialize};
 
 use super::condition::{
     AccountField, Condition, CrossDirection, LogicOp, Operand, PositionSide, PriceField,
-    PriceSource, WindowAgg,
+    PriceSource, WindowAgg, atr_ref, in_session, session_minute,
 };
 use super::consequence::StopDistance;
 use super::document::{ExitClose, RuleDocument};
@@ -795,6 +795,33 @@ impl Ctx<'_> {
                 })
             }
 
+            // FEAT-0815 — the share of the last `lookback` ATR values (the
+            // current one included) at or below the current one, times 100.
+            // Like a window, one missing value aborts the rank rather than
+            // ranking against fewer: a top quartile of 117 values is not the
+            // top quartile of 120.
+            Operand::AtrPercentile { period, lookback } => {
+                let atr = Operand::Indicator {
+                    indicator: atr_ref(*period),
+                };
+                let current = self.operand_at(&atr, timeframe, back)?;
+                let mut at_or_below: u32 = 0;
+                for step in 0..*lookback as usize {
+                    if self.operand_at(&atr, timeframe, back + step)? <= current {
+                        at_or_below += 1;
+                    }
+                }
+                if *lookback == 0 {
+                    return Err(Missing::NoValue(
+                        "a rank over no values has no value; `validate` refuses this document"
+                            .to_string(),
+                    ));
+                }
+                (Decimal::from(at_or_below) * Decimal::ONE_HUNDRED)
+                    .checked_div(Decimal::from(*lookback))
+                    .ok_or_else(|| Missing::NoValue("the ATR rank overflowed".to_string()))
+            }
+
             // Indicator values are indexed against the last-price series, which
             // is the series every indicator in this crate is computed over.
             Operand::Indicator { indicator } => {
@@ -897,6 +924,19 @@ fn eval(condition: &Condition, ctx: &Ctx) -> Truth {
             Some(current) => truth(op.apply(current, *value)),
             None => Truth::Unknown(format!("feed `{feed}` has no value")),
         },
+
+        // FEAT-0815 — the anchor's close instant against a daily UTC window.
+        // `rem_euclid` so an instant before 1970 still lands on its own day.
+        Condition::Session { from, to, .. } => {
+            let (Some(from), Some(to)) = (session_minute(from), session_minute(to)) else {
+                return Truth::Unknown(
+                    "the session window does not parse; `validate` refuses this document".to_string(),
+                );
+            };
+            const DAY_MS: i64 = 86_400_000;
+            let minute = (ctx.anchor_close_ms.rem_euclid(DAY_MS) / 60_000) as u32;
+            truth(in_session(minute, from, to))
+        }
 
         Condition::Pattern { pattern, timeframe } => {
             let candles = ctx.market.closed_candles(*timeframe);

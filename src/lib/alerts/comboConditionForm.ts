@@ -106,9 +106,30 @@ export function isOfferedOp(op: LogicOp): boolean {
 }
 
 /** The kinds of leaf a row can be. */
-export type ComboLeafKind = "indicator" | "price" | "pattern" | "feed";
+export type ComboLeafKind = "indicator" | "price" | "pattern" | "regime" | "session" | "feed";
 /** What the trigger editor offers. A feed is refused there by the core (ADR-0012 decision 7). */
-export const COMBO_LEAF_KINDS: readonly ComboLeafKind[] = ["indicator", "price", "pattern"];
+export const COMBO_LEAF_KINDS: readonly ComboLeafKind[] = ["indicator", "price", "pattern", "regime", "session"];
+
+/** FEAT-0815 — the comparisons a volatility rank is offered with. */
+export const REGIME_OPS: readonly CompareOp[] = ["gte", "lte"];
+
+/**
+ * FEAT-0815 — session presets as fixed UTC windows. The document stores the
+ * window, never a name, so the label always shows the times it expands to;
+ * the core has no named sessions and no daylight-saving rule.
+ */
+export const SESSION_PRESETS = [
+    { id: "asia", from: "00:00", to: "08:00" },
+    { id: "europe", from: "07:00", to: "16:00" },
+    { id: "us", from: "13:00", to: "21:00" },
+] as const;
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** A session leaf's window when both times are `HH:MM` and differ; the core refuses the rest. */
+function sessionWindow(from: string, to: string): { from: string; to: string } | null {
+    return HHMM.test(from) && HHMM.test(to) && from !== to ? { from, to } : null;
+}
 /** What the veto editor offers (FEAT-0814): the trigger's kinds plus a third-party feed. */
 export const VETO_LEAF_KINDS: readonly ComboLeafKind[] = [...COMBO_LEAF_KINDS, "feed"];
 
@@ -157,6 +178,23 @@ export interface PatternLeaf extends LeafBase {
     readonly pattern: CandlePatternName;
 }
 
+/** FEAT-0815 — the ATR's percentile rank against a threshold in percent. */
+export interface RegimeLeaf extends LeafBase {
+    readonly kind: "regime";
+    readonly period: number;
+    readonly lookback: number;
+    readonly op: CompareOp;
+    /** Percent 0..100 as typed; built only once it parses. */
+    readonly value: string;
+}
+
+/** FEAT-0815 — a daily UTC window the anchor close must fall in. */
+export interface SessionLeaf extends LeafBase {
+    readonly kind: "session";
+    readonly from: string;
+    readonly to: string;
+}
+
 /** A third-party feed against a threshold; legal only inside a veto. */
 export interface FeedLeaf extends LeafBase {
     readonly kind: "feed";
@@ -166,7 +204,7 @@ export interface FeedLeaf extends LeafBase {
     readonly value: string;
 }
 
-export type ComboLeaf = IndicatorLeaf | PriceLeaf | PatternLeaf | FeedLeaf;
+export type ComboLeaf = IndicatorLeaf | PriceLeaf | PatternLeaf | RegimeLeaf | SessionLeaf | FeedLeaf;
 
 /** An indicator row. Kept as a name because it was the only row kind in v1. */
 export type ComboRow = IndicatorLeaf;
@@ -194,6 +232,10 @@ export type ComboLeafPatch = Partial<{
     feed: string;
     op: CompareOp;
     value: string;
+    period: number;
+    lookback: number;
+    from: string;
+    to: string;
     timeframe: TimeframeString | null;
 }>;
 
@@ -239,6 +281,13 @@ export function newComboLeaf(kind: ComboLeafKind, defaults: LeafDefaults = CLOSE
     }
     if (kind === "feed") {
         return { id: generateId(), kind: "feed", feed: EXTERNAL_FEEDS[0], op: "gt", value: "", timeframe: null };
+    }
+    if (kind === "regime") {
+        return { id: generateId(), kind: "regime", period: 14, lookback: 100, op: "gte", value: "75", timeframe: null };
+    }
+    if (kind === "session") {
+        const preset = SESSION_PRESETS[1];
+        return { id: generateId(), kind: "session", from: preset.from, to: preset.to, timeframe: null };
     }
     return { id: generateId(), kind: "pattern", pattern: ALL_PATTERNS[0], timeframe: null };
 }
@@ -344,6 +393,20 @@ function patchLeaf(leaf: ComboLeaf, next: ComboLeafPatch): ComboLeaf {
     const timeframe = next.timeframe === undefined ? leaf.timeframe : next.timeframe;
     if (leaf.kind === "indicator") return { ...leaf, form: next.form ?? leaf.form, timeframe };
     if (leaf.kind === "price") return { ...leaf, reading: next.reading ?? leaf.reading, timeframe };
+    if (leaf.kind === "regime") {
+        return {
+            ...leaf,
+            period: next.period ?? leaf.period,
+            lookback: next.lookback ?? leaf.lookback,
+            op: next.op ?? leaf.op,
+            value: next.value ?? leaf.value,
+            timeframe,
+        };
+    }
+    if (leaf.kind === "session") {
+        // A session reads the anchor's close instant, not a series.
+        return { ...leaf, from: next.from ?? leaf.from, to: next.to ?? leaf.to };
+    }
     if (leaf.kind === "feed") {
         // A feed has no timeframe of its own: it is read as of the close.
         return {
@@ -409,6 +472,22 @@ function buildLeaf(leaf: ComboLeaf, triggerTimeframe: TimeframeString): Conditio
     if (leaf.kind === "feed") {
         const value = feedValue(leaf.value);
         return value === null ? null : { kind: "external_feed", feed: leaf.feed, op: leaf.op, value };
+    }
+    if (leaf.kind === "regime") {
+        const value = feedValue(leaf.value);
+        // A rank is 0..100; outside that the condition is always or never true.
+        if (value === null || new Decimal(value).lt(0) || new Decimal(value).gt(100)) return null;
+        return {
+            kind: "compare",
+            left: { kind: "atr_percentile", period: leaf.period, lookback: leaf.lookback },
+            op: leaf.op,
+            right: { kind: "constant", value },
+            timeframe,
+        };
+    }
+    if (leaf.kind === "session") {
+        const window = sessionWindow(leaf.from, leaf.to);
+        return window === null ? null : { kind: "session", ...window, timezone: "UTC" };
     }
     return buildPatternCondition(leaf.pattern, timeframe);
 }
@@ -528,6 +607,27 @@ function readLeaf(child: Condition, trigger: TimeframeString, options: ComboRead
         // veto cannot rewrite a threshold ("0.010" stays locked, not "0.01").
         if (feedValue(child.value) !== child.value) return null;
         return { id: generateId(), kind: "feed", feed: child.feed, op: child.op, value: child.value, timeframe: null };
+    }
+    if (child.kind === "session") {
+        if (child.timezone !== "UTC" || sessionWindow(child.from, child.to) === null) return null;
+        return { id: generateId(), kind: "session", from: child.from, to: child.to, timeframe: null };
+    }
+    if (
+        child.kind === "compare" &&
+        child.left.kind === "atr_percentile" &&
+        child.right.kind === "constant" &&
+        REGIME_OPS.includes(child.op) &&
+        feedValue(child.right.value) === child.right.value
+    ) {
+        return {
+            id: generateId(),
+            kind: "regime",
+            period: child.left.period,
+            lookback: child.left.lookback,
+            op: child.op,
+            value: child.right.value,
+            timeframe: ownTimeframe(child.timeframe, trigger),
+        };
     }
     if (child.kind === "pattern") {
         return {

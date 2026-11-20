@@ -313,6 +313,29 @@ pub enum Operand {
         /// `lookback: 1` would be the operand itself and is refused.
         lookback: u32,
     },
+    /// FEAT-0815 — the volatility regime: the percentile rank (0..=100) of the
+    /// current ATR(`period`) among its last `lookback` values, the current one
+    /// included. The share of those values at or below the current one, times
+    /// 100 — so the highest ATR of the window reads 100, and a tie can never
+    /// make the answer depend on the order of equal values.
+    ///
+    /// An operand over the ATR the alert path already computes, not a new
+    /// indicator: it exposes where volatility sits, in percent.
+    AtrPercentile { period: u32, lookback: u32 },
+}
+
+/// The ATR series an `AtrPercentile` ranks. Built the way a document spells a
+/// bare ATR reference, so the series the alert path computes for it is found
+/// under the same key.
+pub fn atr_ref(period: u32) -> IndicatorRef {
+    let mut params = std::collections::BTreeMap::new();
+    params.insert("period".to_string(), super::indicator::ParamValue::Count(period));
+    IndicatorRef {
+        id: "atr".to_string(),
+        params,
+        output: "value".to_string(),
+        field: None,
+    }
 }
 
 /// Which end of a window a `Operand::Window` reads.
@@ -403,6 +426,40 @@ pub enum Condition {
         op: CompareOp,
         value: Decimal,
     },
+    /// FEAT-0815 — true when the anchor instant falls inside a daily UTC
+    /// window: `from` inclusive, `to` exclusive, both `HH:MM`. A window whose
+    /// `from` is later than its `to` wraps midnight (`22:00`–`02:00`). The
+    /// instant is the anchor candle's close, the moment the verdict is made.
+    /// Stored as text with the timezone spelled out, so the document says what
+    /// it means without a named session or a DST rule anywhere in it.
+    Session {
+        from: String,
+        to: String,
+        timezone: String,
+    },
+}
+
+/// Minutes after midnight for an `HH:MM` time, or `None` when it is not one.
+/// Exactly two digits each side: `9:00` and `24:00` are refused, not guessed.
+pub fn session_minute(time: &str) -> Option<u32> {
+    let (h, m) = time.split_once(':')?;
+    if h.len() != 2 || m.len() != 2 || !h.bytes().chain(m.bytes()).all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let (h, m): (u32, u32) = (h.parse().ok()?, m.parse().ok()?);
+    (h < 24 && m < 60).then_some(h * 60 + m)
+}
+
+/// Whether `minute` (after midnight) is inside `[from, to)`, wrapping midnight
+/// when `from > to`. `from == to` is refused by `validate` and is never true here.
+pub fn in_session(minute: u32, from: u32, to: u32) -> bool {
+    if from < to {
+        minute >= from && minute < to
+    } else if from > to {
+        minute >= from || minute < to
+    } else {
+        false
+    }
 }
 
 /// Where in the document a condition sits, which decides what it may be.
@@ -537,6 +594,40 @@ impl Condition {
                     ));
                 }
             }
+            Self::Session { from, to, timezone } => {
+                if timezone != "UTC" {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::InvalidSessionWindow,
+                        format!("{field}.timezone"),
+                        format!(
+                            "`{timezone}` is not a timezone this schema evaluates in; a session \
+                             window is stored in UTC so it means the same instant everywhere \
+                             and never shifts with a daylight-saving rule"
+                        ),
+                    ));
+                }
+                let mut bounds = [None, None];
+                for (slot, (name, time)) in [("from", from), ("to", to)].into_iter().enumerate() {
+                    bounds[slot] = session_minute(time);
+                    if bounds[slot].is_none() {
+                        out.push(RuleRefusal::new(
+                            RefusalCode::InvalidSessionWindow,
+                            format!("{field}.{name}"),
+                            format!("`{time}` is not a time of day as HH:MM, 00:00 to 23:59"),
+                        ));
+                    }
+                }
+                if let [Some(f), Some(t)] = bounds {
+                    if f == t {
+                        out.push(RuleRefusal::new(
+                            RefusalCode::InvalidSessionWindow,
+                            field,
+                            "a session that starts where it ends is either empty or the whole \
+                             day, and the document cannot say which; give it a length",
+                        ));
+                    }
+                }
+            }
         }
     }
 
@@ -626,7 +717,10 @@ impl Condition {
                 }
             }
             Self::Group { of, .. } => of.iter().for_each(|c| c.timeframes(into)),
-            Self::Position { .. } | Self::Account { .. } | Self::ExternalFeed { .. } => {}
+            Self::Position { .. }
+            | Self::Account { .. }
+            | Self::ExternalFeed { .. }
+            | Self::Session { .. } => {}
         }
     }
 
@@ -662,7 +756,8 @@ impl Condition {
             Self::Pattern { .. }
             | Self::Position { .. }
             | Self::Account { .. }
-            | Self::ExternalFeed { .. } => {}
+            | Self::ExternalFeed { .. }
+            | Self::Session { .. } => {}
         }
     }
 
@@ -751,6 +846,19 @@ impl Operand {
                 }
                 of.validate(&format!("{field}.of"), out);
             }
+            Self::AtrPercentile { period, lookback } => {
+                atr_ref(*period).validate(field, out);
+                if *lookback < 2 || *lookback > MAX_WINDOW_LOOKBACK {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::InvalidWindowLookback,
+                        format!("{field}.lookback"),
+                        format!(
+                            "a volatility rank needs between 2 and {MAX_WINDOW_LOOKBACK} ATR \
+                             values to rank against; one value is always its own top"
+                        ),
+                    ));
+                }
+            }
             Self::Price { .. } | Self::Constant { .. } | Self::Volume {} => {}
         }
     }
@@ -779,6 +887,7 @@ impl Operand {
             // — which is why this is an operand and not a condition shape:
             // the dimensional guard is inherited rather than re-implemented.
             Self::Window { of, .. } => of.dimension(),
+            Self::AtrPercentile { .. } => Some(Dimension::Percent),
         }
     }
 
@@ -802,6 +911,12 @@ impl Operand {
                 .warmup_candles()
                 .saturating_add(*lookback)
                 .saturating_sub(1),
+            // The ATR's own warmup (period + 1) plus the ranked window, less
+            // the close they share: `period + lookback`.
+            Self::AtrPercentile { period, lookback } => atr_ref(*period)
+                .warmup_candles()
+                .saturating_add(*lookback)
+                .saturating_sub(1),
         }
     }
 
@@ -818,7 +933,125 @@ impl Operand {
             // whether a mark subscription is needed, and answering `None` here
             // would leave the rule waiting for a series nobody fetched.
             Self::Window { of, .. } => of.price_source(),
-            Self::Indicator { .. } | Self::Constant { .. } | Self::Volume {} => None,
+            Self::Indicator { .. }
+            | Self::Constant { .. }
+            | Self::Volume {}
+            | Self::AtrPercentile { .. } => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod feat_0815_tests {
+    use super::*;
+
+    fn session(from: &str, to: &str, timezone: &str) -> Condition {
+        Condition::Session {
+            from: from.to_string(),
+            to: to.to_string(),
+            timezone: timezone.to_string(),
+        }
+    }
+
+    fn refusals(condition: &Condition) -> Vec<RuleRefusal> {
+        let mut out = Vec::new();
+        condition.validate(
+            "conditions",
+            ConditionSite::Trigger,
+            Timeframe::parse("1h").expect("1h parses"),
+            false,
+            0,
+            &mut out,
+        );
+        out
+    }
+
+    #[test]
+    fn a_session_time_is_two_digits_each_side_and_inside_the_day() {
+        assert_eq!(session_minute("00:00"), Some(0));
+        assert_eq!(session_minute("08:30"), Some(510));
+        assert_eq!(session_minute("23:59"), Some(1439));
+        for bad in ["24:00", "9:00", "08:60", "0800", "08:0a", "", "-1:00"] {
+            assert_eq!(session_minute(bad), None, "{bad} must not parse");
+        }
+    }
+
+    #[test]
+    fn a_window_includes_its_start_and_excludes_its_end() {
+        let (from, to) = (8 * 60, 16 * 60);
+        assert!(in_session(from, from, to));
+        assert!(in_session(to - 1, from, to));
+        assert!(!in_session(to, from, to));
+        assert!(!in_session(from - 1, from, to));
+    }
+
+    #[test]
+    fn a_window_across_midnight_wraps() {
+        let (from, to) = (22 * 60, 2 * 60);
+        assert!(in_session(23 * 60, from, to));
+        assert!(in_session(0, from, to));
+        assert!(in_session(to - 1, from, to));
+        assert!(!in_session(to, from, to));
+        assert!(!in_session(12 * 60, from, to));
+        assert!(in_session(from, from, to));
+    }
+
+    #[test]
+    fn an_empty_or_full_day_window_is_refused() {
+        let out = refusals(&session("08:00", "08:00", "UTC"));
+        assert!(out
+            .iter()
+            .any(|r| r.code == RefusalCode::InvalidSessionWindow && r.field == "conditions"));
+    }
+
+    #[test]
+    fn a_malformed_time_is_refused_with_its_field_path() {
+        let out = refusals(&session("8:00", "16:00", "UTC"));
+        assert!(out.iter().any(|r| r.field == "conditions.from"));
+        let out = refusals(&session("08:00", "25:00", "UTC"));
+        assert!(out.iter().any(|r| r.field == "conditions.to"));
+    }
+
+    #[test]
+    fn a_timezone_other_than_utc_is_refused() {
+        let out = refusals(&session("08:00", "16:00", "Europe/Berlin"));
+        assert!(out.iter().any(|r| r.field == "conditions.timezone"));
+        assert!(refusals(&session("08:00", "16:00", "UTC")).is_empty());
+    }
+
+    #[test]
+    fn the_atr_rank_needs_period_plus_lookback_candles() {
+        let operand = Operand::AtrPercentile {
+            period: 14,
+            lookback: 100,
+        };
+        assert_eq!(operand.warmup_candles(), 114);
+        assert_eq!(operand.dimension(), Some(Dimension::Percent));
+    }
+
+    #[test]
+    fn the_atr_rank_refuses_a_window_outside_two_to_the_ceiling() {
+        for lookback in [0, 1, MAX_WINDOW_LOOKBACK + 1] {
+            let mut out = Vec::new();
+            Operand::AtrPercentile { period: 14, lookback }.validate("x", &mut out);
+            assert!(
+                out.iter().any(|r| r.code == RefusalCode::InvalidWindowLookback && r.field == "x.lookback"),
+                "lookback {lookback} must be refused"
+            );
+        }
+        let mut out = Vec::new();
+        Operand::AtrPercentile { period: 14, lookback: 2 }.validate("x", &mut out);
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn both_spell_themselves_on_the_wire_as_the_document_does() {
+        let operand: Operand =
+            serde_json::from_str(r#"{"kind":"atr_percentile","period":14,"lookback":100}"#).unwrap();
+        assert_eq!(operand, Operand::AtrPercentile { period: 14, lookback: 100 });
+        let condition: Condition =
+            serde_json::from_str(r#"{"kind":"session","from":"22:00","to":"02:00","timezone":"UTC"}"#)
+                .unwrap();
+        assert_eq!(condition, session("22:00", "02:00", "UTC"));
     }
 }

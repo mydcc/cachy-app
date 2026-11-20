@@ -755,7 +755,9 @@
           "indicator": "Indicator",
           "price": "Price",
           "pattern": "Candlestick pattern",
-          "feed": "External feed"
+          "feed": "External feed",
+          "regime": "Volatility regime",
+          "session": "Session (UTC)"
         },
         "patternLabel": "Pattern",
         "addGroup": "Add group",
@@ -765,7 +767,22 @@
         "removeGroup": "Remove group {index}",
         "warmup": "This rule needs {count} closed candles of history before it can judge (at most {max}).",
         "incomplete": "One condition is not filled in yet. It is missing from the sentence above, and the rule can be armed only once it is complete.",
-        "warmupTooDeep": "This rule needs more than {max} candles of history. That is more than the core loads; armed, it would never reach a verdict. Shorten a period or a window."
+        "warmupTooDeep": "This rule needs more than {max} candles of history. That is more than the core loads; armed, it would never reach a verdict. Shorten a period or a window.",
+        "regimePeriod": "ATR period",
+        "regimeLookback": "Ranked over candles",
+        "regimeOp": "Rank",
+        "regimeValue": "Percentile (0–100)",
+        "regimeHint": "Where the current ATR sits among its recent values: 75 means the top quarter. Needs period + candles of history.",
+        "sessionPreset": "Preset",
+        "sessionFrom": "From (UTC)",
+        "sessionTo": "To (UTC)",
+        "sessionHint": "Holds when the candle closes inside this window: start included, end excluded. A window across midnight (22:00–02:00) is allowed. Times are UTC and do not shift with daylight saving.",
+        "sessionPresetOption": {
+          "custom": "Custom window",
+          "asia": "Asia, {from}–{to} UTC",
+          "europe": "Europe, {from}–{to} UTC",
+          "us": "US, {from}–{to} UTC"
+        }
       },
       "manageList": {
         "tabAlerts": "Alerts ({count})",
@@ -5163,7 +5180,8 @@
       "invalidDerivedFromHash": "The derivation in `{field}` is not a valid content hash, so the strategy this was promoted from cannot be identified.",
       "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice.",
       "stopRequiredForRiskSizing": "`{field}` is missing: a size given as percent of risk is measured between the entry and the stop, so it has no value until the stop is set.",
-      "stopNotHonoured": "`{field}` would never be placed: a reduce-only order closes an existing position rather than opening one that needs protecting."
+      "stopNotHonoured": "`{field}` would never be placed: a reduce-only order closes an existing position rather than opening one that needs protecting.",
+      "invalidSessionWindow": "A session window needs two times as HH:MM in UTC and a length: its start and end must differ."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -5256,7 +5274,9 @@
         "funding_rate": "the funding rate",
         "open_interest_change": "the open-interest change",
         "fear_greed": "the fear & greed index"
-      }
+      },
+      "atrPercentile": "the rank of ATR({period}) among its last {lookback} values",
+      "session": "the candle closes between {from} and {to} UTC"
     }
   },
   "storage": {

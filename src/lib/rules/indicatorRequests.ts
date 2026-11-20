@@ -102,6 +102,18 @@ export function collectIndicators(rule: RuleDocument): IndicatorRequest[] {
       return;
     }
 
+    // FEAT-0815 — a volatility rank reads the ATR series; without it the rank
+    // would sit indeterminate for ever, like an unrequested indicator above.
+    // Spelled as a bare ATR reference, the key the core looks it up under.
+    if (node.kind === "atr_percentile") {
+      const period = (node as { period?: unknown }).period;
+      if (typeof period !== "number") return;
+      const indicator: IndicatorRef = { id: "atr", params: { period } };
+      const key = indicatorKey(indicator, timeframe);
+      if (!found.has(key)) found.set(key, { indicator, timeframe });
+      return;
+    }
+
     if (node.kind !== "indicator") return;
 
     const indicator = node.indicator as IndicatorRef | undefined;

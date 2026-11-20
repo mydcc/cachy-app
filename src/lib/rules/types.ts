@@ -134,7 +134,14 @@ export type Operand =
    * because the window includes the value being compared — "breaks above its
    * 20-candle high" is `gte`, not `gt`.
    */
-  | { kind: "window"; of: Operand; agg: WindowAgg; lookback: number };
+  | { kind: "window"; of: Operand; agg: WindowAgg; lookback: number }
+  /**
+   * FEAT-0815 — the volatility regime: the percentile rank (0..=100) of the
+   * current ATR(`period`) among its last `lookback` values, the current one
+   * included (the share at or below it, times 100). A percentage; `lookback`
+   * is 2..=500 and the warmup is `period + lookback`.
+   */
+  | { kind: "atr_percentile"; period: number; lookback: number };
 
 /**
  * The candlestick patterns the rule core can detect, spelled exactly as the
@@ -198,7 +205,13 @@ export type Condition =
    * `conditions`: ADR-0012 decision 7 lets such a feed suppress a trigger but
    * never be one, because a backtest over an unversioned feed cannot be honest.
    */
-  | { kind: "external_feed"; feed: string; op: CompareOp; value: DecimalString };
+  | { kind: "external_feed"; feed: string; op: CompareOp; value: DecimalString }
+  /**
+   * FEAT-0815 — true while the anchor candle's close falls inside a daily UTC
+   * window, `from` inclusive and `to` exclusive (`HH:MM`). `from > to` wraps
+   * midnight; `from == to` and any timezone but `UTC` are refused.
+   */
+  | { kind: "session"; from: string; to: string; timezone: "UTC" };
 
 export type SizeBasis =
   | "base_quantity"

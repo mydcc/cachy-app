@@ -202,6 +202,11 @@ function formatOperand(
           lookback: operand.lookback,
         },
       );
+    case "atr_percentile":
+      return t("rules.sentence.atrPercentile", {
+        period: operand.period,
+        lookback: operand.lookback,
+      });
     default: {
       // Exhaustiveness without throwing: `renderRuleSentence` promises never
       // to throw (half-built docs render on every keystroke), so an unknown
@@ -225,7 +230,7 @@ function isPercentComparison(left: Operand, right: Operand): boolean {
  */
 function isPercentOperand(operand: Operand): boolean {
   if (operand.kind === "window") return isPercentOperand(operand.of);
-  return operand.kind === "percent_change";
+  return operand.kind === "percent_change" || operand.kind === "atr_percentile";
 }
 
 /**
@@ -302,6 +307,8 @@ function formatCondition(
       });
     case "group":
       return formatGroup(condition.op, condition.of, anchor, t);
+    case "session":
+      return t("rules.sentence.session", { from: condition.from, to: condition.to });
   }
 }
 
