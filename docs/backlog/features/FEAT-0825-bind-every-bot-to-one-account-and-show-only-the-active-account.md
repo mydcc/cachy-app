@@ -2,7 +2,7 @@
 id: FEAT-0825
 title: Bind every bot to one account and show only the active account
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,8 +11,8 @@ data_class: A
 adr: required
 depends_on: [FEAT-0807]
 parent: FEAT-0805
-size: XL
-estimate: 21
+size: M
+estimate: 8
 assignee: claude
 branch: feature/feat-0825-bot-account-binding
 ---
@@ -55,8 +55,8 @@ have to work extremely precisely", and only the **active** account is shown.
 
 ## Acceptance criteria
 
-- [ ] The required ADR exists and is accepted before any implementation
-      merges.
+- [x] The required ADR exists and is accepted before any implementation
+      merges. ADR-0028, accepted by the owner on 2026-11-20.
 - [x] A bot created while account A is active executes only against account
       A, including after switching to account B. Under ADR-0028 a bot's
       account is the paper account, resolved by `botAccountOf` and never from

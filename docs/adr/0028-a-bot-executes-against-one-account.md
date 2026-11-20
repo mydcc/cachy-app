@@ -1,6 +1,6 @@
 # ADR-0028: A bot executes against one account, and only that account's bots are shown
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-11-20, owner)
 - **Date:** 2026-11-20
 - **Deciders:** mydcc
 
