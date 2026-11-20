@@ -32,6 +32,7 @@
     import { Decimal } from "decimal.js";
     import { _ } from "../../../locales/i18n";
     import type { BotTrackRecord } from "../../../lib/botTrackRecord";
+    import Button from "../Button.svelte";
 
     interface Props {
         records: BotTrackRecord[];
@@ -144,14 +145,14 @@
     <header class="cards-header">
         <h3 class="cards-title">{$_("journal.bots.title")}</h3>
         {#if selectedBotId !== ""}
-            <button
-                type="button"
-                class="clear-btn"
-                data-testid="bot-filter-clear"
-                onclick={() => onselect?.("")}
+            <Button
+                variant="ghost"
+                size="xs"
+                id="bot-filter-clear"
+                onClick={() => onselect?.("")}
             >
                 {$_("journal.bots.clearSelection")}
-            </button>
+            </Button>
         {/if}
     </header>
 
@@ -168,6 +169,7 @@
                     class:selected={selectedBotId === record.botId}
                     data-testid={`bot-card-${record.botId}`}
                 >
+                    <!-- FEAT-0613 escape: selection card head (class:selected on the card) — the primitive has no selected state and no card geometry -->
                     <button
                         type="button"
                         class="card-head"
@@ -282,20 +284,6 @@
         font-size: 0.9rem;
         font-weight: var(--font-semibold);
         color: var(--text-primary);
-    }
-
-    .clear-btn {
-        font-size: 0.75rem;
-        color: var(--accent-color);
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        padding: 0.15rem 0.35rem;
-        border-radius: var(--radius-sm);
-    }
-
-    .clear-btn:hover {
-        background: var(--bg-secondary);
     }
 
     .empty,

@@ -269,7 +269,9 @@ describe("FEAT-0812 — JournalBotCards", () => {
             onselect,
         });
 
-        const clear = at("bot-filter-clear");
+        // The clear control goes through `Button.svelte`, which forwards `id`
+        // and not `data-testid` — so the hook is the id it was given.
+        const clear = host.querySelector<HTMLElement>("#bot-filter-clear");
         expect(clear).not.toBeNull();
         clear?.click();
         flushSync();

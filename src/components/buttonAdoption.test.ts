@@ -83,6 +83,8 @@ const EXPECTED_ESCAPES: Record<string, number> = {
   "src/components/shared/journal/TradeDetailDrawer.svelte": 2,
   "src/components/shared/JournalEntryTags.svelte": 2,
   "src/components/shared/journal/JournalDeepDive.svelte": 1,
+  // FEAT-0812 — the per-bot card head is a selection card, not a button.
+  "src/components/shared/journal/JournalBotCards.svelte": 1,
   "src/components/shared/DashboardNav.svelte": 1,
   "src/components/shared/windows/WindowFrame.svelte": 2,
 };
