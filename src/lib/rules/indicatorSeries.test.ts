@@ -76,6 +76,29 @@ describe("collectIndicators", () => {
     expect(found).toEqual([{ indicator: rsi14, timeframe: "1h" }]);
   });
 
+  it("FEAT-0815: requests the ATR behind a volatility rank read by an exit", () => {
+    const always: Condition = { kind: "group", op: "all", of: [] };
+    const document = {
+      ...rule(always),
+      exits: [
+        {
+          when: {
+            kind: "compare",
+            left: { kind: "atr_percentile", period: 14, lookback: 100 },
+            op: "lte",
+            right: { kind: "constant", value: "25" },
+            timeframe: "1h",
+          },
+          close: "all",
+        },
+      ],
+    } as unknown as Parameters<typeof collectIndicators>[0];
+
+    expect(collectIndicators(document)).toEqual([
+      { indicator: { id: "atr", params: { period: 14 } }, timeframe: "1h" },
+    ]);
+  });
+
   it("collapses the same indicator read by two conditions into one request", () => {
     const read: Condition = {
       kind: "compare",

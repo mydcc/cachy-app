@@ -551,6 +551,26 @@ impl RuleDocument {
                  `evaluation_mode: close`",
             ));
         }
+        // FEAT-0815. A session is tested at the anchor candle's close. On an
+        // intrabar rule the trigger series ends with the candle still forming,
+        // so that instant is a future close: the window would open and shut up
+        // to one trigger interval early. Refused instead of shifted.
+        if !self.evaluation_mode.is_close() {
+            let trees = std::iter::once(("conditions".to_string(), &self.conditions))
+                .chain(self.veto.iter().map(|v| ("veto".to_string(), v)))
+                .chain(self.exits.iter().flatten().enumerate().map(|(i, e)| (format!("exits[{i}].when"), &e.when)));
+            for (field, tree) in trees {
+                if crate::rule::condition::has_session(tree) {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::InvalidSessionWindow,
+                        field,
+                        "a session window is tested at a closed trigger candle; an \
+                         `intrabar` rule reads a candle still forming. Author the rule at \
+                         `evaluation_mode: close`",
+                    ));
+                }
+            }
+        }
         if self.exits.as_ref().is_some_and(|e| e.is_empty()) {
             out.push(RuleRefusal::new(
                 RefusalCode::EmptyExitsArray,
@@ -1592,6 +1612,30 @@ mod tests {
             "deciding on the candle still forming is not the same strategy as \
              waiting for it to close, and must not share an identity with it"
         );
+    }
+
+    /// FEAT-0815: an intrabar rule's anchor is a forming candle, whose close is
+    /// in the future, so a session window there is refused, not shifted.
+    #[test]
+    fn a_session_on_an_intrabar_rule_is_refused() {
+        let session = Condition::Session {
+            from: "08:00".to_string(),
+            to: "16:00".to_string(),
+            timezone: "UTC".to_string(),
+        };
+        let mut doc = rsi_dip();
+        doc.veto = Some(session.clone());
+        assert!(doc.validate().is_ok(), "a close rule may test a session");
+        doc.evaluation_mode = EvaluationMode::Intrabar;
+        let refused = doc.validate().expect_err("intrabar + session must be refused");
+        assert!(refused
+            .refusals
+            .iter()
+            .any(|r| r.code == RefusalCode::InvalidSessionWindow && r.field == "veto"));
+        doc.veto = None;
+        doc.conditions = Condition::Group { op: LogicOp::All, of: vec![session] };
+        let refused = doc.validate().expect_err("in the trigger too");
+        assert!(refused.refusals.iter().any(|r| r.field == "conditions"));
     }
 
     /// An intrabar document survives the round trip it will actually take.

@@ -114,6 +114,23 @@ describe("the session row", () => {
         expect(buildComboCondition(replaceRow(form, id, { from: "8:00" }), TF)).toBeNull();
     });
 
+    it("locks a stored rank outside 0..100 instead of claiming and dropping it", () => {
+        const stored = {
+            kind: "group",
+            op: "all",
+            of: [
+                {
+                    kind: "compare",
+                    left: { kind: "atr_percentile", period: 14, lookback: 100 },
+                    op: "gte",
+                    right: { kind: "constant", value: "150" },
+                    timeframe: TF,
+                },
+            ],
+        } as unknown as Condition;
+        expect(readComboForm(stored, TF)).toBeNull();
+    });
+
     it("locks a stored session in another timezone instead of rewriting it", () => {
         const stored = {
             kind: "group",

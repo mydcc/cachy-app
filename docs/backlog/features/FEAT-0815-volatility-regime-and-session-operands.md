@@ -75,6 +75,12 @@ third-party feed, so ADR-0012 decision 7 is untouched.
   any timezone but `UTC` are refused (`invalid_session_window`) with the field
   path. The instant tested is the anchor candle's **close**, the moment the
   verdict is made — so a 1h candle closing at 16:00 is outside 08:00–16:00.
+- **Where a session is refused.** On an `intrabar` rule the anchor is a candle
+  still forming, so its close lies in the future and the window would open and
+  shut up to one trigger interval early; a session anywhere in such a document
+  is refused (`invalid_session_window`) rather than shifted. On a trigger of 1d
+  or longer every close falls at 00:00 UTC, so the window would be constant;
+  that is refused too. 4h and shorter are legal, read at their closes only.
 - **ATR rank definition.** The share of the last `lookback` ATR values (the
   current one included) at or below the current one, times 100 — the maximum of
   the window reads 100 and ties cannot make the answer order-dependent. Built on

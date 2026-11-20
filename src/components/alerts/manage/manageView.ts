@@ -56,6 +56,7 @@ const PHRASABLE_KINDS = new Set([
   "position",
   "account",
   "group",
+  "session",
 ]);
 
 /**
@@ -191,7 +192,8 @@ function isOperand(value: unknown): value is { kind?: unknown; of?: unknown } {
 
 function mentionsIndicator(condition: Record<string, unknown>): boolean {
   return [condition.left, condition.right, condition.of].some(
-    (operand) => isOperand(operand) && operand.kind === "indicator",
+    // FEAT-0815: a volatility rank is ATR-derived, an indicator reading.
+    (operand) => isOperand(operand) && (operand.kind === "indicator" || operand.kind === "atr_percentile"),
   );
 }
 
@@ -208,6 +210,7 @@ export function kindOf(rule: StoredRule, isDrawing: boolean): AlertKind {
     case "pattern":
       return "pattern";
     case "group":
+    case "session":
       return "combo";
     case "position":
       return "position";

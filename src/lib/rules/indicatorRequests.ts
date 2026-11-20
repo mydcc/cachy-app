@@ -144,5 +144,8 @@ export function collectIndicators(rule: RuleDocument): IndicatorRequest[] {
 
   walk(rule.conditions);
   walk(rule.veto);
+  // FEAT-0815: an exit can read a volatility rank too ("stop when volatility
+  // collapses"); without its ATR series that exit would stay unknown for good.
+  for (const exit of rule.exits ?? []) walk(exit.when);
   return [...found.values()];
 }

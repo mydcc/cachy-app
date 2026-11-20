@@ -198,6 +198,8 @@ export function templateIndicators(entry: AlertTemplate): readonly string[] {
     const ids: string[] = [];
     const visit = (operand: Operand) => {
         if (operand.kind === "window") return visit(operand.of);
+        // FEAT-0815: a volatility rank reads ATR, so the card names it.
+        if (operand.kind === "atr_percentile" && !ids.includes("atr")) ids.push("atr");
         if (operand.kind === "indicator" && !ids.includes(operand.indicator.id)) {
             ids.push(operand.indicator.id);
         }

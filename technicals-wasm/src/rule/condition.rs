@@ -429,7 +429,8 @@ pub enum Condition {
     /// FEAT-0815 — true when the anchor instant falls inside a daily UTC
     /// window: `from` inclusive, `to` exclusive, both `HH:MM`. A window whose
     /// `from` is later than its `to` wraps midnight (`22:00`–`02:00`). The
-    /// instant is the anchor candle's close, the moment the verdict is made.
+    /// instant is the anchor candle's close, the moment the verdict is made;
+    /// an `intrabar` rule has no closed anchor there, so it is refused.
     /// Stored as text with the timezone spelled out, so the document says what
     /// it means without a named session or a DST rule anywhere in it.
     Session {
@@ -441,6 +442,18 @@ pub enum Condition {
 
 /// Minutes after midnight for an `HH:MM` time, or `None` when it is not one.
 /// Exactly two digits each side: `9:00` and `24:00` are refused, not guessed.
+/// FEAT-0815 — a session needs closes at more than one time of day.
+pub const SESSION_MAX_TRIGGER_SECONDS: u64 = 86_400;
+
+/// Whether this subtree tests a session window anywhere.
+pub fn has_session(condition: &Condition) -> bool {
+    match condition {
+        Condition::Session { .. } => true,
+        Condition::Group { of, .. } => of.iter().any(has_session),
+        _ => false,
+    }
+}
+
 pub fn session_minute(time: &str) -> Option<u32> {
     let (h, m) = time.split_once(':')?;
     if h.len() != 2 || m.len() != 2 || !h.bytes().chain(m.bytes()).all(|b| b.is_ascii_digit()) {
@@ -595,6 +608,21 @@ impl Condition {
                 }
             }
             Self::Session { from, to, timezone } => {
+                // The window is tested at the trigger candle's close. Every
+                // close of a daily-or-longer candle lands on 00:00 UTC, so a
+                // window there is always or never true -- refused, not armed
+                // as a veto that can never suppress.
+                if trigger.seconds() >= SESSION_MAX_TRIGGER_SECONDS {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::InvalidSessionWindow,
+                        field,
+                        format!(
+                            "a session window is tested at the {trigger} trigger's close, and \
+                             every {trigger} close falls at the same time of day; use a trigger \
+                             timeframe shorter than 1d"
+                        ),
+                    ));
+                }
                 if timezone != "UTC" {
                     out.push(RuleRefusal::new(
                         RefusalCode::InvalidSessionWindow,
@@ -847,7 +875,17 @@ impl Operand {
                 of.validate(&format!("{field}.of"), out);
             }
             Self::AtrPercentile { period, lookback } => {
-                atr_ref(*period).validate(field, out);
+                // The ATR reference is built, not stored: its refusals name
+                // `params.period`, a key this operand spells `period`.
+                let mut atr = Vec::new();
+                atr_ref(*period).validate(field, &mut atr);
+                let built = format!("{field}.params.period");
+                out.extend(atr.into_iter().map(|mut r| {
+                    if r.field == built {
+                        r.field = format!("{field}.period");
+                    }
+                    r
+                }));
                 if *lookback < 2 || *lookback > MAX_WINDOW_LOOKBACK {
                     out.push(RuleRefusal::new(
                         RefusalCode::InvalidWindowLookback,
@@ -1042,6 +1080,42 @@ mod feat_0815_tests {
         let mut out = Vec::new();
         Operand::AtrPercentile { period: 14, lookback: 2 }.validate("x", &mut out);
         assert!(out.is_empty());
+    }
+
+    #[test]
+    fn a_session_on_a_daily_trigger_is_refused() {
+        // Every 1d close is 00:00 UTC: the window would be constant.
+        let mut out = Vec::new();
+        session("13:00", "21:00", "UTC").validate(
+            "veto",
+            ConditionSite::Veto,
+            Timeframe::parse("1d").expect("1d parses"),
+            false,
+            0,
+            &mut out,
+        );
+        assert!(out
+            .iter()
+            .any(|r| r.code == RefusalCode::InvalidSessionWindow && r.field == "veto"));
+        let mut out = Vec::new();
+        session("13:00", "21:00", "UTC").validate(
+            "veto",
+            ConditionSite::Veto,
+            Timeframe::parse("4h").expect("4h parses"),
+            false,
+            0,
+            &mut out,
+        );
+        assert!(out.is_empty(), "{out:?}");
+    }
+
+    #[test]
+    fn an_atr_rank_period_is_refused_under_the_key_the_document_spells() {
+        let mut out = Vec::new();
+        Operand::AtrPercentile { period: 0, lookback: 100 }.validate("x", &mut out);
+        assert!(!out.is_empty());
+        assert!(out.iter().all(|r| r.field != "x.params.period"), "{out:?}");
+        assert!(out.iter().any(|r| r.field == "x.period"), "{out:?}");
     }
 
     #[test]

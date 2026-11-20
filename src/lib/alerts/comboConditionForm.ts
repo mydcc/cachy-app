@@ -465,6 +465,16 @@ export function setLogicOp(form: ComboForm, op: LogicOp, groupId?: string): Comb
     };
 }
 
+/**
+ * A rank is 0..100; outside that the condition is always or never true. Shared
+ * by the read and the build, so a stored rank the builder would drop stays
+ * locked instead of being claimed and then lost.
+ */
+function isRankValue(value: string): boolean {
+    const rank = new Decimal(value);
+    return rank.gte(0) && rank.lte(100);
+}
+
 function buildLeaf(leaf: ComboLeaf, triggerTimeframe: TimeframeString): Condition | null {
     const timeframe = leaf.timeframe ?? triggerTimeframe;
     if (leaf.kind === "indicator") return buildIndicatorCondition(leaf.form, timeframe);
@@ -475,8 +485,7 @@ function buildLeaf(leaf: ComboLeaf, triggerTimeframe: TimeframeString): Conditio
     }
     if (leaf.kind === "regime") {
         const value = feedValue(leaf.value);
-        // A rank is 0..100; outside that the condition is always or never true.
-        if (value === null || new Decimal(value).lt(0) || new Decimal(value).gt(100)) return null;
+        if (value === null || !isRankValue(value)) return null;
         return {
             kind: "compare",
             left: { kind: "atr_percentile", period: leaf.period, lookback: leaf.lookback },
@@ -617,7 +626,8 @@ function readLeaf(child: Condition, trigger: TimeframeString, options: ComboRead
         child.left.kind === "atr_percentile" &&
         child.right.kind === "constant" &&
         REGIME_OPS.includes(child.op) &&
-        feedValue(child.right.value) === child.right.value
+        feedValue(child.right.value) === child.right.value &&
+        isRankValue(child.right.value)
     ) {
         return {
             id: generateId(),
