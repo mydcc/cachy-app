@@ -71,7 +71,6 @@ import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
 import { paperState } from "./paperTrading.svelte";
 import { marketState } from "./market.svelte";
-import { accountState } from "./account.svelte";
 import { settingsState } from "./settings.svelte";
 import type { TranslationKey } from "../locales/schema";
 import type { BotOrderEnvironment, BotOrderRefusal } from "../services/alertEngine/botOrders";
@@ -364,22 +363,18 @@ export function botOrderEnvironment(
         exchange: () => settingsState.apiProvider,
         closeAt,
         livePrice,
-        // FEAT-0488 — which book to ask depends on where this bot's own entry
-        // lands, and the two are not the same store.
+        // FEAT-0488 — the open-position guard asks the bot's own account's
+        // book. FEAT-0825 / ADR-0028 removed the live arm this used to carry:
+        // a bot's account is the paper account (`botAccount.ts`), so a guard
+        // reading the *active* exchange account's positions was a bot guard
+        // reading another account's book. It was unreachable — the lane
+        // refuses with `paper-trading-off` first — and an unreachable branch
+        // that reads the wrong account is a wrong answer waiting to become
+        // reachable. FEAT-0035 adds the exchange book through the binding,
+        // not through "whatever is on screen"; when it does, normalize the
+        // symbol on both sides (`lib/calculators/tpsl.ts`).
         //
-        // **The live arm does not execute today**, and that is worth stating
-        // rather than implying otherwise: `submitBotOrder` refuses with
-        // `paper-trading-off` before it ever calls this, from the same
-        // `paperState.enabled`, with no `await` between the two reads. So today
-        // the guard always reads the paper book. The branch is here for
-        // FEAT-0035, which lifts the paper gate — and it is the arm that will
-        // matter there, because the live branch compares `symbol` raw while
-        // `firing.rule.symbol` is normalized on the way in (the convention is
-        // in `lib/calculators/tpsl.ts`). Normalize both sides when that arm
-        // goes live.
-        //
-        // Why the paper book rather than `accountState` in paper mode, for
-        // whoever reads this while the live arm is dead:
+        // Why the paper book rather than `accountState` in paper mode:
         // `accountState.positions` is *hydrated from* the simulator
         // (`paperAccountFeed.positions()` reads `paperState.positions`), but
         // only on a refresh tick, while `paperState` is written synchronously
@@ -388,7 +383,7 @@ export function botOrderEnvironment(
         // before it lands — which is the same one-tick window the in-flight
         // guard closes for a single rule.
         hasOpenPosition: (symbol, side) =>
-            (paperState.enabled ? paperState.positions : accountState.positions).some(
+            paperState.positions.some(
                 (p) => p.symbol === symbol && p.side === side,
             ),
         // FEAT-0822 — the guard ports: the stores this wiring already owns,

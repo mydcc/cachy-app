@@ -33,6 +33,7 @@ import type { RuleDocument } from "../../lib/rules/types";
 import type { PaperPosition } from "../../stores/paperTrading.svelte";
 import { Decimal } from "decimal.js";
 import { limitReasonsFor } from "./botGuards";
+import { isBotAccountExecuting, type BotAccount } from "./botAccount";
 
 /** An owned row's risk before anything is known about it — never `null` in
  * the projection's book, because the enforcement lane refuses on unknown
@@ -46,6 +47,7 @@ export type BotState =
     | "closing"
     | "closed"
     | "paused"
+    | "account_unavailable"
     | "blocked"
     | "expired"
     | "limit_reached"
@@ -57,6 +59,13 @@ export type BotState =
  * loop's inert record, and how often each rule has fired.
  */
 export interface BotBook {
+    /**
+     * FEAT-0825 / ADR-0028 — the account bots may execute against right now
+     * (`executingBotAccount`), or `null` while none is. Required, not
+     * optional: a book that forgot to say would otherwise read every bot as
+     * either available or not by accident.
+     */
+    executingAccount: BotAccount | null;
     /** Open positions of the simulated book. */
     positions: readonly PaperPosition[];
     /** Rule ids with an entry submission still in flight (FEAT-0488's guard). */
@@ -130,6 +139,13 @@ export function deriveBotState(rule: RuleDocument, book: BotBook, now: number): 
     //   paused — the trader's own switch beats anything the engine reports.
     //     An absent `enabled` reads active, the same reading the panel's
     //     toggle gives the document.
+    //   account_unavailable — FEAT-0825 / ADR-0028. The bot's own account is
+    //     not executing (paper trading is off), so every firing is refused.
+    //     Below `paused` because the trader's switch is the more deliberate
+    //     fact; above everything the engine reports, because a bot that
+    //     cannot reach its account is stopped no matter what the loop or the
+    //     book say — reading `armed` here is the silent stop the item
+    //     forbids. `hasPosition` still carries the row it holds.
     //   blocked — the loop's inert record; a blocked bot can still hold the
     //     position it cannot manage, which `hasPosition` carries.
     //   closing — an exit in flight over an owned position. A closing signal
@@ -149,6 +165,9 @@ export function deriveBotState(rule: RuleDocument, book: BotBook, now: number): 
     //   closed / armed — fired at least once, or ready to.
     if (book.submitting.has(rule.id)) return { state: "submitting", hasPosition };
     if (rule.enabled === false) return { state: "paused", hasPosition };
+    if (!isBotAccountExecuting(rule, book.executingAccount)) {
+        return { state: "account_unavailable", hasPosition };
+    }
     if (book.unevaluable.has(rule.id)) return { state: "blocked", hasPosition };
     if (book.closing.has(rule.id) && hasPosition) return { state: "closing", hasPosition };
     if (hasPosition) return { state: "in_position", hasPosition };
@@ -197,6 +216,10 @@ function standingLimitReached(rule: RuleDocument, book: BotBook): boolean {
  *
  * Positions are all it reads — never the fire ledger or the loop's record —
  * so the store's slot projection stays keyed on the book alone.
+ *
+ * FEAT-0825 / ADR-0028 — one account's book per index, never two merged:
+ * the key carries no account, so the same symbol and side on two accounts
+ * stay two reservations only because no caller ever hands this a mixed list.
  */
 export function ownedSlots(positions: readonly PaperPosition[]): Map<string, OwnedSlot> {
     const slots = new Map<string, OwnedSlot>();

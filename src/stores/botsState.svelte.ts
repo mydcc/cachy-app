@@ -51,6 +51,7 @@ import {
     type BotBook,
     type BotLifeState,
 } from "../services/alertEngine/botState";
+import { executingBotAccount } from "../services/alertEngine/botAccount";
 import { alertState } from "./alerts.svelte";
 import { paperState } from "./paperTrading.svelte";
 
@@ -174,6 +175,9 @@ class BotsStateManager {
             );
         }
         return {
+            // FEAT-0825 / ADR-0028 — read through the rune, so turning paper
+            // trading off turns every bot's chip on the same render.
+            executingAccount: this.executingAccount,
             positions: paperState.positions,
             submitting: this.submittingIds,
             closing: this.closingIds,
@@ -242,6 +246,14 @@ class BotsStateManager {
      * ledger read is spent on it.
      */
     slots = $derived.by(() => ownedSlots(paperState.positions));
+
+    /**
+     * FEAT-0825 / ADR-0028 — the account bots may execute against right now,
+     * `null` while a live exchange account is active. The bot surfaces filter
+     * on it: they list only the executing account's bots and say how many
+     * they are hiding otherwise.
+     */
+    executingAccount = $derived.by(() => executingBotAccount(paperState.enabled));
 
     /**
      * Which input could not be read — the consumer renders its own wording.

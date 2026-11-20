@@ -95,29 +95,29 @@ describe("hasOpenPosition", () => {
         expect(env.hasOpenPosition("ETHUSDT", "long")).toBe(false);
     });
 
-    it("answers for the live book while paper trading is off", () => {
-        // This arm does not execute on the live bot path yet — `submitBotOrder`
-        // refuses with `paper-trading-off` first. It exists for FEAT-0035, and
-        // the reason it is pinned here rather than left to that item is that
-        // nothing else would notice it silently reading the wrong book.
+    it("never reads the live account's book, even while paper trading is off", () => {
+        // FEAT-0825 / ADR-0028 — the discriminating case. A bot's account is
+        // the paper account, so a live position on the same slot is another
+        // account's reservation, not this bot's. The old live arm answered
+        // `true` here; it was unreachable (the lane refuses first) and is
+        // gone, so a branch that reads the wrong account cannot come back
+        // unnoticed.
         paperState.setEnabled(false);
-        paperState.setPositions([paperPosition("BTCUSDT", "long")]);
+        paperState.setPositions([]);
         accountState.positions = [accountPosition("BTCUSDT", "long")];
 
-        const env = environment();
-        expect(env.hasOpenPosition("BTCUSDT", "long")).toBe(true);
-        expect(env.hasOpenPosition("BTCUSDT", "short")).toBe(false);
+        expect(environment().hasOpenPosition("BTCUSDT", "long")).toBe(false);
     });
 
-    it("ignores the paper book entirely while paper trading is off", () => {
-        // The discriminating case. With paper positions set and the live book
-        // empty, the answer must be false — a reader consulting both books, or
-        // always reading the paper book, fails here.
+    it("keeps answering for the paper book while paper trading is off", () => {
+        // The bot's own book does not stop existing when its account stops
+        // executing; the lane's `paper-trading-off` refusal is what stops
+        // the entry, not a guard that pretends the slot is empty.
         paperState.setEnabled(false);
         paperState.setPositions([paperPosition("BTCUSDT", "long")]);
         accountState.positions = [];
 
-        expect(environment().hasOpenPosition("BTCUSDT", "long")).toBe(false);
+        expect(environment().hasOpenPosition("BTCUSDT", "long")).toBe(true);
     });
 
     it("ignores the live book entirely while paper trading is on", () => {
