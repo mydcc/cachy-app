@@ -138,9 +138,16 @@ const FearGreedResponse = z.object({
     .min(1),
 });
 
-/** A numeric field that arrived as a string or a number, or `undefined`. */
-function finiteNumber(raw: string | number): number | undefined {
-  const value = Number(raw);
+/**
+ * A source's own timestamp field, as a number, or `undefined` when it is not
+ * one.
+ *
+ * Timestamps only: the values this module compares against a trader's
+ * threshold are `Decimal` end to end (`toDecimal` above), and nothing
+ * financial goes through here.
+ */
+function sourceTimestamp(raw: string | number): number | undefined {
+  const value = Number(raw); // audit: safe — epoch timestamp from a feed envelope, never a price or size
   return Number.isFinite(value) ? value : undefined;
 }
 
@@ -173,7 +180,7 @@ export async function readOpenInterestSample(
     return undefined;
   }
 
-  const asOfMs = finiteNumber(parsed.data.data.ts);
+  const asOfMs = sourceTimestamp(parsed.data.data.ts);
   const entry = parsed.data.data.openInterestList[0];
   if (asOfMs === undefined || entry === undefined) return undefined;
 
@@ -200,7 +207,7 @@ export async function readFearGreed(): Promise<FeedReading | undefined> {
 
   const entry = parsed.data.data[0];
   if (entry === undefined) return undefined;
-  const seconds = finiteNumber(entry.timestamp);
+  const seconds = sourceTimestamp(entry.timestamp);
   const index = toDecimal(entry.value);
   // The published index is a number from 0 to 100. Anything else is not the
   // index, and a veto comparing against it would compare against nothing.
