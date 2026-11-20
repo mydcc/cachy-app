@@ -270,4 +270,44 @@ describe("BUG-0443: switching builder tabs", () => {
     expect(conditions()).toEqual([rsi, ema]);
     expect(el.querySelectorAll("fieldset.row")).toHaveLength(2);
   });
+
+  it("FEAT-0813: an unfinished price row in Combo does not wipe the other legs on a tab switch", () => {
+    const rsi: Condition = {
+      kind: "compare",
+      left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+      op: "gt",
+      right: { kind: "constant", value: "70" },
+      timeframe: "1h",
+    };
+    const ema: Condition = {
+      kind: "cross",
+      left: { kind: "indicator", indicator: { id: "ema", params: { period: 9 } } },
+      direction: "above",
+      right: { kind: "indicator", indicator: { id: "ema", params: { period: 21 } } },
+      timeframe: "1h",
+    };
+    alertPanelState.draft.conditions = { kind: "group", op: "all", of: [rsi, ema] };
+
+    let el = switchTo(ComboTab);
+    const addRow = [...el.querySelectorAll<HTMLButtonElement>("button")].find(
+      (b) => b.textContent?.trim() === getNestedTranslation("dashboard.alerts.combo.addRow"),
+    );
+    addRow?.click();
+    flushSync();
+    const leaves = el.querySelectorAll('[data-testid="combo-leaf"]');
+    const last = leaves[leaves.length - 1].querySelector<HTMLSelectElement>("select");
+    if (!last) throw new Error("no kind select on the new row");
+    last.value = "price";
+    last.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    expect(el.querySelectorAll('[data-testid="combo-leaf"]')).toHaveLength(3);
+    expect(alertPanelState.incompleteConditions).toBe(true);
+
+    switchTo(IndicatorsTab);
+    expect(alertPanelState.incompleteConditions).toBe(false);
+    el = switchTo(ComboTab);
+
+    expect(conditions()).toEqual([rsi, ema]);
+    expect(el.querySelectorAll('[data-testid="combo-leaf"]')).toHaveLength(2);
+  });
 });

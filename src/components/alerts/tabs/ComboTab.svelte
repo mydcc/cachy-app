@@ -36,7 +36,7 @@
         RULE_WARMUP_CEILING,
         addGroup,
         addRow,
-        buildComboCondition,
+        buildComboDraft,
         canAddGroup,
         canAddRow,
         changeLeafKind,
@@ -83,6 +83,7 @@
     // warmup ceiling) rather than one leaf of it. Computed from the leaves
     // actually rendered, so a refusal on a group's own field is never lost.
     let treeRefusals = $derived.by(() => {
+        if (built.incomplete) return [];
         const claimed = leafPaths(form);
         return conditionRefusals.filter(
             (refusal) =>
@@ -104,16 +105,37 @@
         }
     });
 
+    // Every leaf that builds goes into the draft; an unfinished one is left
+    // out and flagged, which keeps arming off. Writing nothing (or an empty
+    // group) instead would let one blank price threshold wipe every other
+    // condition the moment the trader switches tabs (BUG-0443 class).
+    let built = $derived(buildComboDraft(form, alertPanelState.draft.trigger_timeframe));
+
     $effect(() => {
         if (locked) return;
-        alertPanelState.setConditionGroup(
-            buildComboCondition(form, alertPanelState.draft.trigger_timeframe),
-        );
+        alertPanelState.setConditionGroup(built.condition);
+        alertPanelState.incompleteConditions = built.incomplete;
     });
 
+    // Leaving the tab drops the unfinished leaf with the form; what stays in
+    // the draft is complete, so the flag must not outlive the tab.
+    $effect(() => () => {
+        alertPanelState.incompleteConditions = false;
+    });
+
+    // While a leaf is left out, the document's indices no longer line up with
+    // the rows on screen, so a refusal would land on the wrong one.
     function refusalsAt(rootIndex: number, memberIndex?: number): RuleRefusal[] {
+        if (built.incomplete) return [];
         return refusalsForField(conditionRefusals, refusalPath(rootIndex, memberIndex));
     }
+
+    /** "Group 1", "Group 2" by groups, not by root position. */
+    let groupNumbers = $derived.by(() => {
+        const numbers = new Map<string, number>();
+        for (const node of form.rows) if (node.kind === "group") numbers.set(node.id, numbers.size + 1);
+        return numbers;
+    });
 
     function patch(leaf: ComboLeaf, next: ComboLeafPatch): void {
         form = replaceRow(form, leaf.id, next);
@@ -167,9 +189,9 @@
             {#if node.kind === "group"}
                 <section class="group" data-testid="combo-group">
                     <header>
-                        <h5>{$_("dashboard.alerts.combo.groupLabel", { values: { index: index + 1 } })}</h5>
+                        <h5>{$_("dashboard.alerts.combo.groupLabel", { values: { index: groupNumbers.get(node.id) ?? 0 } })}</h5>
                         <button type="button" class="remove" onclick={() => (form = removeRow(form, node.id))}>
-                            {$_("dashboard.alerts.combo.removeGroup", { values: { index: index + 1 } })}
+                            {$_("dashboard.alerts.combo.removeGroup", { values: { index: groupNumbers.get(node.id) ?? 0 } })}
                         </button>
                     </header>
                     {@render opPicker(
@@ -198,7 +220,7 @@
                         disabled={!canAddRow(form)}
                         onclick={() => (form = addRow(form, "indicator", node.id))}
                     >
-                        {$_("dashboard.alerts.combo.groupAddRow", { values: { index: index + 1 } })}
+                        {$_("dashboard.alerts.combo.groupAddRow", { values: { index: groupNumbers.get(node.id) ?? 0 } })}
                     </button>
                 </section>
             {:else}
@@ -225,6 +247,12 @@
                 {$_("dashboard.alerts.combo.limitHint", { values: { max: MAX_COMBO_CONDITIONS } })}
             </p>
         </div>
+
+        {#if built.incomplete}
+            <p class="hint" role="status" data-testid="combo-incomplete">
+                {$_("dashboard.alerts.combo.incomplete")}
+            </p>
+        {/if}
 
         {#if warmup !== null}
             <p class="hint" data-testid="combo-warmup">

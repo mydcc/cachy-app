@@ -34,6 +34,7 @@ import {
     addGroup,
     addRow,
     buildComboCondition,
+    buildComboDraft,
     changeLeafKind,
     comboLockReason,
     emptyComboForm,
@@ -273,10 +274,42 @@ describe("mixed leaves", () => {
     });
 });
 
+describe("the draft while a leaf is unfinished", () => {
+    it("keeps every leaf that builds and flags the one that does not", () => {
+        let form = addRow(addRow(emptyComboForm()));
+        form = addRow(form, "price");
+        const draft = buildComboDraft(form, TRIGGER);
+        expect(draft.incomplete).toBe(true);
+        if (draft.condition?.kind !== "group") throw new Error("expected a group");
+        expect(draft.condition.of).toHaveLength(2);
+        expect(draft.condition.of.every((c) => c.kind !== "group")).toBe(true);
+    });
+
+    it("drops a group whose only leaf is unfinished instead of writing an empty group", () => {
+        let form = addRow(emptyComboForm());
+        form = addGroup(form);
+        const group = groupAt(form, 1);
+        form = changeLeafKind(form, group.members[0].id, "price");
+        const draft = buildComboDraft(form, TRIGGER);
+        expect(draft.incomplete).toBe(true);
+        if (draft.condition?.kind !== "group") throw new Error("expected a group");
+        expect(draft.condition.of).toHaveLength(1);
+    });
+
+    it("equals the strict build once every leaf is complete", () => {
+        const form = mixedNested();
+        expect(buildComboDraft(form, TRIGGER)).toEqual({
+            condition: buildComboCondition(form, TRIGGER),
+            incomplete: false,
+        });
+    });
+});
+
 describe("refusal anchoring", () => {
     it("names each leaf by the path the core refuses it under", () => {
         expect(refusalPath(0)).toBe("conditions.of[0]");
         expect(refusalPath(2, 1)).toBe("conditions.of[2].of[1]");
+        expect(refusalPath(2, 1, "veto")).toBe("veto.of[2].of[1]");
         expect(leafPaths(mixedNested())).toEqual([
             "conditions.of[0]",
             "conditions.of[1]",

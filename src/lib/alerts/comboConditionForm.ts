@@ -369,22 +369,68 @@ export function buildComboCondition(
     return { kind: "group", op: form.op, of };
 }
 
+/** What the builder writes into the draft while the trader is still editing. */
+export interface ComboDraft {
+    /** The tree of every leaf that builds; `null` when none does. */
+    condition: Condition | null;
+    /**
+     * True while at least one leaf does not build yet. The draft then holds a
+     * different rule than the form shows, so arming must stay off until it
+     * clears -- but the leaves that do build stay in the draft, so a tab
+     * switch in the middle of an edit cannot wipe them (BUG-0443 class).
+     */
+    incomplete: boolean;
+}
+
+/**
+ * The tree to keep in the draft for this form: every leaf that builds, with
+ * the unfinished ones left out and flagged. `buildComboCondition` stays the
+ * strict all-or-nothing reading; this is the one a write-through uses.
+ */
+export function buildComboDraft(form: ComboForm, triggerTimeframe: TimeframeString): ComboDraft {
+    let incomplete = false;
+    const of: Condition[] = [];
+    for (const node of form.rows) {
+        if (node.kind === "group") {
+            const members: Condition[] = [];
+            for (const leaf of node.members) {
+                const built = buildLeaf(leaf, triggerTimeframe);
+                if (built === null) incomplete = true;
+                else members.push(built);
+            }
+            if (members.length > 0) of.push({ kind: "group", op: node.op, of: members });
+            continue;
+        }
+        const built = buildLeaf(node, triggerTimeframe);
+        if (built === null) incomplete = true;
+        else of.push(built);
+    }
+    return { condition: of.length === 0 ? null : { kind: "group", op: form.op, of }, incomplete };
+}
+
+/** The document field a tree editor writes: the trigger, or the veto. */
+export type ComboField = "conditions" | "veto";
+
 /**
  * The refusal path of a root member, or of a member inside a nested group.
  * Matches the core's own spelling (`conditions.of[2].of[0]`), and holds
  * because `buildComboCondition` writes the rows in the order the form keeps.
  */
-export function refusalPath(rootIndex: number, memberIndex?: number): string {
-    const root = `conditions.of[${rootIndex}]`;
+export function refusalPath(
+    rootIndex: number,
+    memberIndex?: number,
+    field: ComboField = "conditions",
+): string {
+    const root = `${field}.of[${rootIndex}]`;
     return memberIndex === undefined ? root : `${root}.of[${memberIndex}]`;
 }
 
 /** The refusal path of every leaf the form renders, in document order. */
-export function leafPaths(form: ComboForm): string[] {
+export function leafPaths(form: ComboForm, field: ComboField = "conditions"): string[] {
     return form.rows.flatMap((node, index) =>
         node.kind === "group"
-            ? node.members.map((_leaf, memberIndex) => refusalPath(index, memberIndex))
-            : [refusalPath(index)],
+            ? node.members.map((_leaf, memberIndex) => refusalPath(index, memberIndex, field))
+            : [refusalPath(index, undefined, field)],
     );
 }
 

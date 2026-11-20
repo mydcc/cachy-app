@@ -477,7 +477,8 @@
           "methodPaused": "Pausiert — unter Einstellungen → Benachrichtigungen einschalten",
           "methodNeedsSetup": "Noch nicht eingerichtet — unter Einstellungen → Benachrichtigungen konfigurieren",
           "effectiveNoneShort": "kein aktiver Kanal"
-        }
+        },
+        "armIncomplete": "Fülle zuerst alle Bedingungen vollständig aus."
       },
       "testAnnouncement": "Test — {message}",
       "brokenRule": {
@@ -748,7 +749,7 @@
           "hl2": "Median (HL2)",
           "hlc3": "Typisch (HLC3)"
         },
-        "lockedTooManyBody": "Sie hat mehr als {max} Bedingungen, mehr als dieser Builder bearbeitet. Sie bleibt unverändert erhalten und feuert weiter wie bisher.",
+        "lockedTooManyBody": "Sie hat mehr als {max} Bedingungen, mehr als dieser Builder bearbeitet. Sie bleibt unverändert erhalten; hier wird nichts gekürzt oder gelöscht.",
         "leafKindLabel": "Art",
         "leafKind": {
           "indicator": "Indikator",
@@ -761,7 +762,8 @@
         "groupLogicLabel": "Innerhalb der Gruppe",
         "groupAddRow": "Bedingung zur Gruppe {index} hinzufügen",
         "removeGroup": "Gruppe {index} entfernen",
-        "warmup": "Diese Regel braucht {count} geschlossene Kerzen Vorlauf, bevor sie urteilen kann (höchstens {max})."
+        "warmup": "Diese Regel braucht {count} geschlossene Kerzen Vorlauf, bevor sie urteilen kann (höchstens {max}).",
+        "incomplete": "Eine Bedingung ist noch nicht fertig ausgefüllt. Sie fehlt im Satz oben, und die Regel lässt sich erst scharf schalten, wenn sie vollständig ist."
       },
       "manageList": {
         "tabAlerts": "Alarme ({count})",

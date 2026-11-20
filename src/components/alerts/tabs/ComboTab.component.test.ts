@@ -186,6 +186,45 @@ describe("FEAT-0813: Combo tab", () => {
     expect(tree.of[0].kind).toBe("pattern");
   });
 
+  it("says a leaf is unfinished and keeps arming off while it is", () => {
+    const el = open();
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addRow")));
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addRow")));
+    const kind = el.querySelectorAll('[data-testid="combo-leaf"]')[1].querySelector<HTMLSelectElement>("select");
+    if (!kind) throw new Error("no kind select on the second row");
+    kind.value = "price";
+    kind.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+
+    expect(el.querySelector('[data-testid="combo-incomplete"]')).not.toBeNull();
+    expect(alertPanelState.incompleteConditions).toBe(true);
+    const tree = alertPanelState.draft.conditions;
+    if (tree?.kind !== "group") throw new Error("expected a group in the draft");
+    expect(tree.of).toHaveLength(1);
+
+    const input = el
+      .querySelectorAll('[data-testid="combo-leaf"]')[1]
+      .querySelector<HTMLInputElement>('input[inputmode="decimal"]');
+    if (!input) throw new Error("no threshold input on the price row");
+    input.value = "60000";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+
+    expect(el.querySelector('[data-testid="combo-incomplete"]')).toBeNull();
+    expect(alertPanelState.incompleteConditions).toBe(false);
+  });
+
+  it("numbers groups by group, not by their position among the rows", () => {
+    const el = open();
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addRow")));
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addRow")));
+    click(buttonByText(el, getNestedTranslation("dashboard.alerts.combo.addGroup")));
+
+    expect(el.querySelector('[data-testid="combo-group"] h5')?.textContent).toBe(
+      getNestedTranslation("dashboard.alerts.combo.groupLabel").replace("{index}", "1"),
+    );
+  });
+
   it("shows a refusal on the nested leaf the core named, not under the tree", () => {
     alertPanelState.draft.conditions = {
       kind: "group",
