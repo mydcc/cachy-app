@@ -101,6 +101,17 @@ async function closeByHand(): Promise<void> {
     paperJournalService.reconcile();
 }
 
+async function openWithStop(payload: Record<string, unknown> = {}): Promise<string> {
+    return open({ ...payload, slPrice: "49000" });
+}
+
+/** Walks the feed through the resting stop, the way the price loop does. */
+function crossTheStop(price: string): void {
+    feed = { BTCUSDT: new Decimal(price) };
+    paperExchange.settleRestingOrders("BTCUSDT", new Decimal(price));
+    paperJournalService.reconcile();
+}
+
 function entryFor(positionId: string) {
     return journalState.entries.find((e) => e.tradeId === positionId);
 }
@@ -145,5 +156,73 @@ describe("FEAT-0812 — exit attribution on a completed entry", () => {
         const entry = entryFor(positionId);
         expect(entry?.origin).toBeUndefined();
         expect(entry?.exitOrigin).toBeUndefined();
+    });
+});
+
+describe("FEAT-0812 — the bot's own stop is the bot's exit", () => {
+    it("counts a stop the bot attached as the bot's exit, not the trader's", async () => {
+        // `submitBotOrder` sends `stopLossPrice` with the entry, so the stop
+        // resting against a bot position is the strategy's own. When it fires
+        // nobody pressed anything — reading it as human intervention drops
+        // exactly the losing trades out of the headline figures.
+        const positionId = await openWithStop(BOT_STAMP);
+        expect(paperState.orders.some((o) => o.planType === "SL")).toBe(true);
+
+        crossTheStop("48000");
+
+        const entry = entryFor(positionId);
+        expect(entry?.status).toBe("Lost");
+        expect(entry?.exitOrigin).toBe("bot");
+    });
+
+    it("leaves a plan on an unattributed position without a verdict", async () => {
+        const positionId = await openWithStop();
+
+        crossTheStop("48000");
+
+        expect(entryFor(positionId)?.exitOrigin).toBeUndefined();
+    });
+});
+
+describe("FEAT-0812 — a book reset must not rewrite old attribution", () => {
+    it("gives a position opened after a reset an id of its own", async () => {
+        const first = await open(BOT_STAMP);
+        await closeByHand();
+        expect(entryFor(first)?.exitOrigin).toBe("manual");
+
+        // The reset wipes the book and keeps the journal, so a rewound id
+        // counter would hand this position the first entry's `tradeId`.
+        paperState.resetBook();
+        const second = await open(BOT_STAMP);
+        expect(second).not.toBe(first);
+
+        paperJournalService.recordBotExit(second);
+        await closeByHand();
+
+        expect(entryFor(first)?.exitOrigin).toBe("manual");
+        expect(entryFor(second)?.exitOrigin).toBe("bot");
+    });
+
+    it("reports on the newest entry when a stored book already reused an id", async () => {
+        // A book written before the fix above: two journal entries share a
+        // tradeId, and the verdict belongs to the one closed last.
+        const positionId = await open(BOT_STAMP);
+        await closeByHand();
+        const stale = { ...journalState.entries[0], id: "legacy-1" };
+        journalState.set([stale, ...journalState.entries]);
+
+        paperJournalService.recordBotExit(positionId);
+
+        // `entryFor` takes the first match, which is the stale copy here — so
+        // the live entry is named explicitly rather than looked up the way
+        // the bug itself looked it up.
+        const live = [...journalState.entries]
+            .reverse()
+            .find((e) => e.tradeId === positionId);
+        expect(live?.id).not.toBe("legacy-1");
+        expect(live?.exitOrigin).toBe("bot");
+        expect(journalState.entries.find((e) => e.id === "legacy-1")?.exitOrigin).toBe(
+            "manual",
+        );
     });
 });

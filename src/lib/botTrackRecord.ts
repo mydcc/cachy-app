@@ -152,6 +152,35 @@ export function matchesOriginFilter(
     return true;
 }
 
+/** The journal's live/paper/all switch, which runs before the bot filter. */
+export type JournalTradeMode = "live" | "paper" | "all";
+
+/**
+ * The trade mode a bot's rows need, or `null` to leave the mode alone.
+ *
+ * The journal applies its live/paper switch before the bot filter, and every
+ * bot trade is a paper trade — both bot lanes refuse while paper trading is
+ * off — so from the default `live` view, clicking a card the trader can see
+ * left the table empty (Devin review). Widening only when the current mode
+ * hides every one of that bot's trades leaves a deliberate `paper` choice
+ * alone, and keeps working if a bot ever trades live.
+ */
+export function modeForBot(
+    entries: readonly JournalEntry[],
+    botId: string,
+    mode: JournalTradeMode,
+): JournalTradeMode | null {
+    if (botId === "" || mode === "all") return null;
+    const wantsPaper = mode === "paper";
+    const visible = entries.some(
+        (entry) =>
+            isBotEntry(entry) &&
+            entry.botId === botId &&
+            (entry.isPaper === true) === wantsPaper,
+    );
+    return visible ? null : "all";
+}
+
 interface Bucket {
     botId: string;
     strategyHash: string | null;

@@ -51,6 +51,8 @@ interface FillTotals {
     /** Σ realised PnL over the closing fills, each already net of its own fee. */
     closeRealized: Decimal;
     lastCloseAt: number;
+    /** FEAT-0812 — what caused the *last* close: the verdict belongs to it. */
+    lastCloseBy?: "plan";
 }
 
 function sumFills(positionId: string): FillTotals {
@@ -63,6 +65,7 @@ function sumFills(positionId: string): FillTotals {
         exitFee: new Decimal(0),
         closeRealized: new Decimal(0),
         lastCloseAt: 0,
+        lastCloseBy: undefined,
     };
 
     for (const fill of paperState.fills as readonly PaperFill[]) {
@@ -79,7 +82,13 @@ function sumFills(positionId: string): FillTotals {
             totals.closeNotional = totals.closeNotional.plus(price.times(qty));
             totals.exitFee = totals.exitFee.plus(fee);
             totals.closeRealized = totals.closeRealized.plus(fill.realizedPnl);
-            totals.lastCloseAt = Math.max(totals.lastCloseAt, fill.createdAt);
+            // FEAT-0812 — the latest close wins, and a tie goes to the fill
+            // recorded later: what ended the trade is the last thing that
+            // happened to it, not the first.
+            if (fill.createdAt >= totals.lastCloseAt) {
+                totals.lastCloseAt = fill.createdAt;
+                totals.lastCloseBy = fill.exitBy;
+            }
         }
     }
 
@@ -161,7 +170,21 @@ class PaperJournalService {
      * when the report arrives late.
      */
     public recordBotExit(positionId: string): void {
-        const entry = journalState.entries.find((e) => e.tradeId === positionId);
+        // The newest match, not the first. `resetBook` used to rewind the id
+        // counter while the journal kept its entries, so a book stored before
+        // that fix can hold an older entry carrying this very `tradeId` — and
+        // the first match would move the verdict onto a trade this bot never
+        // touched, leaving the one it did close reading as manual
+        // (Devin review). Entries are appended, so the last match is the live
+        // one.
+        const entries = journalState.entries;
+        let entry: JournalEntry | undefined;
+        for (let i = entries.length - 1; i >= 0; i--) {
+            if (entries[i].tradeId === positionId) {
+                entry = entries[i];
+                break;
+            }
+        }
         if (entry === undefined || entry.exitOrigin === "bot") return;
         journalState.updateEntry({ ...entry, exitOrigin: "bot" });
     }
@@ -361,8 +384,17 @@ class PaperJournalService {
         // bot-opened entries carry it: "a manual trade was closed manually"
         // is a field that says nothing, and an unattributed entry has no bot
         // whose exit could be judged.
+        // A verdict the exit lane already reported stands. Otherwise the
+        // closing fills answer it: a plan the position was taken with fired,
+        // which for a bot's position is the bot's own stop (FEAT-0812 — the
+        // entry lane sends `stopLossPrice` with every bot entry, so reading a
+        // fired stop as human intervention dropped exactly the losing trades
+        // out of the headline figures). Anything else was a person.
         const exitOrigin: "bot" | "manual" | undefined =
-            existing.origin === "bot" ? (existing.exitOrigin ?? "manual") : undefined;
+            existing.origin === "bot"
+                ? (existing.exitOrigin ??
+                      (totals.lastCloseBy === "plan" ? "bot" : "manual"))
+                : undefined;
 
         journalState.updateEntry({
             ...existing,

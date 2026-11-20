@@ -797,6 +797,8 @@ class PaperExchange {
             /** FEAT-0806 — stamped on opening fills only. */
             origin?: "bot" | "manual";
             attribution?: BotAttribution;
+            /** FEAT-0812 — set when an attached plan closed it, not a person. */
+            exitBy?: "plan";
         },
     ): void {
         if (fill.qty.lte(0)) return;
@@ -813,6 +815,12 @@ class PaperExchange {
             realizedPnl: fill.realizedPnl.toString(),
             positionId: fill.positionId,
             createdAt: Date.now(),
+            // FEAT-0812 — only a close can have been caused by a plan, and the
+            // field stays absent otherwise so "no cause recorded" keeps meaning
+            // "the trader asked for it".
+            ...(context.tradeSide === "CLOSE" && context.exitBy !== undefined
+                ? { exitBy: context.exitBy }
+                : {}),
             // FEAT-0806 — the opening fill is the audit record's attributable
             // anchor; closing fills inherit by positionId.
             ...(context.tradeSide === "OPEN" && context.origin !== undefined
@@ -1253,6 +1261,11 @@ class PaperExchange {
                     side: order.side,
                     orderType: order.orderType,
                     tradeSide: closes ? "CLOSE" : "OPEN",
+                    // FEAT-0812 — the feed crossed a resting plan; nobody
+                    // pressed anything. Without this fact a bot's own stop
+                    // reads as the trader stepping in, and the losses it
+                    // takes drop out of the bot's figures (Devin review).
+                    ...(closes ? { exitBy: "plan" as const } : {}),
                 });
             } catch {
                 // A close with no position left is not an error worth

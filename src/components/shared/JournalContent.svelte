@@ -52,6 +52,7 @@
     import {
         botTrackRecords,
         matchesOriginFilter,
+        modeForBot,
         unattributedClosedCount,
         type JournalOriginFilter,
     } from "../../lib/botTrackRecord";
@@ -441,6 +442,19 @@
      * broken store costs the labels, not the figures — the ids still
      * identify the records, so the cards degrade rather than disappear.
      */
+    /**
+     * FEAT-0812 — a card the trader can see has to lead to rows they can see.
+     *
+     * Both entry points go through here (the card and the dropdown), because
+     * the rule is about the selection, not about which control made it.
+     */
+    function selectBot(botId: string) {
+        selectedBotId = botId;
+        originFilter = botId === "" ? "all" : "bots";
+        const needed = modeForBot(journalState.entries, botId, tradeMode);
+        if (needed !== null) tradeMode = needed;
+    }
+
     function readBotNames(): Map<string, string | null> {
         try {
             return new Map(
@@ -767,6 +781,7 @@
                 {availableSymbols}
                 bind:originFilter
                 bind:botFilter={selectedBotId}
+                onBotChange={selectBot}
                 {botOptions}
                 bind:groupBySymbol
                 bind:tradeMode
@@ -784,10 +799,7 @@
                 {botNames}
                 unattributedCount={unattributedTrades}
                 {selectedBotId}
-                onselect={(botId) => {
-                    selectedBotId = botId;
-                    originFilter = botId === "" ? "all" : "bots";
-                }}
+                onselect={selectBot}
             />
 
             <!-- Column Settings Dialog Popover -->

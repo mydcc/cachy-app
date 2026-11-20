@@ -35,6 +35,7 @@ import {
     withBotExits,
     type BotExitEnvironment,
 } from "./botExits";
+import type { BotCloseParams } from "./botExits";
 import type { BotExitFiring, OwnedBotPosition } from "./ruleEvaluationLoop";
 import type { RuleDocument } from "../../lib/rules/types";
 
@@ -106,10 +107,17 @@ function exitFiring(overrides: Partial<BotExitFiring> = {}): BotExitFiring {
 }
 
 function env(overrides: Partial<BotExitEnvironment> = {}): BotExitEnvironment {
+    // The book is the owner of record, and `submitBotExit` re-reads it to tell
+    // an exit from a partial reduction (FEAT-0812). A stub whose position
+    // survives its own full close would let that distinction pass unnoticed.
+    let held: OwnedBotPosition | undefined = ownedPosition();
     return {
         paperEnabled: () => true,
-        close: vi.fn(async () => undefined),
-        ownedPosition: () => ownedPosition(),
+        close: vi.fn(async (params: BotCloseParams) => {
+            if ("forceFullClose" in params) held = undefined;
+            return undefined;
+        }),
+        ownedPosition: () => held,
         recordBotExit: vi.fn(),
         ...overrides,
     };
@@ -383,5 +391,44 @@ describe("FEAT-0810 — withBotExits", () => {
         // And the refusal still surfaces through the port's own error, as a
         // named close-refused — once.
         await vi.waitFor(() => expect(close).toHaveBeenCalledTimes(1));
+    });
+});
+
+describe("FEAT-0812 — only the close that ended the trade is an exit", () => {
+    it("reports nothing when the reduction left the position open", async () => {
+        // A partial reduction is not an exit. Stamping the entry here would
+        // let one successful partial claim whatever the trader decides next,
+        // and the combined PnL would land in the bot's own figures
+        // (Devin review).
+        const recordBotExit = vi.fn();
+        const refusal = await submitBotExit(
+            exitFiring({ close: "partial", fraction: "0.5" }),
+            env({ recordBotExit, ownedPosition: () => ownedPosition() }),
+        );
+
+        expect(refusal).toBeNull();
+        expect(recordBotExit).not.toHaveBeenCalled();
+    });
+
+    it("reports when the book no longer holds the position", async () => {
+        // The book is re-read rather than the firing trusted: a `partial`
+        // whose fraction covers everything closes the position too, and that
+        // is a bot exit however the document phrased it.
+        const recordBotExit = vi.fn();
+        let closed = false;
+        const refusal = await submitBotExit(
+            exitFiring({ close: "partial", fraction: "1" }),
+            env({
+                recordBotExit,
+                close: vi.fn(async () => {
+                    closed = true;
+                    return undefined;
+                }),
+                ownedPosition: () => (closed ? undefined : ownedPosition()),
+            }),
+        );
+
+        expect(refusal).toBeNull();
+        expect(recordBotExit).toHaveBeenCalledWith("paper-pos-1");
     });
 });

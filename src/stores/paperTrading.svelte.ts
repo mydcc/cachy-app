@@ -215,6 +215,17 @@ export interface PaperFill {
     botId?: string;
     ruleId?: string;
     strategyHash?: string;
+    /**
+     * FEAT-0812 — what caused this closing fill, when it was not a person.
+     *
+     * `"plan"` is the TP/SL resting against the position: the feed crossed it
+     * and nobody pressed anything. Absent on an opening fill, and absent on a
+     * close means the trader asked for it. Who *wrote* the plan is not
+     * recorded here — `PaperOrder` carries no attribution yet (FEAT-0806
+     * deferred that) — so the journal resolves it through the position's own
+     * origin: a bot's position was taken with the bot's stop.
+     */
+    exitBy?: "plan";
 }
 
 /**
@@ -295,6 +306,9 @@ const PaperFillSchema = z.object({
     botId: z.string().optional(),
     ruleId: z.string().optional(),
     strategyHash: z.string().optional(),
+    // FEAT-0812 — unknown keys are stripped, so a fill reloaded without this
+    // would lose the one fact that tells a fired stop from a manual close.
+    exitBy: z.literal("plan").optional().catch(undefined),
 });
 
 const PaperOrderSchema = z.object({
@@ -525,7 +539,11 @@ class PaperTradingManager {
         // they are the user's record, not the simulator's.
         this._fills = [];
         this._journalLinks = {};
-        this._nextId = 1;
+        // FEAT-0812 — the counter does NOT rewind. Journal entries survive the
+        // reset and address their position by id, so handing a fresh position
+        // an id an old entry already carries makes that id name two trades;
+        // the exit attribution then lands on whichever the lookup found first
+        // (Devin review). "Monotonic" above is the invariant, not a comment.
         this.persist();
     }
 

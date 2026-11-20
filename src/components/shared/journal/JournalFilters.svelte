@@ -40,6 +40,12 @@
         botFilter?: string;
         /** Bots that have traded, as id and display label. */
         botOptions?: Array<{ id: string; label: string }>;
+        /**
+         * FEAT-0812 — the bot the trader just picked. `botFilter` is bindable
+         * and carries the value; this reports the act, which the journal needs
+         * in order to widen its live/paper mode for that bot.
+         */
+        onBotChange?: (botId: string) => void;
         groupBySymbol?: boolean;
         tradeMode?: "live" | "paper" | "all";
         liveCount?: number;
@@ -62,6 +68,7 @@
         originFilter = $bindable("all"),
         botFilter = $bindable(""),
         botOptions = [],
+        onBotChange,
         groupBySymbol = $bindable(false),
         tradeMode = $bindable("live"),
         liveCount = 0,
@@ -160,6 +167,10 @@
     function selectBot(next: string) {
         botFilter = next;
         if (next !== "") originFilter = "bots";
+        // FEAT-0812 — the binding carries the value, this carries the choice:
+        // the journal has to widen its live/paper mode for the picked bot, and
+        // a `bind:` gives it no moment to do that (Devin review).
+        onBotChange?.(next);
     }
 </script>
 

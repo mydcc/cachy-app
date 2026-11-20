@@ -31,6 +31,7 @@ import {
     botTrackRecords,
     unattributedClosedCount,
     type BotTrackRecord,
+    modeForBot,
 } from "./botTrackRecord";
 import type { JournalEntry } from "../stores/types";
 
@@ -276,5 +277,31 @@ describe("FEAT-0812 — botTrackRecords", () => {
         ]);
 
         expect(records.map((r) => r.botId)).toEqual(["newer", "older"]);
+    });
+});
+
+describe("FEAT-0812 — the trade mode a bot's rows need", () => {
+    const paperBotTrade = (botId = "bot-1"): JournalEntry =>
+        botTrade({ botId, netProfit: "10", rr: "1" });
+
+    it("widens a live-only view, which would hide every bot trade", () => {
+        expect(modeForBot([paperBotTrade()], "bot-1", "live")).toBe("all");
+    });
+
+    it("leaves a deliberate paper view alone", () => {
+        expect(modeForBot([paperBotTrade()], "bot-1", "paper")).toBeNull();
+    });
+
+    it("leaves an all view alone", () => {
+        expect(modeForBot([paperBotTrade()], "bot-1", "all")).toBeNull();
+    });
+
+    it("asks for nothing when no bot is selected", () => {
+        expect(modeForBot([paperBotTrade()], "", "live")).toBeNull();
+    });
+
+    it("keeps the live view when that bot's trades are live", () => {
+        const live = { ...paperBotTrade(), isPaper: false };
+        expect(modeForBot([live], "bot-1", "live")).toBeNull();
     });
 });

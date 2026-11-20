@@ -166,7 +166,16 @@ export async function submitBotExit(
   // FEAT-0812 — the close went through, so the journal gets the one fact it
   // cannot derive: this exit was the bot's, not the trader's. After the await
   // on purpose; a refusal above returns before reaching this line.
-  env.recordBotExit(firing.positionId);
+  //
+  // Only a close that ended the trade counts. A partial reduction leaves the
+  // position open, and whoever closes the rest owns that decision — stamping
+  // the entry here would let one successful partial claim a later manual
+  // close and its PnL (Devin review). The book is re-read rather than
+  // `firing.close` trusted, because a `partial` whose fraction covers the
+  // whole position closes it too.
+  if (env.ownedPosition(firing.rule.id, firing.positionId) === undefined) {
+    env.recordBotExit(firing.positionId);
+  }
 
   return null;
 }
