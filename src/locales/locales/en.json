@@ -754,7 +754,8 @@
         "leafKind": {
           "indicator": "Indicator",
           "price": "Price",
-          "pattern": "Candlestick pattern"
+          "pattern": "Candlestick pattern",
+          "feed": "External feed"
         },
         "patternLabel": "Pattern",
         "addGroup": "Add group",
@@ -803,7 +804,30 @@
         "logDeletedRule": "Rule deleted",
         "logBotRule": "Automation rule",
         "openRule": "Open rule {name}",
-        "logCandle": "Candle {time}"
+        "logCandle": "Candle {time}",
+        "logFilter": "Show",
+        "logSuppressed": "Suppressed (veto)",
+        "logVetoClause": "Veto: {clause}",
+        "vetoBadge": "Veto",
+        "logFilterOption": {
+          "all": "All",
+          "fired": "Fired",
+          "suppressed": "Suppressed"
+        }
+      },
+      "veto": {
+        "title": "Veto",
+        "empty": "No veto. The rule fires as soon as its conditions hold.",
+        "add": "Add a veto",
+        "remove": "Remove the veto",
+        "explain": "If these conditions hold at the close, the trigger is suppressed: no notification, no order. The log records the suppression.",
+        "locked": "This editor cannot show this veto. It is kept exactly as it is; you can only remove it.",
+        "incomplete": "One veto condition is not filled in yet. It is missing from the veto, and the rule can be armed only once it is complete.",
+        "sentence": "Suppressed when {condition}.",
+        "feedLabel": "Feed",
+        "opLabel": "Comparison",
+        "valueLabel": "Threshold",
+        "feedUnwired": "No source delivers this feed yet. While it is missing the verdict is indeterminate and the rule does not fire."
       }
     },
     "generalInputs": {
@@ -5226,7 +5250,12 @@
       "percentValue": "{value}%",
       "volume": "the volume",
       "windowMin": "the lowest {of} over the last {lookback} closes",
-      "windowMax": "the highest {of} over the last {lookback} closes"
+      "windowMax": "the highest {of} over the last {lookback} closes",
+      "feed": {
+        "funding_rate": "the funding rate",
+        "open_interest_change": "the open-interest change",
+        "fear_greed": "the fear & greed index"
+      }
     }
   },
   "storage": {

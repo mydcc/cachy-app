@@ -32,6 +32,7 @@
     } from "../../../../lib/alerts/comboConditionForm";
     import type { RuleRefusal } from "../../../../lib/rules/types";
     import type { TranslationKey } from "../../../../locales/schema";
+    import ComboFeedLeaf from "./ComboFeedLeaf.svelte";
     import ComboIndicatorLeaf from "./ComboIndicatorLeaf.svelte";
     import ComboPatternLeaf from "./ComboPatternLeaf.svelte";
     import ComboPriceLeaf from "./ComboPriceLeaf.svelte";
@@ -44,6 +45,7 @@
         onpatch,
         onkind,
         onremove,
+        kinds = COMBO_LEAF_KINDS,
     }: {
         leaf: ComboLeaf;
         label: string;
@@ -52,6 +54,8 @@
         onpatch: (patch: ComboLeafPatch) => void;
         onkind: (kind: ComboLeafKind) => void;
         onremove: () => void;
+        /** The kinds this editor offers; the veto adds a feed (FEAT-0814). */
+        kinds?: readonly ComboLeafKind[];
     } = $props();
 
     const key = (raw: string): TranslationKey => raw as TranslationKey;
@@ -63,7 +67,7 @@
     <label class="field kind">
         <span>{$_("dashboard.alerts.combo.leafKindLabel")}</span>
         <select value={leaf.kind} onchange={(e) => onkind(e.currentTarget.value as ComboLeafKind)}>
-            {#each COMBO_LEAF_KINDS as kind (kind)}
+            {#each kinds as kind (kind)}
                 <option value={kind}>{$_(key(`dashboard.alerts.combo.leafKind.${kind}`))}</option>
             {/each}
         </select>
@@ -73,6 +77,8 @@
         <ComboIndicatorLeaf {leaf} {onpatch} />
     {:else if leaf.kind === "price"}
         <ComboPriceLeaf {leaf} {onpatch} />
+    {:else if leaf.kind === "feed"}
+        <ComboFeedLeaf {leaf} {onpatch} />
     {:else}
         <ComboPatternLeaf {leaf} {onpatch} />
     {/if}
@@ -122,7 +128,7 @@
     .refusal {
         flex-basis: 100%;
         margin: 0;
-        color: var(--danger);
+        color: var(--danger-color);
         font-size: 0.85rem;
     }
 </style>

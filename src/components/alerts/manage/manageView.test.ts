@@ -93,6 +93,7 @@ function manageRow(overrides: Partial<ManageRow> = {}): ManageRow {
     frequency: "once",
     validUntilMs: null,
     lastFiredAtMs: null,
+    hasVeto: false,
     ...overrides,
   };
 }
@@ -179,7 +180,14 @@ describe("buildManageRows", () => {
       timeframe: "1h",
       validUntilMs: null,
       lastFiredAtMs: null,
+      hasVeto: false,
     });
+  });
+
+  it("FEAT-0814: flags a rule that carries a veto, for the row's badge", () => {
+    const veto = { kind: "external_feed", feed: "funding_rate", op: "gt", value: "0.01" } as const;
+    const [row] = buildManageRows([alarmRow({ rule: ruleDoc({ veto }) })], new Set(), translator, new Map());
+    expect(row.hasVeto).toBe(true);
   });
 
   it("keeps an intrabar rule and its expiry", () => {
@@ -407,6 +415,37 @@ describe("lastFiringByRule", () => {
 });
 
 describe("buildFiringLog", () => {
+  it("FEAT-0814: lists a suppression with the veto clause that refused", () => {
+    const entries = buildFiringLog(
+      [firingRecord({ source: "veto", verdict: "suppressed", recordedAtMs: 2_000 })],
+      [manageRow({ id: "rule-a" })],
+      new Map(),
+      (ruleId) => (ruleId === "rule-a" ? "the close is above 150" : null),
+    );
+
+    expect(entries).toEqual([
+      expect.objectContaining({ ruleId: "rule-a", suppressed: true, vetoClause: "the close is above 150" }),
+    ]);
+  });
+
+  it("FEAT-0814: a suppression is not an announcement, so a lost firing still gets its fallback", () => {
+    const entries = buildFiringLog(
+      [firingRecord({ source: "veto", verdict: "suppressed" })],
+      [manageRow({ id: "rule-a", firedCount: 1, lastFiredAnchorMs: 500 })],
+    );
+
+    expect(entries.map((entry) => entry.suppressed)).toEqual([true, false]);
+  });
+
+  it("FEAT-0814: a suppression does not count as the rule's last firing", () => {
+    expect(lastFiringByRule([firingRecord({ source: "veto", recordedAtMs: 9_999 })]).size).toBe(0);
+  });
+
+  it("FEAT-0814: an announcement carries no veto clause", () => {
+    const [entry] = buildFiringLog([firingRecord()], [manageRow({ id: "rule-a" })], new Map(), () => "x");
+    expect(entry).toMatchObject({ suppressed: false, vetoClause: null });
+  });
+
   it("lists announcements newest first and drops shadow and legacy records", () => {
     const entries = buildFiringLog(
       [

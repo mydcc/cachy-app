@@ -120,6 +120,10 @@
                     <span class="rule-name">{row.rule.name}</span>
                 {/if}
                 <span class="status-badge status-{row.status}">{statusLabel}</span>
+                {#if row.hasVeto}
+                    <!-- FEAT-0814: the sentence already says "unless ..."; the badge only flags it. -->
+                    <span class="kind-chip veto-chip" data-testid="veto-badge">{$_("dashboard.alerts.manageList.vetoBadge")}</span>
+                {/if}
                 {#if firedTimes}
                     <span class="fired-count">{firedTimes}</span>
                 {/if}
@@ -297,6 +301,10 @@
         align-items: baseline;
         flex-wrap: wrap;
         gap: var(--space-2);
+    }
+    .veto-chip {
+        border-color: var(--warning-color);
+        color: var(--warning-color);
     }
     .kind-chip {
         padding: 0 var(--space-1);

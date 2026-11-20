@@ -145,6 +145,8 @@ export interface ManageRow extends AlarmRow {
   validUntilMs: number | null;
   /** Wall clock of the most recent announcement, from the firing ledger. */
   lastFiredAtMs: number | null;
+  /** FEAT-0814 — the rule carries a veto; the list shows a badge, not a second sentence. */
+  hasVeto: boolean;
 }
 
 /** One Log entry: an announcement, or a fire the ledger predates. */
@@ -168,6 +170,13 @@ export interface FiringEntry {
   ruleExists: boolean;
   /** A bot rule exists but is not edited from this list. */
   ruleIsBot: boolean;
+  /** FEAT-0814 — the trigger held and the rule's veto refused it. */
+  suppressed: boolean;
+  /**
+   * The veto clause that refused, phrased from the rule as it is now; null
+   * for an announcement, or when the rule (or its veto) is gone.
+   */
+  vetoClause: string | null;
 }
 
 /** A stored name, or null when the field is missing or not a string. */
@@ -266,6 +275,7 @@ export function buildManageRows(
       frequency: typeof rule.frequency === "string" ? rule.frequency : "once",
       validUntilMs: finiteOrNull(rule.valid_until_ms),
       lastFiredAtMs: lastFiringById.get(row.id) ?? null,
+      hasVeto: rule.veto !== undefined && rule.veto !== null,
     };
   });
 }
@@ -365,6 +375,7 @@ export function buildFiringLog(
   records: readonly ShadowFiringRecord[],
   rows: readonly ManageRow[],
   bots: ReadonlyMap<string, BotLogRow> = new Map(),
+  vetoClauseOf: (ruleId: string) => string | null = () => null,
 ): FiringEntry[] {
   const rowById = new Map(rows.map((row) => [row.id, row]));
   const announced = new Set<string>();
@@ -372,8 +383,11 @@ export function buildFiringLog(
   const ledgerEntries: FiringEntry[] = [];
 
   for (const record of records) {
-    if (record.source !== "rule") continue;
-    announced.add(record.id);
+    if (record.source !== "rule" && record.source !== "veto") continue;
+    const suppressed = record.source === "veto";
+    // A suppression is not an announcement: it must not hide the fallback
+    // entry of a rule whose real firing never reached the ledger.
+    if (!suppressed) announced.add(record.id);
     const row = rowById.get(record.id);
     ledgerEntries.push({
       ruleId: record.id,
@@ -385,6 +399,8 @@ export function buildFiringLog(
       ruleName: row === undefined ? bots.get(record.id)?.name ?? null : ruleNameOf(row.rule),
       ruleExists: row !== undefined || bots.has(record.id),
       ruleIsBot: row === undefined && bots.has(record.id),
+      suppressed,
+      vetoClause: suppressed ? vetoClauseOf(record.id) : null,
     });
   }
 
@@ -401,6 +417,8 @@ export function buildFiringLog(
       ruleName: ruleNameOf(row.rule),
       ruleExists: true,
       ruleIsBot: false,
+      suppressed: false,
+      vetoClause: null,
     });
   }
   // A bot's ledger write can fail exactly like an alert's, and it is absent
@@ -417,6 +435,8 @@ export function buildFiringLog(
       ruleName: bot.name,
       ruleExists: true,
       ruleIsBot: true,
+      suppressed: false,
+      vetoClause: null,
     });
   }
 

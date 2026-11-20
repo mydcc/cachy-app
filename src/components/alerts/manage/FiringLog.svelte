@@ -26,6 +26,7 @@
     import { _ } from "../../../locales/i18n";
     import { SHADOW_LEDGER_MAX_RECORDS } from "../../../services/alertEngine/shadowLedger";
     import type { FiringEntry } from "./manageView";
+    import type { TranslationKey } from "../../../locales/schema";
 
     let {
         entries,
@@ -37,6 +38,16 @@
         onOpenRule: (ruleId: string) => void;
     } = $props();
 
+    /** FEAT-0814 — which entries the log shows: one chronology, two kinds. */
+    type LogFilter = "all" | "fired" | "suppressed";
+    const LOG_FILTERS: readonly LogFilter[] = ["all", "fired", "suppressed"];
+    let filter = $state<LogFilter>("all");
+    let shown = $derived(
+        filter === "all"
+            ? entries
+            : entries.filter((entry) => entry.suppressed === (filter === "suppressed")),
+    );
+
     function format(ms: number | null): string {
         return ms === null ? "" : dateFormatter.format(new Date(ms));
     }
@@ -46,13 +57,21 @@
     {$_("dashboard.alerts.manageList.logCap", { values: { count: SHADOW_LEDGER_MAX_RECORDS } })}
 </p>
 
-{#if entries.length === 0}
+<label class="log-filter">
+    <span>{$_("dashboard.alerts.manageList.logFilter")}</span>
+    <select bind:value={filter} data-testid="log-filter">
+        {#each LOG_FILTERS as option (option)}
+            <option value={option}>{$_(`dashboard.alerts.manageList.logFilterOption.${option}` as TranslationKey)}</option>
+        {/each}
+    </select>
+</label>
+{#if shown.length === 0}
     <div class="empty-state">{$_("dashboard.alerts.manageList.logEmpty")}</div>
 {:else}
     <div class="log-list">
-        {#each entries as entry, index (`${entry.ruleId}:${entry.recordedAtMs}:${entry.anchorMs}:${index}`)}
+        {#each shown as entry, index (`${entry.ruleId}:${entry.recordedAtMs}:${entry.anchorMs}:${index}`)}
             {@const anchor = format(entry.anchorMs)}
-            <div class="log-item">
+            <div class="log-item" class:suppressed={entry.suppressed} data-suppressed={entry.suppressed}>
                 <div class="log-main">
                     <strong>{entry.symbol}</strong>
                     {#if entry.ruleIsBot}
@@ -78,8 +97,15 @@
                     {#if entry.timeframe}
                         <span class="meta">{entry.timeframe}</span>
                     {/if}
-                    {#if entry.verdict}
+                    {#if entry.suppressed}
+                        <span class="veto-badge">{$_("dashboard.alerts.manageList.logSuppressed")}</span>
+                    {:else if entry.verdict}
                         <span class="meta">{entry.verdict}</span>
+                    {/if}
+                    {#if entry.suppressed && entry.vetoClause}
+                        <span class="veto-clause" data-testid="veto-clause">
+                            {$_("dashboard.alerts.manageList.logVetoClause", { values: { clause: entry.vetoClause } })}
+                        </span>
                     {/if}
                 </div>
 
@@ -115,6 +141,29 @@
         margin: 0 0 var(--space-2);
         color: var(--text-secondary);
         font-size: 0.75rem;
+    }
+    .log-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin: 0 0 var(--space-2);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+    }
+    .veto-badge {
+        padding: 0 var(--space-2);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--warning-color);
+        color: var(--warning-color);
+        font-size: 0.7rem;
+    }
+    .veto-clause {
+        flex-basis: 100%;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+    }
+    .log-item.suppressed {
+        border-left: 2px solid var(--warning-color);
     }
     .log-list {
         display: flex;

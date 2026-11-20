@@ -1169,7 +1169,12 @@ export class RuleEvaluationLoop {
     // continuation of the old one. Owned state is read at the moment the
     // signal forms, because that is the trade the signal is sizing — the
     // AC 5 cancel compares against this, not against a later read.
-    if (this.rawSignalAt(rule, symbol, timeframe, anchorMs, asOf)?.verdict === "fires") {
+    const signal = this.rawSignalAt(rule, symbol, timeframe, anchorMs, asOf);
+    // FEAT-0814 — a confirmation bot's signal can be vetoed too; without this
+    // it would read as a strategy that found no setup. Reported here, where
+    // the signal is first decided, not on the confirmation's re-read of it.
+    if (signal?.verdict === "suppressed") this.reportSuppressed(rule, anchorMs);
+    if (signal?.verdict === "fires") {
       this.confirmationMemos.set(rule.id, {
         seriesKey,
         signalAnchorMs: anchorMs,

@@ -31,6 +31,7 @@
  * built on the device from a document that never leaves it (ADR-0001).
  */
 
+import { feedNameKey, isKnownFeed } from "./externalFeeds";
 import type {
   AccountFieldName,
   CompareOp,
@@ -292,7 +293,9 @@ function formatCondition(
       });
     case "external_feed":
       return t("rules.sentence.compare", {
-        left: condition.feed,
+        // A feed this build does not know is named by its id rather than
+        // dropped: the sentence must still say what the veto reads.
+        left: isKnownFeed(condition.feed) ? t(feedNameKey(condition.feed)) : condition.feed,
         op: t(COMPARE_KEYS[condition.op]),
         right: condition.value,
         timeframe: "",
@@ -386,6 +389,18 @@ export function renderConditionSentence(
   t: SentenceTranslator,
 ): string {
   return formatCondition(document.conditions, document.trigger_timeframe, t);
+}
+
+/**
+ * Just the veto clause (FEAT-0814) -- "the close is above 150" -- or `null`
+ * when the rule has no veto. The suppression log names the clause that
+ * refused with this, so it reads the way the rule's own "unless" does.
+ *
+ * Never throws, for the same reason `renderRuleSentence` does not.
+ */
+export function renderVetoSentence(document: RuleDocument, t: SentenceTranslator): string | null {
+  if (!document.veto) return null;
+  return formatCondition(document.veto, document.trigger_timeframe, t);
 }
 
 /**

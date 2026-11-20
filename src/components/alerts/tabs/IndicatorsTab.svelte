@@ -501,6 +501,6 @@
     .refusal {
         margin: 0;
         font-size: 0.8rem;
-        color: var(--danger);
+        color: var(--danger-color);
     }
 </style>

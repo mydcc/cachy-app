@@ -195,7 +195,7 @@ adjustment.
 | Tab | Builds |
 |---|---|
 | Templates | A ready `RuleDocument` from a named strategy, editable before arming |
-| Combo | Up to five conditions joined with AND/OR |
+| Combo | Up to sixteen conditions, mixed indicator, price and pattern rows, joined with AND/OR, with one level of nested groups as cards (FEAT-0813); a rule beyond that opens read-only with the reason named |
 | Price | Rises above / falls below / rise reaches / fall reaches, last or mark price |
 | Indicators | Indicator, trigger object, rule (Threshold or Crossing), the comparison operand (a value, the price, another indicator, or its own window high/low), parameters |
 | Candlesticks | Single, multiple and structural patterns |
@@ -210,6 +210,15 @@ is a rule they cannot trust. The one exception is a drawing draft: the arm press
 rebuilds the rule from the live line, so the Drawing tab shows the line's own
 level instead of a sentence built from the draft's condition (FEAT-0752,
 FEAT-0542).
+
+Below the lifecycle fields sits the **veto** (FEAT-0814), on every builder tab
+but a drawing draft: the same condition tree as Combo, plus an external-feed
+row that is legal there and nowhere else. "No veto" is the absence of the
+field, never an empty group, so a rule without one keeps its hash; opening the
+section writes nothing until the trader edits it. A feed no source delivers yet
+(FEAT-0816 wires them) reads as unavailable, so the verdict is indeterminate
+and the rule does not fire — the feed row says so. A rule with a veto carries a
+badge on its Manage row; its sentence already ends in "unless …".
 
 An armed rule is not a dead end: the pencil on a Manage row loads it back into the
 builder that owns its condition — or into Combo, read-only when no single builder can
@@ -254,6 +263,15 @@ category with no channel enabled at all stays silent.
 Above `notify`, the verdict instead becomes an order intent, and every existing
 guard — the order gate, the risk limits, the confirmation settings — applies
 unchanged. The rule engine proposes; it does not send.
+
+A trigger whose conditions held but whose veto refused it is a **suppression**,
+not a firing: it never reaches the firing sink, so it neither announces nor
+orders. In live mode it is written to the firing ledger under its own source
+(`veto`), once per rule and candle, with a share of the ledger's cap of its own
+so a veto refusing every close cannot push real announcements out; the Log tab
+lists it, filterable, with the veto clause that refused. A bot additionally
+gets the guard line "not traded: veto". Intrabar rules record no suppressions —
+they re-read the same forming candle many times — and shadow mode records none.
 
 No UI can author a `send` document today: the bots surface writes `simulate`
 only, and `authorise(Send)` on a `simulate` document refuses. Should a `send`
