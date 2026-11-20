@@ -213,7 +213,15 @@ export function recordSuppression(
   try {
     const { records } = readShadowLedger();
     const isSuppression = (r: ShadowFiringRecord) => r.source === "veto";
-    if (records.some((r) => isSuppression(r) && r.id === record.id && r.anchorMs === record.anchorMs)) {
+    // A candle is identified by its market and timeframe as well as its open
+    // time: an edited rule keeps its id, and a 1h candle can open at the same
+    // instant a 1m one did under the rule's previous timeframe.
+    const sameCandle = (r: ShadowFiringRecord) =>
+      r.id === record.id &&
+      r.symbol === record.symbol &&
+      r.timeframe === record.timeframe &&
+      r.anchorMs === record.anchorMs;
+    if (records.some((r) => isSuppression(r) && sameCandle(r))) {
       return "duplicate";
     }
     let next = [...records, { ...record, source: "veto" as const, recordedAtMs, verdict: "suppressed" }];

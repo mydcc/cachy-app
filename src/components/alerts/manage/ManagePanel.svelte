@@ -186,14 +186,21 @@
         }
         return (record: ShadowFiringRecord): string | null => {
             const current = documents.get(record.id);
-            if (record.veto) {
-                const asRecorded = {
-                    veto: record.veto,
-                    trigger_timeframe: record.timeframe ?? current?.trigger_timeframe ?? "",
-                } as RuleDocument;
-                return renderVetoSentence(asRecorded, translator);
+            // Stored data from `localStorage`: a malformed veto costs its entry
+            // the clause, never the whole log -- like `sentenceFor` for a row.
+            try {
+                if (record.veto) {
+                    const asRecorded = {
+                        veto: record.veto,
+                        trigger_timeframe: record.timeframe ?? current?.trigger_timeframe ?? "",
+                    } as RuleDocument;
+                    return renderVetoSentence(asRecorded, translator);
+                }
+                return current ? renderVetoSentence(current, translator) : null;
+            } catch (e) {
+                logger.warn("alerts", `Could not phrase the veto of a suppression for ${record.id}`, e);
+                return null;
             }
-            return current ? renderVetoSentence(current, translator) : null;
         };
     });
     let logEntries = $derived(buildFiringLog(records, baseRows, botRows, vetoClauseOf));

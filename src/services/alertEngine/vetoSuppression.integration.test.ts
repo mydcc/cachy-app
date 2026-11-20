@@ -175,6 +175,12 @@ describe("the suppression record", () => {
     ]);
   });
 
+  it("keeps a suppression on another timeframe that shares an open time", () => {
+    expect(recordSuppression(at(START_MS), 1)).toBe("written");
+    expect(recordSuppression({ ...at(START_MS), timeframe: "1h" }, 2)).toBe("written");
+    expect(readShadowLedger().records.filter((r) => r.source === "veto")).toHaveLength(2);
+  });
+
   it("stores the veto that refused, so a later edit cannot re-attribute it", () => {
     const veto = { kind: "external_feed", feed: "funding_rate", op: "gt", value: "0.01" } as const;
     recordSuppression({ ...at(START_MS), veto }, 1);
