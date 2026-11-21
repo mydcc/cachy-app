@@ -2,7 +2,7 @@
 id: FEAT-0817
 title: Assist rule authoring with a model, without letting it trade
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [pro, private]
@@ -50,33 +50,74 @@ A build-time authoring aid, never an execution path:
 
 ## Acceptance criteria
 
-- [ ] A described setup produces a draft that the core validates; the draft's
+- [x] A described setup produces a draft that the core validates; the draft's
       refusals are shown field by field, not as a wall of text.
-- [ ] A saved draft is `enabled: false` and cannot be armed by the same action
+- [x] A saved draft is `enabled: false` and cannot be armed by the same action
       that saved it.
-- [ ] A draft carries `provenance.source: "model"` and the model's id in
+- [x] A draft carries `provenance.source: "model"` and the model's id in
       `provenance.model`. Duplication keeps both (`duplicateRule`); promotion
       resets them to `human`/absent while `derived_from_hash` names the draft,
       which is the shipped core behaviour and not to be changed (ADR-0030
       decision 7). No decision anywhere reads `provenance.source`.
-- [ ] The feature is unavailable unless `aiRuleAuthoringEgress` is on. It is
+- [x] The feature is unavailable unless `aiRuleAuthoringEgress` is on. It is
       default off, revocable, independent of `aiShareTradeContext` in both
       directions, and its UI names the resolved provider and base URL.
-- [ ] Before the first request the panel shows exactly what will be sent: the
+- [x] Before the first request the panel shows exactly what will be sent: the
       prose, the symbol, the trigger timeframe and the condition-language
       description — nothing else.
-- [ ] A provider that only works through the ADR-0019 server relay is refused
+- [x] A provider that only works through the ADR-0019 server relay is refused
       for authoring, with a reason naming the relay; there is no silent
       fallback.
-- [ ] No strategy text, symbol list or journal data leaves the device on any
-      other path (no telemetry, no logs).
-- [ ] A prompt that cannot be expressed in the language returns "not
+- [x] No strategy text, symbol list or journal data leaves the device on any
+      other path (no telemetry, no logs). The one logging call on this path
+      (`logger.warn`, when a draft cannot be validated) stays on the device:
+      `src/services/logger.ts` imports `$app/env`, `toastService` and
+      `loggerConfig`, and has no network transport at all.
+- [x] A prompt that cannot be expressed in the language returns "not
       expressible" with the reason, not a plausible-looking document.
-- [ ] The model is reached through a port that `src/lib/rules/` and the alert
-      engine do not import; the architecture ratchet proves it.
-- [ ] Tests mock the model and cover: valid draft, refused draft, non-expressible
+- [x] The model is reached through a port that `src/lib/rules/` and the alert
+      engine do not import, proven by
+      `src/tests/architecture/rule_authoring_port.test.ts`. **This criterion
+      originally credited the architecture ratchet, and the ratchet cannot
+      prove it:** `scripts/arch-cycles.mjs` freezes strongly-connected-component
+      mass and the count of *uphill* layer pairs, but an
+      `alertEngine -> lib/ai/ruleAuthoring` import is `services -> lib`, which
+      is downhill, and a `lib/rules -> lib/ai` import is same-layer. Both
+      forbidden imports would leave every frozen number unchanged, so the
+      boundary needed an assertion of its own. The ratchet does stay green —
+      the port adds no uphill edge and no cycle — which the same test checks.
+- [x] Tests mock the model and cover: valid draft, refused draft, non-expressible
       request, consent off, relay-only provider refused, payload contains no
       journal/balance/position/hash, no auto-arm.
+
+## Shipped
+
+45 tests across six files, with the model mocked at `authoringTransport` and
+the port itself real, so the egress gate, the reply parser and the four-field
+payload builder all run under test:
+
+| File | What it pins |
+| --- | --- |
+| `src/lib/ai/ruleAuthoring/authoringEgress.test.ts` | consent short-circuits before the provider is inspected; a relay is refused and named; loopback is treated as direct |
+| `src/lib/ai/ruleAuthoring/draftAnswer.test.ts` | only `name`, `conditions`, `veto`, `exits`, `notes` are read — a reply carrying `stop`, `enabled`, `id` or `action` loses them |
+| `src/lib/ai/ruleAuthoring/requestRuleDraft.test.ts` | both refusals return without ever calling the transport |
+| `src/tests/ai/ruleAuthoringPayload.test.ts` | the payload's key list, and byte-identity under both consent switches |
+| `src/tests/architecture/rule_authoring_port.test.ts` | the port boundary, with the detector exercised against synthetic sources so it cannot pass vacuously |
+| `src/components/alerts/tabs/AuthoringTab.component.test.ts` | the call path that *does* have store access: Class A planted in the draft, absent from what the model is told |
+
+Two things deliberately did not ship here:
+
+- **The model's exits travel at promotion, and that plumbing is its own item.**
+  The core refuses `exits` on a `notify` document
+  (`RefusalCode::ExitsAtNotifyLevel` — an alert owns no position to close), so
+  a proposed exit is parsed, shown and held in the authoring tab rather than
+  forced into the draft. Carrying it into the bot means touching
+  `promoteAlertToBot`, which is the order path, and keying the staged exits to
+  the rule they were authored for. That is
+  [`FEAT-0833`](FEAT-0833-carry-model-proposed-exits-into-bot-creation.md).
+- **`action` is not the model's.** The proposal above lists it among the
+  draft's fields; ADR-0030 decision 5 overrides that, the prompt forbids it
+  explicitly, and the parser never reads it.
 
 ## Out of scope
 
@@ -134,4 +175,6 @@ carries, as [`ADR-0030`](../../adr/0030-a-strategy-draft-goes-out-browser-direct
 - [`ADR-0019`](../../adr/0019-multi-provider-registry-and-credential-transit.md)
 - [`ADR-0020`](../../adr/0020-automation-envelope-promotion-and-simulate-bots.md)
 - [`FEAT-0818`](FEAT-0818-curated-literature-strategy-templates.md)
+- [`FEAT-0833`](FEAT-0833-carry-model-proposed-exits-into-bot-creation.md)
+  — carries the model's proposed exits into the bot
 - [`TODO.md`](../../TODO.md#33--ai-assisted-rule-authoring-scope-and-egress)

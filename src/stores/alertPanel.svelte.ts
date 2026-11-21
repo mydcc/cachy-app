@@ -66,6 +66,9 @@ import { generateId } from "../utils/utils";
 /** Tabs in strip order; `manage` stays last. */
 export const ALERT_PANEL_TABS = [
   "templates",
+  // FEAT-0817. Beside Templates because both are entry points that hand a
+  // starting document to the Combo builder rather than building one leg.
+  "authoring",
   "combo",
   "price",
   "indicators",
@@ -560,6 +563,32 @@ class AlertPanelStore {
       if (slot) return slot;
     }
     return "combo";
+  }
+
+  /**
+   * FEAT-0817 — record that a model drafted the conditions now in the draft.
+   *
+   * `provenance` records; it never authorises (ADR-0030 decision 7). The
+   * field is excluded from the content hash, and per ADR-0020 an unhashed
+   * field may not gate a decision — so nothing anywhere may widen or narrow
+   * what this rule is permitted to do because a model wrote it, and nothing
+   * may treat it as pre-validated. The core is asked about this document
+   * exactly as it is asked about a hand-built one.
+   *
+   * The name travels with it because the two arrive together from one answer
+   * and a draft that kept the previous rule's name would be mislabelled in
+   * Manage.
+   */
+  setModelProvenance(model: string, name: string) {
+    this.draft.provenance = {
+      ...this.draft.provenance,
+      source: "model",
+      created_at_ms: Date.now(),
+      // Absent rather than empty: `model` is optional, and an empty string
+      // would record that a model with no id wrote this.
+      ...(model.trim() ? { model: model.trim() } : {}),
+    };
+    if (name.trim()) this.draft.name = name.trim();
   }
 
   setSymbol(symbol: string) {

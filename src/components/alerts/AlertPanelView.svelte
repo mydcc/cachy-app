@@ -76,6 +76,7 @@ let rootElement: HTMLElement | null = null;
      */
     const TAB_LOADERS: Record<AlertPanelTab, () => Promise<{ default: Component<{ symbol: string }> }>> = {
         templates: () => import("./tabs/TemplatesTab.svelte"),
+        authoring: () => import("./tabs/AuthoringTab.svelte"),
         combo: () => import("./tabs/ComboTab.svelte"),
         price: () => import("./tabs/PriceTab.svelte"),
         indicators: () => import("./tabs/IndicatorsTab.svelte"),
@@ -100,6 +101,7 @@ let rootElement: HTMLElement | null = null;
 
     const TAB_LABEL_KEYS: Record<AlertPanelTab, TranslationKey> = {
         templates: "dashboard.alerts.panel.tab.templates",
+        authoring: "dashboard.alerts.panel.tab.authoring",
         combo: "dashboard.alerts.panel.tab.combo",
         price: "dashboard.alerts.panel.tab.price",
         indicators: "dashboard.alerts.panel.tab.indicators",

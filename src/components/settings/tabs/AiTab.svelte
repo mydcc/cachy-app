@@ -351,6 +351,26 @@
                         />
                     </label>
 
+                    <!--
+                      FEAT-0817, ADR-0030 decision 3. Its own switch, next to
+                      the one above and deliberately not derived from it: the
+                      two admit different payloads in different directions.
+                      The accent border marks both as Class A egress consent.
+                    -->
+                    <label class="toggle-card border-l-4 border-l-[var(--accent-color)] gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.ai.ruleAuthoringEgress")}</span
+                            >
+                            <span class="text-xs text-[var(--text-secondary)]"
+                                >{$_("settings.ai.ruleAuthoringEgressDesc")}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.aiRuleAuthoringEgress}
+                        />
+                    </label>
+
                     <label class="toggle-card gap-3">
                         <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"

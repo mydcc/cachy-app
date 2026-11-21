@@ -756,6 +756,7 @@ export const defaultSettings: Settings = {
   aiAllowedActions: [...AI_ALLOWED_ACTIONS_DEFAULT],
   aiTradeHistoryLimit: 50,
   aiShareTradeContext: false,
+  aiRuleAuthoringEgress: false,
   aiAnalysisMode: "risk" as AiAnalysisMode,
   showSpinButtons: "hover",
   disclaimerAccepted: false,

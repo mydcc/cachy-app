@@ -128,6 +128,7 @@ export class CoreSettingsStore {
   aiAllowedActions = $state<string[]>(structuredClone(defaultSettings.aiAllowedActions));
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
   aiShareTradeContext = $state<boolean>(defaultSettings.aiShareTradeContext);
+  aiRuleAuthoringEgress = $state<boolean>(defaultSettings.aiRuleAuthoringEgress);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
   aiAnalysisMode = $state<AiAnalysisMode>(defaultSettings.aiAnalysisMode);
   cryptoPanicApiKey = $state<string | undefined>(
