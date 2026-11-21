@@ -44,6 +44,7 @@ import {
   readFearGreed,
   readFundingRate,
   readOpenInterestSample,
+  type FundingRateFetcher,
   type OpenInterestSample,
 } from "./externalFeedSources";
 
@@ -72,6 +73,19 @@ const MAX_OI_SAMPLES = 120;
 
 type RuleReader = () => RuleDocument[];
 
+/**
+ * The outside world this store needs: which rules decide what is worth
+ * fetching, and who answers the funding batch.
+ *
+ * Both are injected for the reason the loop's readers are -- this module stays
+ * callable without a store, and without the venue layer it would otherwise
+ * have to import (see `FundingRateFetcher`).
+ */
+export interface FeedStorePorts {
+  readRules: RuleReader;
+  fetchFundingRates: FundingRateFetcher;
+}
+
 class ExternalFeedStore {
   /** Per-market readings, keyed `symbol` then feed. */
   private readonly perMarket = new Map<string, Map<ExternalFeedId, FeedReading>>();
@@ -83,14 +97,13 @@ class ExternalFeedStore {
   /** Requests in flight, so a slow source cannot be asked again every tick. */
   private readonly inFlight = new Set<string>();
   private readRules: RuleReader = () => [];
+  private fetchFundingRates: FundingRateFetcher | undefined;
   private timer: ReturnType<typeof setInterval> | undefined;
 
-  /**
-   * Which rules decide what is worth fetching. Injected for the same reason
-   * the loop's readers are: this module must stay callable without a store.
-   */
-  configure(readRules: RuleReader): void {
-    this.readRules = readRules;
+  /** Bind the ports. Until this runs, nothing is wanted and nothing is read. */
+  configure(ports: FeedStorePorts): void {
+    this.readRules = ports.readRules;
+    this.fetchFundingRates = ports.fetchFundingRates;
   }
 
   /** Begin polling. Idempotent, and a no-op outside the browser. */
@@ -203,8 +216,16 @@ class ExternalFeedStore {
   }
 
   private async refreshFunding(key: string, symbol: string, nowMs: number): Promise<void> {
+    const fetchRates = this.fetchFundingRates;
+    // No port, so nobody can answer: the feed stays unavailable and a veto
+    // reading it is dropped loudly -- the same outcome as a source that is
+    // down. `wanted()` is empty before `configure`, so a running app does not
+    // reach this; it is here because the field can be unset, not because the
+    // case is expected.
+    if (fetchRates === undefined) return;
+
     await this.guarded(key, nowMs, async () => {
-      const reading = await readFundingRate(symbol);
+      const reading = await readFundingRate(symbol, fetchRates);
       if (reading !== undefined) this.hold(symbol, reading);
     });
   }

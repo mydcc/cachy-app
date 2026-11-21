@@ -34,7 +34,6 @@ import { Decimal } from "decimal.js";
 import { z } from "zod";
 import type { FeedReading } from "../../lib/rules/feedReadings";
 import { safeJsonParse } from "../../utils/safeJson";
-import { fetchBitunixFundingRates } from "../api/marketData";
 import { logger } from "../logger";
 
 const MINUTE_MS = 60_000;
@@ -234,9 +233,25 @@ export async function readFearGreed(): Promise<FeedReading | undefined> {
  * loud is the point -- a borrowed timestamp would claim a precision the source
  * never gave.
  */
-export async function readFundingRate(symbol: string): Promise<FeedReading | undefined> {
+/**
+ * What this module needs from a funding source: the rate per symbol, already
+ * a fraction rather than a percent.
+ *
+ * Injected rather than imported. The venue adapter that answers this lives in
+ * `services/api/marketData`, which sits inside the app's import cycle, and
+ * reaching into it from here would pull these feed modules into that cycle
+ * too -- which is exactly what the W1-02 ratchet measures. The structural
+ * type also keeps the unit honest: whoever supplies the port owns the
+ * percent-to-fraction conversion, and nothing here is tempted to repeat it.
+ */
+export type FundingRateFetcher = () => Promise<ReadonlyMap<string, { fundingRate: Decimal }>>;
+
+export async function readFundingRate(
+  symbol: string,
+  fetchRates: FundingRateFetcher,
+): Promise<FeedReading | undefined> {
   try {
-    const rates = await fetchBitunixFundingRates();
+    const rates = await fetchRates();
     const entry = rates.get(symbol);
     if (entry === undefined || !entry.fundingRate.isFinite()) return undefined;
 

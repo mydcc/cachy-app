@@ -85,6 +85,14 @@ Public market data only; no account data, no identity. Class C per ADR-0001.
   because that is what a trader types, fear and greed is an index 0..100. The
   leaf shows the unit instead of the old "no source delivers this feed yet"
   warning.
+- **The funding fetcher is a port, not an import.** `readFundingRate` takes
+  the venue adapter as an argument and `externalFeedStore.configure` takes it
+  as a port, because `services/api/marketData` sits inside the app's import
+  cycle and importing it would pull both feed modules in with it (the W1-02
+  ratchet in `src/tests/architecture/cycle_ratchet.test.ts` fails on exactly
+  that: 196 -> 198 files). The percent-to-fraction conversion stays with the
+  adapter that owns it, so the port's type names a fraction and no copy of
+  that arithmetic exists here.
 - **Open interest is sampled, not fetched as a change.** Bitget publishes a
   level; the change is derived from samples at least 30 minutes and at most two
   hours apart, and the feed stays unavailable until that span exists -- which

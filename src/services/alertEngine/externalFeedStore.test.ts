@@ -48,7 +48,16 @@ import {
   readFundingRate,
   readOpenInterestSample,
   OI_MIN_SPAN_MS,
+  type FundingRateFetcher,
 } from "./externalFeedSources";
+
+/**
+ * The store only passes this through to `readFundingRate`, which is mocked
+ * here, so what it returns is never read. It exists because the port is
+ * required -- and because asserting on its identity below is what proves the
+ * store hands the wired fetcher on rather than reaching for one itself.
+ */
+const fundingPort: FundingRateFetcher = async () => new Map();
 
 const SYMBOL = "BTCUSDT";
 const START_MS = 1_770_000_000_000;
@@ -83,7 +92,7 @@ function rule(veto: Condition | undefined, overrides: Partial<RuleDocument> = {}
 
 /** One polling pass: `start` runs a tick immediately. */
 async function pollOnce(rules: RuleDocument[]): Promise<void> {
-  externalFeedStore.configure(() => rules);
+  externalFeedStore.configure({ readRules: () => rules, fetchFundingRates: fundingPort });
   externalFeedStore.start();
   // The tick is async and deliberately not awaited by `start`; the sources are
   // mocked, so one turn of the microtask queue is the whole pass.
@@ -116,7 +125,7 @@ describe("the feed store", () => {
   it("asks only for the feed and market a veto actually names", async () => {
     await pollOnce([rule(fundingVeto)]);
 
-    expect(readFundingRate).toHaveBeenCalledWith(SYMBOL);
+    expect(readFundingRate).toHaveBeenCalledWith(SYMBOL, fundingPort);
     expect(readOpenInterestSample).not.toHaveBeenCalled();
     expect(readFearGreed).not.toHaveBeenCalled();
   });

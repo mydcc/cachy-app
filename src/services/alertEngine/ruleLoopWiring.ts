@@ -50,6 +50,7 @@ import {
   type SeriesCloseHook,
   type UnevaluableSink,
 } from "./ruleEvaluationLoop";
+import { fetchBitunixFundingRates } from "../api/marketData";
 import { externalFeedStore } from "./externalFeedStore";
 import { feedNameKey, isKnownFeed } from "../../lib/rules/externalFeeds";
 import type { TranslationKey } from "../../locales/schema";
@@ -539,7 +540,13 @@ export function startRuleEvaluationLoop(
   // FEAT-0816 — the feeds poll only for what the armed rules' vetoes name, so
   // a trader with no feed veto causes no requests. Started after `configure`:
   // the store reads the same rule reader the loop does.
-  externalFeedStore.configure(readStoredRules);
+  // The funding batch is read through the venue adapter that owns the
+  // percent-to-fraction conversion; the feed modules take it as a port so they
+  // stay out of the app's import cycle.
+  externalFeedStore.configure({
+    readRules: readStoredRules,
+    fetchFundingRates: () => fetchBitunixFundingRates(),
+  });
   externalFeedStore.start();
   ruleEvaluationGate.setBotAnchorPersistence({
     isBotRule: (document) => isBot(document),
