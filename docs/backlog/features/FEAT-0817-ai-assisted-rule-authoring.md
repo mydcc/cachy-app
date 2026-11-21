@@ -2,7 +2,7 @@
 id: FEAT-0817
 title: Assist rule authoring with a model, without letting it trade
 type: feature
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [pro, private]
@@ -13,6 +13,8 @@ depends_on: []
 parent: FEAT-0805
 size: M
 estimate: 8
+assignee: claude
+branch: feature/feat-0817-ai-rule-authoring
 ---
 
 # FEAT-0817 — Assist rule authoring with a model, without letting it trade
