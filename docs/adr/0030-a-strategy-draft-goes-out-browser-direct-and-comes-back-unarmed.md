@@ -1,6 +1,6 @@
 # ADR-0030: A strategy draft goes out browser-direct under its own consent, and comes back unarmed
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-21
 - **Deciders:** @mydcc
 
