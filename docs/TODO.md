@@ -1313,7 +1313,7 @@ while its position is open) is decided in that item's spec: the position turns
 unattributed, must be closed manually, and deleting a rule with an open
 position requires an explicit warning.
 
-## 33. AI-assisted rule authoring: scope and egress
+## 33. ✅ AI-assisted rule authoring: scope and egress
 
 **From:** [`FEAT-0817`](backlog/features/FEAT-0817-ai-assisted-rule-authoring.md).
 
@@ -1327,6 +1327,29 @@ propose exits and a stop, or conditions only.
 **Proposal:** hosted behind explicit consent plus an ADR; conditions and exits,
 with the stop still required before arming; a draft is never armed
 automatically.
+
+**Decision, 2026-11-21.** The proposal stands, and the ADR it asked for is
+[`ADR-0030`](adr/0030-a-strategy-draft-goes-out-browser-direct-and-comes-back-unarmed.md).
+Two facts found while writing it make the choice smaller than this entry
+assumed. First, "hosted or local" is not a product fork: since
+[`ADR-0019`](adr/0019-multi-provider-registry-and-credential-transit.md) the
+providers are a registry whose default transport is browser-direct, so a hosted
+draft request never passes through Cachy, and a trader who wants zero egress
+points the feature at a loopback entry instead. The heavy local client this
+entry priced against is already available as configuration. Second, the
+provenance the feature needs exists: `AuthoringSource { Human, Model }` ships in
+`technicals-wasm/src/rule/document.rs:63-80`, placed there by ADR-0012
+decision 4.
+
+What the ADR adds beyond the proposal: authoring gets its **own** consent
+(`aiRuleAuthoringEgress`), separate from `aiShareTradeContext`, because the two
+admit different payloads in different directions; the authoring prompt is a
+closed, displayed list (prose, symbol, trigger timeframe, the condition
+language's own description) and admits no journal, balance, position or hash;
+and the ADR-0019 server relay is **refused** for authoring, failing closed with
+a reason, because that hop exists to carry a credential and would otherwise make
+Cachy a recipient of strategy text. Scope as proposed: conditions, veto and
+exits, never the stop (ADR-0020 decision 6), and saving is not arming.
 
 ## 34. Grid bots: paper-first, netting and edition
 
