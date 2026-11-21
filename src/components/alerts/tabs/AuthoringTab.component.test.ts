@@ -23,16 +23,17 @@
  * take the payload's four parts as parameters with no store access at all.
  * That is the right shape, but it also means those tests cannot prove the
  * claim a reviewer actually cares about: that the call path *which does* have
- * store access still sends nothing else. Only a mounted component has that
- * access, so the proof belongs here.
+ * store access still sends nothing else, and still writes nothing it should
+ * not. Only a mounted component has that access, so the proof belongs here.
  *
- * The method is to plant. Every store this component reads is handed values
- * tagged `PLANTED_`, including the strategy draft's stop, its lineage hash and
- * a private note — Class A data under ADR-0001, each one a field a careless
- * `JSON.stringify(draft)` would have carried off the device. One assertion
- * then covers the whole class: the bytes handed to the transport contain no
- * `PLANTED_` at all. A Class A field added to `RuleDocument` tomorrow is
- * caught by the same line, without anyone remembering to extend a denylist.
+ * The method for the egress half is to plant. Every store this component
+ * reads is handed values tagged `PLANTED_`, including the strategy draft's
+ * stop, its lineage hash and a private note — Class A data under ADR-0001,
+ * each one a field a careless `JSON.stringify(draft)` would have carried off
+ * the device. One assertion then covers the whole class: the bytes handed to
+ * the transport contain no `PLANTED_` at all. A Class A field added to
+ * `RuleDocument` tomorrow is caught by the same line, without anyone
+ * remembering to extend a denylist.
  *
  * The model is mocked and the port is real. Mocking `requestRuleDraft` would
  * have made this a test of the mock: the egress gate, the parser and the
@@ -40,6 +41,12 @@
  * anything. `authoringTransport` is the only seam, and it is exactly the seam
  * ADR-0030 draws — everything on this side of it is Cachy's, everything on
  * the far side is the provider's.
+ *
+ * The second half of the file is regression cover for the review of #4608,
+ * where four of these cases were live defects. Each one is written as the
+ * behaviour, not as "the bug": a store write that lands on the wrong rule, a
+ * single condition that vanishes, a draft that saves yesterday's settings,
+ * and a refusal that cannot be read because rendering it threw.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -78,13 +85,13 @@ vi.mock("../../../locales/i18n", async () => {
 const mocks = vi.hoisted(() => ({
     transport: vi.fn(),
     armRule: vi.fn(),
+    readRuleStore: vi.fn(),
+    freeRuleId: vi.fn(),
     resolveChatTarget: vi.fn(),
     validate: vi.fn(),
     renderRuleSentence: vi.fn(),
     showToast: vi.fn(),
-    setConditionGroup: vi.fn(),
-    setVeto: vi.fn(),
-    setModelProvenance: vi.fn(),
+    adoptModelDraft: vi.fn(),
     /** Set per test *before* mount; the component reads it in a `$derived`. */
     settings: { aiRuleAuthoringEgress: true },
     draft: {} as Record<string, unknown>,
@@ -95,6 +102,11 @@ const mocks = vi.hoisted(() => ({
  * The draft the panel shell would have built, plus the Class A fields a real
  * one carries. `trigger_timeframe` is the one value the payload is allowed to
  * take from here; everything else is bait.
+ *
+ * `id` matters twice over: it is bait for the egress assertion, and it is the
+ * id of a *stored* rule, because `loadForEdit` leaves one here when a trader
+ * opens an existing alert for editing. A save that reused it would replace
+ * that alert.
  */
 function plantedDraft(): Record<string, unknown> {
     return {
@@ -104,6 +116,7 @@ function plantedDraft(): Record<string, unknown> {
         trigger_timeframe: "1h",
         schema_version: 3,
         enabled: true,
+        frequency: "once",
         conditions: { kind: "group", op: "and", children: [] },
         // Class A, every one of them.
         notes: "PLANTED_PRIVATE_NOTE",
@@ -131,9 +144,7 @@ vi.mock("../../../stores/alertPanel.svelte", () => ({
         set activeTab(value: string) {
             mocks.panel.activeTab = value;
         },
-        setConditionGroup: mocks.setConditionGroup,
-        setVeto: mocks.setVeto,
-        setModelProvenance: mocks.setModelProvenance,
+        adoptModelDraft: mocks.adoptModelDraft,
     },
 }));
 
@@ -184,8 +195,17 @@ vi.mock("../../../lib/rules/ruleSentence", () => ({
     renderRuleSentence: mocks.renderRuleSentence,
 }));
 
+// Both exports are needed: the component reads the store to pick a free id,
+// and a module mock that omitted `readRuleStore` would make the call throw
+// into the component's own catch — which reads as "storing failed" and hides
+// whatever the test meant to check.
 vi.mock("../../../services/alertEngine/armRule", () => ({
     armRule: mocks.armRule,
+    readRuleStore: mocks.readRuleStore,
+}));
+
+vi.mock("../../../services/alertEngine/ruleIdentity", () => ({
+    freeRuleId: mocks.freeRuleId,
 }));
 
 vi.mock("../../../services/logger", () => ({
@@ -196,13 +216,30 @@ import AuthoringTab from "./AuthoringTab.svelte";
 
 const PROSE = "long above short on the hourly, no entry while funding is hot";
 
+const GROUP_CONDITION = { kind: "group", op: "all", of: [] };
+
 /** A reply the real parser accepts, so the port runs end to end. */
 const MODEL_REPLY = JSON.stringify({
     ok: true,
     draft: {
         name: "Hourly cross",
-        conditions: { kind: "group", op: "and", children: [] },
+        conditions: GROUP_CONDITION,
         notes: "watch the funding leg",
+    },
+});
+
+/** The same, with one ungrouped condition — which the language allows. */
+const SINGLE_CONDITION_REPLY = JSON.stringify({
+    ok: true,
+    draft: {
+        name: "RSI floor",
+        conditions: {
+            kind: "compare",
+            left: { kind: "indicator", indicator: { id: "rsi", params: {} } },
+            op: "lt",
+            right: { kind: "constant", value: "30" },
+            timeframe: "1h",
+        },
     },
 });
 
@@ -223,6 +260,22 @@ function sendButton(host: HTMLElement): HTMLButtonElement {
     return button;
 }
 
+function adoptButton(host: HTMLElement): HTMLButtonElement {
+    const button = host.querySelector<HTMLButtonElement>(
+        ".draft .actions .send-btn",
+    );
+    if (!button) throw new Error("adopt button not rendered");
+    return button;
+}
+
+function saveButton(host: HTMLElement): HTMLButtonElement {
+    const button = host.querySelector<HTMLButtonElement>(
+        ".draft .actions .ghost-btn",
+    );
+    if (!button) throw new Error("save button not rendered");
+    return button;
+}
+
 function typeProse(host: HTMLElement, text: string): void {
     const textarea = host.querySelector<HTMLTextAreaElement>(".prose-input");
     if (!textarea) throw new Error("prose input not rendered");
@@ -237,6 +290,13 @@ async function settle(): Promise<void> {
     await Promise.resolve();
     await new Promise((resolve) => setTimeout(resolve, 0));
     flushSync();
+}
+
+/** Ask once and wait for the answer to land. */
+async function ask(host: HTMLElement): Promise<void> {
+    typeProse(host, PROSE);
+    sendButton(host).click();
+    await settle();
 }
 
 /**
@@ -262,6 +322,11 @@ function sentBytes(): string {
     return JSON.stringify(messages);
 }
 
+/** The document the component handed to the store. */
+function stored(call = 0): Record<string, unknown> {
+    return mocks.armRule.mock.calls[call][0] as Record<string, unknown>;
+}
+
 describe("AuthoringTab (FEAT-0817)", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -272,6 +337,8 @@ describe("AuthoringTab (FEAT-0817)", () => {
         mocks.transport.mockResolvedValue(MODEL_REPLY);
         mocks.renderRuleSentence.mockReturnValue("the rendered sentence");
         mocks.validate.mockImplementation((doc: unknown) => doc);
+        mocks.readRuleStore.mockReturnValue([{ id: "PLANTED_RULE_ID" }]);
+        mocks.freeRuleId.mockReturnValue("ai-draft-1");
         mocks.resolveChatTarget.mockReturnValue({
             kind: "direct",
             label: "Test Provider",
@@ -302,9 +369,7 @@ describe("AuthoringTab (FEAT-0817)", () => {
 
     it("sends the prose, symbol, timeframe and language — and no Class A field", async () => {
         const { host, component } = mountTab();
-        typeProse(host, PROSE);
-        sendButton(host).click();
-        await settle();
+        await ask(host);
 
         const bytes = sentBytes();
 
@@ -318,6 +383,22 @@ describe("AuthoringTab (FEAT-0817)", () => {
         // hash, the private note, the balance, the journal, the open position,
         // the draft's own symbol and the provider credential — is absent.
         expect(bytes).not.toContain("PLANTED_");
+
+        unmount(component as never);
+    });
+
+    it("tells the model which veto feeds exist, so it cannot invent one", async () => {
+        const { host, component } = mountTab();
+        await ask(host);
+
+        const bytes = sentBytes();
+        // A feed id outside this list has no source in the build, so the core
+        // would accept the veto and the loop would drop it at every
+        // evaluation — the alert fires unsuppressed. The real ids are named
+        // so the model has no reason to guess.
+        expect(bytes).toContain("funding_rate");
+        expect(bytes).toContain("open_interest_change");
+        expect(bytes).toContain("fear_greed");
 
         unmount(component as never);
     });
@@ -378,9 +459,7 @@ describe("AuthoringTab (FEAT-0817)", () => {
         });
 
         const { host, component } = mountTab();
-        typeProse(host, PROSE);
-        sendButton(host).click();
-        await settle();
+        await ask(host);
 
         const refusals = host.querySelector(".refusals");
         const fields = [...(refusals?.querySelectorAll("code") ?? [])].map(
@@ -399,30 +478,157 @@ describe("AuthoringTab (FEAT-0817)", () => {
         unmount(component as never);
     });
 
+    it("still shows the refusals when the refused draft cannot be read back", async () => {
+        // The refusal branch keeps the rejected document on purpose, and a
+        // rejected document can be malformed in ways the sentence renderer
+        // does not survive — a `compare` with no `right` reaches
+        // `formatOperand` as undefined. The refusal list is the output that
+        // must not be lost with it.
+        mocks.renderRuleSentence.mockImplementation(() => {
+            throw new TypeError("Cannot read properties of undefined");
+        });
+        mocks.validate.mockImplementation(() => {
+            throw {
+                refusals: [
+                    {
+                        code: "MissingOperand",
+                        field: "conditions",
+                        i18n_key: "rules.refusal.missingOperand",
+                    },
+                ],
+            };
+        });
+
+        const { host, component } = mountTab();
+        await ask(host);
+
+        const fields = [
+            ...(host.querySelector(".refusals")?.querySelectorAll("code") ?? []),
+        ].map((node) => node.textContent);
+        expect(fields).toEqual(["conditions"]);
+        expect(host.querySelector(".sentence-text")?.textContent).toBe("");
+
+        unmount(component as never);
+    });
+
+    it("adopts a single ungrouped condition as a group the builder can edit", async () => {
+        mocks.transport.mockResolvedValue(SINGLE_CONDITION_REPLY);
+        const { host, component } = mountTab();
+        await ask(host);
+
+        adoptButton(host).click();
+        flushSync();
+
+        expect(mocks.adoptModelDraft).toHaveBeenCalledTimes(1);
+        const adopted = mocks.adoptModelDraft.mock.calls[0][0] as {
+            conditions: { kind: string; op: string; of: unknown[] };
+        };
+        // `setConditionGroup` replaces a bare condition with an *empty* group,
+        // deliberately. Handing it one would lose the model's work between the
+        // sentence the trader read and the builder that opened.
+        expect(adopted.conditions.kind).toBe("group");
+        expect(adopted.conditions.of).toHaveLength(1);
+
+        unmount(component as never);
+    });
+
     it("stores a draft disarmed, and storing is not arming", async () => {
         const { host, component } = mountTab();
-        typeProse(host, PROSE);
-        sendButton(host).click();
-        await settle();
+        await ask(host);
 
-        const saveButton = host.querySelector<HTMLButtonElement>(
-            ".draft .actions .ghost-btn",
-        );
-        expect(saveButton?.disabled).toBe(false);
-        saveButton?.click();
+        expect(saveButton(host).disabled).toBe(false);
+        saveButton(host).click();
         flushSync();
 
         expect(mocks.armRule).toHaveBeenCalledTimes(1);
-        const stored = mocks.armRule.mock.calls[0][0] as Record<
-            string,
-            unknown
-        >;
         // ADR-0030 decision 5: saving is one act, arming is the other.
-        expect(stored.enabled).toBe(false);
-        expect(stored.provenance).toMatchObject({
+        expect(stored().enabled).toBe(false);
+        expect(stored().provenance).toMatchObject({
             source: "model",
             model: "test-model",
         });
+
+        unmount(component as never);
+    });
+
+    it("never stores a draft under the id of the rule being edited", async () => {
+        const { host, component } = mountTab();
+        await ask(host);
+        saveButton(host).click();
+        flushSync();
+
+        // `armRule` upserts by id and the panel draft carries a stored rule's
+        // id whenever one was loaded for editing. Writing under it would
+        // replace a live alert with a disarmed AI draft and stop it firing.
+        expect(mocks.freeRuleId).toHaveBeenCalledTimes(1);
+        expect(stored().id).toBe("ai-draft-1");
+        expect(stored().id).not.toBe(mocks.draft.id);
+
+        unmount(component as never);
+    });
+
+    it("updates the same rule when the same answer is saved twice", async () => {
+        const { host, component } = mountTab();
+        await ask(host);
+
+        saveButton(host).click();
+        flushSync();
+        saveButton(host).click();
+        flushSync();
+
+        expect(mocks.armRule).toHaveBeenCalledTimes(2);
+        // One free id for one answer: a second save must not leave a
+        // near-identical twin for the trader to arm by mistake.
+        expect(mocks.freeRuleId).toHaveBeenCalledTimes(1);
+        expect(stored(1).id).toBe(stored(0).id);
+
+        unmount(component as never);
+    });
+
+    it("stores the lifecycle fields as they stand at save time", async () => {
+        const { host, component } = mountTab();
+        await ask(host);
+
+        // The footer keeps editing the panel draft while this tab holds an
+        // answer. A candidate frozen when the reply arrived would store the
+        // frequency the trader had before they changed it.
+        mocks.draft.frequency = "always";
+        saveButton(host).click();
+        flushSync();
+
+        expect(stored().frequency).toBe("always");
+        // And the model's contribution is still on top of it.
+        expect(stored().name).toBe("Hourly cross");
+
+        unmount(component as never);
+    });
+
+    it("reports a refusal raised by the recomposed document instead of storing it", async () => {
+        const { host, component } = mountTab();
+        await ask(host);
+
+        // The document composed at save time is not the one the core already
+        // approved: its lifecycle fields are the live ones, so it is asked
+        // again — and a refusal must stop the write.
+        mocks.validate.mockImplementation(() => {
+            throw {
+                refusals: [
+                    {
+                        code: "ExpiryInPast",
+                        field: "expires_at_ms",
+                        i18n_key: "rules.refusal.expiryInPast",
+                    },
+                ],
+            };
+        });
+        saveButton(host).click();
+        flushSync();
+
+        expect(mocks.armRule).not.toHaveBeenCalled();
+        const fields = [
+            ...(host.querySelector(".refusals")?.querySelectorAll("code") ?? []),
+        ].map((node) => node.textContent);
+        expect(fields).toEqual(["expires_at_ms"]);
 
         unmount(component as never);
     });

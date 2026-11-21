@@ -158,6 +158,10 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     const tabs = [...el.querySelectorAll('[role="tab"]')].map((t) => t.textContent?.trim());
     expect(tabs).toEqual([
       "Templates",
+      // FEAT-0817. An on-ramp, not a builder: a trader arrives with a
+      // description and leaves towards Combo, which is where `adopt` sends
+      // them — so it sits beside Templates rather than among the builders.
+      "AI draft",
       "Combo",
       "Price",
       "Indicators",
@@ -439,7 +443,14 @@ describe("FEAT-0389: AlertPanelView shell", () => {
 
   it("moves the selection with the arrow keys, as its tablist role promises", async () => {
     const el = render();
-    const first = el.querySelector("#alert-tab-templates") as HTMLButtonElement;
+    const strip = [...el.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const firstIndex = strip.findIndex((t) => t.id === "alert-tab-templates");
+    expect(firstIndex).toBeGreaterThan(-1);
+    // The promise is "the next tab", not a particular pair. Reading the id out
+    // of the strip keeps this test pinned to the tablist contract, so adding a
+    // tab changes the strip test above and leaves this one alone.
+    const nextId = strip[firstIndex + 1].id;
+    const first = strip[firstIndex];
     first.click();
     await settleTab();
     expect(first.getAttribute("aria-selected")).toBe("true");
@@ -447,7 +458,7 @@ describe("FEAT-0389: AlertPanelView shell", () => {
     first.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     await settleTab();
 
-    expect(el.querySelector("#alert-tab-combo")?.getAttribute("aria-selected")).toBe("true");
+    expect(el.querySelector(`#${nextId}`)?.getAttribute("aria-selected")).toBe("true");
     expect(first.getAttribute("aria-selected")).toBe("false");
   });
 

@@ -75,7 +75,11 @@
         RuleDocument,
         RuleRefusal,
     } from "../../../lib/rules/types";
-    import { armRule } from "../../../services/alertEngine/armRule";
+    import {
+        armRule,
+        readRuleStore,
+    } from "../../../services/alertEngine/armRule";
+    import { freeRuleId } from "../../../services/alertEngine/ruleIdentity";
     import { logger } from "../../../services/logger";
 
     /**
@@ -167,9 +171,26 @@
             resolved.target !== null,
     );
 
-    let sentence = $derived(
-        candidate ? renderRuleSentence(candidate, translate) : "",
-    );
+    /**
+     * The read-back sentence.
+     *
+     * Guarded, and not out of habit: the refusal branch below deliberately
+     * keeps a document the core *rejected* so the trader can read what was
+     * proposed, and a rejected document may be malformed in ways the renderer
+     * does not tolerate — a `compare` whose `right` the model omitted reaches
+     * `formatOperand` as `undefined`. An exception thrown inside this
+     * `$derived` would take the panel down and the refusal list with it, and
+     * the refusal list is the one output that has to survive a bad answer.
+     */
+    let sentence = $derived.by(() => {
+        if (!candidate) return "";
+        try {
+            return renderRuleSentence(candidate, translate);
+        } catch (error) {
+            logger.warn("alerts", "refused draft could not be read back", error);
+            return "";
+        }
+    });
 
     /** Refusals grouped by the field they name, so each is read once. */
     let refusalsByField = $derived.by(() => {
@@ -181,6 +202,25 @@
         }
         return [...grouped.entries()];
     });
+
+    /**
+     * The model's conditions in the shape the builders need: a group.
+     *
+     * The language allows a single `compare` and the core accepts one, but
+     * `alertPanelState.setConditionGroup` replaces anything that is not a
+     * group with an *empty* group — deliberately, because an armed rule that
+     * can never fire is worse than a disabled arm button. Normalising here
+     * rather than at adoption keeps the candidate, the sentence, the stored
+     * draft and the adopted document one shape, so what the trader read is
+     * what the builder opens.
+     */
+    function asGroup(
+        condition: RuleDocument["conditions"],
+    ): RuleDocument["conditions"] {
+        return condition.kind === "group"
+            ? condition
+            : { kind: "group", op: "all", of: [condition] };
+    }
 
     /**
      * Build the document the model's conditions would produce, and ask the
@@ -198,7 +238,7 @@
         const proposed: RuleDocument = {
             ...base,
             name: answered.draft.name || base.name,
-            conditions: answered.draft.conditions,
+            conditions: asGroup(answered.draft.conditions),
             // Never armed by arriving. ADR-0030 decision 5.
             enabled: false,
             provenance: {
@@ -280,13 +320,12 @@
      */
     function adopt(): void {
         if (!candidate) return;
-        alertPanelState.setConditionGroup(candidate.conditions);
-        alertPanelState.setVeto(candidate.veto ?? null);
-        alertPanelState.setModelProvenance(
-            candidate.provenance.model ?? "",
-            candidate.name,
-        );
-        alertPanelState.activeTab = "combo";
+        // One call, because adoption *replaces* the draft. The footer keys its
+        // veto section on the draft object so that a draft arriving from
+        // outside is read rather than written over by the section's old form;
+        // three field writes left that form stale and let the trader's next
+        // timeframe edit flush it back over the model's veto.
+        alertPanelState.adoptModelDraft(candidate);
         uiState.showToast(
             $_("dashboard.alerts.panel.authoring.adopted"),
             "success",
@@ -294,16 +333,74 @@
     }
 
     /**
-     * Store the draft disarmed.
+     * Store the draft disarmed, as a rule of its own.
      *
-     * `enabled: false` is written here explicitly, and the rule loop skips a
-     * disabled rule, so a saved draft cannot fire. Arming it is the footer's
-     * button — a second, deliberate act (ADR-0030 decision 5).
+     * Three things are deliberate.
+     *
+     * **It is a new rule.** `armRule` upserts by id, and `loadForEdit` leaves
+     * a stored rule's id in the panel draft — which the candidate inherits by
+     * being built from it. Writing under that id would replace a live alert
+     * with a disarmed AI draft and quietly stop it firing. So a save takes a
+     * *free* id; editing an existing rule is the footer's job, not this
+     * button's. The id is then kept on the candidate, so saving again after a
+     * tweak updates that one rule instead of leaving a near-identical twin
+     * for the trader to arm by mistake.
+     *
+     * **The lifecycle fields are the live ones.** The header, the lifecycle
+     * fields and the veto section go on editing `alertPanelState.draft` while
+     * this tab holds an answer, so the document is composed at save time. A
+     * candidate frozen when the reply arrived would silently drop a frequency
+     * or an expiry the trader changed afterwards — and then validated as
+     * though it had not.
+     *
+     * **It is not armed.** `enabled: false` is written explicitly and the rule
+     * loop skips a disabled rule, so a saved draft cannot fire. Arming is the
+     * footer's button, a second deliberate act (ADR-0030 decision 5).
      */
     function saveDraft(): void {
         if (!candidate || refusals.length > 0) return;
+
+        const composed: RuleDocument = {
+            ...alertPanelState.draft,
+            name: candidate.name,
+            conditions: candidate.conditions,
+            provenance: candidate.provenance,
+            enabled: false,
+        };
+        if (candidate.veto) composed.veto = candidate.veto;
+        else delete composed.veto;
+
+        let validated: RuleDocument;
         try {
-            armRule({ ...candidate, enabled: false });
+            // Re-validated, because this is not the document the core already
+            // approved: its lifecycle fields came from the live draft.
+            validated = ruleSchema.validate(composed);
+        } catch (error) {
+            if (isRuleRefusedError(error)) {
+                refusals = error.refusals;
+                return;
+            }
+            logger.error(
+                "alerts",
+                "authoring draft could not be validated",
+                error,
+            );
+            uiState.showToast(
+                $_("dashboard.alerts.panel.storeUnreadable"),
+                "error",
+            );
+            return;
+        }
+
+        try {
+            // Already stored once under an id of its own, or still carrying
+            // the panel draft's id and therefore needing a free one.
+            const own = candidate.id !== alertPanelState.draft.id;
+            const id = own
+                ? candidate.id
+                : freeRuleId(new Set(readRuleStore().map((rule) => rule.id)));
+            armRule({ ...validated, id, enabled: false });
+            candidate = { ...candidate, id };
             alertState.rulesVersion += 1;
             uiState.showToast(
                 $_("dashboard.alerts.panel.authoring.saved"),

@@ -52,6 +52,11 @@ import {
   INDICATOR_CATALOGUE,
   type CatalogueEntry,
 } from "../../alerts/indicatorCatalogue";
+// The feeds a veto may name, from the one list the editor, the sentence and
+// the evaluation context already share. Naming them here is the same
+// discipline as deriving the indicators: a model told about a feed that has
+// no source would produce a veto the core accepts and nothing ever supplies.
+import { EXTERNAL_FEEDS } from "../../rules/externalFeeds";
 import type {
   CandlePatternName,
   CompareOp,
@@ -200,8 +205,25 @@ const CONDITIONS = [
   '{"kind":"session","from":"HH:MM","to":"HH:MM","timezone":"UTC"}',
 ] as const;
 
+/*
+ * The feed ids are listed, not left as a placeholder, and that is a
+ * correctness fix rather than a nicety.
+ *
+ * `Condition::validate` accepts an `external_feed` whose id this build has no
+ * source for — `formatCondition` even names an unknown feed in the sentence
+ * rather than dropping it, so the rule reads as though it had a veto. But
+ * `EvaluationContext.feeds` is supplied from `EXTERNAL_FEEDS` alone, so an id
+ * outside that list has no reading, ever. FEAT-0816 decided what a feed with
+ * no fresh reading means: the veto is dropped for that evaluation
+ * (ADR-0029 decision 3). An armed alert would then fire *without* the
+ * suppression the trader asked for, permanently and silently.
+ *
+ * A model given "<feedId>" invents plausible ids. A model given the three
+ * real ones cannot.
+ */
 const VETO_ONLY_CONDITIONS = [
-  '{"kind":"external_feed","feed":"<feedId>","op":<compareOp>,"value":"<decimal as string>"}',
+  `{"kind":"external_feed","feed":<one of ${JSON.stringify(EXTERNAL_FEEDS)}>,"op":<compareOp>,"value":"<decimal as string>"}`,
+  `Only those feed ids exist. Any other id has no source in this build, so the veto would be dropped at every evaluation and the alert would fire unsuppressed. Answer ok:false rather than naming a feed that is not listed.`,
 ] as const;
 
 /**
