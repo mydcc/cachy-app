@@ -1164,8 +1164,8 @@ export class RuleEvaluationLoop {
     const asked = this.askableRule(rule, ctx);
 
     const verdict = intrabar
-      ? ruleEvaluationGate.evaluateIntrabar(asked, ctx, anchorMs)
-      : ruleEvaluationGate.evaluate(asked, ctx, anchorMs);
+      ? ruleEvaluationGate.evaluateIntrabar(asked.rule, ctx, anchorMs)
+      : ruleEvaluationGate.evaluate(asked.rule, ctx, anchorMs);
     // BUG-0485 — returning from the gate means the rule evaluated again: its
     // threshold resolved, its context built, and the core produced a verdict
     // attempt. Whatever made the rule inert no longer holds, so the record
@@ -1175,6 +1175,12 @@ export class RuleEvaluationLoop {
     // and stays silent through the steady-state guard instead of churning
     // delete/re-add on every close.
     if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
+    // FEAT-0816 — only now, with a verdict in hand: the gate withholds one for
+    // a rule that is not warmed up or for an anchor it already decided, and
+    // neither of those decided anything without its veto.
+    if (verdict !== undefined && asked.unavailable.length > 0) {
+      this.reportDroppedVeto(rule, asked.unavailable);
+    }
     if (verdict?.verdict === "suppressed" && !intrabar) this.reportSuppressed(rule, anchorMs);
     if (verdict === undefined || verdict.verdict !== "fires") return undefined;
     return { rule, verdict, anchorMs };
@@ -1382,7 +1388,11 @@ export class RuleEvaluationLoop {
     if (markCandles) {
       ctx.mark_candles = markCandles;
     }
-    const verdict = ruleSchema.evaluate(this.askableRule(resolved.rule, ctx), ctx);
+    const asked = this.askableRule(resolved.rule, ctx);
+    const verdict = ruleSchema.evaluate(asked.rule, ctx);
+    // FEAT-0816 — the warmup floor above has already passed, so the core did
+    // answer: a veto dropped here really did not apply to this signal.
+    if (asked.unavailable.length > 0) this.reportDroppedVeto(resolved.rule, asked.unavailable);
     // FEAT-0823 review — BUG-0485's clearing discipline, carried into the
     // path that bypasses the gate: a signal that evaluated says whatever
     // made the rule inert no longer holds, so the record drops here rather
@@ -1714,17 +1724,25 @@ export class RuleEvaluationLoop {
    * still carries the rule as authored -- the dropped copy exists for the
    * length of one question, so nothing downstream sees a strategy whose
    * content hash differs from the one the trader armed.
+   *
+   * Reporting is the caller's job, after the core has actually answered: this
+   * runs before the gate's warmup and replay checks, and a rule those checks
+   * withhold did not decide without its veto. Telling the trader it did would
+   * be a false alarm -- which is why `unavailable` is handed back rather than
+   * announced here.
    */
-  private askableRule(rule: RuleDocument, ctx: EvaluationContext): RuleDocument {
+  private askableRule(
+    rule: RuleDocument,
+    ctx: EvaluationContext,
+  ): { rule: RuleDocument; unavailable: string[] } {
     const unavailable = unavailableVetoFeeds(rule, ctx.feeds ?? {});
     if (unavailable.length === 0) {
       // Answered, or never asked: the next outage is news again.
       this.droppedVetoes.delete(rule.id);
-      return rule;
+      return { rule, unavailable };
     }
 
-    this.reportDroppedVeto(rule, unavailable);
-    return withoutVeto(rule);
+    return { rule: withoutVeto(rule), unavailable };
   }
 
   /**
@@ -1917,6 +1935,9 @@ export class RuleEvaluationLoop {
     // lifetime's waits or decisions.
     this.confirmationMemos.clear();
     this.confirmationDecidedMs.clear();
+    // FEAT-0816 — so is the outage record: a fresh lifetime that inherited it
+    // would swallow the first report of an outage it never announced.
+    this.droppedVetoes.clear();
   }
 }
 

@@ -255,6 +255,28 @@ describe("a veto that reads a feed", () => {
     expect(suppressions[0]?.feeds).toBeUndefined();
   });
 
+  it("says nothing about a veto for a rule the core was never asked about", () => {
+    // RSI(14) needs fifteen closes and the series holds six, so the gate
+    // withholds the verdict. A rule nothing evaluated did not decide without
+    // its veto, and telling the trader it did would be a false alarm.
+    current = {
+      ...rule(fundingVeto),
+      conditions: {
+        kind: "compare",
+        left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+        op: "gt",
+        right: { kind: "constant", value: "0" },
+        timeframe: TF,
+      },
+    };
+    readings = [];
+
+    close(WARM, "200");
+
+    expect(firings).toHaveLength(0);
+    expect(dropped).toHaveLength(0);
+  });
+
   it("ignores a reading for a feed this rule's veto never names", () => {
     current = rule(fundingVeto);
     readings = [

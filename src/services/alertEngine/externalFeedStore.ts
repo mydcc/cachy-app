@@ -34,7 +34,7 @@
 
 import { browser } from "$app/env";
 import { feedsNamedBy, type FeedReading } from "../../lib/rules/feedReadings";
-import type { ExternalFeedId } from "../../lib/rules/externalFeeds";
+import { isKnownFeed, type ExternalFeedId } from "../../lib/rules/externalFeeds";
 import type { RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
 import {
@@ -138,11 +138,14 @@ class ExternalFeedStore {
       // A paused rule is not evaluated, so its veto asks nothing of anyone.
       if (rule.enabled === false) continue;
       for (const feed of feedsNamedBy(rule.veto)) {
-        if (!(feed in REFRESH_MS)) continue;
-        const id = feed as ExternalFeedId;
-        const markets = wanted.get(id) ?? new Set<string>();
+        // `isKnownFeed` rather than a key check on the table below: `in` sees
+        // inherited properties, so a stored feed id of `constructor` or
+        // `toString` would pass one and then index the table with a function.
+        // No source supplies such a feed either way, and it stays unavailable.
+        if (!isKnownFeed(feed)) continue;
+        const markets = wanted.get(feed) ?? new Set<string>();
         markets.add(rule.symbol);
-        wanted.set(id, markets);
+        wanted.set(feed, markets);
       }
     }
 
