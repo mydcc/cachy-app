@@ -516,14 +516,6 @@ export interface Settings {
   pauseAnalysisOnBlur: boolean;
   analysisTimeframes: string[]; // e.g. ["5m", "15m", "1h", "4h"]
   showMarketSentiment: boolean;
-  showTechnicalsSummary: boolean;
-  showTechnicalsConfluence: boolean;
-  showTechnicalsVolatility: boolean;
-  showTechnicalsOscillators: boolean;
-  showTechnicalsMAs: boolean;
-  showTechnicalsAdvanced: boolean;
-  showTechnicalsSignals: boolean;
-  showTechnicalsPivots: boolean;
   showTvLink: boolean;
   showCgHeatLink: boolean;
   heatmapMode: HeatmapMode;
@@ -770,14 +762,6 @@ export const defaultSettings: Settings = {
   showMarketActivity: true,
   showMarketSentiment: true,
   showSidebarActivity: true,
-  showTechnicalsSummary: true,
-  showTechnicalsConfluence: true,
-  showTechnicalsVolatility: true,
-  showTechnicalsOscillators: true,
-  showTechnicalsMAs: true,
-  showTechnicalsAdvanced: true,
-  showTechnicalsSignals: true,
-  showTechnicalsPivots: true,
   showTvLink: true,
   showCgHeatLink: true,
   heatmapMode: "coinglass_new_tab",

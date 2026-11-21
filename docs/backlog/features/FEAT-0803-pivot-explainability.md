@@ -96,7 +96,7 @@ Raised by the code review of PR #4525 and fixed in the same branch:
 
 ## Links
 
-- BUG-0796 — the dead controls removed first
+- BUG-0805 — the dead controls removed first
 - Branch slug keeps the number it was created with (`feat-0776`); the item was
   renumbered twice because numbers are shared across types: 0776 is taken by
   BUG-0776, and 0797 by BUG-0797 (which landed on `develop` through PR #4529

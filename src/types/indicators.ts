@@ -174,7 +174,6 @@ export interface IndicatorSettings {
     visible: boolean;
     showInChart: boolean;
     type: "classic" | "woodie" | "camarilla" | "fibonacci";
-    viewMode: "integrated" | "separated" | "abstract";
   };
   atr: { enabled: boolean; visible: boolean; length: number; };
   choppiness: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };

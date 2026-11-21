@@ -175,7 +175,6 @@ export const DEFAULT_INDICATOR_SETTINGS: IndicatorSettings = deepFreeze({
     visible: true,
     showInChart: false,
     type: "classic",
-    viewMode: "integrated",
   },
   atr: {
     enabled: false,

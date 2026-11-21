@@ -109,26 +109,6 @@ export class DisplaySettingsStore {
   showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
   showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
   showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
-  showTechnicalsSummary = $state<boolean>(
-    defaultSettings.showTechnicalsSummary,
-  );
-  showTechnicalsConfluence = $state<boolean>(
-    defaultSettings.showTechnicalsConfluence,
-  );
-  showTechnicalsVolatility = $state<boolean>(
-    defaultSettings.showTechnicalsVolatility,
-  );
-  showTechnicalsOscillators = $state<boolean>(
-    defaultSettings.showTechnicalsOscillators,
-  );
-  showTechnicalsMAs = $state<boolean>(defaultSettings.showTechnicalsMAs);
-  showTechnicalsAdvanced = $state<boolean>(
-    defaultSettings.showTechnicalsAdvanced,
-  );
-  showTechnicalsSignals = $state<boolean>(
-    defaultSettings.showTechnicalsSignals,
-  );
-  showTechnicalsPivots = $state<boolean>(defaultSettings.showTechnicalsPivots);
   showTvLink = $state<boolean>(defaultSettings.showTvLink);
   showCgHeatLink = $state<boolean>(defaultSettings.showCgHeatLink);
   heatmapMode = $state<HeatmapMode>(defaultSettings.heatmapMode);
