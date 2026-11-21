@@ -39,15 +39,21 @@ import { _ } from "../../locales/i18n";
 import { settingsState } from "../../stores/settings.svelte";
 import { toastService } from "../toastService.svelte";
 import {
+  logDroppedVeto,
   logUnevaluable,
   ruleEvaluationLoop,
   type ConfirmationLoopPorts,
+  type DroppedVetoSink,
   type ExitLoopPorts,
   type FiringSink,
   type SuppressionSink,
   type SeriesCloseHook,
   type UnevaluableSink,
 } from "./ruleEvaluationLoop";
+import { fetchBitunixFundingRates } from "../api/marketData";
+import { externalFeedStore } from "./externalFeedStore";
+import { feedNameKey, isKnownFeed } from "../../lib/rules/externalFeeds";
+import type { TranslationKey } from "../../locales/schema";
 import { recordFiring } from "./shadowLedger";
 import { clearBotAnchors, readBotAnchors, readRuleState, saveBotAnchors } from "./ruleStateStore";
 import { isBot } from "./botStore";
@@ -369,6 +375,38 @@ export function readMarkCandles(symbol: string, timeframe: string): EvaluationCa
  * armed, and an alert that silently never fires is the worst outcome an alert
  * system has.
  */
+/**
+ * FEAT-0816 — what a trader sees when a veto could not be read.
+ *
+ * Unconditional, and deliberately not behind `settingsState.brokenAlertReport`:
+ * that setting is about an alert that can never fire, while this one fired
+ * *without* the protection its author wrote. ADR-0029 accepted failing open
+ * only because this signal exists, so making it optional would quietly undo
+ * the decision it rests on.
+ *
+ * Bounded by the loop, not here: it reports once per rule while the same feeds
+ * stay unavailable, so an outage lasting an hour is one toast rather than one
+ * per candle.
+ */
+const DROPPED_VETO_TOAST_MS = 8000;
+
+export const droppedVetoSink: DroppedVetoSink = (dropped) => {
+  logDroppedVeto(dropped);
+
+  const feeds = dropped.feeds
+    // A feed id nothing supplies has no translation either, so it is shown as
+    // written rather than as a missing key.
+    .map((feed) => (isKnownFeed(feed) ? get(_)(feedNameKey(feed) as TranslationKey) : feed))
+    .join(", ");
+
+  toastService.warning(
+    get(_)("dashboard.alerts.droppedVeto.toast", {
+      values: { name: dropped.name || dropped.ruleId, symbol: dropped.symbol, feeds },
+    }),
+    DROPPED_VETO_TOAST_MS,
+  );
+};
+
 export const settingsAwareUnevaluableSink: UnevaluableSink = (rule) => {
   logUnevaluable(rule);
   if (settingsState.brokenAlertReport !== "notify") return;
@@ -465,6 +503,12 @@ export function startRuleEvaluationLoop(
     onSuppressed,
     onClose,
     onUnevaluable: settingsAwareUnevaluableSink,
+    // FEAT-0816 — the third-party feeds a veto may read, and the report when
+    // one of them cannot be read. Wired in both modes on purpose: a shadow run
+    // that dropped every feed veto would measure a different strategy than the
+    // live one, which is the opposite of what shadow mode is for.
+    readFeeds: (symbol) => externalFeedStore.readFeeds(symbol),
+    onDroppedVeto: droppedVetoSink,
     // FEAT-0029: without this a drawing-anchored rule evaluates against the
     // constant it was stored with, which stops following the line the moment
     // the trader moves it.
@@ -493,6 +537,17 @@ export function startRuleEvaluationLoop(
   // within the session only, and an `every_time` bot re-orders the same
   // candle after a reload. Bound here — the one place that owns store access
   // on the loop's behalf — so the gate itself stays free of storage imports.
+  // FEAT-0816 — the feeds poll only for what the armed rules' vetoes name, so
+  // a trader with no feed veto causes no requests. Started after `configure`:
+  // the store reads the same rule reader the loop does.
+  // The funding batch is read through the venue adapter that owns the
+  // percent-to-fraction conversion; the feed modules take it as a port so they
+  // stay out of the app's import cycle.
+  externalFeedStore.configure({
+    readRules: readStoredRules,
+    fetchFundingRates: () => fetchBitunixFundingRates(),
+  });
+  externalFeedStore.start();
   ruleEvaluationGate.setBotAnchorPersistence({
     isBotRule: (document) => isBot(document),
     load: (ruleId) => readBotAnchors(ruleId),
@@ -509,6 +564,10 @@ export function startRuleEvaluationLoop(
   return () => {
     if (!ruleEvaluationLoop.isArmed()) return;
     ruleEvaluationLoop.disarm();
+    // FEAT-0816 — stop asking, and forget what was held: a reading served to
+    // the next armed session as if it had just been read is exactly the stale
+    // number ADR-0029 decision 2 refuses.
+    externalFeedStore.stop();
     // BUG-0491: unbind the gate's durable half with the loop. Re-arming
     // re-binds it (idempotent), and a disarmed loop evaluates nothing, so no
     // anchor can go unrecorded in between.

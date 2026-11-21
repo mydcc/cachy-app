@@ -989,13 +989,17 @@ function recordConfirmationDiscard(
  * as a strategy that found no setup. Live mode only, like every consequence;
  * no toast, for the same per-candle reason as a confirmation discard.
  */
-export const vetoSuppressionSink: SuppressionSink = ({ rule, anchorMs }) => {
+export const vetoSuppressionSink: SuppressionSink = ({ rule, anchorMs, feeds }) => {
     const write = recordSuppression({
         id: rule.id,
         symbol: rule.symbol,
         timeframe: rule.trigger_timeframe,
         anchorMs,
         ...(rule.veto ? { veto: rule.veto } : {}),
+        // FEAT-0816 — what the feeds said, for a veto that reads one. Left off
+        // entirely otherwise, so a record for a price veto keeps the shape it
+        // had before feeds existed.
+        ...(feeds && feeds.length > 0 ? { feeds } : {}),
     });
     // A duplicate is this candle again: everything below already happened.
     // A failed write is not -- the bot's guard line is then the only trace

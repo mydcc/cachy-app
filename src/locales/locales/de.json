@@ -485,6 +485,10 @@
         "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann.",
         "badge": "Kann nicht auslösen"
       },
+      "droppedVeto": {
+        "toast": "Veto nicht verfügbar: „{name}“ ({symbol}) hat ohne {feeds} entschieden.",
+        "hint": "Diese Regel greift nicht, solange der Feed fehlt — sie wird dann ohne das Veto ausgewertet."
+      },
       "templates": {
         "intro": "Ausgangspunkte, keine fertigen Strategien. Eine Vorlage öffnet sich im Kombi-Tab, wo du jeden Wert vor dem Scharfschalten ändern kannst, und sie benachrichtigt immer nur.",
         "filterLabel": "Kategorie",
@@ -845,7 +849,7 @@
         "feedLabel": "Feed",
         "opLabel": "Vergleich",
         "valueLabel": "Schwelle",
-        "feedUnwired": "Für diesen Feed liefert noch keine Quelle Werte. Solange er fehlt, ist das Urteil unbestimmt und die Regel löst nicht aus."
+        "feedUnwired": "Für diesen Feed liefert keine Quelle Werte. Solange er fehlt, wird die Regel ohne dieses Veto ausgewertet — du wirst darauf hingewiesen."
       }
     },
     "generalInputs": {
@@ -5274,6 +5278,11 @@
         "funding_rate": "die Funding-Rate",
         "open_interest_change": "die Open-Interest-Veränderung",
         "fear_greed": "der Fear-&-Greed-Index"
+      },
+      "feedUnit": {
+        "funding_rate": "Anteil, nicht Prozent: 0,0005 sind 0,05 %",
+        "open_interest_change": "Prozent über mindestens 30 Minuten: 5 sind +5 %",
+        "fear_greed": "Index von 0 bis 100"
       },
       "atrPercentile": "der Rang der ATR({period}) unter ihren letzten {lookback} Werten",
       "session": "die Kerze zwischen {from} und {to} UTC schließt"

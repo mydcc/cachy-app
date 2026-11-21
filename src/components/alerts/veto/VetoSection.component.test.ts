@@ -127,7 +127,13 @@ describe("FEAT-0814: the veto section", () => {
     expect(alertPanelState.draft.veto?.kind).toBe("group");
 
     chooseKind(el, "feed");
-    expect(testid(el, "feed-unwired")).toBeTruthy();
+    // FEAT-0816 — the feed is wired now, so the leaf states its unit instead
+    // of warning that no source delivers it. A trader who reads "0.0005 is
+    // 0.05%" writes a funding threshold that can actually hold.
+    expect(el.querySelector('[data-testid="feed-unwired"]')).toBeNull();
+    expect(testid(el, "feed-unit").textContent).toContain(
+      lookup("rules.sentence.feedUnit.funding_rate"),
+    );
     // No threshold yet: the feed leaf is left out and arming is held.
     expect(alertPanelState.incompleteVeto).toBe(true);
 

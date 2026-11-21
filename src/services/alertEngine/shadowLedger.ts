@@ -40,6 +40,7 @@ import { browser } from "$app/env";
 import { logger } from "../logger";
 import { safeLocalStorage } from "../../utils/storageWrapper";
 import type { Condition } from "../../lib/rules/types";
+import type { FeedReading } from "../../lib/rules/feedReadings";
 
 export const SHADOW_LEDGER_STORAGE_KEY = "cachy_shadow_firings_v1";
 
@@ -103,6 +104,16 @@ export interface ShadowFiringRecord {
    * so editing or removing the veto later cannot re-attribute old entries.
    */
   veto?: Condition;
+  /**
+   * Veto only (FEAT-0816): the feed readings the veto was judged against,
+   * present only when it reads a feed.
+   *
+   * The condition above carries the feed and the threshold; this carries the
+   * number that was compared with it, which endpoint produced that number and
+   * when it was current. Without the last two, "funding was 0.012" is a claim
+   * nobody can check later (ADR-0029 decision 6).
+   */
+  feeds?: FeedReading[];
 }
 
 export interface ShadowLedger {
@@ -205,7 +216,7 @@ export type SuppressionWrite = "written" | "duplicate" | "failed";
  * can still surface the veto elsewhere instead of going silent.
  */
 export function recordSuppression(
-  record: Pick<ShadowFiringRecord, "id" | "symbol" | "timeframe" | "anchorMs" | "veto">,
+  record: Pick<ShadowFiringRecord, "id" | "symbol" | "timeframe" | "anchorMs" | "veto" | "feeds">,
   recordedAtMs: number = Date.now(),
 ): SuppressionWrite {
   if (!browser) return "failed";

@@ -485,6 +485,10 @@
         "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate.",
         "badge": "Cannot fire"
       },
+      "droppedVeto": {
+        "toast": "Veto unavailable: “{name}” ({symbol}) decided without {feeds}.",
+        "hint": "This rule is evaluated without the veto for as long as the feed is missing."
+      },
       "templates": {
         "intro": "Starting points, not finished strategies. A template opens in the Combo tab, where you can change every value before arming, and it only ever notifies.",
         "filterLabel": "Category",
@@ -845,7 +849,7 @@
         "feedLabel": "Feed",
         "opLabel": "Comparison",
         "valueLabel": "Threshold",
-        "feedUnwired": "No source delivers this feed yet. While it is missing the verdict is indeterminate and the rule does not fire."
+        "feedUnwired": "No source delivers this feed. While it is missing the rule is evaluated without this veto, and you are told."
       }
     },
     "generalInputs": {
@@ -5274,6 +5278,11 @@
         "funding_rate": "the funding rate",
         "open_interest_change": "the open-interest change",
         "fear_greed": "the fear & greed index"
+      },
+      "feedUnit": {
+        "funding_rate": "a fraction, not a percent: 0.0005 is 0.05%",
+        "open_interest_change": "percent over at least 30 minutes: 5 is +5%",
+        "fear_greed": "an index from 0 to 100"
       },
       "atrPercentile": "the rank of ATR({period}) among its last {lookback} values",
       "session": "the candle closes between {from} and {to} UTC"

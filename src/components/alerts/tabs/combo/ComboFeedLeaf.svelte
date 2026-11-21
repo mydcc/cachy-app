@@ -69,7 +69,19 @@
     />
 </label>
 
-<p class="hint" data-testid="feed-unwired">{$_("dashboard.alerts.veto.feedUnwired")}</p>
+{#if isKnownFeed(leaf.feed)}
+    <!--
+      The unit is stated rather than implied: funding arrives as a fraction
+      because that is how an exchange publishes it, the open-interest change as
+      percent because that is what a trader types. A guess either way is a veto
+      that never fires or always does.
+    -->
+    <p class="hint unit" data-testid="feed-unit">
+        {$_(key(`rules.sentence.feedUnit.${leaf.feed}`))} — {$_("dashboard.alerts.droppedVeto.hint")}
+    </p>
+{:else}
+    <p class="hint" data-testid="feed-unwired">{$_("dashboard.alerts.veto.feedUnwired")}</p>
+{/if}
 
 <style>
     .field {
@@ -95,5 +107,8 @@
         margin: 0;
         color: var(--warning-color);
         font-size: 0.8rem;
+    }
+    .hint.unit {
+        color: var(--text-secondary);
     }
 </style>
