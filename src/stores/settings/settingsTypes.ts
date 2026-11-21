@@ -483,6 +483,17 @@ export interface Settings {
   aiAllowedActions: string[];
   aiTradeHistoryLimit: number;
   aiShareTradeContext: boolean;
+  /**
+   * FEAT-0817, ADR-0030 decision 3 — consent for the rule-authoring egress.
+   *
+   * Its own switch beside `aiShareTradeContext`, and deliberately neither
+   * derived from it nor implying it: the two admit different payloads in
+   * different directions. Consenting to share a journal must not quietly
+   * consent to sending a strategy, and a trader who wants authoring must not
+   * have to admit their journal to get it. Default off, revocable, and it
+   * admits no Class A context into an authoring prompt (decision 4).
+   */
+  aiRuleAuthoringEgress: boolean;
   aiConfirmClear: boolean;
   aiAnalysisMode: AiAnalysisMode;
   showSpinButtons: boolean | "hover";
