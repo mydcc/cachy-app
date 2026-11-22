@@ -2,7 +2,8 @@
 id: BUG-0834
 title: npm run arch cannot be run as documented, so an architecture change cannot ship
 type: bug
-status: ready
+status: in-progress
+assignee: claude
 priority: P2
 milestone: none
 editions: [community, pro, private]
