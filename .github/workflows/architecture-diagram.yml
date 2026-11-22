@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'docs/architecture/**'
+      - 'scripts/archify.mjs'
+      - 'scripts/archify.pin.json'
       - '.github/workflows/architecture-diagram.yml'
 
 permissions:
@@ -21,19 +23,15 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Archify
-        run: |
-          git clone --depth 1 https://github.com/tt-a1i/archify.git /tmp/archify
-          npm install --prefix /tmp/archify/archify
-
+      # The renderer version lives in scripts/archify.pin.json and nowhere else.
+      # The same script runs locally (`npm run arch`), so CI and a contributor
+      # cannot disagree about which Archify rendered the committed HTML.
       - name: Validate diagram (showcase quality)
-        run: node /tmp/archify/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase
+        run: node scripts/archify.mjs validate
 
       - name: Check committed HTML is fresh
         run: |
-          node /tmp/archify/archify/bin/archify.mjs deliver dataflow \
-            docs/architecture/cachy-architecture.dataflow.json \
-            /tmp/fresh.html
+          node scripts/archify.mjs build /tmp/fresh.html
           if ! diff -q /tmp/fresh.html docs/architecture/cachy-architecture.dataflow.html > /dev/null; then
             echo "::error::cachy-architecture.dataflow.html is stale. Run 'npm run arch' locally and commit the regenerated HTML together with the JSON."
             exit 1

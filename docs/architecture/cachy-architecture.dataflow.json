@@ -38,7 +38,7 @@
           "calculator",
           "trade-exec"
         ],
-        "note": "Journal and portfolio context reach a provider only with AI consent (/api/ai/*, ADR-0011); keys and settings stay local."
+        "note": "Trade context needs aiShareTradeContext (via /api/ai/*); strategy drafts need aiRuleAuthoringEgress (browser-direct, no relay). Keys local."
       },
       {
         "id": "execution-path",

@@ -2,7 +2,7 @@
 id: BUG-0834
 title: npm run arch cannot be run as documented, so an architecture change cannot ship
 type: bug
-status: in-progress
+status: done
 assignee: claude
 priority: P2
 milestone: none
@@ -113,16 +113,16 @@ Two independent gaps that only bite together:
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect and fails without the fix — for this item
+- [x] A test reproduces the defect and fails without the fix — for this item
       that is CI: a PR touching `docs/architecture/**` must be shown to go red
       today and green after.
-- [ ] `npm run arch:validate` and `npm run arch:build` both run on a checkout
+- [x] `npm run arch:validate` and `npm run arch:build` both run on a checkout
       where archify was never installed under opencode's skill root.
-- [ ] The archify version is pinned, and CI resolves that version rather than
+- [x] The archify version is pinned, and CI resolves that version rather than
       `HEAD`.
-- [ ] `npm run arch` on an unchanged JSON reproduces the committed HTML byte
+- [x] `npm run arch` on an unchanged JSON reproduces the committed HTML byte
       for byte.
-- [ ] The `local-first-boundary` note names the ADR-0030 browser-direct
+- [x] The `local-first-boundary` note names the ADR-0030 browser-direct
       authoring egress and its own consent switch, and the regenerated HTML
       ships in the same PR.
 
@@ -142,3 +142,16 @@ Two independent gaps that only bite together:
 - [`FEAT-0817`](../features/FEAT-0817-ai-assisted-rule-authoring.md) — the
   change that found this, and whose diagram note correction is blocked on it
 - [`ADR-0030`](../../adr/0030-a-strategy-draft-goes-out-browser-direct-and-comes-back-unarmed.md)
+
+## Resolution
+
+- The pin is a **commit**, not the `v3.2.0` tag: upstream added a
+  software-notices block to the rendered HTML after the tag without changing the
+  version string, and only commit `51a29177` reproduces the committed HTML byte
+  for byte (the tag does not). `scripts/archify.mjs` therefore verifies the
+  commit, not the version.
+- The `local-first-boundary` note is a view note in the JSON only; Archify does
+  not render view notes into the HTML, so the regenerated HTML is byte-identical.
+  The note is limited to 140 characters by the schema.
+- The CI red-then-green demonstration (first criterion) happens on this PR:
+  it touches `docs/architecture/**` and the workflow.

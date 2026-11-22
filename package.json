@@ -48,8 +48,8 @@
     "docs:links": "node scripts/check-doc-links.mjs",
     "i18n:types": "node scripts/generate-i18n-types.js",
     "arch": "npm run arch:validate && npm run arch:build",
-    "arch:validate": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase",
-    "arch:build": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs deliver dataflow docs/architecture/cachy-architecture.dataflow.json docs/architecture/cachy-architecture.dataflow.html",
+    "arch:validate": "node scripts/archify.mjs validate",
+    "arch:build": "node scripts/archify.mjs build",
     "check:cycles": "node scripts/arch-cycles.mjs",
     "check:cycles:baseline": "node scripts/arch-baseline-guard.mjs",
     "shadow:run": "node scripts/shadow-run.mjs"

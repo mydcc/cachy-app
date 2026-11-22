@@ -1,0 +1,6 @@
+{
+  "repo": "https://github.com/tt-a1i/archify.git",
+  "version": "3.2.0",
+  "commit": "51a291770851ad27a400cca73c753c166b5e0c65",
+  "note": "Upstream main at 2026-10-25. Tag v3.2.0 predates the software-notices block in the rendered HTML, and the version string did not change, so the version alone does not identify the renderer: the commit does."
+}
