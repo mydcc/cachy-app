@@ -2,7 +2,8 @@
 id: BUG-0835
 title: Browser-direct AI egress cannot reach loopback and may follow a redirect off-origin
 type: bug
-status: ready
+status: in-progress
+assignee: claude
 priority: P2
 milestone: none
 editions: [pro, private]
