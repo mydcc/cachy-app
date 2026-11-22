@@ -506,7 +506,6 @@
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:opacity-90'
     : ''}"
   data-track-id="market-overview-card"
-  data-track-context={JSON.stringify({ symbol: displaySymbol })}
   onclick={loadToCalculator}
   onkeydown={(e) => (e.key === "Enter" || e.key === " ") && loadToCalculator()}
   role={isFavoriteTile ? "button" : "region"}
@@ -537,11 +536,10 @@
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
         class:text-[var(--accent-color)]={isTechnicalsVisible}
         data-track-id="btn-toggle-technicals"
-        data-track-context={JSON.stringify({ symbol })}
         title={$_("marketOverview.tooltips.toggleTechnicals")}
         onclick={(e) => {
           e.stopPropagation();
-          trackInteraction("btn-toggle-technicals", "click", { symbol });
+          trackInteraction("btn-toggle-technicals", "click");
           onToggleTechnicals?.();
         }}
       >
@@ -558,10 +556,9 @@
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title={$_("marketOverview.tooltips.openChart")}
       data-track-id="btn-open-chart"
-      data-track-context={JSON.stringify({ symbol })}
       onclick={(e) => {
         e.stopPropagation();
-        trackInteraction("btn-open-chart", "click", { symbol });
+        trackInteraction("btn-open-chart", "click");
         windowManager.toggle(
           `chart-${symbol}`,
           () => new ChartWindow(symbol, { x: e.clientX, y: e.clientY }),
@@ -587,10 +584,9 @@
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title={$_("marketOverview.tooltips.refreshStats")}
       data-track-id="btn-refresh-stats"
-      data-track-context={JSON.stringify({ symbol })}
       onclick={(e) => {
         e.stopPropagation();
-        trackInteraction("btn-refresh-stats", "click", { symbol });
+        trackInteraction("btn-refresh-stats", "click");
         app.handleFetchPrice();
       }}
     >
@@ -877,10 +873,9 @@
               class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1.5 flex items-center hover:bg-[var(--bg-tertiary)] rounded"
               class:text-[var(--accent-color)]={isFavorite}
               data-track-id="btn-toggle-favorite"
-              data-track-context={JSON.stringify({ symbol })}
               onclick={(e) => {
                 e.stopPropagation();
-                trackInteraction("btn-toggle-favorite", "click", { symbol });
+                trackInteraction("btn-toggle-favorite", "click");
                 toggleFavorite();
               }}
               title={isFavorite

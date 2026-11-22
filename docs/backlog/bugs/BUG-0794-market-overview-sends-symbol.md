@@ -2,7 +2,7 @@
 id: BUG-0794
 title: MarketOverview sends the trading pair with every tracked click
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -66,16 +66,33 @@ about". At the time the element was added, nothing distinguished
 
 ## Acceptance criteria
 
-- [ ] No tracked element in `MarketOverview.svelte` sends the pair, neither via
+- [x] No tracked element in `MarketOverview.svelte` sends the pair, neither via
       `data-track-context` nor via a `trackInteraction` argument
-- [ ] The five interactions still reach Matomo without the pair
-- [ ] The guard fails on the current file before the fix and passes after
+- [x] The five interactions still reach Matomo without the pair
+- [x] The guard fails on the current file before the fix and passes after
 
 ## Out of scope
 
 - Whether `GlobalTracker`'s heuristic path (button inner text) leaks anything:
   it captures labels, not market data.
 - Removing the analytics integration itself.
+
+## Resolution
+
+All five `data-track-context` attributes and the four `trackInteraction`
+arguments carrying the pair are gone; every element keeps its `data-track-id`,
+and the four buttons keep their direct `trackInteraction(id, "click")` call, so
+each interaction still reaches Matomo under its own control id. (The "five
+direct calls" in the Symptom were four; the fifth site is the card header, which
+only had the attribute.)
+
+`MarketOverview.telemetry.test.ts` parses the component and fails on any
+identifier mentioning a symbol inside a `data-track-context` attribute or a
+`trackInteraction` / `trackCustomEvent` argument. It was run red against the
+unfixed file (18 findings, naming each site), is green after the fix, and flags
+two samples (`{ symbol: … }` and `{ pair: symbol }`) so the rule is not vacuous.
+The guard is scoped to this file, like BUG-0791's. Not swept: other components
+that may pass a symbol into tracking; they need their own item.
 
 ## Links
 
