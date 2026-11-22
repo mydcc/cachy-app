@@ -29,8 +29,9 @@ which uses exactly the Archify release pinned in
 [`scripts/archify.pin.json`](../../scripts/archify.pin.json) (see
 <https://github.com/tt-a1i/archify>). On first use it fetches that commit into
 `~/.cache/cachy-app/archify/` (by hash, dependencies installed with
-`--ignore-scripts`); set `ARCHIFY_DIR` to use an existing checkout, which is
-accepted only if it is the pinned version. CI runs the same script.
+`--ignore-scripts`). There is no override: the script loads Archify only
+from that cache, so no environment variable can point it at other code.
+CI runs the same script.
 
 **Upgrading the renderer** is its own PR: change the pin, run `npm run arch`,
 commit the regenerated HTML. It never rides along with a diagram change.

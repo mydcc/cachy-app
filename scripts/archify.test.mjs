@@ -19,7 +19,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { archifyArgs, isPinnedInstall, readPin, resolveArchify } from './archify.mjs';
+import { archifyArgs, cacheRoot, isPinnedInstall, readPin, resolveArchify } from './archify.mjs';
 
 const PIN = { repo: 'https://example.invalid/archify.git', version: '3.2.0', commit: 'a'.repeat(40) };
 
@@ -54,9 +54,12 @@ describe('archify resolver', () => {
     expect(isPinnedInstall(dir, PIN)).toBe(false);
   });
 
-  it('refuses an ARCHIFY_DIR that is not the pinned commit instead of trusting it', () => {
-    fakeInstall('2.16.0-dev.0');
-    expect(() => resolveArchify(PIN, { ARCHIFY_DIR: dir })).toThrow(/not the pinned Archify/);
+  it('refuses a pin whose commit is not a full SHA before it reaches a path', () => {
+    expect(() => resolveArchify({ ...PIN, commit: '../../etc' })).toThrow(/40-character SHA/);
+  });
+
+  it('loads Archify only from the cache under the home directory', () => {
+    expect(cacheRoot().startsWith(os.homedir())).toBe(true);
   });
 
   it('builds the validate and build invocations from one place', () => {

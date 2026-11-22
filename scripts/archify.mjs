@@ -37,9 +37,11 @@
  *
  * RESOLUTION ORDER
  *
- *   1. $ARCHIFY_DIR            an explicit checkout's `archify/` directory
- *   2. the user cache          ~/.cache/cachy-app/archify/<commit>
- *   3. fetch the pinned commit into (2)
+ *   1. the user cache          ~/.cache/cachy-app/archify/<commit>
+ *   2. fetch the pinned commit into (1)
+ *
+ * There is no environment override: a path taken from the environment is a
+ * path the script would load and execute code from.
  *
  * Fetching is by commit hash, not by tag, so the content is verified by
  * construction (a tag can be moved; a hash cannot), and dependencies install
@@ -96,9 +98,9 @@ export function isPinnedInstall(archifyDir, pin) {
   );
 }
 
-export function cacheRoot(env = process.env) {
-  const base = env.XDG_CACHE_HOME || join(homedir(), ".cache");
-  return join(base, "cachy-app", "archify");
+/** The only location Archify is ever loaded from; there is deliberately no override. */
+export function cacheRoot() {
+  return join(homedir(), ".cache", "cachy-app", "archify");
 }
 
 function run(command, args, options = {}) {
@@ -132,27 +134,19 @@ function fetchPinned(pin, checkout) {
   });
 }
 
-/** @returns {string} the directory holding bin/archify.mjs for the pinned version */
-export function resolveArchify(pin, env = process.env) {
-  if (env.ARCHIFY_DIR) {
-    const explicit = resolve(env.ARCHIFY_DIR);
-    if (!isPinnedInstall(explicit, pin)) {
-      const found = installedVersion(explicit) ?? "no readable package.json";
-      throw new Error(
-        `ARCHIFY_DIR=${explicit} is not the pinned Archify (version ${pin.version}, ` +
-          `commit ${pin.commit}; found version: ${found}). ` +
-          `The committed HTML is rendered by that commit; unset ARCHIFY_DIR to fetch it.`,
-      );
-    }
-    return explicit;
+/** @returns {string} the directory holding bin/archify.mjs for the pinned commit */
+export function resolveArchify(pin) {
+  // Re-checked at the point of use: the commit becomes a path segment below.
+  if (!COMMIT_PATTERN.test(pin.commit)) {
+    throw new Error("pinned commit must be a full 40-character SHA");
   }
-  const checkout = join(cacheRoot(env), pin.commit);
+  const checkout = join(cacheRoot(), pin.commit);
   const archifyDir = join(checkout, "archify");
   if (isPinnedInstall(archifyDir, pin)) return archifyDir;
   console.error(`Fetching Archify ${pin.version} (${pin.commit.slice(0, 10)}) into ${checkout}`);
   fetchPinned(pin, checkout);
   if (!isPinnedInstall(archifyDir, pin)) {
-    throw new Error(`Archify at ${archifyDir} is not version ${pin.version} after fetch`);
+    throw new Error(`Archify at ${archifyDir} is not the pinned commit after fetch`);
   }
   return archifyDir;
 }
