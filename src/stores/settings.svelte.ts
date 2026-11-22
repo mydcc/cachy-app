@@ -533,6 +533,12 @@ export class SettingsManager {
   set aiShareTradeContext(v: CoreSettingsStore["aiShareTradeContext"]) {
     this.core.aiShareTradeContext = v;
   }
+  get aiRuleAuthoringEgress(): CoreSettingsStore["aiRuleAuthoringEgress"] {
+    return this.core.aiRuleAuthoringEgress;
+  }
+  set aiRuleAuthoringEgress(v: CoreSettingsStore["aiRuleAuthoringEgress"]) {
+    this.core.aiRuleAuthoringEgress = v;
+  }
   get aiConfirmClear(): CoreSettingsStore["aiConfirmClear"] {
     return this.core.aiConfirmClear;
   }

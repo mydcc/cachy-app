@@ -66,6 +66,9 @@ import { generateId } from "../utils/utils";
 /** Tabs in strip order; `manage` stays last. */
 export const ALERT_PANEL_TABS = [
   "templates",
+  // FEAT-0817. Beside Templates because both are entry points that hand a
+  // starting document to the Combo builder rather than building one leg.
+  "authoring",
   "combo",
   "price",
   "indicators",
@@ -560,6 +563,43 @@ class AlertPanelStore {
       if (slot) return slot;
     }
     return "combo";
+  }
+
+  /**
+   * FEAT-0817 — adopt a model's draft into the panel.
+   *
+   * A *replacement* of the draft object, not a set of field writes, and that
+   * is the whole of it. The footer keys `VetoSection` on the draft object
+   * precisely so that a draft arriving from outside is read instead of being
+   * written over by the section's old form, and `loadForEdit` and
+   * `applyTemplate` replace the object for the same reason. Writing `veto` in
+   * place here would leave that form stale, and the trader's next edit to the
+   * trigger timeframe would flush the stale form back over the model's veto.
+   * Keeping the replacement inside the store is what stops the next caller
+   * from making that mistake again.
+   *
+   * `provenance` records; it never authorises (ADR-0030 decision 7). The
+   * field is excluded from the content hash, and per ADR-0020 an unhashed
+   * field may not gate a decision — so nothing anywhere may widen or narrow
+   * what this rule is permitted to do because a model wrote it, and nothing
+   * may treat it as pre-validated. The core is asked about this document
+   * exactly as it is asked about a hand-built one.
+   *
+   * `enabled` becomes `true` for the reason `loadForEdit` gives: pressing Arm
+   * means armed. The document arrives disarmed because arriving may not arm
+   * (ADR-0030 decision 5), and adoption is the trader's act, not the model's.
+   */
+  adoptModelDraft(document: RuleDocument) {
+    const next: RuleDocument = { ...document, enabled: true };
+    // Absent rather than present-and-undefined: a document without a veto
+    // must keep the hash it had before the field was ever touched.
+    if (!document.veto) delete next.veto;
+    this.draft = next;
+    // The document changed, so a verdict about the previous one is not a
+    // verdict about this one.
+    this.refusals = [];
+    this.hasValidated = false;
+    this.activeTab = "combo";
   }
 
   setSymbol(symbol: string) {

@@ -160,6 +160,7 @@ export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = Object.freeze(([
     { key: "aiAllowedActions", save: "spread", load: "custom", section: "core" },
     { key: "aiTradeHistoryLimit", save: "direct", load: "assign", section: "core" },
     { key: "aiShareTradeContext", save: "direct", load: "coalesce", section: "core" },
+    { key: "aiRuleAuthoringEgress", save: "direct", load: "coalesce", section: "core" },
     { key: "aiConfirmClear", save: "direct", load: "assign", section: "core" },
     { key: "aiAnalysisMode", save: "direct", load: "coalesce", section: "core" },
     { key: "density", save: "direct", load: "custom", section: "display" },

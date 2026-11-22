@@ -620,10 +620,17 @@ class AiManager {
   }
 
   /**
-   * The provider-registry input, assembled once. Both callers resolve their
+   * The provider-registry input, assembled once. Every caller resolves its
    * target from this, so a new settings key reaches them at the same time.
+   *
+   * Public since FEAT-0817. Rule authoring is a third consumer and has to
+   * decide about the resolved target itself: it refuses the ADR-0019 server
+   * relay, which `sendMessage` and `askOnce` accept. Re-deriving the
+   * settings-to-input mapping over there is precisely the drift this single
+   * place exists to prevent, so the mapping is shared and the *decision* is
+   * not.
    */
-  private resolveInput(): ResolveChatInput {
+  resolveInput(): ResolveChatInput {
     const settings = settingsState;
     return {
       userProviders: settings.userProviders,
