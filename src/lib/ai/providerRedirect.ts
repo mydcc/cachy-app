@@ -88,5 +88,12 @@ export function loopbackPolicyFailure(label: string, baseUrl: string, cause: unk
   );
 }
 
-/** Re-exported so the transport has one import for the loopback decision. */
-export { isLoopbackBaseUrl };
+/**
+ * True only for the case the hosted policy actually refuses: a plain-HTTP local
+ * address. `connect-src` allows `https:`, so an HTTPS loopback address passes
+ * the policy and a failure there is an ordinary CORS or connection failure that
+ * keeps its own guidance.
+ */
+export function isPolicyBlockedLoopback(baseUrl: string): boolean {
+  return isLoopbackBaseUrl(baseUrl) && /^http:/i.test(baseUrl.trim());
+}

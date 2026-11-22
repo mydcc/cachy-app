@@ -45,7 +45,7 @@ import type { AiProvider } from "../../stores/settings.svelte";
 import { buildDirectRequest } from "./directRequest";
 import { isOpenCodeUrl } from "./opencodeTarget";
 import {
-  isLoopbackBaseUrl,
+  isPolicyBlockedLoopback,
   isRedirectResponse,
   loopbackPolicyFailure,
   ProviderRedirectError,
@@ -378,9 +378,9 @@ export async function streamCompletion(
       if (isAbortError(err)) throw err;
       if (err instanceof ProviderRequestError) throw err;
       if (err instanceof ProviderRedirectError) throw err;
-      // A loopback address is recognised from the configuration, not from the
-      // error: a policy block and a CORS failure are the same TypeError.
-      if (isLoopbackBaseUrl(target.baseUrl)) {
+      // A policy-blocked address is recognised from the configuration, not from
+      // the error: a policy block and a CORS failure are the same TypeError.
+      if (isPolicyBlockedLoopback(target.baseUrl)) {
         throw loopbackPolicyFailure(target.label, target.baseUrl, err);
       }
       const message = err instanceof Error ? err.message : String(err);
@@ -432,7 +432,7 @@ export async function streamCompletion(
       // Ollama's default address is loopback, which the hosted build's
       // connection policy refuses; blaming CORS here sends the trader to fix
       // the wrong thing (BUG-0835).
-      if (isLoopbackBaseUrl(targetUrl)) {
+      if (isPolicyBlockedLoopback(targetUrl)) {
         throw loopbackPolicyFailure(target.label, targetUrl, err);
       }
       const msg = err instanceof Error ? err.message : String(err);

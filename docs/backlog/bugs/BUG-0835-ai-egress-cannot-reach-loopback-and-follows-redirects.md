@@ -186,9 +186,12 @@ is empty and `src/lib/ai/completion.ts` falls back to
   configured origin. `"manual"` rather than `"error"`: `"error"` rejects with a
   TypeError that cannot be told from a CORS failure. The model listing was not
   named in the item, but it sends the key in a header and had the same hole.
-- A loopback target (recognised by `isLoopbackBaseUrl`, not from the error)
-  fails with a message that names the connection policy and mentions neither
-  CORS nor the relay. The Ollama default and a custom loopback entry both use it.
+- A plain-HTTP loopback target (recognised from the configured address via
+  `isPolicyBlockedLoopback`, not from the error) fails with a message that names
+  the connection policy and mentions neither CORS nor the relay. The Ollama
+  default and a custom loopback entry both use it. An HTTPS loopback address
+  passes `connect-src` (`https:`), so it keeps the CORS guidance (found in
+  review).
 - Probed 2026-11-22: the four built-in remote endpoints answer an
   unauthenticated POST directly (no 3xx), so none is broken by the refusal; and
   the real `connect-src` blocks a loopback fetch even from a page served on a

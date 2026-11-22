@@ -229,7 +229,10 @@ Chrome gates a public page's loopback access behind its own permission and
 expects the local server to answer the preflight (reported by vendor sources,
 not read from Chrome's guide). The request fails before it leaves the browser,
 and the message says so; it does not suggest the relay, which authoring refuses
-on purpose (decision 2).
+on purpose (decision 2). This holds for plain-HTTP local addresses, which is
+what Ollama serves by default. `connect-src` does allow `https:`, so an HTTPS
+loopback address is not refused by the policy; a failure there is an ordinary
+CORS or connection failure and keeps its own guidance.
 
 **What was probed (2026-11-22).**
 

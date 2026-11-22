@@ -145,6 +145,30 @@ describe("a loopback provider names the connection policy", () => {
     expect(failure.message).not.toMatch(/relay|CORS|OLLAMA_ORIGINS/i);
   });
 
+  it("direct: an HTTPS loopback address is allowed by the policy, so it keeps the CORS / relay advice", async () => {
+    blocked();
+
+    const failure = (await streamCompletion(
+      directTarget("https://localhost:20128/v1"),
+      { messages: MESSAGES },
+    ).catch((e: unknown) => e)) as Error;
+
+    expect(failure.message).not.toMatch(/connection policy/i);
+    expect(failure.message).toMatch(/CORS/);
+  });
+
+  it("local: an HTTPS loopback Ollama keeps the CORS setup guidance", async () => {
+    blocked();
+
+    const failure = (await streamCompletion(
+      localTarget("https://localhost:11434"),
+      { messages: MESSAGES },
+    ).catch((e: unknown) => e)) as Error;
+
+    expect(failure.message).not.toMatch(/connection policy/i);
+    expect(failure.message).toMatch(/OLLAMA_ORIGINS/);
+  });
+
   it("a remote HTTPS provider keeps the CORS / relay advice", async () => {
     blocked();
 
