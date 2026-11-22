@@ -2,7 +2,7 @@
 id: BUG-0794
 title: MarketOverview sends the trading pair with every tracked click
 type: bug
-status: ready
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,8 @@ area: security
 data_class: C
 adr: ADR-0001
 depends_on: []
-assignee: none
-branch: none
+assignee: claude
+branch: worktree-bug-0794-overview-symbol
 ---
 
 # BUG-0794 — MarketOverview puts the symbol into the Matomo payload (W1-10/B12)
