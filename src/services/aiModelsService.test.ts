@@ -144,4 +144,21 @@ describe("aiModelsService", () => {
       ),
     ).rejects.toThrow("403");
   });
+
+  it("does not follow a redirect on a direct listing that carries the key (BUG-0835)", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ type: "opaqueredirect", status: 0, ok: false } as Response);
+
+    await expect(
+      getModels(
+        "openai",
+        { apiKey: "sk-secret", baseUrl: "https://gw.example.com/v1" },
+        { forceRefresh: true, transport: "direct", flavor: "openai-chat" },
+      ),
+    ).rejects.toThrow(/redirect/i);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ redirect: "manual" });
+  });
 });

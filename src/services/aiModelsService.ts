@@ -10,6 +10,10 @@
 import { appFetch } from "../lib/appAuth";
 import type { AiModelInfo } from "../types/ai";
 import { buildDirectModelsRequest } from "../lib/ai/directRequest";
+import {
+  isRedirectResponse,
+  providerRedirectRefusal,
+} from "../lib/ai/providerRedirect";
 import type { AiApiFlavor } from "../stores/settings/aiProviders";
 import { safeLocalStorage } from "../utils/storageWrapper";
 import { logger } from "./logger";
@@ -134,10 +138,16 @@ async function fetchDirectModels(
   });
   // BUG-0789: a hung provider must not leave the settings model list loading
   // forever.
+  // BUG-0835: the key travels in a header, and a redirect may carry it to an
+  // origin the trader never configured — so a redirect is refused, not followed.
   const res = await fetch(url, {
     headers,
+    redirect: "manual",
     signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS),
   });
+  if (isRedirectResponse(res)) {
+    throw providerRedirectRefusal("Model list request", url);
+  }
   if (!res.ok) {
     throw new Error(`Model list request failed with status ${res.status}`);
   }

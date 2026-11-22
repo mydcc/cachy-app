@@ -127,8 +127,10 @@ describe("aiState.askOnce (FEAT-0678)", () => {
       vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
     );
 
+    // A plain-HTTP loopback address is refused by the page's connection policy
+    // (BUG-0835); the failure names that, and still never falls back to the relay.
     await expect(aiState.askOnce(messages)).rejects.toThrow(
-      /Ollama connection failed/,
+      /connection policy/,
     );
     expect(appFetch).not.toHaveBeenCalled();
   });

@@ -2,7 +2,8 @@
 id: BUG-0835
 title: Browser-direct AI egress cannot reach loopback and may follow a redirect off-origin
 type: bug
-status: ready
+status: done
+assignee: claude
 priority: P2
 milestone: none
 editions: [pro, private]
@@ -99,19 +100,19 @@ read rather than being folded into a feature PR.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces each defect and fails without the fix.
-- [ ] A provider that answers a chat or authoring request with a cross-origin
+- [x] A test reproduces each defect and fails without the fix.
+- [x] A provider that answers a chat or authoring request with a cross-origin
       307 does not receive the body at the redirect target; the trader is told
       which recipient refused and why.
-- [ ] A loopback provider configured in the hosted build fails with a message
+- [x] A loopback provider configured in the hosted build fails with a message
       naming the connection policy as the cause, and that message does not
       suggest the server relay.
-- [ ] `ADR-0030` decision 1 is amended: its zero-egress configuration (a
+- [x] `ADR-0030` decision 1 is amended: its zero-egress configuration (a
       loopback entry) is not available in the hosted build. Whether it works
       anywhere else is established by the implementing PR with a probe, and
       the amendment says what was probed. It currently reads as an option
       available everywhere.
-- [ ] No new `connect-src` source is added at all, and the AGENTS.md
+- [x] No new `connect-src` source is added at all, and the AGENTS.md
       non-negotiables are untouched: COEP unset, `Permissions-Policy`
       delegated, `frame-src` sources unchanged.
 
@@ -177,3 +178,25 @@ is empty and `src/lib/ai/completion.ts` falls back to
   — decision 1 (loopback as the zero-egress configuration) and decision 2
 - [`FEAT-0817`](../features/FEAT-0817-ai-assisted-rule-authoring.md) — the
   feature whose disclosed recipient this undermines
+
+## Resolution
+
+- `streamCompletion` (direct and local branch) and the direct model listing now
+  fetch with `redirect: "manual"` and refuse any redirect answer, naming the
+  configured origin. `"manual"` rather than `"error"`: `"error"` rejects with a
+  TypeError that cannot be told from a CORS failure. The model listing was not
+  named in the item, but it sends the key in a header and had the same hole.
+- A plain-HTTP loopback target (recognised from the configured address via
+  `isPolicyBlockedLoopback`, not from the error) fails with a message that names
+  the connection policy and mentions neither CORS nor the relay. The Ollama
+  default and a custom loopback entry both use it. An HTTPS loopback address
+  passes `connect-src` (`https:`), so it keeps the CORS guidance (found in
+  review).
+- Probed 2026-11-22: the four built-in remote endpoints answer an
+  unauthenticated POST directly (no 3xx), so none is broken by the refusal; and
+  the real `connect-src` blocks a loopback fetch even from a page served on a
+  loopback address. Details and what was not probed are in the ADR-0030
+  amendment.
+- `connect-src`, COEP, `Permissions-Policy` and `frame-src` are untouched.
+- Not covered: the Ollama `/api/tags` probe in `aiModelsService` follows
+  redirects, but it is a GET with no key or body.
