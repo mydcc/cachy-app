@@ -2,7 +2,7 @@
 id: BUG-0835
 title: Browser-direct AI egress cannot reach loopback and may follow a redirect off-origin
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [pro, private]
@@ -66,7 +66,9 @@ and no `redirect`. The default is `follow`.
   services. Browser-direct-to-localhost is a later capability
   ([`ADR-0019`](../../adr/0019-multi-provider-registry-and-credential-transit.md))
   and the directive was never widened for it. Whether it *should* be widened
-  is the open question below, not a foregone conclusion.
+  was the open question; the decision below answers it with no, and the
+  reason is not the CSP but the browser permission and preflight header that
+  sit in front of it.
 - **Redirects:** `redirect` was never specified, so the default applies. The
   app discloses the configured origin, and the fetch is free to follow a
   provider's instruction to another one.
@@ -80,9 +82,18 @@ read rather than being folded into a feature PR.
   the AI provider fetches, so a redirect fails loudly instead of quietly
   re-addressing the request. The error should name the configured recipient
   and say the provider tried to send the request elsewhere.
-- Decide the loopback question (below) and, if widening is the answer, add the
-  narrowest sources that work — a port-scoped `http://localhost:*` and
-  `http://127.0.0.1:*` rather than `http:`.
+- Leave `connect-src` as it is. Per the decision below, the hosted build does
+  not reach loopback; instead the failure must name the connection policy as
+  the cause. The current catch block blames CORS and points at the relay,
+  which is wrong for this cause and, for rule authoring, advice the app
+  refuses on purpose (ADR-0030 decision 2). Recognise the case from the
+  configured target with `isLoopbackBaseUrl`
+  (`src/stores/settings/aiProviders.ts`), not from the error: a blocked
+  request rejects `fetch` with a generic `TypeError` that looks the same as a
+  CORS failure (training knowledge, not probed in this repository).
+- Probe the four remote endpoints named under the decision below for a 307/308
+  on POST before shipping `redirect: "error"`. If one relies on a redirect,
+  the refusal names that provider rather than failing anonymously.
 - Do not touch the AGENTS.md non-negotiables while here: COEP stays unset,
   `Permissions-Policy` stays delegated, and `frame-src` keeps its sources.
 
@@ -92,14 +103,17 @@ read rather than being folded into a feature PR.
 - [ ] A provider that answers a chat or authoring request with a cross-origin
       307 does not receive the body at the redirect target; the trader is told
       which recipient refused and why.
-- [ ] A loopback provider either works in the hosted build, or the failure
-      names the connection policy as the cause instead of suggesting the
-      relay.
-- [ ] `ADR-0030` decision 1's zero-egress option is either true in the hosted
-      build or the ADR records that it is desktop-only. It currently reads as
-      an available configuration.
-- [ ] No new `connect-src` source wider than the loopback host and port range
-      actually needed.
+- [ ] A loopback provider configured in the hosted build fails with a message
+      naming the connection policy as the cause, and that message does not
+      suggest the server relay.
+- [ ] `ADR-0030` decision 1 is amended: its zero-egress configuration (a
+      loopback entry) is not available in the hosted build. Whether it works
+      anywhere else is established by the implementing PR with a probe, and
+      the amendment says what was probed. It currently reads as an option
+      available everywhere.
+- [ ] No new `connect-src` source is added at all, and the AGENTS.md
+      non-negotiables are untouched: COEP unset, `Permissions-Policy`
+      delegated, `frame-src` sources unchanged.
 
 ## Out of scope
 
@@ -108,17 +122,49 @@ read rather than being folded into a feature PR.
   correct as it stands.
 - Pinning provider certificates or any form of response signing.
 
-## Open questions
+## Decision
 
-- **Should the hosted build reach localhost at all?** It is the trader's own
-  machine and their own model, and ADR-0030 decision 1 sells it as *the*
-  zero-egress answer — but a hosted page that may open connections to
-  arbitrary local ports is also a scanning primitive, and widening
-  `connect-src` widens it for every script the page loads, not only for the
-  AI transport. The alternative is to say plainly that the loopback story is
-  the desktop build's, which costs ADR-0030 one of its arguments.
-- Does any provider in the registry rely on a redirect today? If one does,
-  `redirect: "error"` breaks it and the refusal has to name that provider.
+**The hosted build does not reach loopback — decided by the owner on
+2026-11-22.** It names the connection policy as the cause of the failure, and
+`ADR-0030` decision 1 is amended to say so.
+
+The decision was taken as "loopback is the desktop build's story". No desktop
+shell exists in this repository (no Tauri, Electron or Capacitor dependency,
+and no mention in `docs/`), so that framing is not carried into the criteria.
+Where loopback *does* work — a page served from a local address, such as the
+dev server or a self-hosted instance — is unverified: the CSP would still
+refuse a cross-port `http:` request there unless it differs from the hosted
+one. The implementing PR probes that and records the result in the ADR
+amendment rather than promising it here.
+
+The deciding argument is that the first half of the alternative was never
+Cachy's to promise. Chrome gates a public page's loopback access behind a
+permission independent of `connect-src` — Local Network Access from Chrome 142,
+split in Chrome 145 so loopback is its own `loopback-network` permission, and
+extended to WebSocket and WebTransport in Chrome 147 — and its preflight
+expects the *local server* to answer with `Access-Control-Allow-Private-Network`.
+That header would have to come from Ollama. Widening `connect-src` would
+therefore have widened the policy for every script the page loads while still
+not making the feature work. The permission gate applies to a *public* page
+reaching a local address; a page that itself sits in the local address space is
+reported as unaffected by it (secondary source, not Chrome's guide). That is
+not the same as same-origin — Ollama answers on another port — and it says
+nothing about the CSP.
+
+Checked 2026-11-22 against vendor and developer sources; Chrome's own guide was
+not read, so treat the version numbers as reported rather than confirmed. The
+decision does not depend on them: the preflight header is the blocker either
+way.
+
+The redirect half of this item does not depend on this decision. A
+user-created provider entry may redirect whatever the built-ins do, so the
+refusal path is needed regardless. The bounded set to probe is
+`BUILTIN_AI_PROVIDERS` in `src/stores/settings/aiProviders.ts`:
+`https://openrouter.ai/api/v1`, `https://api.openai.com/v1`,
+`https://generativelanguage.googleapis.com/v1beta` and
+`https://api.anthropic.com/v1`, plus Ollama (loopback: the preset's base URL
+is empty and `src/lib/ai/completion.ts` falls back to
+`http://localhost:11434`).
 
 ## Links
 
