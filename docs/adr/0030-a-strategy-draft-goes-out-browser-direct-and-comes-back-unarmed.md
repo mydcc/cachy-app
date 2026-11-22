@@ -65,9 +65,11 @@ Authoring reuses the ADR-0019 registry and the ADR-0019 direct transport. There
 is no Cachy-hosted authoring endpoint, no shipped default provider, and no
 provider Cachy pays for — the same shape as
 [`ADR-0018`](0018-user-directed-egress-of-class-a-announcements.md) decision 2.
-A trader who wants zero egress points the feature at a loopback entry; that is
-a configuration, not a second code path, and the feature must not behave
-differently for it beyond what the endpoint itself implies.
+A trader who wants zero egress points the feature at a loopback entry — **where
+the page's connection policy lets it reach one; the hosted build does not, see
+the Amendment below.** That is a configuration, not a second code path, and the
+feature must not behave differently for it beyond what the endpoint itself
+implies.
 
 **2. The server relay of ADR-0019 is refused for authoring, and the refusal is
 readable.**
@@ -162,9 +164,9 @@ confidence number anywhere near the gate.
 - FEAT-0817 becomes buildable: the blocking question has an answer, and the
   answer needs no new transport, no new credential path and no new provenance
   field.
-- A trader who will not send strategy text anywhere still gets the feature, by
-  pointing it at a loopback entry — without Cachy shipping or maintaining a
-  heavy local client.
+- A trader who will not send strategy text anywhere can still get the feature
+  by pointing it at a loopback entry, without Cachy shipping or maintaining a
+  heavy local client — but not in the hosted build (see the Amendment).
 - The egress is legible: one switch, one named recipient, one enumerable
   payload, revocable, and separate from the chat assistant's consent.
 
@@ -210,6 +212,53 @@ confidence number anywhere near the gate.
   four proposals. A pre-arm audit sends an existing document rather than a
   description of one, and track-record analysis sends journal data — which is
   ADR-0011's switch, not this one. Each needs its own decision before it ships.
+
+## Amendment 2026-11-22 — decision 1: loopback is not available in the hosted build
+
+[`BUG-0835`](../backlog/bugs/BUG-0835-ai-egress-cannot-reach-loopback-and-follows-redirects.md)
+found that decision 1 reads as if a loopback entry works everywhere. It does
+not. The owner decided on 2026-11-22 that the hosted build does not reach
+loopback, and that the failure names the connection policy as its cause.
+
+**What changes in decision 1.** The zero-egress configuration is not available
+in the hosted build. `connect-src` in
+[`cspDirectives.ts`](../../src/config/cspDirectives.ts) has no `http:` source
+and Cachy does not widen it for this: a wider policy would apply to every
+script the page loads, and it would still not make the feature work, because
+Chrome gates a public page's loopback access behind its own permission and
+expects the local server to answer the preflight (reported by vendor sources,
+not read from Chrome's guide). The request fails before it leaves the browser,
+and the message says so; it does not suggest the relay, which authoring refuses
+on purpose (decision 2).
+
+**What was probed (2026-11-22).**
+
+- A page served from `http://127.0.0.1:18434` with the header generated from
+  `cspDirectives` reached no other loopback port: `fetch` to
+  `http://127.0.0.1:18435` was refused with a `connect-src` violation. The same
+  page served without a CSP header reached the server (which answered with open
+  CORS). So the policy is the blocker, and a page that itself sits on a local
+  address is no exception while it carries this policy.
+- The four built-in remote endpoints answered an unauthenticated `POST` with an
+  empty JSON body directly (OpenRouter 401, OpenAI 401, Gemini 403, Anthropic
+  401), none with a 3xx, so refusing redirects breaks none of them.
+
+**What was not probed, so it is not claimed.** Whether the dev server or a
+self-hosted instance emits the same header (the probe used the directives, not a
+running instance); and an HTTPS page reaching loopback in a real Chrome with the
+permission granted. Until that is checked, "works anywhere else" is unknown, not
+yes.
+
+**Consequence for the alternatives below.** "Local model only" was rejected
+partly because "a local entry is available to anyone who wants one". In the
+hosted build that is no longer true, which strengthens the case for the consent
+switch rather than for mandating local models: with no loopback option there,
+the hosted trader's only zero-egress choice is not to use authoring.
+
+Every browser-direct fetch that carries a credential or a draft (the chat and
+authoring transport, both its direct and its local branch, and the direct model
+listing) now refuses a redirect instead of following it, and names the
+recipient the trader configured.
 
 ## Alternatives considered
 

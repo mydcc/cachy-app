@@ -44,6 +44,13 @@ import {
 import type { AiProvider } from "../../stores/settings.svelte";
 import { buildDirectRequest } from "./directRequest";
 import { isOpenCodeUrl } from "./opencodeTarget";
+import {
+  isLoopbackBaseUrl,
+  isRedirectResponse,
+  loopbackPolicyFailure,
+  ProviderRedirectError,
+  providerRedirectRefusal,
+} from "./providerRedirect";
 import { SESSION_ID_HEADER } from "./sessionId";
 import {
   appendToolCallFragment,
@@ -347,12 +354,18 @@ export async function streamCompletion(
       messages: payloadMessages,
     });
     try {
+      // `manual`: a 307/308 keeps the POST and its body, so following it would
+      // deliver the payload to an origin the panel never named (BUG-0835).
       const directRes = await fetch(direct.url, {
         method: "POST",
         headers: direct.headers,
         body: direct.body,
+        redirect: "manual",
         signal,
       });
+      if (isRedirectResponse(directRes)) {
+        throw providerRedirectRefusal(target.label, direct.url);
+      }
       if (!directRes.ok) {
         const err = await directRes.json().catch(() => ({}));
         throw new ProviderRequestError(
@@ -364,6 +377,12 @@ export async function streamCompletion(
     } catch (err) {
       if (isAbortError(err)) throw err;
       if (err instanceof ProviderRequestError) throw err;
+      if (err instanceof ProviderRedirectError) throw err;
+      // A loopback address is recognised from the configuration, not from the
+      // error: a policy block and a CORS failure are the same TypeError.
+      if (isLoopbackBaseUrl(target.baseUrl)) {
+        throw loopbackPolicyFailure(target.label, target.baseUrl, err);
+      }
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(
         `Direct request to "${target.label}" failed: ${message}. If the provider blocks browser requests (CORS), enable "Allow server relay" in Settings → AI.`,
@@ -387,8 +406,12 @@ export async function streamCompletion(
           ...(tools ? { tools: [tools] } : {}),
           stream: true,
         }),
+        redirect: "manual",
         signal,
       });
+      if (isRedirectResponse(directRes)) {
+        throw providerRedirectRefusal(target.label, targetUrl);
+      }
       if (!directRes.ok) {
         const err = await directRes.json().catch(() => ({}));
         // A reachable server that refuses is not a connection failure: keep
@@ -405,6 +428,13 @@ export async function streamCompletion(
       // back to the server proxy in local mode.
       if (isAbortError(err)) throw err;
       if (err instanceof ProviderRequestError) throw err;
+      if (err instanceof ProviderRedirectError) throw err;
+      // Ollama's default address is loopback, which the hosted build's
+      // connection policy refuses; blaming CORS here sends the trader to fix
+      // the wrong thing (BUG-0835).
+      if (isLoopbackBaseUrl(targetUrl)) {
+        throw loopbackPolicyFailure(target.label, targetUrl, err);
+      }
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(
         `Ollama connection failed: ${msg}. Please ensure Ollama is running locally at ${targetUrl} and CORS is configured (OLLAMA_ORIGINS="*").`,
