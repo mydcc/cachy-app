@@ -33,8 +33,6 @@
  * recognised from the configured address, never from the error.
  */
 
-import { isLoopbackBaseUrl } from "../../stores/settings/aiProviders";
-
 /** A provider answered with a redirect; the request was stopped, not followed. */
 export class ProviderRedirectError extends Error {
   constructor(message: string) {
@@ -86,14 +84,4 @@ export function loopbackPolicyFailure(label: string, baseUrl: string, cause: unk
     `"${label}" at ${originOf(baseUrl)} cannot be reached from this page: the connection policy (Content-Security-Policy connect-src) allows HTTPS endpoints only, so the request to a local address was blocked before it left the browser.`,
     { cause },
   );
-}
-
-/**
- * True only for the case the hosted policy actually refuses: a plain-HTTP local
- * address. `connect-src` allows `https:`, so an HTTPS loopback address passes
- * the policy and a failure there is an ordinary CORS or connection failure that
- * keeps its own guidance.
- */
-export function isPolicyBlockedLoopback(baseUrl: string): boolean {
-  return isLoopbackBaseUrl(baseUrl) && /^http:/i.test(baseUrl.trim());
 }

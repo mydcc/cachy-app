@@ -36,6 +36,7 @@ import {
   BUILTIN_ENTRY_IDS,
   flavorOf,
   isBuiltinEntryId,
+  isLoopbackBaseUrl,
   modelProviderForFlavor,
   resolveActiveProvider,
   type AiApiFlavor,
@@ -45,7 +46,6 @@ import type { AiProvider } from "../../stores/settings.svelte";
 import { buildDirectRequest } from "./directRequest";
 import { isOpenCodeUrl } from "./opencodeTarget";
 import {
-  isPolicyBlockedLoopback,
   isRedirectResponse,
   loopbackPolicyFailure,
   ProviderRedirectError,
@@ -57,6 +57,17 @@ import {
   parseStreamChunk,
   type StreamUsage,
 } from "./streamAdapters";
+
+/**
+ * True only for the case the hosted policy actually refuses: a plain-HTTP local
+ * address. `connect-src` allows `https:`, so an HTTPS loopback address passes
+ * the policy and a failure there is an ordinary CORS or connection failure that
+ * keeps its own guidance. Lives here, not in `providerRedirect.ts`, so that
+ * module stays free of a `lib -> stores` import (cycle ratchet).
+ */
+function isPolicyBlockedLoopback(baseUrl: string): boolean {
+  return isLoopbackBaseUrl(baseUrl) && /^http:/i.test(baseUrl.trim());
+}
 
 /** Server route per wire format. Built-ins keep their own route. */
 const ROUTE_BY_FLAVOR: Record<AiApiFlavor, string> = {
