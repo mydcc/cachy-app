@@ -86,7 +86,11 @@ read rather than being folded into a feature PR.
   not reach loopback; instead the failure must name the connection policy as
   the cause. The current catch block blames CORS and points at the relay,
   which is wrong for this cause and, for rule authoring, advice the app
-  refuses on purpose (ADR-0030 decision 2).
+  refuses on purpose (ADR-0030 decision 2). Recognise the case from the
+  configured target with `isLoopbackBaseUrl`
+  (`src/stores/settings/aiProviders.ts`), not from the error: a blocked
+  request rejects `fetch` with a generic `TypeError` that looks the same as a
+  CORS failure (training knowledge, not probed in this repository).
 - Probe the four remote endpoints named under the decision below for a 307/308
   on POST before shipping `redirect: "error"`. If one relies on a redirect,
   the refusal names that provider rather than failing anonymously.
@@ -102,8 +106,10 @@ read rather than being folded into a feature PR.
 - [ ] A loopback provider configured in the hosted build fails with a message
       naming the connection policy as the cause, and that message does not
       suggest the server relay.
-- [ ] `ADR-0030` decision 1 is amended to record that its zero-egress
-      configuration is the desktop build's. It currently reads as an option
+- [ ] `ADR-0030` decision 1 is amended: its zero-egress configuration (a
+      loopback entry) is not available in the hosted build. Whether it works
+      anywhere else is established by the implementing PR with a probe, and
+      the amendment says what was probed. It currently reads as an option
       available everywhere.
 - [ ] No new `connect-src` source is added at all, and the AGENTS.md
       non-negotiables are untouched: COEP unset, `Permissions-Policy`
@@ -118,10 +124,18 @@ read rather than being folded into a feature PR.
 
 ## Decision
 
-**Loopback is the desktop build's story — decided by the owner on 2026-11-22.**
-The hosted build does not reach `localhost` or `127.0.0.1`; it names the
-connection policy as the cause of the failure, and `ADR-0030` decision 1 is
-amended to say so.
+**The hosted build does not reach loopback — decided by the owner on
+2026-11-22.** It names the connection policy as the cause of the failure, and
+`ADR-0030` decision 1 is amended to say so.
+
+The decision was taken as "loopback is the desktop build's story". No desktop
+shell exists in this repository (no Tauri, Electron or Capacitor dependency,
+and no mention in `docs/`), so that framing is not carried into the criteria.
+Where loopback *does* work — a page served from a local address, such as the
+dev server or a self-hosted instance — is unverified: the CSP would still
+refuse a cross-port `http:` request there unless it differs from the hosted
+one. The implementing PR probes that and records the result in the ADR
+amendment rather than promising it here.
 
 The deciding argument is that the first half of the alternative was never
 Cachy's to promise. Chrome gates a public page's loopback access behind a
@@ -131,8 +145,11 @@ extended to WebSocket and WebTransport in Chrome 147 — and its preflight
 expects the *local server* to answer with `Access-Control-Allow-Private-Network`.
 That header would have to come from Ollama. Widening `connect-src` would
 therefore have widened the policy for every script the page loads while still
-not making the feature work. A same-origin case is exempt, so a desktop build
-serving its own page locally is unaffected and keeps the zero-egress story.
+not making the feature work. The permission gate applies to a *public* page
+reaching a local address; a page that itself sits in the local address space is
+reported as unaffected by it (secondary source, not Chrome's guide). That is
+not the same as same-origin — Ollama answers on another port — and it says
+nothing about the CSP.
 
 Checked 2026-11-22 against vendor and developer sources; Chrome's own guide was
 not read, so treat the version numbers as reported rather than confirmed. The
@@ -145,7 +162,9 @@ refusal path is needed regardless. The bounded set to probe is
 `BUILTIN_AI_PROVIDERS` in `src/stores/settings/aiProviders.ts`:
 `https://openrouter.ai/api/v1`, `https://api.openai.com/v1`,
 `https://generativelanguage.googleapis.com/v1beta` and
-`https://api.anthropic.com/v1`, plus Ollama (loopback, no default base URL).
+`https://api.anthropic.com/v1`, plus Ollama (loopback: the preset's base URL
+is empty and `src/lib/ai/completion.ts` falls back to
+`http://localhost:11434`).
 
 ## Links
 
