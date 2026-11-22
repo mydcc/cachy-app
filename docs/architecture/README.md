@@ -24,9 +24,17 @@ Commit **both files together** in the same PR. CI re-validates the JSON and
 rebuilds the HTML to diff against the committed one — a stale HTML turns the
 check red.
 
-The `arch:*` scripts expect Archify installed at
-`~/.config/opencode/skills/archify` (see <https://github.com/tt-a1i/archify>).
-CI clones it fresh, so no repo dependency exists.
+The `arch:*` scripts run [`scripts/archify.mjs`](../../scripts/archify.mjs),
+which uses exactly the Archify release pinned in
+[`scripts/archify.pin.json`](../../scripts/archify.pin.json) (see
+<https://github.com/tt-a1i/archify>). On first use it fetches that commit into
+`~/.cache/cachy-app/archify/` (by hash, dependencies installed with
+`--ignore-scripts`). There is no override: the script loads Archify only
+from that cache, so no environment variable can point it at other code.
+CI runs the same script.
+
+**Upgrading the renderer** is its own PR: change the pin, run `npm run arch`,
+commit the regenerated HTML. It never rides along with a diagram change.
 
 ## When must the JSON change?
 
