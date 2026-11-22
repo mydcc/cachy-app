@@ -118,6 +118,21 @@ describe("MarketOverview telemetry (W1-10 / BUG-0794)", () => {
     ]);
   });
 
+  it("keeps the card and the four buttons identifiable by data-track-id", () => {
+    // The card has no direct call; GlobalTracker reports its click from the
+    // attribute alone, so losing the attribute would silently drop the event.
+    const ids = [...SOURCE.matchAll(/data-track-id="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    expect(ids.sort()).toEqual([
+      "btn-open-chart",
+      "btn-refresh-stats",
+      "btn-toggle-favorite",
+      "btn-toggle-technicals",
+      "market-overview-card",
+    ]);
+  });
+
   it("flags a context attribute that carries the pair", () => {
     const sample =
       "<div data-track-context={JSON.stringify({ symbol: displaySymbol })}></div>";
