@@ -61,7 +61,7 @@ blob.
       metadata was evicted still has an attributable fill.
 - [ ] A reload reconciles the paper book and the journal without losing the
       attribution — pinned by a test that persists, reloads and reconciles.
-- [ ] Deleting the bot rule after the fill leaves the position and journal entry
+- [x] Deleting the bot rule after the fill leaves the position and journal entry
       attributable and renderable.
 - [ ] No new storage key, no network call, no rule data leaves the device
       (ADR-0001).

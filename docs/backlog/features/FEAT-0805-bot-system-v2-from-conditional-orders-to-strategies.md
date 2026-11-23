@@ -125,7 +125,7 @@ when it is proven to fit what came before and what is planned after.
 - [x] A waiting bot is visible before it acts — in the sidebar first
       (FEAT-0808 phase A: its own tab; long-term phase B: among open orders
       as a state-colored conditional entry).
-- [ ] Every firing policy and limit is user-settable and visible; the
+- [x] Every firing policy and limit is user-settable and visible; the
       safety floor (mandatory stop, one gate, no exposure-increasing
       exits) is fixed and cannot be configured away (FEAT-0822).
 - [ ] The current conditional market order keeps working unchanged; stage 3
@@ -157,20 +157,31 @@ the code or a test shows them.
 - Targeted run: attribution, journal, `botState`, `botExits`, exit
   execution and `botGuards` tests — 131 passed.
 
+**Gaps checked afterwards (2026-11-23):**
+
+- *Safety floor:* a bot with no stop submits nothing
+  (`botOrders.test.ts`, "submits nothing for a bot with no stop"), exits close
+  through the reduce-only lane (`botExitExecution.integration.test.ts`), and
+  `percent_risk` sizing without a stop is refused by the schema
+  (`stopDistance.integration.test.ts`). The firing-policy criterion is ticked.
+- *Deleted rule keeps attribution* (FEAT-0806) and *`take_profit` resolves from
+  the owned entry* (FEAT-0810): both covered
+  (`paperExchange.attribution.test.ts`, `exitEvaluation.integration.test.ts`);
+  their boxes are ticked.
+- *Suppressed `once_per_candle` repeat in the guard log* (FEAT-0822): not
+  shown by any test or code path; filed as
+  [`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md).
+
 **Still open before this epic closes:**
 
-- *Safety floor* (firing-policy criterion): the mandatory stop is derived in
-  `botOrders.ts`, but no test was found that proves it cannot be configured
-  away.
-- *Conditional market order unchanged*: not checked here.
-- *Child acceptance criteria*: five `done` children still carry unticked
-  boxes — FEAT-0806 (7), FEAT-0807 (6), FEAT-0810 (9), FEAT-0822 (1),
-  FEAT-0823 (1, recorded as deferred to FEAT-0811). Most are covered by the
-  tests above, but three have no direct test: a deleted bot rule leaves the
-  position attributable (FEAT-0806), `take_profit` resolves from the actual
-  entry (FEAT-0810), and a suppressed `once_per_candle` repeat appears once in
-  the guard log (FEAT-0822). Each child either gets its boxes ticked against
-  a test or records why it was dropped.
+- *Conditional market order unchanged:* only indirectly pinned — documents
+  recorded before the stop field keep their hash
+  (`stopDistance.integration.test.ts`), and `botExits.ts` does nothing for a
+  rule without exits. No test drives the unchanged order itself.
+- *Child acceptance criteria:* FEAT-0806, FEAT-0807, FEAT-0810, FEAT-0822 and
+  FEAT-0823 still carry unticked boxes. The rest are probably covered by the
+  tests listed above but have not been mapped one by one. FEAT-0823's
+  remaining box is recorded as deferred to FEAT-0811.
 
 ## Out of scope
 
