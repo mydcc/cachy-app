@@ -47,6 +47,7 @@ use wasm_bindgen::prelude::*;
 use super::consequence::{ConsequenceLevel, OrderIntent};
 use super::condition::PositionSide;
 use super::document::{parse_document, serialise_document};
+use super::grid::{parse_grid, serialise_grid};
 use super::evaluate::{
     evaluate_exits, evaluate_with_lifecycle, AccountSnapshot, Candle, InMemoryMarket,
     OwnedPositionContext,
@@ -378,6 +379,20 @@ pub fn evaluate_exits_json(
     })
 }
 
+/// FEAT-0819 — parse and validate a grid document, returning its canonical
+/// serialisation. The grid sibling of [`validate_json`].
+pub fn grid_validate_json(document_json: &str) -> Result<String, Refused> {
+    let document = parse_grid(document_json)?;
+    serialise_grid(&document).map_err(|e| Refused { refusals: vec![e] })
+}
+
+/// FEAT-0819 — the content hash of a grid document, after validating it.
+pub fn grid_content_hash_json(document_json: &str) -> Result<String, Refused> {
+    parse_grid(document_json)?
+        .content_hash()
+        .map_err(|e| Refused { refusals: vec![e] })
+}
+
 // ---------------------------------------------------------------------------
 // The boundary. Nothing here decides anything.
 // ---------------------------------------------------------------------------
@@ -456,6 +471,18 @@ pub fn rule_evaluate(document_json: &str, ctx_json: &str) -> Result<String, JsVa
     evaluate_json(document_json, ctx_json).map_err(refused_to_js)
 }
 
+/// FEAT-0819 — [`grid_validate_json`] behind the wasm boundary.
+#[wasm_bindgen]
+pub fn grid_validate(document_json: &str) -> Result<String, JsValue> {
+    grid_validate_json(document_json).map_err(refused_to_js)
+}
+
+/// FEAT-0819 — [`grid_content_hash_json`] behind the wasm boundary.
+#[wasm_bindgen]
+pub fn grid_content_hash(document_json: &str) -> Result<String, JsValue> {
+    grid_content_hash_json(document_json).map_err(refused_to_js)
+}
+
 /// FEAT-0810 — [`evaluate_exits_json`] behind the wasm boundary.
 #[wasm_bindgen]
 pub fn rule_evaluate_exits(
@@ -488,6 +515,51 @@ mod tests {
         "enabled": true,
         "provenance": { "source": "human", "created_at_ms": 1700000000000 }
     }"#;
+
+    /// FEAT-0819 — a minimal valid grid, as a caller would send it.
+    const GRID: &str = r#"{
+        "kind": "grid", "schema_version": 1, "id": "grid-1", "name": "range",
+        "symbol": "BTCUSDT", "side": "long", "evaluation_timeframe": "1h",
+        "lower_price": "40000", "upper_price": "50000", "level_count": 10,
+        "spacing": "geometric",
+        "sizing": { "basis": "quote_budget", "amount": "1000" },
+        "stop_out": [{
+            "kind": "compare",
+            "left": { "kind": "price", "field": "close" },
+            "op": "lt",
+            "right": { "kind": "constant", "value": "38000" },
+            "timeframe": "1h"
+        }],
+        "consequence_level": "simulate", "enabled": true,
+        "provenance": { "source": "human", "created_at_ms": 1700000000000 }
+    }"#;
+
+    #[test]
+    fn a_grid_validates_to_a_canonical_form_that_revalidates_unchanged() {
+        let canonical = grid_validate_json(GRID).unwrap();
+        assert_eq!(grid_validate_json(&canonical).unwrap(), canonical);
+        assert_eq!(grid_content_hash_json(GRID).unwrap().len(), 64);
+        assert_eq!(
+            grid_content_hash_json(&canonical).unwrap(),
+            grid_content_hash_json(GRID).unwrap()
+        );
+    }
+
+    #[test]
+    fn a_grid_is_not_a_rule_and_a_rule_is_not_a_grid() {
+        // The two kinds never parse as each other: a stored document is read
+        // by exactly one validator.
+        assert!(validate_json(GRID).is_err());
+        assert!(grid_validate_json(DOC).is_err());
+    }
+
+    #[test]
+    fn a_send_level_grid_is_refused_at_the_boundary_with_its_field() {
+        let send = GRID.replace(r#""consequence_level": "simulate""#, r#""consequence_level": "send""#);
+        let err = grid_validate_json(&send).unwrap_err();
+        assert_eq!(err.refusals[0].field, "consequence_level");
+        assert_eq!(err.refusals[0].i18n_key, "rules.refusal.gridPaperOnly");
+    }
 
     #[test]
     fn validate_returns_the_canonical_form() {

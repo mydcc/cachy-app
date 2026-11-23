@@ -3,6 +3,7 @@ pub mod consequence;
 pub mod document;
 pub mod evaluate;
 pub mod exports;
+pub mod grid;
 pub mod indicator;
 pub mod legacy;
 pub mod lifecycle;

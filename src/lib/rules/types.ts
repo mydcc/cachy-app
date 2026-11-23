@@ -461,6 +461,48 @@ export interface RuleDocument {
 export type TriggerFrequency = "once" | "every_time" | "once_per_candle_close";
 
 /**
+ * FEAT-0819 — a grid bot's document (ADR-0027).
+ *
+ * Its own kind, not a `RuleDocument` variant: a grid has no trigger condition.
+ * The core (`technicals-wasm/src/rule/grid.rs`) is the only validator; these
+ * types describe what it accepts.
+ */
+export type GridSide = "long" | "short";
+export type GridSpacing = "arithmetic" | "geometric";
+/** `percent_risk` exists only so the core can refuse it by name. */
+export type GridSizeBasis = "quote_budget" | "percent_risk";
+
+export interface GridSizing {
+  basis: GridSizeBasis;
+  /** Total budget in the quote currency. */
+  amount: DecimalString;
+}
+
+export interface GridDocument {
+  kind: "grid";
+  schema_version: number;
+  id: string;
+  name: string;
+  symbol: string;
+  side: GridSide;
+  /** The cadence the trend filter and the stop-out are read at. */
+  evaluation_timeframe: TimeframeString;
+  lower_price: DecimalString;
+  upper_price: DecimalString;
+  level_count: number;
+  spacing: GridSpacing;
+  sizing: GridSizing;
+  /** While false, the grid withdraws its resting opening orders. */
+  trend_filter?: Condition;
+  /** Required and non-empty: any one holding stops the grid. */
+  stop_out: Condition[];
+  /** `simulate` is the only level the core accepts for a grid. */
+  consequence_level: ConsequenceLevel;
+  enabled: boolean;
+  provenance: Provenance;
+}
+
+/**
  * A channel a trigger is announced on. Mirrors `lifecycle::TriggerMethod`.
  *
  * The external three are selectable per rule (FEAT-0748) but remain bounded by

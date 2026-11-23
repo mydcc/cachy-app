@@ -2,7 +2,9 @@
 id: FEAT-0819
 title: Run grid bots on the paper account
 type: feature
-status: ready
+status: in-progress
+assignee: claude
+branch: feature/feat-0819-grid-runtime
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -52,8 +54,9 @@ Implement the grid as its own bot kind, per
 
 ## Acceptance criteria
 
-- [ ] A grid document with arithmetic and one with geometric spacing both
+- [x] A grid document with arithmetic and one with geometric spacing both
       validate and round-trip.
+      *Stage 1: `GridDocument` in `technicals-wasm/src/rule/grid.rs`; Rust round-trip test for both spacings, and `gridDocument.integration.test.ts` against the rebuilt artifact.*
 - [ ] The runtime places exactly `level_count` orders within the range, never
       more than the budget allows, and each order carries `ownerBotId`.
 - [ ] A fill re-places the opposite level within the range and never outside it;
@@ -76,15 +79,18 @@ Implement the grid as its own bot kind, per
       reason; the quote budget is split evenly across levels as `Decimal`,
       each level's quantity rounded down to the quantity step so the ladder
       never exceeds the budget.
+      *Stage 1 delivered the refusal (`GridRiskSizingUnsupported`); the even split and the step rounding are stage 2.*
 - [ ] No live order path is reachable; the grid is paper-only and a `send`-level
       document is refused as today.
+      *Stage 1 delivered the document half (`GridPaperOnly` for `send`); the runtime half is stage 4.*
 - [ ] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
       restart, and the two-grid collision case.
 - [ ] The editor warns when the level spacing does not exceed the round-trip
       fee and names the minimum viable spacing derived from the paper fee
       schedule (fees apply on both legs of every level cycle).
-- [ ] The stop-out rule is a required field — empty is refused, with no
+- [x] The stop-out rule is a required field — empty is refused, with no
       opt-out (ADR-0027: grid budget and stop-out limits are not optional).
+      *Stage 1: `GridStopOutRequired` for an empty array; an absent field does not parse.*
 - [ ] The grid's review surfaces show mark-to-market equity alongside
       realized closed trades, never closed-trade-only curves.
 - [ ] The editor offers an ATR-derived spacing suggestion from existing
@@ -97,6 +103,28 @@ Implement the grid as its own bot kind, per
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
       book. It never claims that its protective exits keep running.
+
+## Delivery stages (2026-11-23)
+
+The item is XL, so it ships as reviewable stages on one branch line, each
+its own PR:
+
+1. **Document in the core.** `GridDocument` as its own kind in
+   `technicals-wasm` (validation, refusals, content hash) plus the TS types
+   and the integration test against the rebuilt artifact. Criteria 1, 9
+   (the `percent_risk` refusal), 10 (the `send` refusal) and 13.
+2. **Ladder arithmetic.** A pure `Decimal` module: levels for both
+   spacings, the budget split rounded down to the quantity step, the
+   rebalance target for a fill, the minimum viable spacing and the
+   worst-case loss. Criteria 2, 3 and 9 (math halves).
+3. **Owned resting orders.** `PaperOrder` carries the owner, a fill keeps
+   it, and the book can cancel by owner.
+4. **Runtime.** Placement, rebalance, pause/resume, trend filter, stop and
+   stop-out, restart from the book, the `(symbol, side)` reservation and the
+   account binding. Criteria 2–8, 11 and 17.
+5. **Editor and review surfaces.** The fee warning, the ATR suggestion, the
+   pre-start budget and worst-case display, and mark-to-market reporting.
+   Criteria 12, 14, 15 and 16; coordinated with FEAT-0820.
 
 ## Out of scope
 

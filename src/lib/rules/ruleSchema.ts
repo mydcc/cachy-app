@@ -32,6 +32,7 @@
  */
 
 import type {
+  GridDocument,
   RuleDocument,
   Refused,
   RuleRefusal,
@@ -60,6 +61,8 @@ interface RuleWasmExports {
   ): string;
   rule_evaluate(documentJson: string, ctxJson: string): string;
   rule_evaluate_exits(documentJson: string, ctxJson: string, positionJson: string): string;
+  grid_validate(documentJson: string): string;
+  grid_content_hash(documentJson: string): string;
   default: (wasmBinaryPath: string) => Promise<unknown>;
 }
 
@@ -198,6 +201,31 @@ class RuleSchemaService {
     const core = this.require();
     try {
       return JSON.parse(core.rule_validate(JSON.stringify(document))) as RuleDocument;
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /**
+   * FEAT-0819 — validate a grid document and return its canonical form.
+   *
+   * Store what comes back: the core normalises prices and the budget, so
+   * `40000` and `40000.0` are one stored value and one strategy identity.
+   */
+  validateGrid(document: GridDocument): GridDocument {
+    const core = this.require();
+    try {
+      return JSON.parse(core.grid_validate(JSON.stringify(document))) as GridDocument;
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /** FEAT-0819 — the content hash identifying a grid strategy. */
+  gridContentHash(document: GridDocument): string {
+    const core = this.require();
+    try {
+      return core.grid_content_hash(JSON.stringify(document));
     } catch (e) {
       throw toRefusedError(e);
     }

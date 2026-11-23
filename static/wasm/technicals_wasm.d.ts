@@ -29,6 +29,16 @@ export class TechnicalsCalculator {
     update(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): string;
 }
 
+/**
+ * FEAT-0819 — [`grid_content_hash_json`] behind the wasm boundary.
+ */
+export function grid_content_hash(document_json: string): string;
+
+/**
+ * FEAT-0819 — [`grid_validate_json`] behind the wasm boundary.
+ */
+export function grid_validate(document_json: string): string;
+
 export function rule_authorise(document_json: string, requested_level: string): void;
 
 export function rule_content_hash(document_json: string): string;
@@ -89,6 +99,8 @@ export interface InitOutput {
     readonly alertenginewasm_new: () => number;
     readonly alertenginewasm_remove_alert: (a: number, b: number, c: number) => void;
     readonly alertenginewasm_set_alerts: (a: number, b: number, c: number, d: number) => void;
+    readonly grid_content_hash: (a: number, b: number, c: number) => void;
+    readonly grid_validate: (a: number, b: number, c: number) => void;
     readonly rule_authorise: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly rule_content_hash: (a: number, b: number, c: number) => void;
     readonly rule_evaluate: (a: number, b: number, c: number, d: number, e: number) => void;
