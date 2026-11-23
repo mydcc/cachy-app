@@ -15,14 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { LayoutServerLoad } from "./$types";
-import { INITIAL_TRADE_STATE } from "../stores/trade.svelte"; // Import initialTradeState
+// BUG-0836: no `load` here. With `ssr = false` a server load makes the client
+// fetch `/__data.json` on every start, which the service worker cannot serve
+// offline, so an offline reload ended on the error page. Nothing on the root
+// layout needs server data; add a universal load if that changes, never a
+// server one.
 
 export const prerender = false;
 export const ssr = false; // Disable SSR to prevent hydration mismatch with theme
-
-export const load: LayoutServerLoad = async () => {
-  return {
-    initialTradeState: INITIAL_TRADE_STATE, // Pass initialTradeState to the layout
-  };
-};
