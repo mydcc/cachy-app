@@ -107,6 +107,55 @@ describe("respondFromRuntimeCache", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("serves an unhashed file from the cache and refreshes it for the next use", async () => {
+    const cache = fakeCache();
+    stubCaches(cache);
+    const path = "/ammo/ammo.wasm.js";
+    await cache.put(path, new Response("ammo-v1"));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("ammo-v2", { status: 200 })));
+    const pending: Promise<unknown>[] = [];
+
+    const response = await respondFromRuntimeCache(path, new Request(`https://cachy.test${path}`), (work) =>
+      pending.push(work),
+    );
+    await Promise.all(pending);
+
+    expect(await response.text()).toBe("ammo-v1");
+    expect(await (await cache.match(path))!.text()).toBe("ammo-v2");
+  });
+
+  it("never revalidates a content-hashed chunk", async () => {
+    const cache = fakeCache();
+    stubCaches(cache);
+    const path = "/_app/immutable/chunks/D50ODbxi.js";
+    await cache.put(path, new Response("three"));
+    const fetchMock = vi.fn(async () => new Response("other", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const pending: Promise<unknown>[] = [];
+
+    await respondFromRuntimeCache(path, new Request(`https://cachy.test${path}`), (work) => pending.push(work));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(pending).toHaveLength(0);
+  });
+
+  it("keeps answering from the cache when the revalidation fails offline", async () => {
+    const cache = fakeCache();
+    stubCaches(cache);
+    const path = "/ammo/ammo.wasm.wasm";
+    await cache.put(path, new Response("ammo"));
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const pending: Promise<unknown>[] = [];
+
+    const response = await respondFromRuntimeCache(path, new Request(`https://cachy.test${path}`), (work) =>
+      pending.push(work),
+    );
+
+    await expect(Promise.all(pending)).resolves.toBeDefined();
+    expect(await response.text()).toBe("ammo");
+  });
+
   it("does not store an error response", async () => {
     const cache = fakeCache();
     stubCaches(cache);

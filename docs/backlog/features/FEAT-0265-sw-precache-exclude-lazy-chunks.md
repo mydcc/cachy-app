@@ -89,7 +89,12 @@ files and sits in `NOT_PRECACHED` by name.
 the Proposal fixed: one `runtime-lazy` cache, not version-keyed; scope
 `_app/immutable/*` and `/ammo/*` for paths outside the precache; 50 entries,
 FIFO in `cache.keys()` order; `deleteOldCaches()` spares it. Entries are keyed
-by pathname, as the precache already was.
+by pathname, as the precache already was. One addition the Proposal did not
+spell out: a version-free cache is only safe for files that cannot change under
+their name. `_app/immutable/*` is content-hashed; `ammo/` is not, so a hit on
+it is served from the cache and refreshed in the background
+(stale-while-revalidate) — otherwise an updated `ammo.wasm.js` would never
+reach a user who had it cached, or would meet a newer `.wasm`.
 
 **Offline reporting.** A missing chunk offline fails with the same browser
 message as a chunk deleted by a deploy, so `handleLazyLoadFailure` used to

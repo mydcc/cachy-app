@@ -22,9 +22,12 @@
  * offline use case. This is it: an effect used once while online stays usable
  * offline.
  *
- * Deliberately not keyed by the build version: every file in scope carries a
- * content hash or is a vendored binary, so an entry stays correct across
- * deploys and the next release does not download it again.
+ * Deliberately not keyed by the build version, so an entry survives the deploy
+ * that replaces the precache. That is only safe as long as an entry cannot go
+ * stale: `_app/immutable/*` names carry a content hash, but `/ammo/*` does not.
+ * Unhashed files are therefore revalidated in the background on every hit —
+ * the current use gets the cached copy, the next one gets whatever the server
+ * now has.
  */
 
 export const RUNTIME_CACHE = "runtime-lazy";
@@ -37,10 +40,15 @@ export function isRuntimeCacheablePath(pathname: string): boolean {
   return RUNTIME_SCOPE.test(pathname);
 }
 
+/** Only Vite output is content-hashed; anything else can change under its name. */
+export function isContentHashedPath(pathname: string): boolean {
+  return /\/_app\/immutable\//.test(pathname);
+}
+
 /**
- * FIFO eviction in `cache.keys()` order, which is insertion order. Nothing
- * re-inserts a hit (the lookup is cache-first), so first-in is also the
- * oldest first use.
+ * FIFO eviction in `cache.keys()` order, which is insertion order. Hashed
+ * chunks are never re-inserted on a hit, so for them first-in is the oldest
+ * first use; a revalidated unhashed file moves to the end, as a fresh write.
  */
 export async function trimRuntimeCache(cache: Cache, max = MAX_RUNTIME_CACHE_ENTRIES): Promise<void> {
   const keys = await cache.keys();
@@ -50,12 +58,20 @@ export async function trimRuntimeCache(cache: Cache, max = MAX_RUNTIME_CACHE_ENT
   }
 }
 
+function store(cache: Cache, pathname: string, response: Response): Promise<void> {
+  return cache
+    .put(pathname, response)
+    .then(() => trimRuntimeCache(cache))
+    .catch((err) => console.warn("Failed to store in runtime cache:", pathname, err));
+}
+
 /**
  * Cache-first lookup for an in-scope file. A miss goes to the network and a
  * 200 is stored without delaying the response; `keepAlive` holds the service
- * worker open until the write and the trim are done. A network failure is
- * rethrown — the caller's import then rejects, and the page decides how to
- * report it.
+ * worker open until the write and the trim are done. A hit on a file without a
+ * content hash is refreshed the same way in the background. A network failure
+ * on a miss is rethrown — the caller's import then rejects, and the page
+ * decides how to report it.
  */
 export async function respondFromRuntimeCache(
   pathname: string,
@@ -64,17 +80,21 @@ export async function respondFromRuntimeCache(
 ): Promise<Response> {
   const cache = await caches.open(RUNTIME_CACHE);
   const cached = await cache.match(pathname);
-  if (cached) return cached;
+  if (cached) {
+    if (!isContentHashedPath(pathname)) {
+      keepAlive(
+        fetch(request)
+          .then((fresh) => (fresh instanceof Response && fresh.status === 200 ? store(cache, pathname, fresh) : undefined))
+          // Offline or unreachable: the cached copy already answered.
+          .catch((err) => console.warn("Runtime cache revalidation failed:", pathname, err)),
+      );
+    }
+    return cached;
+  }
 
   const response = await fetch(request);
   if (response instanceof Response && response.status === 200) {
-    const copy = response.clone();
-    keepAlive(
-      cache
-        .put(pathname, copy)
-        .then(() => trimRuntimeCache(cache))
-        .catch((err) => console.warn("Failed to store in runtime cache:", pathname, err)),
-    );
+    keepAlive(store(cache, pathname, response.clone()));
   }
   return response;
 }
