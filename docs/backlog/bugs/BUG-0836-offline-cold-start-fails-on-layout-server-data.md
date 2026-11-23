@@ -2,7 +2,8 @@
 id: BUG-0836
 title: Offline cold start shows the error page because the root layout loads server data
 type: bug
-status: specced
+status: done
+assignee: claude
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +14,8 @@ depends_on: []
 ---
 
 # BUG-0836 — Offline cold start shows the error page because the root layout loads server data
+
+Branch: `fix/bug-0836-offline-cold-start`
 
 ## Symptom
 
@@ -65,10 +68,23 @@ cache per-request server data and hide the next server load that sneaks in.
 
 ## Acceptance criteria
 
-- [ ] An offline reload with the service worker installed and the server
+- [x] An offline reload with the service worker installed and the server
       unreachable shows the Calculator and the Journal (reproduction above).
-- [ ] No request to `__data.json` on a normal start (DevTools network log).
-- [ ] Whatever consumed `data.initialTradeState` gets the same value as before.
+- [x] No request to `__data.json` on a normal start (DevTools network log).
+- [x] Whatever consumed `data.initialTradeState` gets the same value as before.
+
+## Result
+
+Nothing consumed `data.initialTradeState`: the root layout takes no props, and
+no other file read the key. `+layout.server.ts` became `+layout.ts` with the
+same `prerender`/`ssr` options and no `load`. `src/routes/noServerLoad.test.ts`
+fails when any `+layout.server` or `+page.server` file appears under
+`src/routes` (checked by adding an empty one: red, naming the file).
+
+Verified 2026-11-23 on a production build of this branch, headless Chromium,
+reproduction above: online start without any `__data.json` request; after
+stopping the server and going offline, the reload shows the Calculator (12
+inputs) and the Journal, no error page, no page error.
 
 ## Out of scope
 
