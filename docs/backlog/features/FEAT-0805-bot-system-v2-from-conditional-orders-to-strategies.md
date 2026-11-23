@@ -114,30 +114,74 @@ when it is proven to fit what came before and what is planned after.
 
 ## Acceptance criteria
 
-- [ ] `ADR-0026` is accepted before any exit execution merges; `ADR-0027`
+- [x] `ADR-0026` is accepted before any exit execution merges; `ADR-0027`
       before any grid runtime merges.
-- [ ] Every stage uses one condition language, one evaluator and one
+- [x] Every stage uses one condition language, one evaluator and one
       `OrderGate`; no second execution path exists (ADR-0012 decision 5).
-- [ ] The trader can create a bot directly in the workshop — promotion from
+- [x] The trader can create a bot directly in the workshop — promotion from
       an alert remains a shortcut, never the only path (trader types B, C).
-- [ ] Paper positions, fills and journal entries attribute a bot trade to
+- [x] Paper positions, fills and journal entries attribute a bot trade to
       the bot that opened it; a manual trade is distinguishable.
-- [ ] A waiting bot is visible before it acts — in the sidebar first
+- [x] A waiting bot is visible before it acts — in the sidebar first
       (FEAT-0808 phase A: its own tab; long-term phase B: among open orders
       as a state-colored conditional entry).
-- [ ] Every firing policy and limit is user-settable and visible; the
+- [x] Every firing policy and limit is user-settable and visible; the
       safety floor (mandatory stop, one gate, no exposure-increasing
       exits) is fixed and cannot be configured away (FEAT-0822).
 - [ ] The current conditional market order keeps working unchanged; stage 3
       is an addition, not a replacement.
-- [ ] The public docs carry the goal and the "Bot vs. Order" vocabulary
+- [x] The public docs carry the goal and the "Bot vs. Order" vocabulary
       (FEAT-0826); no stage names leak into UI strings.
-- [ ] No new server call, no new Class B feature: rules, positions and the
+- [x] No new server call, no new Class B feature: rules, positions and the
       journal stay on the device (ADR-0001).
-- [ ] Every new string exists in both `src/locales/locales/de.json` and
+- [x] Every new string exists in both `src/locales/locales/de.json` and
       `src/locales/locales/en.json`.
 - [ ] Each child item's acceptance criteria are met, or the item records
       why it was dropped.
+
+### Verification against the code (2026-11-23)
+
+Checked on `develop` at `7ab75931a`; the criteria above are ticked only where
+the code or a test shows them.
+
+- **Gate:** bot entries and exits go through `placeEntryGroup` and the
+  single-close lane into `tradeService` → `OrderGate`; `paperExchange` is
+  imported only by `tradeService`, `paperTradingService` and `errorUtils`.
+- **Attribution:** `paperExchange.attribution.test.ts` and
+  `paperJournalService.exitOrigin.test.ts` pin bot vs manual, the pre-field
+  blob and reload.
+- **Visible and creatable:** `PositionsSidebar.svelte` has a `bots` tab;
+  `BotEditor.svelte` has a `bot-create` mode.
+- **Local-First:** no `spacetimedb` or `cloudService` import in
+  `src/services/alertEngine` or `src/lib/rules`.
+- Targeted run: attribution, journal, `botState`, `botExits`, exit
+  execution and `botGuards` tests — 131 passed.
+
+**Gaps checked afterwards (2026-11-23):**
+
+- *Safety floor:* a bot with no stop submits nothing
+  (`botOrders.test.ts`, "submits nothing for a bot with no stop"), exits close
+  through the reduce-only lane (`botExitExecution.integration.test.ts`), and
+  `percent_risk` sizing without a stop is refused by the schema
+  (`stopDistance.integration.test.ts`). The firing-policy criterion is ticked.
+- *Deleted rule keeps attribution* (FEAT-0806) and *`take_profit` resolves from
+  the owned entry* (FEAT-0810): both covered
+  (`paperExchange.attribution.test.ts`, `exitEvaluation.integration.test.ts`);
+  their boxes are ticked.
+- *Suppressed `once_per_candle` repeat in the guard log* (FEAT-0822): not
+  shown by any test or code path; filed as
+  [`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md).
+
+**Still open before this epic closes:**
+
+- *Conditional market order unchanged:* only indirectly pinned — documents
+  recorded before the stop field keep their hash
+  (`stopDistance.integration.test.ts`), and `botExits.ts` does nothing for a
+  rule without exits. No test drives the unchanged order itself.
+- *Child acceptance criteria:* FEAT-0806, FEAT-0807, FEAT-0810, FEAT-0822 and
+  FEAT-0823 still carry unticked boxes. The rest are probably covered by the
+  tests listed above but have not been mapped one by one. FEAT-0823's
+  remaining box is recorded as deferred to FEAT-0811.
 
 ## Out of scope
 

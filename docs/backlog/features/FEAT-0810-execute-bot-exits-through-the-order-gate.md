@@ -69,7 +69,7 @@ An exit evaluator runs while a bot owns a position:
 - [ ] A manual close and a stop-out both end the bot's exit evaluation without a
       re-entry.
 - [ ] A gate refusal leaves the position open and reports the reason once.
-- [ ] `take_profit` (if FEAT-0809 ships it) closes at the resolved distance from
+- [x] `take_profit` (if FEAT-0809 ships it) closes at the resolved distance from
       the actual entry, not from a stale price.
 - [ ] Tests are money-path tests: decimal quantities, no native-number math.
 
