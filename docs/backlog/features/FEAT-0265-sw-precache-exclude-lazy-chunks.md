@@ -2,7 +2,7 @@
 id: FEAT-0265
 title: Cache lazily loaded chunks on first use instead of precaching them
 type: feature
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: pwa
 data_class: none
 adr: none
 depends_on: []
+assignee: claude
+branch: feature/feat-0265-sw-runtime-cache
 ---
 
 # FEAT-0265 — Cache lazily loaded chunks on first use instead of precaching them
