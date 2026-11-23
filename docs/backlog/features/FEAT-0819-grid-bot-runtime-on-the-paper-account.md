@@ -54,8 +54,9 @@ Implement the grid as its own bot kind, per
 
 ## Acceptance criteria
 
-- [ ] A grid document with arithmetic and one with geometric spacing both
+- [x] A grid document with arithmetic and one with geometric spacing both
       validate and round-trip.
+      *Stage 1: `GridDocument` in `technicals-wasm/src/rule/grid.rs`; Rust round-trip test for both spacings, and `gridDocument.integration.test.ts` against the rebuilt artifact.*
 - [ ] The runtime places exactly `level_count` orders within the range, never
       more than the budget allows, and each order carries `ownerBotId`.
 - [ ] A fill re-places the opposite level within the range and never outside it;
@@ -78,15 +79,18 @@ Implement the grid as its own bot kind, per
       reason; the quote budget is split evenly across levels as `Decimal`,
       each level's quantity rounded down to the quantity step so the ladder
       never exceeds the budget.
+      *Stage 1 delivered the refusal (`GridRiskSizingUnsupported`); the even split and the step rounding are stage 2.*
 - [ ] No live order path is reachable; the grid is paper-only and a `send`-level
       document is refused as today.
+      *Stage 1 delivered the document half (`GridPaperOnly` for `send`); the runtime half is stage 4.*
 - [ ] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
       restart, and the two-grid collision case.
 - [ ] The editor warns when the level spacing does not exceed the round-trip
       fee and names the minimum viable spacing derived from the paper fee
       schedule (fees apply on both legs of every level cycle).
-- [ ] The stop-out rule is a required field — empty is refused, with no
+- [x] The stop-out rule is a required field — empty is refused, with no
       opt-out (ADR-0027: grid budget and stop-out limits are not optional).
+      *Stage 1: `GridStopOutRequired` for an empty array; an absent field does not parse.*
 - [ ] The grid's review surfaces show mark-to-market equity alongside
       realized closed trades, never closed-trade-only curves.
 - [ ] The editor offers an ATR-derived spacing suggestion from existing

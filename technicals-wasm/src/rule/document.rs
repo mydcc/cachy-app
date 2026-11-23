@@ -375,7 +375,7 @@ pub struct RuleDocument {
 /// veto and each exit's `when` are held to the same limit with one message —
 /// and so the refusal names which tree is too deep, which a bare maximum
 /// over `warmup_candles()` cannot do.
-fn check_warmup_ceiling(site: &str, tree: &Condition, out: &mut Vec<RuleRefusal>) {
+pub(crate) fn check_warmup_ceiling(site: &str, tree: &Condition, out: &mut Vec<RuleRefusal>) {
     let needed = tree.warmup_candles();
     if needed > MAX_RULE_WARMUP_CANDLES {
         out.push(RuleRefusal::new(

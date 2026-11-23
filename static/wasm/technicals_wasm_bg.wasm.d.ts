@@ -8,6 +8,8 @@ export const alertenginewasm_evaluate: (a: number, b: number, c: number, d: numb
 export const alertenginewasm_new: () => number;
 export const alertenginewasm_remove_alert: (a: number, b: number, c: number) => void;
 export const alertenginewasm_set_alerts: (a: number, b: number, c: number, d: number) => void;
+export const grid_content_hash: (a: number, b: number, c: number) => void;
+export const grid_validate: (a: number, b: number, c: number) => void;
 export const rule_authorise: (a: number, b: number, c: number, d: number, e: number) => void;
 export const rule_content_hash: (a: number, b: number, c: number) => void;
 export const rule_evaluate: (a: number, b: number, c: number, d: number, e: number) => void;

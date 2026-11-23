@@ -288,6 +288,18 @@ refusal_codes! {
     /// FEAT-0823. `entry_trigger: confirmation` on a rule evaluated
     /// intrabar: confirmation waits for a close an intrabar rule never sees.
     ConfirmationNeedsCloses => "confirmationNeedsCloses",
+    /// FEAT-0819 — a grid's bounds are not a positive, ordered range.
+    GridInvalidRange => "gridInvalidRange",
+    /// FEAT-0819 — a grid's level count is outside the bounds a ladder needs
+    /// and the paper book can hold.
+    GridInvalidLevelCount => "gridInvalidLevelCount",
+    /// FEAT-0819 — a ladder has no single stop distance, so `percent_risk`
+    /// cannot size it (ADR-0027 point 10).
+    GridRiskSizingUnsupported => "gridRiskSizingUnsupported",
+    /// FEAT-0819 — a grid without a stop-out; ADR-0027 makes it mandatory.
+    GridStopOutRequired => "gridStopOutRequired",
+    /// FEAT-0819 — a grid authored at `send`; grids run on paper only.
+    GridPaperOnly => "gridPaperOnly",
 }
 
 /// One reason a document was refused, naming the field responsible.
@@ -504,6 +516,11 @@ mod tests {
         "exit_fraction_invalid",
         "invalid_limit",
         "confirmation_needs_closes",
+        "grid_invalid_range",
+        "grid_invalid_level_count",
+        "grid_risk_sizing_unsupported",
+        "grid_stop_out_required",
+        "grid_paper_only",
     ];
 
     #[test]
