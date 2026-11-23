@@ -77,4 +77,17 @@ describe("service worker precache list (FEAT-0629)", () => {
       /const ASSETS:[\s\S]*?\.filter\(\(path\) => !NOT_PRECACHED\.some\(\(skip\) => path\.endsWith\(skip\)\)\)/,
     );
   });
+  it("keeps the build-computed lazy files out of the precache (FEAT-0265)", () => {
+    // The hashed three.js chunk and workers cannot be listed by hand; the
+    // virtual module carries them. Dropping the spread would put ~1.6 MiB back
+    // into every install with nothing failing.
+    const block = source.match(/const NOT_PRECACHED = \[([\s\S]*?)\];/)?.[1] ?? "";
+    expect(block).toMatch(/\.\.\.LAZY_ONLY_FILES\.map\(/);
+    expect(block).toContain('"/ammo/ammo.wasm.wasm"');
+  });
+
+  it("spares the runtime cache when a new version activates (FEAT-0265)", () => {
+    // A chunk cached on first use must survive the deploy that replaces CACHE.
+    expect(source).toMatch(/key !== CACHE && key !== RUNTIME_CACHE/);
+  });
 });

@@ -33,6 +33,8 @@
  * become a reload loop.
  */
 
+import { isBrowserOffline, reportNotAvailableOffline } from "./offlineAvailability";
+
 const STALE_RELOAD_FLAG = "cachy:stale-chunk-reload";
 
 /** Secondary guard for sessions where sessionStorage is unavailable. */
@@ -105,11 +107,14 @@ export function scheduleStaleReload(): boolean {
 }
 
 /**
- * Routes a failed lazy import. A stale chunk takes the guarded reload path
- * (at most one reload per tab; later stale chunks in that tab are not
- * reloaded). Anything else is logged; the caller retries only when its
- * trigger fires again. The callbacks are injectable so the decision can be
- * tested without timers or a browser.
+ * Routes a failed lazy import. Offline, the failure is a file that was never
+ * cached (FEAT-0265 caches lazy chunks on first use), not a deleted one: the
+ * user is told and nothing reloads — a reload would only land on the same
+ * cached shell and spend the tab's one recovery. Online, a stale chunk takes
+ * the guarded reload path (at most one reload per tab; later stale chunks in
+ * that tab are not reloaded). Anything else is logged; the caller retries only
+ * when its trigger fires again. The callbacks are injectable so the decision
+ * can be tested without timers or a browser.
  */
 export function handleLazyLoadFailure(
   label: string,
@@ -117,10 +122,17 @@ export function handleLazyLoadFailure(
   options: {
     reload?: () => boolean | void;
     log?: (message: string, error: unknown) => void;
+    isOffline?: () => boolean;
+    notifyOffline?: () => void;
   } = {},
-): "reload" | "reload-failed" | "log" {
+): "reload" | "reload-failed" | "offline" | "log" {
   const log =
     options.log ?? ((message: string, error: unknown) => console.error(message, error));
+  if (isStaleChunkError(error) && (options.isOffline ?? isBrowserOffline)()) {
+    console.warn(`${label} is not available offline yet`, error);
+    (options.notifyOffline ?? reportNotAvailableOffline)();
+    return "offline";
+  }
   if (isStaleChunkError(error)) {
     const started = (options.reload ?? scheduleStaleReload)();
     if (started === false) {
@@ -137,6 +149,11 @@ export function installStaleDeploymentRecovery(): () => void {
   const onUnhandledRejection = (event: PromiseRejectionEvent) => {
     if (isStaleChunkError(event.reason)) {
       event.preventDefault();
+      // Offline this is an uncached chunk, not a stale one (FEAT-0265).
+      if (isBrowserOffline()) {
+        reportNotAvailableOffline();
+        return;
+      }
       scheduleStaleReload();
     }
   };

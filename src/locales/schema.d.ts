@@ -3508,6 +3508,7 @@ export type TranslationKey =
   | "offline.providerSwitched"
   | "offline.switchFailed"
   | "offline.reconnectFailed"
+  | "offline.notCachedYet"
   | "calculationDashboard.liveAnalysisStatus"
   | "calculationDashboard.nextCycleIn"
   | "calculationDashboard.analyzing"

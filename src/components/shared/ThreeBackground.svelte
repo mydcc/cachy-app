@@ -20,6 +20,7 @@
     import { browser } from "$app/env";
     import { settingsState } from "../../stores/settings.svelte";
     import GalaxyWorker from "./backgrounds/galaxy.worker?worker";
+    import { onWorkerUnavailableOffline } from "../../services/offlineAvailability";
     import { readCssColor, isLightColor } from "../../lib/themeColors";
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
 
@@ -85,6 +86,14 @@
 
             const offscreen = canvas.transferControlToOffscreen();
             worker = new GalaxyWorker();
+            // FEAT-0265: the worker is cached on first use; offline before
+            // that, drop the empty canvas instead of leaving it mounted.
+            onWorkerUnavailableOffline(worker, () => {
+                worker?.terminate();
+                worker = null;
+                lifecycleState = LifecycleState.ERROR;
+                canvas.remove();
+            });
             
             worker.postMessage({
                 type: 'init',

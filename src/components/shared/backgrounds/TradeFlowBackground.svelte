@@ -29,6 +29,7 @@
   import { readIndicatorSignal } from "./indicatorSignal";
   import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
+  import { onWorkerUnavailableOffline } from "../../../services/offlineAvailability";
   import { concreteQuality, retainAutoQuality } from "./qualityController.svelte";
 
   // ========================================
@@ -138,6 +139,13 @@
       lifecycleState = LifecycleState.INITIALIZING;
       
       worker = new TradeFlowWorker();
+      // FEAT-0265: the worker is cached on first use; offline before that,
+      // stop instead of keeping a canvas nothing will ever draw on.
+      onWorkerUnavailableOffline(worker, () => {
+        worker?.terminate();
+        worker = null;
+        lifecycleState = LifecycleState.ERROR;
+      });
       
       // Check for OffscreenCanvas support
       if (!canvas.transferControlToOffscreen) {
