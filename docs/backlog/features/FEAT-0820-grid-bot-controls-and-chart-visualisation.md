@@ -2,7 +2,7 @@
 id: FEAT-0820
 title: Add grid bot controls and chart visualisation
 type: feature
-status: ready
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -64,6 +64,9 @@ A grid surface built on the runtime from FEAT-0819:
 - Live execution.
 
 ## Decisions (owner, 2026-11-23)
+
+The open questions are settled; the item stays `specced` only because it
+depends on FEAT-0819, and moves to `ready` once that runtime is done.
 
 - Grid levels are a **read-only overlay** in this item; moving a live ladder
   from the chart is later work, once the runtime supports it.
