@@ -2,9 +2,7 @@
 id: FEAT-0819
 title: Run grid bots on the paper account
 type: feature
-status: in-progress
-assignee: claude
-branch: feature/feat-0819-grid-runtime
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -59,8 +57,10 @@ Implement the grid as its own bot kind, per
       *Stage 1: `GridDocument` in `technicals-wasm/src/rule/grid.rs`; Rust round-trip test for both spacings, and `gridDocument.integration.test.ts` against the rebuilt artifact.*
 - [ ] The runtime places exactly `level_count` orders within the range, never
       more than the budget allows, and each order carries `ownerBotId`.
+      *Stage 2 (`gridLadder.ts`): `level_count` is the number of levels, so a ladder has `level_count + 1` lines and exactly `level_count` opening slots; the budget never exceeds its cap because each slot rounds down. Placement and `ownerBotId` are stage 4.*
 - [ ] A fill re-places the opposite level within the range and never outside it;
       fills and fees are `Decimal` and match the paper book's audit record.
+      *Stage 2: `counterOrderOf` names the counter-order of a fill and never leaves the range; fees are `Decimal`. The match against the paper book's audit record is stage 4.*
 - [ ] Pause stops new placements and leaves protective exits running; resume
       continues from the book, not from a lost in-memory ladder.
 - [ ] Stop cancels every resting order owned by the grid and closes the owned
@@ -88,6 +88,7 @@ Implement the grid as its own bot kind, per
 - [ ] The editor warns when the level spacing does not exceed the round-trip
       fee and names the minimum viable spacing derived from the paper fee
       schedule (fees apply on both legs of every level cycle).
+      *Stage 2: `minimumViableSpacing` (`2f / (1 − f)`, taker fee on both legs) and `narrowestSpacing`. The warning itself is stage 5.*
 - [x] The stop-out rule is a required field — empty is refused, with no
       opt-out (ADR-0027: grid budget and stop-out limits are not optional).
       *Stage 1: `GridStopOutRequired` for an empty array; an absent field does not parse.*
@@ -99,10 +100,19 @@ Implement the grid as its own bot kind, per
 - [ ] The estimated budget (levels × size plus a fee buffer) and the
       worst-case loss (all opening levels filled, stop-out executed, fees on
       both legs included, as amount and share of the paper account) are displayed before the grid starts.
+      *Stage 2: `gridExposure` (notional, opening fees, round-trip fees and the reserve, which holds the opening-leg fees only) and `gridWorstCase` (all opening levels filled, stop-out executed, fees on both legs, amount and share of the account; a slot opened beyond the stop-out price contributes its fees, never an offsetting gain). The display is stage 5.*
 - [ ] A grid is bound to the paper account through `botAccount.ts`
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
       book. It never claims that its protective exits keep running.
+
+## State (2026-11-23)
+
+Stages 1 and 2 are delivered (#4624, and the ladder arithmetic in #4626);
+stages 3 to 5 are open. The item sits at `ready` between stages on purpose:
+`backlog:check:stale` flags an `in-progress` claim whose branch has merged,
+and every stage merges its own branch. Whoever starts the next stage claims
+the item again with that stage's branch and hands it back at merge.
 
 ## Delivery stages (2026-11-23)
 
@@ -113,7 +123,7 @@ its own PR:
    `technicals-wasm` (validation, refusals, content hash) plus the TS types
    and the integration test against the rebuilt artifact. Criteria 1, 9
    (the `percent_risk` refusal), 10 (the `send` refusal) and 13.
-2. **Ladder arithmetic.** A pure `Decimal` module: levels for both
+2. **Ladder arithmetic (delivered).** A pure `Decimal` module: levels for both
    spacings, the budget split rounded down to the quantity step, the
    rebalance target for a fill, the minimum viable spacing and the
    worst-case loss. Criteria 2, 3 and 9 (math halves).
@@ -122,7 +132,7 @@ its own PR:
 4. **Runtime.** Placement, rebalance, pause/resume, trend filter, stop and
    stop-out, restart from the book, the `(symbol, side)` reservation and the
    account binding. Criteria 2–8, 11 and 17.
-5. **Editor and review surfaces.** The fee warning, the ATR suggestion, the
+5. **Editor and review surfaces.** The editor must tell the trader when a price step moved a bound inward (`gridLines` rounds the lower line up and the upper line down, so no order rests outside the stated range). Also the fee warning, the ATR suggestion, the
    pre-start budget and worst-case display, and mark-to-market reporting.
    Criteria 12, 14, 15 and 16; coordinated with FEAT-0820.
 
