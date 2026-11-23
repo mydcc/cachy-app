@@ -156,6 +156,25 @@ describe("respondFromRuntimeCache", () => {
     expect(await response.text()).toBe("ammo");
   });
 
+  it("never stores a cross-origin response under a local key (FEAT-0265 review)", async () => {
+    // A CORS-readable 200 from another origin would otherwise be cached as
+    // "/ammo/ammo.wasm.js" and later executed as the app's own script.
+    for (const type of ["cors", "opaque"] as const) {
+      const cache = fakeCache();
+      stubCaches(cache);
+      const foreign = new Response("evil", { status: 200 });
+      Object.defineProperty(foreign, "type", { value: type });
+      vi.stubGlobal("fetch", vi.fn(async () => foreign));
+      const pending: Promise<unknown>[] = [];
+      const path = "/ammo/ammo.wasm.js";
+
+      await respondFromRuntimeCache(path, new Request(`https://cachy.test${path}`), (work) => pending.push(work));
+      await Promise.all(pending);
+
+      expect(cache.store.size, type).toBe(0);
+    }
+  });
+
   it("does not store an error response", async () => {
     const cache = fakeCache();
     stubCaches(cache);

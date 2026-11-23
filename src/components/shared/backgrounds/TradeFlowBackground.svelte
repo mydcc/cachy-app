@@ -32,6 +32,14 @@
   import { onWorkerUnavailableOffline } from "../../../services/offlineAvailability";
   import { concreteQuality, retainAutoQuality } from "./qualityController.svelte";
 
+  interface Props {
+    // FEAT-0265 review: called when the worker could not load offline, so the
+    // parent can remount this background once the connection is back.
+    onunavailableoffline?: () => void;
+  }
+
+  let { onunavailableoffline }: Props = $props();
+
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
   // ========================================
@@ -145,6 +153,7 @@
         worker?.terminate();
         worker = null;
         lifecycleState = LifecycleState.ERROR;
+        onunavailableoffline?.();
       });
       
       // Check for OffscreenCanvas support

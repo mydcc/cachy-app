@@ -106,6 +106,16 @@ reports a physics engine it could not load. The three overlay effects in the
 root layout retry on the `online` event, so an effect switched on offline
 loads once the connection is back without toggling it again.
 
+**Review follow-up** (after #4616 merged). The fetch handler did not check the
+origin, and every cache here is keyed by pathname: a cross-origin response
+whose path matched `/ammo/*` — say a custom background video URL on another
+host — would have been stored under the app's own `/ammo/ammo.wasm.js` and
+later executed as its script. The service worker now leaves cross-origin
+requests to the browser, and the runtime cache refuses `cors`/`opaque`
+responses. A galaxy or trade-flow background selected offline before first use
+also stayed blank after reconnect; `BackgroundRenderer` now remounts it on
+`online`, only after such a failure.
+
 ### Sizes
 
 Production build of 2026-11-23 on `develop` `b645f4c6b`, 1024-based:

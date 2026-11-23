@@ -58,7 +58,17 @@ export async function trimRuntimeCache(cache: Cache, max = MAX_RUNTIME_CACHE_ENT
   }
 }
 
+/**
+ * Only a same-origin response may live under a local pathname key. The fetch
+ * handler already ignores foreign URLs; this keeps a redirect to another
+ * origin (type "cors" or "opaque") from slipping in under the app's name.
+ */
+function isOwnOrigin(response: Response): boolean {
+  return response.type !== "cors" && response.type !== "opaque" && response.type !== "opaqueredirect";
+}
+
 function store(cache: Cache, pathname: string, response: Response): Promise<void> {
+  if (!isOwnOrigin(response)) return Promise.resolve();
   return cache
     .put(pathname, response)
     .then(() => trimRuntimeCache(cache))
@@ -93,7 +103,7 @@ export async function respondFromRuntimeCache(
   }
 
   const response = await fetch(request);
-  if (response instanceof Response && response.status === 200) {
+  if (response instanceof Response && response.status === 200 && isOwnOrigin(response)) {
     keepAlive(store(cache, pathname, response.clone()));
   }
   return response;

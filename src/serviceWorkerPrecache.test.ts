@@ -86,6 +86,15 @@ describe("service worker precache list (FEAT-0629)", () => {
     expect(block).toContain('"/ammo/ammo.wasm.wasm"');
   });
 
+  it("leaves cross-origin requests to the browser (FEAT-0265 review)", () => {
+    // Every cache in this worker is keyed by pathname. A foreign URL whose
+    // path collides with a local one must never reach those lookups or writes.
+    const handler = source.slice(source.indexOf('self.addEventListener("fetch"'));
+    const guard = handler.search(/if \(url\.origin !== self\.location\.origin\) return;/);
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(handler.indexOf("async function respond()"));
+  });
+
   it("spares the runtime cache when a new version activates (FEAT-0265)", () => {
     // A chunk cached on first use must survive the deploy that replaces CACHE.
     expect(source).toMatch(/key !== CACHE && key !== RUNTIME_CACHE/);
