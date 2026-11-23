@@ -1,6 +1,6 @@
 # ADR-0027: A grid bot owns an order set and the position it accumulates
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-11-23)
 - **Date:** 2026-11-06
 - **Deciders:** mydcc
 
@@ -57,6 +57,33 @@ needs its own gate decision; this ADR does not authorise it.
 existing exposure on the symbol or refuses to start when a manual position
 exists. It may not silently mix with exposure it does not own.
 
+**8. A grid is hedge-style and one-sided (decided 2026-11-23).** The paper book
+keys positions by `(symbol, side)`, keeps a long and a short side by side, and
+merges a same-side add into the existing position without re-attributing it
+(`applyOpen` in `src/services/paperExchange.ts`). Netting a grid against a
+same-side position would therefore pour its fills into exposure it does not own
+and lose their attribution. So a grid is either a long grid (buy levels open,
+sell levels close) or a short grid (the mirror), it reserves exactly one
+`(symbol, side)`, and it refuses to start while that side holds a manual
+position or another bot. The opposite side stays independent. A neutral grid
+holding both sides would need two reservations and is out of scope until
+ADR-0026 is extended for it.
+
+**9. The trend filter withdraws entries, never exits (decided 2026-11-23).**
+When the filter turns false, the grid cancels its resting, unfilled opening
+orders; counter-orders on filled levels, protective exits and the stop-out stay.
+When it turns true again, the ladder is rebuilt from the document and the book
+(point 4). Merely vetoing *new* levels is rejected: in an adverse trend the
+resting opening orders are exactly the ones that fill, so such a filter would
+protect almost nothing.
+
+**10. A grid is sized by a quote budget (decided 2026-11-23).** The document
+carries a total budget in the quote currency, split evenly across the levels.
+`percent_risk` sizing is refused for a grid, because a ladder has no single stop
+distance. Before start, the editor shows the worst-case loss — every opening
+level filled and the stop-out executed — as an amount and as a share of the
+paper account.
+
 ## Consequences
 
 ### What this enables
@@ -78,6 +105,11 @@ exists. It may not silently mix with exposure it does not own.
   limits are not optional.
 
 ### What is now forbidden
+
+- A grid that adds to a same-side position it does not own, or one that holds
+  both sides of a symbol.
+- A trend filter that leaves resting opening orders in the book while it reads
+  false.
 
 - A grid whose resting orders are indistinguishable from manual orders.
 - A pause that leaves the ladder placing new orders.

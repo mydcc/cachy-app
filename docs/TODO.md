@@ -1353,7 +1353,7 @@ a reason, because that hop exists to carry a credential and would otherwise make
 Cachy a recipient of strategy text. Scope as proposed: conditions, veto and
 exits, never the stop (ADR-0020 decision 6), and saving is not arming.
 
-## 34. Grid bots: paper-first, netting and edition
+## 34. ✅ Grid bots: paper-first, netting and edition
 
 **From:** [`ADR-0027`](adr/0027-a-grid-bot-owns-an-order-set-and-its-position.md),
 [`FEAT-0819`](backlog/features/FEAT-0819-grid-bot-runtime-on-the-paper-account.md).
@@ -1365,6 +1365,10 @@ Three decisions before the grid leaves `specced`:
    positions; and what a grid does when a manual position already exists.
 3. **Edition** — community, pro or private. Proposal: community, because the
    grid is local and paper-only.
+
+**Decided 2026-11-23:** paper only; community; hedge-style one-sided grids that
+refuse a same-side manual position, a trend filter that withdraws resting
+entries, and quote-budget sizing. Recorded in ADR-0027 (Accepted) points 8–10.
 
 ## 35. ✅ Condition builder: limit and nesting
 
@@ -1407,7 +1411,7 @@ The workshop window carries the working title "Automatisierung" / "Automation"
 until a naming pass says otherwise; that pass must also disambiguate the
 existing Settings section title "Automatisierung & Erweitert".
 
-## 37. Literature template library: scope and citations
+## 37. ✅ Literature template library: scope and citations
 
 **From:** [`FEAT-0818`](backlog/features/FEAT-0818-curated-literature-strategy-templates.md).
 
@@ -1417,3 +1421,7 @@ entries plus exits.
 
 **Proposal:** 8–12 templates, chapter citations, entries first, exits once
 FEAT-0809 lands. No performance claims anywhere in the library.
+
+**Decided 2026-11-23:** 8–12 templates with entries and the exit each source
+describes (FEAT-0809 is done), chapter citations, proper names with localized
+descriptions. Details in FEAT-0818.

@@ -2,7 +2,7 @@
 id: FEAT-0820
 title: Add grid bot controls and chart visualisation
 type: feature
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -63,13 +63,14 @@ A grid surface built on the runtime from FEAT-0819:
 - Multi-grid portfolio views.
 - Live execution.
 
-## Open questions
+## Decisions (owner, 2026-11-23)
 
-- Whether grid levels are a chart drawing the trader can edit, or a read-only
-  overlay. Proposal: read-only in this item; editing comes later if the runtime
-  supports moving a live ladder.
-- Whether the orders group expands by default. Proposal: collapsed, with the
-  level count in the summary.
+- Grid levels are a **read-only overlay** in this item; moving a live ladder
+  from the chart is later work, once the runtime supports it.
+- The orders group is **collapsed** by default, with the level count in the
+  summary.
+- The panel offers long or short only (ADR-0027 point 8), sizes by quote
+  budget and shows the worst-case loss before start (point 10).
 
 ## Links
 

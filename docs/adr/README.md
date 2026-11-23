@@ -62,7 +62,7 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0024](0024-settings-store-split-behind-facade.md) | The settings store splits behind a facade, gated on explicit autosave ownership | Accepted |
 | [0025](0025-academy-lesson-fields.md) | Academy lesson fields are four prose keys, placement is a catalogue property | Proposed |
 | [0026](0026-a-bot-owns-the-position-it-opens.md) | A bot owns the position it opens | Accepted |
-| [0027](0027-a-grid-bot-owns-an-order-set-and-its-position.md) | A grid bot owns an order set and its position | Proposed |
+| [0027](0027-a-grid-bot-owns-an-order-set-and-its-position.md) | A grid bot owns an order set and its position | Accepted |
 | [0028](0028-a-bot-executes-against-one-account.md) | A bot executes against one account, and only that account's bots are shown | Accepted |
 | [0029](0029-an-external-feed-names-its-source-and-its-age.md) | An external feed names its source and its age, and an unreadable veto fails open | Accepted |
 | [0030](0030-a-strategy-draft-goes-out-browser-direct-and-comes-back-unarmed.md) | A strategy draft goes out browser-direct under its own consent, and comes back unarmed | Accepted |
