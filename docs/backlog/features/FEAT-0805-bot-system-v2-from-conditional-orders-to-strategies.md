@@ -189,10 +189,12 @@ the code or a test shows them.
 
 **Still open before this epic closes:**
 
-- FEAT-0822's first criterion (the guard row for a suppressed same-candle
-  repeat) waits on the owner's choice in
-  [`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md).
 - The children not yet built: FEAT-0818, FEAT-0819 and FEAT-0820.
+
+FEAT-0822's first criterion was amended rather than built: the suppressed
+same-candle repeat stays silent (owner decision,
+[`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md),
+dropped).
 
 ## Out of scope
 

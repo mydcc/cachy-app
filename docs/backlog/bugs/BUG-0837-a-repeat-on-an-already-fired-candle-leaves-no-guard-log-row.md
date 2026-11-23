@@ -2,7 +2,7 @@
 id: BUG-0837
 title: A repeat on an already-fired candle leaves no guard log row
 type: bug
-status: specced
+status: dropped
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -63,6 +63,13 @@ An owner decision, because both options are clean and they differ in scope:
 Recommendation: option 2. The guard log answers "why did my bot not act",
 and on the same candle the bot already acted. A row there tells the trader
 nothing new.
+
+## Resolution (2026-11-23)
+
+Dropped by owner decision: option 2. The same-candle repeat stays silent,
+and FEAT-0822's criterion is amended to say so. No suppression port is added
+to the gate. The guard log keeps answering "why did my bot not act", and on
+a candle where the bot already acted that question does not arise.
 
 ## Links
 
