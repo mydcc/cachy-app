@@ -114,15 +114,15 @@ when it is proven to fit what came before and what is planned after.
 
 ## Acceptance criteria
 
-- [ ] `ADR-0026` is accepted before any exit execution merges; `ADR-0027`
+- [x] `ADR-0026` is accepted before any exit execution merges; `ADR-0027`
       before any grid runtime merges.
-- [ ] Every stage uses one condition language, one evaluator and one
+- [x] Every stage uses one condition language, one evaluator and one
       `OrderGate`; no second execution path exists (ADR-0012 decision 5).
-- [ ] The trader can create a bot directly in the workshop — promotion from
+- [x] The trader can create a bot directly in the workshop — promotion from
       an alert remains a shortcut, never the only path (trader types B, C).
-- [ ] Paper positions, fills and journal entries attribute a bot trade to
+- [x] Paper positions, fills and journal entries attribute a bot trade to
       the bot that opened it; a manual trade is distinguishable.
-- [ ] A waiting bot is visible before it acts — in the sidebar first
+- [x] A waiting bot is visible before it acts — in the sidebar first
       (FEAT-0808 phase A: its own tab; long-term phase B: among open orders
       as a state-colored conditional entry).
 - [ ] Every firing policy and limit is user-settable and visible; the
@@ -130,14 +130,47 @@ when it is proven to fit what came before and what is planned after.
       exits) is fixed and cannot be configured away (FEAT-0822).
 - [ ] The current conditional market order keeps working unchanged; stage 3
       is an addition, not a replacement.
-- [ ] The public docs carry the goal and the "Bot vs. Order" vocabulary
+- [x] The public docs carry the goal and the "Bot vs. Order" vocabulary
       (FEAT-0826); no stage names leak into UI strings.
-- [ ] No new server call, no new Class B feature: rules, positions and the
+- [x] No new server call, no new Class B feature: rules, positions and the
       journal stay on the device (ADR-0001).
-- [ ] Every new string exists in both `src/locales/locales/de.json` and
+- [x] Every new string exists in both `src/locales/locales/de.json` and
       `src/locales/locales/en.json`.
 - [ ] Each child item's acceptance criteria are met, or the item records
       why it was dropped.
+
+### Verification against the code (2026-11-23)
+
+Checked on `develop` at `7ab75931a`; the criteria above are ticked only where
+the code or a test shows them.
+
+- **Gate:** bot entries and exits go through `placeEntryGroup` and the
+  single-close lane into `tradeService` → `OrderGate`; `paperExchange` is
+  imported only by `tradeService`, `paperTradingService` and `errorUtils`.
+- **Attribution:** `paperExchange.attribution.test.ts` and
+  `paperJournalService.exitOrigin.test.ts` pin bot vs manual, the pre-field
+  blob and reload.
+- **Visible and creatable:** `PositionsSidebar.svelte` has a `bots` tab;
+  `BotEditor.svelte` has a `bot-create` mode.
+- **Local-First:** no `spacetimedb` or `cloudService` import in
+  `src/services/alertEngine` or `src/lib/rules`.
+- Targeted run: attribution, journal, `botState`, `botExits`, exit
+  execution and `botGuards` tests — 131 passed.
+
+**Still open before this epic closes:**
+
+- *Safety floor* (firing-policy criterion): the mandatory stop is derived in
+  `botOrders.ts`, but no test was found that proves it cannot be configured
+  away.
+- *Conditional market order unchanged*: not checked here.
+- *Child acceptance criteria*: five `done` children still carry unticked
+  boxes — FEAT-0806 (7), FEAT-0807 (6), FEAT-0810 (9), FEAT-0822 (1),
+  FEAT-0823 (1, recorded as deferred to FEAT-0811). Most are covered by the
+  tests above, but three have no direct test: a deleted bot rule leaves the
+  position attributable (FEAT-0806), `take_profit` resolves from the actual
+  entry (FEAT-0810), and a suppressed `once_per_candle` repeat appears once in
+  the guard log (FEAT-0822). Each child either gets its boxes ticked against
+  a test or records why it was dropped.
 
 ## Out of scope
 
