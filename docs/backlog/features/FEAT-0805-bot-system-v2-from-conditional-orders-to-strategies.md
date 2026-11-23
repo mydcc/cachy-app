@@ -156,8 +156,9 @@ when it is proven to fit what came before and what is planned after.
 - Whether a paused bot keeps evaluating its exits. Decided with the owner
   (2026-11-18): yes — pause stops entries, exits keep protecting
   ([`TODO.md`](../../TODO.md#32--take-profit-and-exit-semantics)).
-- Grid netting and edition questions remain open in
-  [`TODO.md`](../../TODO.md#34-grid-bots-paper-first-netting-and-edition).
+- Grid netting and edition: decided with the owner (2026-11-23) — community,
+  paper only, hedge-style one-sided grids; ADR-0027 is Accepted
+  ([`TODO.md`](../../TODO.md#34--grid-bots-paper-first-netting-and-edition)).
 
 ## Links
 

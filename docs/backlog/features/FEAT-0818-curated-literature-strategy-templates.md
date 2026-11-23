@@ -2,7 +2,7 @@
 id: FEAT-0818
 title: Curate a literature-backed strategy template library
 type: feature
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -65,8 +65,10 @@ trader's own work, not only curated literature:
 
 - [ ] At least eight templates across trend, mean-reversion and breakout, each
       validating against the current core.
-- [ ] Every template carries a source citation, an assumptions note and a
-      failure-mode note.
+- [ ] Every template carries a source citation (author, title, edition year,
+      chapter), an assumptions note and a failure-mode note.
+- [ ] Every template carries the exit its source describes, or an annotation
+      stating that the source names none.
 - [ ] Long and short variants exist where the direction changes the conditions,
       and each is its own document.
 - [ ] Importing creates an unarmed draft with `derived_from_hash` set; it never
@@ -91,17 +93,25 @@ trader's own work, not only curated literature:
 - A marketplace for user-published templates
   ([`IDEA-0831`](../ideas/IDEA-0831-community-template-exchange.md), parked).
 
-## Open questions
+## Decisions (owner, 2026-11-23)
 
-- The initial source list and citation format; proposal: one canonical book per
-  pattern family, cited by chapter, not page.
-- Whether templates may include exits now or wait for FEAT-0809. Proposal: ship
-  entries first, add exits when the schema lands.
-- Whether template names are localized or kept as proper names with a localized
-  description. Proposal: proper name plus localized description.
+- **Scope:** 8–12 templates, each with its entry **and the exit its source
+  describes** (FEAT-0809 is done, so exits are in the schema). A template whose
+  source names no exit says so in its annotation instead of inventing one.
+- **Citations:** one canonical book per pattern family, cited by author, title,
+  edition year and chapter — never by page.
+- **Names:** proper name plus a localized description.
+- **Candidate sources** (to be checked against the edition actually cited
+  before a template ships): Wilder, *New Concepts in Technical Trading Systems*
+  (ADX, RSI, ATR, Parabolic SAR); Faith, *Way of the Turtle* (Donchian breakout
+  with its N-based stop and channel exit); Connors and Alvarez, *Short Term
+  Trading Strategies That Work* (RSI(2) mean reversion with its moving-average
+  exit); Bollinger, *Bollinger on Bollinger Bands* (band squeeze and band
+  reversion); Appel, *Technical Analysis: Power Tools for Active Investors*
+  (MACD).
 
 ## Links
 
 - [`FEAT-0391`](FEAT-0391-alert-template-library.md)
 - [`FEAT-0817`](FEAT-0817-ai-assisted-rule-authoring.md)
-- [`TODO.md`](../../TODO.md#37-literature-template-library-scope-and-citations)
+- [`TODO.md`](../../TODO.md#37--literature-template-library-scope-and-citations)

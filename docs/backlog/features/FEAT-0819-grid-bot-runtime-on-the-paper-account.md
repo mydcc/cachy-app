@@ -2,7 +2,7 @@
 id: FEAT-0819
 title: Run grid bots on the paper account
 type: feature
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -65,8 +65,17 @@ Implement the grid as its own bot kind, per
       on restart.
 - [ ] A reload mid-ladder rebuilds the same ladder (same levels, same owner)
       from the document and the book.
-- [ ] A grid refuses to start on a symbol with a manual position unless its
-      netting policy explicitly allows it.
+- [ ] A grid refuses to start while its `(symbol, side)` holds a manual
+      position or another bot; a position on the opposite side does not block
+      it.
+- [ ] When the trend filter reads false, every resting unfilled opening order
+      of the grid is cancelled while counter-orders, exits and the stop-out
+      stay; when it reads true again the ladder is rebuilt from document and
+      book.
+- [ ] A grid document sized with `percent_risk` is refused with a named
+      reason; the quote budget is split evenly across levels as `Decimal`,
+      each level's quantity rounded down to the quantity step so the ladder
+      never exceeds the budget.
 - [ ] No live order path is reachable; the grid is paper-only and a `send`-level
       document is refused as today.
 - [ ] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
@@ -81,8 +90,9 @@ Implement the grid as its own bot kind, per
 - [ ] The editor offers an ATR-derived spacing suggestion from existing
       indicator data — a suggestion the trader accepts, never silently
       applied.
-- [ ] The estimated budget (levels × size plus a fee buffer) is displayed
-      before the grid starts.
+- [ ] The estimated budget (levels × size plus a fee buffer) and the
+      worst-case loss (all opening levels filled, stop-out executed, fees on
+      both legs included, as amount and share of the paper account) are displayed before the grid starts.
 - [ ] A grid is bound to the paper account through `botAccount.ts`
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
@@ -93,17 +103,32 @@ Implement the grid as its own bot kind, per
 - Live grid execution (FEAT-0035).
 - Grid optimisation, backtests or parameter search.
 - Multiple grids on one symbol and side (one owner, like a single-entry bot).
+- Neutral grids that hold both sides of a symbol (ADR-0027 point 8).
 - Funding-aware rebalancing; the paper book does not model funding yet.
 - The chart/UI (FEAT-0820).
 
-## Open questions
+## Decisions (owner, 2026-11-23)
 
-- Netting mode: one-way net against existing exposure, or hedge-style separate
-  positions. The paper book's behaviour must be stated, not assumed.
-- Whether the trend filter may pause the grid or only veto new levels. Proposal:
-  pause new levels, keep the ladder and the exits.
-- Whether a grid may use `percent_risk` sizing; a ladder has no single stop, so
-  the basis may need to be `quote_notional` or a per-level size.
+Recorded in ADR-0027 points 8–10, which is now Accepted:
+
+- **Netting: hedge-style, one side.** The paper book keeps long and short apart
+  per symbol and merges a same-side add without re-attributing it. A grid is a
+  long grid or a short grid, reserves one `(symbol, side)`, and refuses to start
+  while that side holds a manual position or another bot. Neutral grids are out
+  of scope.
+- **Trend filter: withdraw entries.** When the filter reads false, the grid
+  cancels its resting unfilled opening orders and keeps counter-orders, exits
+  and the stop-out; it rebuilds the ladder from document and book when the
+  filter reads true again.
+- **Sizing: quote budget.** A total budget in quote currency, split evenly
+  across levels, each level rounded down to the quantity step; `percent_risk`
+  is refused. The pre-start display shows the worst-case loss (all opening
+  levels filled, stop-out executed, fees included) as an amount and as a share
+  of the paper account.
+- **Edition and scope:** community, paper only (TODO §34).
+- **Fees:** the paper book fills resting limits at the taker fee
+  (`applyOpen` → `takerFee`), so the minimum-spacing warning uses the taker fee
+  on both legs.
 
 **Provenance.** The grid requirements above that are not plain engineering —
 fee-vs-spacing, the mandatory stop-out, mark-to-market reporting,
@@ -120,5 +145,5 @@ intentionally not cited by URL in this repository.
 - [`ADR-0026`](../../adr/0026-a-bot-owns-the-position-it-opens.md)
 - [`FEAT-0810`](FEAT-0810-execute-bot-exits-through-the-order-gate.md)
 - [`FEAT-0820`](FEAT-0820-grid-bot-controls-and-chart-visualisation.md)
-- [`TODO.md`](../../TODO.md#34-grid-bots-paper-first-netting-and-edition)
+- [`TODO.md`](../../TODO.md#34--grid-bots-paper-first-netting-and-edition)
 - Code: `src/services/paperExchange.ts`, `src/stores/paperTrading.svelte.ts`
