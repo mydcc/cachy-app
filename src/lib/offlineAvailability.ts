@@ -19,36 +19,23 @@
  * FEAT-0265: three.js, its workers and the physics engine are cached on first
  * use, not at install. Offline, before that first use, loading them fails —
  * and a failed dynamic import carries the same browser message as a chunk
- * deleted by a deploy. Without this distinction the stale-deployment path
- * would reload the page instead of saying what is going on.
+ * deleted by a deploy. This module lets the domain layer tell the two apart
+ * and report the offline case through a port; the UI layer supplies the
+ * notice (`src/services/offlineAvailability.ts`, wired in the root layout).
  */
-
-import { get } from "svelte/store";
-import { _ } from "../locales/i18n";
-import { toastService } from "../services/toastService.svelte";
-
-const OFFLINE_NOTICE_DURATION_MS = 6000;
 
 export function isBrowserOffline(): boolean {
   return typeof navigator !== "undefined" && navigator.onLine === false;
 }
 
-/** Tells the user that a feature has not been loaded while online yet. */
-export function reportNotAvailableOffline(): void {
-  toastService.warning(get(_)("offline.notCachedYet"), OFFLINE_NOTICE_DURATION_MS);
+/** Until the UI registers its notice, the report still reaches the console. */
+let notify: () => void = () => console.warn("A feature is not available offline yet");
+
+export function setOfflineNotifier(notifier: () => void): void {
+  notify = notifier;
 }
 
-/**
- * A worker script that is not cached yet does not throw from `new Worker()`
- * offline — the failure arrives later as an `error` event, and without a
- * listener the effect keeps an empty canvas. Online errors are left to the
- * caller's existing handling; this only claims the offline case.
- */
-export function onWorkerUnavailableOffline(worker: Worker, onUnavailable: () => void): void {
-  worker.addEventListener("error", (event) => {
-    if (!isBrowserOffline()) return;
-    event.preventDefault();
-    reportNotAvailableOffline();
-    onUnavailable();
-  });
+/** Tells the user that a feature has not been loaded while online yet. */
+export function reportNotAvailableOffline(): void {
+  notify();
 }

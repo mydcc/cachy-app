@@ -20,7 +20,7 @@
     import { browser } from "$app/env";
     import { settingsState } from "../../stores/settings.svelte";
     import GalaxyWorker from "./backgrounds/galaxy.worker?worker";
-    import { onWorkerUnavailableOffline } from "../../lib/offlineAvailability";
+    import { onWorkerUnavailableOffline } from "../../services/offlineAvailability";
     import { readCssColor, isLightColor } from "../../lib/themeColors";
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
 

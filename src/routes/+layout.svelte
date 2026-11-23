@@ -61,6 +61,12 @@ import { afterNavigate } from "$app/navigation";
   import { browser } from "$app/env";
   import { themeBackground } from "../lib/themeBackgrounds";
   import { handleLazyLoadFailure } from "../lib/staleDeploymentRecovery";
+  import { setOfflineNotifier } from "../lib/offlineAvailability";
+  import { showNotAvailableOfflineNotice } from "../services/offlineAvailability";
+
+  // FEAT-0265: the domain layer reports "not loaded while online yet" through
+  // this port; the toast is a UI concern and lives in services.
+  setOfflineNotifier(showNotAvailableOfflineNotice);
 
   interface Props {
     children?: import("svelte").Snippet;

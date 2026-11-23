@@ -495,6 +495,8 @@ offline use case. `RUNTIME_CACHE`, `MAX_RUNTIME_CACHE_ENTRIES` and the
 corresponding eslint-disable comment have been deleted;
 `deleteOldCaches()` now only keeps `CACHE`. Runtime caching can be added
 deliberately if a concrete offline use case appears.
+That condition was met by FEAT-0265 (2026-11): `src/service-worker/runtimeCache.ts`
+caches the lazily loaded three.js and physics files on first use.
 
 Found while looking for a home for an unused
 `MAX_RUNTIME_CACHE_ENTRIES` constant flagged by a lint pass.

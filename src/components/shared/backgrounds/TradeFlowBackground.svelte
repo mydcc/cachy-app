@@ -29,7 +29,7 @@
   import { readIndicatorSignal } from "./indicatorSignal";
   import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
-  import { onWorkerUnavailableOffline } from "../../../lib/offlineAvailability";
+  import { onWorkerUnavailableOffline } from "../../../services/offlineAvailability";
   import { concreteQuality, retainAutoQuality } from "./qualityController.svelte";
 
   // ========================================
