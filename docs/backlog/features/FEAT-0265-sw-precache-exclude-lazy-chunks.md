@@ -173,7 +173,7 @@ being downloaded again with each release.
 - [x] An effect enabled once while online stays usable offline afterwards.
 - [x] An effect enabled while offline without prior use shows a defined
       message, no white screen, and no unhandled rejection in the console.
-- [ ] CI is green on `npm run check`; locally,
+- [x] CI is green on `npm run check`; locally,
       `bash scripts/run-lowpri.sh npx vitest run --project=unit src/serviceWorkerPrecache.test.ts`
       passes.
 - [x] No change to COEP, CSP or `Permissions-Policy`.
