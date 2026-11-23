@@ -91,7 +91,9 @@ in the journal's per-bot review (FEAT-0812).
       deferring that channel rather than breaking the core's boundary.
       What the guard log DOES record, pinned in botOrders tests: the
       `once` policy's expiry after a landed entry, and every limit
-      refusal.* 
+      refusal.*
+      *Open as [`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md):
+      either a guard row for the suppressed repeat or an amended criterion.*
 - [x] A `multi` bot with `max positions: 1` refuses a second entry with a
       visible reason and stays healthy for the next legitimate exit/entry
       cycle.

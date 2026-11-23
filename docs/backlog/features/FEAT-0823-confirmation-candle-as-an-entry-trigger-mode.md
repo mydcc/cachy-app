@@ -104,13 +104,14 @@ Optional, never forced.
       refuses `confirmation + intrabar` outright
       (`confirmationNeedsCloses`, both locales), so the wait can never
       read a forming candle.*
-- [ ] The editor states the trade-off (entry one candle later) in both
+- [x] The editor states the trade-off (entry one candle later) in both
       locales, with i18n keys.
       *Deferred to FEAT-0811, the same deferral 0822's editor criterion
       carries: the editor section is 0811's deliverable, and shipping its
       locale keys now would be dead strings no surface renders. The
       document field, its validation and its sidebar rendering are this
       item's; the control that sets them is the editor's.*
+      *Shipped with FEAT-0811: `BotFiringEditor.svelte` renders `settings.automation.editor.triggerTradeoff` (de and en); `BotEditor.component.test.ts` pins both locales.*
 
 ## Out of scope
 

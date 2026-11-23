@@ -224,6 +224,23 @@ describe("FEAT-0806 — the journal carries attribution", () => {
         expect(normalized.strategyHash).toBe(HASH);
     });
 
+    it("reads a journal entry written before the change as unattributed", async () => {
+        await open(BOT_STAMP);
+        paperJournalService.reconcile();
+
+        // The entry a pre-0806 build would have stored: the same row, minus
+        // the four attribution keys.
+        const legacy = JSON.parse(JSON.stringify(lastEntry())) as Record<string, unknown>;
+        for (const key of ["origin", "botId", "ruleId", "strategyHash"]) delete legacy[key];
+
+        const normalized = normalizeJournalEntry(legacy);
+        expect(normalized.symbol).toBe("BTCUSDT");
+        expect(normalized.origin).toBeUndefined();
+        expect(normalized.botId).toBeUndefined();
+        expect(normalized.ruleId).toBeUndefined();
+        expect(normalized.strategyHash).toBeUndefined();
+    });
+
     it("keeps the attribution when the bot's rule no longer exists", async () => {
         // No rule store takes part anywhere in this flow: the fields are
         // recorded facts, so deleting the rule cannot erase the track record.
@@ -233,6 +250,39 @@ describe("FEAT-0806 — the journal carries attribution", () => {
         const entry = lastEntry();
         expect(entry?.ruleId).toBe("rule-bot-1");
         expect(entry?.botId).toBe("rule-bot-1");
+    });
+});
+
+describe("FEAT-0806 — attribution stays on the device (ADR-0001)", () => {
+    function storedKeys(): string[] {
+        const keys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key !== null) keys.push(key);
+        }
+        return keys.sort();
+    }
+
+    it("writes a bot trade under the same keys as a manual one, with no network call", async () => {
+        const fetchSpy = vi.spyOn(globalThis, "fetch");
+        try {
+            await open({ origin: "manual" });
+            paperJournalService.reconcile();
+            const manualKeys = storedKeys();
+            expect(manualKeys).toContain(CONSTANTS.LOCAL_STORAGE_PAPER_KEY);
+
+            localStorage.clear();
+            journalState.set([]);
+            paperState.resetBook();
+            await open(BOT_STAMP);
+            paperJournalService.reconcile();
+
+            expect(lastEntry()?.origin).toBe("bot");
+            expect(storedKeys()).toEqual(manualKeys);
+            expect(fetchSpy).not.toHaveBeenCalled();
+        } finally {
+            fetchSpy.mockRestore();
+        }
     });
 });
 

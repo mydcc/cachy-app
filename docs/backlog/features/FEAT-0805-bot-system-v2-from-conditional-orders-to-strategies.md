@@ -128,7 +128,7 @@ when it is proven to fit what came before and what is planned after.
 - [x] Every firing policy and limit is user-settable and visible; the
       safety floor (mandatory stop, one gate, no exposure-increasing
       exits) is fixed and cannot be configured away (FEAT-0822).
-- [ ] The current conditional market order keeps working unchanged; stage 3
+- [x] The current conditional market order keeps working unchanged; stage 3
       is an addition, not a replacement.
 - [x] The public docs carry the goal and the "Bot vs. Order" vocabulary
       (FEAT-0826); no stage names leak into UI strings.
@@ -172,16 +172,27 @@ the code or a test shows them.
   shown by any test or code path; filed as
   [`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md).
 
+**Closed afterwards (2026-11-23):**
+
+- *Conditional market order unchanged:* `botOrders.test.ts`, "the stage-2
+  conditional market order is unchanged", drives a pre-epic document (no
+  exits, policy, limits, entry trigger or frequency) through the real gate
+  and sink. It pins one market entry with the fixed stop, no target, and the
+  plan's exact key set. The document still reads as spent under the default
+  `once` frequency, and the order lane adds no second gate. Ticked.
+- *Child criteria mapped one by one:* FEAT-0806, FEAT-0807, FEAT-0810 and
+  FEAT-0823 are fully ticked, each box with the test that shows it. Two tests
+  were added for FEAT-0806: a pre-field journal entry reads unattributed, and
+  a bot trade writes the same storage keys as a manual one with no network
+  call. FEAT-0823's editor box shipped with FEAT-0811. Targeted run: 9 files,
+  293 tests passed.
+
 **Still open before this epic closes:**
 
-- *Conditional market order unchanged:* only indirectly pinned — documents
-  recorded before the stop field keep their hash
-  (`stopDistance.integration.test.ts`), and `botExits.ts` does nothing for a
-  rule without exits. No test drives the unchanged order itself.
-- *Child acceptance criteria:* FEAT-0806, FEAT-0807, FEAT-0810, FEAT-0822 and
-  FEAT-0823 still carry unticked boxes. The rest are probably covered by the
-  tests listed above but have not been mapped one by one. FEAT-0823's
-  remaining box is recorded as deferred to FEAT-0811.
+- FEAT-0822's first criterion (the guard row for a suppressed same-candle
+  repeat) waits on the owner's choice in
+  [`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md).
+- The children not yet built: FEAT-0818, FEAT-0819 and FEAT-0820.
 
 ## Out of scope
 

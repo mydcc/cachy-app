@@ -37,15 +37,32 @@ No test drives a second evaluation of the same anchor and reads the guard log.
 
 ## Cause
 
-Unknown. The same-anchor dedupe sits in the evaluation ledger and has no
-reporting port toward the guard store.
+Known, and recorded in FEAT-0822's own criterion note: the within-candle
+suppression happens in the evaluation gate's announce map (FEAT-0477). A
+repeat the gate withholds never reaches the order lane, so it never reaches
+`recordBotGuard` either. The gate is store-free by design and has no
+notification channel toward the guard ledger. FEAT-0822 shipped the
+suppression and deferred the log row, but left its criterion unticked
+rather than amended, which is why this reads as a defect.
 
 ## Fix direction
 
-First write the failing test: evaluate one closed candle twice and read the
-guard log. If a row is wanted, decide whether a replay after a reload counts
-as a suppression; otherwise amend FEAT-0822's criterion to say the repeat is
-silent.
+An owner decision, because both options are clean and they differ in scope:
+
+1. **Row wanted:** give the gate an optional suppression port (the shape
+   `vetoSuppressionSink` already has for vetoes) that the store wires to
+   `recordBotGuard`. The core stays store-free because the port is
+   injected. Before that, decide whether a replay after a reload counts as
+   a suppression. Proposal: it does not. A reload replay is the engine
+   catching up, not the bot declining to act, and counting it would add a
+   row the trader did nothing to cause. Start with the failing test:
+   evaluate one closed candle twice and read the guard log.
+2. **Repeat stays silent:** amend FEAT-0822's criterion to drop the
+   guard-log half and tick it.
+
+Recommendation: option 2. The guard log answers "why did my bot not act",
+and on the same candle the bot already acted. A row there tells the trader
+nothing new.
 
 ## Links
 
