@@ -2,9 +2,7 @@
 id: FEAT-0819
 title: Run grid bots on the paper account
 type: feature
-status: in-progress
-assignee: claude
-branch: feature/feat-0819-grid-runtime
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -107,6 +105,14 @@ Implement the grid as its own bot kind, per
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
       book. It never claims that its protective exits keep running.
+
+## State (2026-11-23)
+
+Stages 1 and 2 are delivered (#4624, and the ladder arithmetic in #4626);
+stages 3 to 5 are open. The item sits at `ready` between stages on purpose:
+`backlog:check:stale` flags an `in-progress` claim whose branch has merged,
+and every stage merges its own branch. Whoever starts the next stage claims
+the item again with that stage's branch and hands it back at merge.
 
 ## Delivery stages (2026-11-23)
 
