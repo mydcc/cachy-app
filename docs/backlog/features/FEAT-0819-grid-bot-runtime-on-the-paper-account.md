@@ -102,7 +102,7 @@ Implement the grid as its own bot kind, per
 - [ ] The estimated budget (levels × size plus a fee buffer) and the
       worst-case loss (all opening levels filled, stop-out executed, fees on
       both legs included, as amount and share of the paper account) are displayed before the grid starts.
-      *Stage 2: `gridExposure` and `gridWorstCase` (all opening levels filled, stop-out executed, fees on both legs, amount and share of the account). The display is stage 5.*
+      *Stage 2: `gridExposure` (notional, opening fees, round-trip fees and the reserve, which holds the opening-leg fees only) and `gridWorstCase` (all opening levels filled, stop-out executed, fees on both legs, amount and share of the account; a slot opened beyond the stop-out price contributes its fees, never an offsetting gain). The display is stage 5.*
 - [ ] A grid is bound to the paper account through `botAccount.ts`
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
@@ -126,7 +126,7 @@ its own PR:
 4. **Runtime.** Placement, rebalance, pause/resume, trend filter, stop and
    stop-out, restart from the book, the `(symbol, side)` reservation and the
    account binding. Criteria 2–8, 11 and 17.
-5. **Editor and review surfaces.** The fee warning, the ATR suggestion, the
+5. **Editor and review surfaces.** The editor must tell the trader when a price step moved a bound inward (`gridLines` rounds the lower line up and the upper line down, so no order rests outside the stated range). Also the fee warning, the ATR suggestion, the
    pre-start budget and worst-case display, and mark-to-market reporting.
    Criteria 12, 14, 15 and 16; coordinated with FEAT-0820.
 

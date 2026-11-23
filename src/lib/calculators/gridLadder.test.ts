@@ -85,6 +85,44 @@ describe("grid lines", () => {
     });
   });
 
+  it("keeps the bounds inside the range when they are off the price step", () => {
+    // 100 to 101.3 in two levels, step 0.5: the upper bound 101.3 rounds
+    // *down* to 101, never up to 101.5, which would rest outside the range.
+    expect(strings(linesOf({ upper: d("101.3"), levelCount: 2 }, d("0.5")))).toEqual([
+      "100",
+      "100.5",
+      "101",
+    ]);
+    // A lower bound of 100.2 rounds *up* to 100.5, never down to 100.
+    const lines = linesOf({ lower: d("100.2"), upper: d("102"), levelCount: 3 }, d("0.5"));
+    expect(lines[0].gte("100.2")).toBe(true);
+    expect(lines[lines.length - 1].lte("102")).toBe(true);
+  });
+
+  it("keeps every line inside the document's bounds for any off-step bound", () => {
+    for (const [lower, upper] of [["100.2", "101.3"], ["99.99", "110.01"], ["0.0333", "0.0999"]]) {
+      const result = gridLines(range({ lower: d(lower), upper: d(upper), levelCount: 5 }), d("0.001"));
+      if (!result.ok) continue;
+      for (const line of result.value) {
+        expect(line.gte(lower) && line.lte(upper), `${lower}..${upper}: ${line}`).toBe(true);
+      }
+    }
+  });
+
+  it("refuses a bound that rounds inward past its neighbour", () => {
+    expect(gridLines(range({ lower: d("100.2"), upper: d("100.4"), levelCount: 2 }), d("0.5"))).toEqual({
+      ok: false,
+      reason: "levels-collapse",
+    });
+  });
+
+  it("refuses a range that is not a number", () => {
+    for (const bad of [d(NaN), d(Infinity)]) {
+      expect(gridLines(range({ lower: bad }))).toEqual({ ok: false, reason: "invalid-input" });
+      expect(gridLines(range({ upper: bad }))).toEqual({ ok: false, reason: "invalid-input" });
+    }
+  });
+
   it("refuses an invalid range or level count", () => {
     expect(gridLines(range({ upper: d("100") }))).toEqual({ ok: false, reason: "invalid-range" });
     expect(gridLines(range({ lower: d("0") }))).toEqual({ ok: false, reason: "invalid-range" });
@@ -150,6 +188,36 @@ describe("grid slots", () => {
     }
   });
 
+  it("never spends more than the budget even with no quantity step", () => {
+    // At 20 significant digits a half-up quotient can overshoot by one unit;
+    // the sum is measured at 60 digits so the check itself cannot round.
+    const Exact = Decimal.clone({ precision: 60 });
+    for (const [budget, lower, upper, levelCount] of [
+      ["1040", "100", "163", 9], // the reviewer's reproduction
+      ["1000", "100", "200", 7],
+      ["777.77", "10", "1234.5", 13],
+      ["1", "1", "3", 3],
+    ] as const) {
+      const lines = gridLines({ lower: d(lower), upper: d(upper), levelCount, spacing: "arithmetic" });
+      if (!lines.ok) throw new Error(lines.reason);
+      const result = gridSlots("long", lines.value, d(budget));
+      if (!result.ok) throw new Error(result.reason);
+      const spent = result.value.reduce(
+        (sum, slot) => sum.plus(new Exact(slot.quantity.toString()).times(new Exact(slot.openPrice.toString()))),
+        new Exact(0),
+      );
+      expect(spent.lte(new Exact(budget)), `${budget}: spent ${spent}`).toBe(true);
+    }
+  });
+
+  it("refuses a budget or a line that is not a number", () => {
+    const lines = linesOf();
+    for (const bad of [d(NaN), d(Infinity)]) {
+      expect(gridSlots("long", lines, bad)).toEqual({ ok: false, reason: "invalid-input" });
+      expect(gridSlots("long", [d(100), bad], d("1000"))).toEqual({ ok: false, reason: "invalid-input" });
+    }
+  });
+
   it("refuses a budget whose share buys less than one step, instead of thinning the ladder", () => {
     // 10 over four slots is 2.5 each; at 175 that is 0.0142…, below a step of 0.1.
     expect(gridSlots("long", linesOf(), d("10"), d("0.1"))).toEqual({
@@ -173,14 +241,20 @@ describe("counter-orders", () => {
 describe("fees against spacing", () => {
   it("names the spacing at which a round trip only breaks even", () => {
     // f = 0.0006: 2f / (1 − f) = 0.0012 / 0.9994.
-    expect(minimumViableSpacing(d("0.0006")).toString()).toBe(d("0.0012").div("0.9994").toString());
-    expect(minimumViableSpacing(d("0")).toString()).toBe("0");
+    expect(minimumViableSpacing(d("0.0006"))?.toString()).toBe(d("0.0012").div("0.9994").toString());
+    expect(minimumViableSpacing(d("0"))?.toString()).toBe("0");
+  });
+
+  it("has no break-even spacing for a rate that is not a fee", () => {
+    for (const bad of [d("1"), d("1.5"), d("-0.001"), d(NaN), d(Infinity)]) {
+      expect(minimumViableSpacing(bad), bad.toString()).toBeNull();
+    }
   });
 
   it("a cycle at exactly the minimum spacing earns zero after fees", () => {
     const f = d("0.0006");
     const buy = d("100");
-    const sell = buy.times(minimumViableSpacing(f).plus(1));
+    const sell = buy.times((minimumViableSpacing(f) ?? d(NaN)).plus(1));
     const pnl = sell.minus(buy).minus(buy.plus(sell).times(f));
     // Zero within decimal.js's 20 significant digits on a price of 100.
     expect(pnl.abs().lt(d("1e-15")), pnl.toString()).toBe(true);
@@ -195,6 +269,12 @@ describe("fees against spacing", () => {
 });
 
 describe("budget and worst case", () => {
+  function worstOf(side: "long" | "short", ladder: ReturnType<typeof slots>, stop: string, equity: string) {
+    const result = gridWorstCase(side, ladder, d(stop), d("0.001"), d(equity));
+    if (!result.ok) throw new Error(result.reason);
+    return result.value;
+  }
+
   function slots(side: "long" | "short") {
     // Two lines, one level: 100 to 110, budget 1000 → 10 at 100 (long) or
     // 9.0909… → 9 at 110 (short) with a step of 1.
@@ -204,26 +284,50 @@ describe("budget and worst case", () => {
   }
 
   it("adds the fees of both legs to the notional", () => {
-    // 10 × 100 = 1000 notional; fees 0.001 × (1000 + 10 × 110) = 2.1.
+    // 10 × 100 = 1000 notional; opening fee 0.001 × 1000 = 1; a full round
+    // trip pays 0.001 × (1000 + 10 × 110) = 2.1. The reserve holds the
+    // opening fee only: the closing fee comes out of the sale proceeds.
     const exposure = gridExposure(slots("long"), d("0.001"));
     expect(exposure.notional.toString()).toBe("1000");
-    expect(exposure.budgetWithFees.toString()).toBe("1002.1");
+    expect(exposure.openFees.toString()).toBe("1");
+    expect(exposure.roundTripFees.toString()).toBe("2.1");
+    expect(exposure.reserveWithFees.toString()).toBe("1001");
   });
 
   it("prices a long's worst case with every opening filled and the stop-out executed", () => {
     // 10 bought at 100, closed at 90: 100 lost; fees 0.001 × 10 × (100 + 90) = 1.9.
-    const worst = gridWorstCase("long", slots("long"), d("90"), d("0.001"), d("10000"));
+    const worst = worstOf("long", slots("long"), "90", "10000");
     expect(worst.loss.toString()).toBe("101.9");
     expect(worst.shareOfAccount?.toString()).toBe("0.01019");
   });
 
   it("mirrors the worst case for a short", () => {
     // 9 sold at 110, closed at 120: 90 lost; fees 0.001 × 9 × (110 + 120) = 2.07.
-    const worst = gridWorstCase("short", slots("short"), d("120"), d("0.001"), d("10000"));
+    const worst = worstOf("short", slots("short"), "120", "10000");
     expect(worst.loss.toString()).toBe("92.07");
   });
 
   it("answers no share for an account it cannot divide by", () => {
-    expect(gridWorstCase("long", slots("long"), d("90"), d("0.001"), d("0")).shareOfAccount).toBeNull();
+    expect(worstOf("long", slots("long"), "90", "0").shareOfAccount).toBeNull();
+  });
+
+  it("never lets a gain from a fill the stop-out preempts offset a loss", () => {
+    // A stop-out at 120 over a long ladder opened at 100: the move is a
+    // 200 "gain", which must not make the loss negative. Only fees remain:
+    // 0.001 × 10 × (100 + 120) = 2.2.
+    expect(worstOf("long", slots("long"), "120", "10000").loss.toString()).toBe("2.2");
+    // And the mirror for a short opened at 110 with a stop-out at 100.
+    // 0.001 × 9 × (110 + 100) = 1.89.
+    expect(worstOf("short", slots("short"), "100", "10000").loss.toString()).toBe("1.89");
+  });
+
+  it("refuses a stop-out price, fee rate or account that is not usable", () => {
+    const refused = { ok: false, reason: "invalid-input" };
+    for (const stop of ["0", "-5"]) {
+      expect(gridWorstCase("long", slots("long"), d(stop), d("0.001"), d("10000"))).toEqual(refused);
+    }
+    expect(gridWorstCase("long", slots("long"), d(NaN), d("0.001"), d("10000"))).toEqual(refused);
+    expect(gridWorstCase("long", slots("long"), d("90"), d("-0.001"), d("10000"))).toEqual(refused);
+    expect(gridWorstCase("long", slots("long"), d("90"), d("0.001"), d(NaN))).toEqual(refused);
   });
 });
