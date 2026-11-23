@@ -140,6 +140,12 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(fetchEvent.request.url);
 
+  // Cross-origin requests (a custom background video, exchange APIs) are the
+  // browser's business. Every cache here is keyed by pathname, so a foreign
+  // URL whose path collides with a local one would otherwise be answered from,
+  // or written into, the app's own entries — FEAT-0265 review.
+  if (url.origin !== self.location.origin) return;
+
   // Ignore API requests (let them go to the network directly)
   if (url.pathname.startsWith("/api/")) return;
 

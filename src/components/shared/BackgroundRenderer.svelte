@@ -25,8 +25,27 @@
   import { settingsState } from "../../stores/settings.svelte";
   import BackgroundAnimations from "./BackgroundAnimations.svelte";
 
-  let ThreeComp = $state<Component | null>(null);
-  let TradeFlowComp = $state<Component | null>(null);
+  let ThreeComp = $state<Component<{ onunavailableoffline?: () => void }> | null>(null);
+  let TradeFlowComp = $state<Component<{ onunavailableoffline?: () => void }> | null>(null);
+
+  // FEAT-0265 review: the galaxy and trade-flow workers are cached on first
+  // use. A background selected offline before that cannot start, and it stays
+  // mounted, so nothing would retry it. Remount it on reconnect — only after
+  // such a failure, so a running background is not torn down on every
+  // `online` event.
+  let backgroundRetry = $state(0);
+  let backgroundFailedOffline = false;
+  const markBackgroundUnavailable = () => (backgroundFailedOffline = true);
+
+  $effect(() => {
+    const onOnline = () => {
+      if (!backgroundFailedOffline) return;
+      backgroundFailedOffline = false;
+      backgroundRetry++;
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  });
 
   $effect(() => {
     if (settingsState.backgroundType === "threejs" && !ThreeComp) {
@@ -138,13 +157,17 @@
     {:else if settingsState.backgroundType === "threejs"}
       <div class="three-container">
         {#if ThreeComp}
-          <ThreeComp />
+          {#key backgroundRetry}
+            <ThreeComp onunavailableoffline={markBackgroundUnavailable} />
+          {/key}
         {/if}
       </div>
     {:else if settingsState.backgroundType === "tradeflow"}
       <div class="three-container">
         {#if TradeFlowComp}
-          <TradeFlowComp />
+          {#key backgroundRetry}
+            <TradeFlowComp onunavailableoffline={markBackgroundUnavailable} />
+          {/key}
         {/if}
       </div>
     {/if}

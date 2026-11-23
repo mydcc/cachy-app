@@ -24,6 +24,14 @@
     import { readCssColor, isLightColor } from "../../lib/themeColors";
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
 
+    interface Props {
+        // FEAT-0265 review: called when the worker could not load offline, so
+        // the parent can remount this background once the connection is back.
+        onunavailableoffline?: () => void;
+    }
+
+    let { onunavailableoffline }: Props = $props();
+
     // ========================================
     // STATE MANAGEMENT
     // ========================================
@@ -93,6 +101,7 @@
                 worker = null;
                 lifecycleState = LifecycleState.ERROR;
                 canvas.remove();
+                onunavailableoffline?.();
             });
             
             worker.postMessage({

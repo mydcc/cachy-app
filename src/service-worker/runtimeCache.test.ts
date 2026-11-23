@@ -42,6 +42,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("RUNTIME_CACHE", () => {
+  it("is not the pre-origin-check name, so activation drops entries that were never origin-checked", () => {
+    expect(RUNTIME_CACHE).not.toBe("runtime-lazy");
+  });
+});
+
 describe("isRuntimeCacheablePath", () => {
   it("covers immutable build output and the physics engine, with or without a base path", () => {
     expect(isRuntimeCacheablePath("/_app/immutable/chunks/D50ODbxi.js")).toBe(true);
@@ -154,6 +160,25 @@ describe("respondFromRuntimeCache", () => {
 
     await expect(Promise.all(pending)).resolves.toBeDefined();
     expect(await response.text()).toBe("ammo");
+  });
+
+  it("never stores a cross-origin response under a local key (FEAT-0265 review)", async () => {
+    // A CORS-readable 200 from another origin would otherwise be cached as
+    // "/ammo/ammo.wasm.js" and later executed as the app's own script.
+    for (const type of ["cors", "opaque"] as const) {
+      const cache = fakeCache();
+      stubCaches(cache);
+      const foreign = new Response("evil", { status: 200 });
+      Object.defineProperty(foreign, "type", { value: type });
+      vi.stubGlobal("fetch", vi.fn(async () => foreign));
+      const pending: Promise<unknown>[] = [];
+      const path = "/ammo/ammo.wasm.js";
+
+      await respondFromRuntimeCache(path, new Request(`https://cachy.test${path}`), (work) => pending.push(work));
+      await Promise.all(pending);
+
+      expect(cache.store.size, type).toBe(0);
+    }
   });
 
   it("does not store an error response", async () => {
