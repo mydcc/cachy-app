@@ -124,7 +124,7 @@ impl Provenance {
     /// rewrite a stored document's bytes without changing its content hash,
     /// since `provenance` is excluded from the hash — leaving two documents
     /// identical in the journal and different on disk.
-    fn validate(&self, path: &str, out: &mut Vec<RuleRefusal>) {
+    pub(crate) fn validate(&self, path: &str, out: &mut Vec<RuleRefusal>) {
         let Some(hash) = self.derived_from_hash.as_deref() else {
             return;
         };

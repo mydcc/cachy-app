@@ -192,6 +192,7 @@ impl GridDocument {
         self.validate_sizing(&mut out);
         self.validate_level(&mut out);
         self.validate_conditions(&mut out);
+        self.provenance.validate("provenance", &mut out);
 
         if out.is_empty() {
             Ok(())
@@ -322,6 +323,13 @@ impl GridDocument {
             for excluded in GRID_EXCLUDED_FROM_HASH {
                 map.remove(*excluded);
             }
+            // "Any one holding" carries no order, and a repeated condition adds
+            // nothing, so neither may move the identity: the hashed list is
+            // sorted by its canonical text and deduplicated.
+            if let Some(serde_json::Value::Array(rules)) = map.get_mut("stop_out") {
+                rules.sort_by_cached_key(|rule| rule.to_string());
+                rules.dedup();
+            }
         }
         Ok(value)
     }
@@ -341,23 +349,71 @@ impl GridDocument {
 
 /// Parse untrusted JSON into a validated grid.
 pub fn parse_grid(json: &str) -> Result<GridDocument, Refused> {
-    let mut document: GridDocument = serde_json::from_str(json).map_err(|e| {
+    let not_a_grid = |e: serde_json::Error| {
         Refused::one(
             RefusalCode::UnknownField,
             "",
             format!("grid document does not match schema v{GRID_SCHEMA_VERSION}: {e}"),
         )
-    })?;
-    // `rust_decimal` keeps the scale it was given, so `40000` and `40000.0`
-    // would serialise — and hash — as two strategies. Normalised here, once,
-    // so the stored form and the hashed form are the same value. Affordable
-    // only because no grid has been stored yet; the rule schema's constants
-    // predate this and are not normalised.
+    };
+    let mut raw: serde_json::Value = serde_json::from_str(json).map_err(not_a_grid)?;
+    // `rust_decimal` keeps the scale it was given, so `38000` and `38000.0`
+    // would serialise — and hash — as two strategies. The condition trees are
+    // normalised on the untyped value (their decimals sit in many variants);
+    // the top-level fields below on the typed one. Affordable only because no
+    // grid has been stored yet; the rule schema's decimals predate this and
+    // are not normalised (BUG-0838).
+    if let Some(map) = raw.as_object_mut() {
+        for key in ["trend_filter", "stop_out"] {
+            if let Some(tree) = map.get_mut(key) {
+                normalise_condition_decimals(tree);
+            }
+        }
+    }
+    let mut document: GridDocument = serde_json::from_value(raw).map_err(not_a_grid)?;
     document.lower_price = document.lower_price.normalize();
     document.upper_price = document.upper_price.normalize();
     document.sizing.amount = document.sizing.amount.normalize();
+    // A venue symbol is one market whatever its case; the runtime reserves
+    // `(symbol, side)`, so two spellings must not become two reservations.
+    document.symbol = document.symbol.trim().to_ascii_uppercase();
     document.validate()?;
     Ok(document)
+}
+
+/// Normalise every decimal a condition tree carries, in place.
+///
+/// Decimals cross the wire as strings in exactly two places of a condition:
+/// a `value` (constants, account and feed thresholds) and an indicator's
+/// `params` (a ratio parameter; a count is a JSON number and is left alone).
+/// Only a string that parses as a decimal is touched, so feed names,
+/// timeframes and pattern names keep their spelling.
+fn normalise_condition_decimals(node: &mut serde_json::Value) {
+    match node {
+        serde_json::Value::Array(items) => items.iter_mut().for_each(normalise_condition_decimals),
+        serde_json::Value::Object(map) => {
+            for (key, child) in map.iter_mut() {
+                match key.as_str() {
+                    "value" => normalise_decimal_string(child),
+                    "params" => {
+                        if let serde_json::Value::Object(params) = child {
+                            params.values_mut().for_each(normalise_decimal_string);
+                        }
+                    }
+                    _ => normalise_condition_decimals(child),
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn normalise_decimal_string(value: &mut serde_json::Value) {
+    if let serde_json::Value::String(text) = value {
+        if let Ok(decimal) = text.parse::<Decimal>() {
+            *text = decimal.normalize().to_string();
+        }
+    }
 }
 
 /// Serialise a validated grid. The inverse of [`parse_grid`].
@@ -560,6 +616,131 @@ mod tests {
                 .content_hash()
                 .unwrap();
             assert_ne!(hash, base, "{key} must move the hash");
+        }
+    }
+
+    #[test]
+    fn a_condition_constant_spelled_differently_keeps_the_hash_and_the_stored_form() {
+        let spelled = |value: &str| {
+            grid_json(&[(
+                "stop_out",
+                serde_json::json!([{
+                    "kind": "compare",
+                    "left": { "kind": "price", "field": "close" },
+                    "op": "lt",
+                    "right": { "kind": "constant", "value": value },
+                    "timeframe": "1h"
+                }]),
+            )])
+        };
+        let plain = parse_grid(&spelled("38000")).unwrap();
+        let padded = parse_grid(&spelled("38000.00")).unwrap();
+        assert_eq!(
+            padded.content_hash().unwrap(),
+            plain.content_hash().unwrap()
+        );
+        assert_eq!(
+            serialise_grid(&padded).unwrap(),
+            serialise_grid(&plain).unwrap()
+        );
+        // The timeframe beside it is a string too, and must keep its spelling.
+        assert!(serialise_grid(&padded)
+            .unwrap()
+            .contains(r#""timeframe":"1h""#));
+    }
+
+    #[test]
+    fn a_ratio_parameter_spelled_differently_keeps_the_hash() {
+        let filter = |std_dev: &str| {
+            grid_json(&[(
+                "trend_filter",
+                serde_json::json!({
+                    "kind": "compare",
+                    "left": { "kind": "price", "field": "close" },
+                    "op": "gt",
+                    "right": { "kind": "indicator", "indicator": {
+                        "id": "bollinger",
+                        "params": { "period": 20, "std_dev": std_dev },
+                        "output": "middle"
+                    } },
+                    "timeframe": "1h"
+                }),
+            )])
+        };
+        let plain = parse_grid(&filter("2")).unwrap();
+        let padded = parse_grid(&filter("2.0")).unwrap();
+        assert_eq!(
+            padded.content_hash().unwrap(),
+            plain.content_hash().unwrap()
+        );
+    }
+
+    #[test]
+    fn the_order_and_repetition_of_stop_outs_do_not_move_the_hash() {
+        let rule = |value: &str| {
+            serde_json::json!({
+                "kind": "compare",
+                "left": { "kind": "price", "field": "close" },
+                "op": "lt",
+                "right": { "kind": "constant", "value": value },
+                "timeframe": "1h"
+            })
+        };
+        let hash = |rules: serde_json::Value| {
+            parse_grid(&grid_json(&[("stop_out", rules)]))
+                .unwrap()
+                .content_hash()
+                .unwrap()
+        };
+        let ab = hash(serde_json::json!([rule("38000"), rule("37000")]));
+        assert_eq!(hash(serde_json::json!([rule("37000"), rule("38000")])), ab);
+        assert_eq!(
+            hash(serde_json::json!([
+                rule("38000"),
+                rule("37000"),
+                rule("38000")
+            ])),
+            ab
+        );
+    }
+
+    #[test]
+    fn a_malformed_derived_from_hash_is_refused_like_a_rules() {
+        let json = grid_json(&[(
+            "provenance",
+            serde_json::json!({ "source": "human", "created_at_ms": 0, "derived_from_hash": "ABC" }),
+        )]);
+        assert!(codes(&json).contains(&(
+            RefusalCode::InvalidDerivedFromHash,
+            "provenance.derived_from_hash".into()
+        )));
+    }
+
+    #[test]
+    fn a_lowercase_symbol_is_stored_as_the_market_it_names() {
+        let lower = parse_grid(&grid_json(&[("symbol", serde_json::json!(" btcusdt "))])).unwrap();
+        assert_eq!(lower.symbol, "BTCUSDT");
+        assert_eq!(
+            lower.content_hash().unwrap(),
+            parse_grid(&grid_json(&[])).unwrap().content_hash().unwrap()
+        );
+    }
+
+    #[test]
+    fn the_level_count_refusal_text_states_the_bounds_the_code_enforces() {
+        for (lang, raw) in [
+            ("en", include_str!("../../../src/locales/locales/en.json")),
+            ("de", include_str!("../../../src/locales/locales/de.json")),
+        ] {
+            let doc: serde_json::Value = serde_json::from_str(raw).unwrap();
+            let text = doc["rules"]["refusal"]["gridInvalidLevelCount"]
+                .as_str()
+                .unwrap();
+            assert!(
+                text.contains(&MIN_GRID_LEVELS.to_string())
+                    && text.contains(&MAX_GRID_LEVELS.to_string()),
+                "{lang}: {text}"
+            );
         }
     }
 

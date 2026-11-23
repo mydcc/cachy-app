@@ -458,6 +458,8 @@ export interface RuleDocument {
 
 /** One reason a document was refused, naming the field responsible. */
 /** How often an armed rule may announce itself. Mirrors `lifecycle::TriggerFrequency`. */
+export type TriggerFrequency = "once" | "every_time" | "once_per_candle_close";
+
 /**
  * FEAT-0819 — a grid bot's document (ADR-0027).
  *
@@ -499,8 +501,6 @@ export interface GridDocument {
   enabled: boolean;
   provenance: Provenance;
 }
-
-export type TriggerFrequency = "once" | "every_time" | "once_per_candle_close";
 
 /**
  * A channel a trigger is announced on. Mirrors `lifecycle::TriggerMethod`.
