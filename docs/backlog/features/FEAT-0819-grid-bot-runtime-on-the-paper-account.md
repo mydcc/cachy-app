@@ -73,7 +73,9 @@ Implement the grid as its own bot kind, per
       stay; when it reads true again the ladder is rebuilt from document and
       book.
 - [ ] A grid document sized with `percent_risk` is refused with a named
-      reason; the quote budget is split evenly across levels as `Decimal`.
+      reason; the quote budget is split evenly across levels as `Decimal`,
+      each level's quantity rounded down to the quantity step so the ladder
+      never exceeds the budget.
 - [ ] No live order path is reachable; the grid is paper-only and a `send`-level
       document is refused as today.
 - [ ] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
@@ -89,8 +91,8 @@ Implement the grid as its own bot kind, per
       indicator data — a suggestion the trader accepts, never silently
       applied.
 - [ ] The estimated budget (levels × size plus a fee buffer) and the
-      worst-case loss (all opening levels filled, stop-out executed, as amount
-      and share of the paper account) are displayed before the grid starts.
+      worst-case loss (all opening levels filled, stop-out executed, fees on
+      both legs included, as amount and share of the paper account) are displayed before the grid starts.
 - [ ] A grid is bound to the paper account through `botAccount.ts`
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
@@ -119,9 +121,10 @@ Recorded in ADR-0027 points 8–10, which is now Accepted:
   and the stop-out; it rebuilds the ladder from document and book when the
   filter reads true again.
 - **Sizing: quote budget.** A total budget in quote currency, split evenly
-  across levels; `percent_risk` is refused. The pre-start display shows the
-  worst-case loss (all opening levels filled, stop-out executed) as an amount
-  and as a share of the paper account.
+  across levels, each level rounded down to the quantity step; `percent_risk`
+  is refused. The pre-start display shows the worst-case loss (all opening
+  levels filled, stop-out executed, fees included) as an amount and as a share
+  of the paper account.
 - **Edition and scope:** community, paper only (TODO §34).
 - **Fees:** the paper book fills resting limits at the taker fee
   (`applyOpen` → `takerFee`), so the minimum-spacing warning uses the taker fee

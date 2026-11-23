@@ -55,7 +55,8 @@ needs its own gate decision; this ADR does not authorise it.
 
 **7. Netting must be explicit.** A grid declares whether it nets against
 existing exposure on the symbol or refuses to start when a manual position
-exists. It may not silently mix with exposure it does not own.
+exists. It may not silently mix with exposure it does not own. Point 8 settles
+which: a grid refuses.
 
 **8. A grid is hedge-style and one-sided (decided 2026-11-23).** The paper book
 keys positions by `(symbol, side)`, keeps a long and a short side by side, and
@@ -79,10 +80,11 @@ protect almost nothing.
 
 **10. A grid is sized by a quote budget (decided 2026-11-23).** The document
 carries a total budget in the quote currency, split evenly across the levels.
-`percent_risk` sizing is refused for a grid, because a ladder has no single stop
-distance. Before start, the editor shows the worst-case loss — every opening
-level filled and the stop-out executed — as an amount and as a share of the
-paper account.
+Each level's quantity is rounded down to the symbol's quantity step, so the
+ladder never exceeds the budget. `percent_risk` sizing is refused for a grid,
+because a ladder has no single stop distance. Before start, the editor shows the
+worst-case loss — every opening level filled, the stop-out executed, fees on
+both legs included — as an amount and as a share of the paper account.
 
 ## Consequences
 
@@ -110,7 +112,6 @@ paper account.
   both sides of a symbol.
 - A trend filter that leaves resting opening orders in the book while it reads
   false.
-
 - A grid whose resting orders are indistinguishable from manual orders.
 - A pause that leaves the ladder placing new orders.
 - A stop that cancels the ladder but leaves the position open, or closes the
