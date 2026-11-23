@@ -59,8 +59,10 @@ Implement the grid as its own bot kind, per
       *Stage 1: `GridDocument` in `technicals-wasm/src/rule/grid.rs`; Rust round-trip test for both spacings, and `gridDocument.integration.test.ts` against the rebuilt artifact.*
 - [ ] The runtime places exactly `level_count` orders within the range, never
       more than the budget allows, and each order carries `ownerBotId`.
+      *Stage 2 (`gridLadder.ts`): `level_count` is the number of levels, so a ladder has `level_count + 1` lines and exactly `level_count` opening slots; the budget never exceeds its cap because each slot rounds down. Placement and `ownerBotId` are stage 4.*
 - [ ] A fill re-places the opposite level within the range and never outside it;
       fills and fees are `Decimal` and match the paper book's audit record.
+      *Stage 2: `counterOrderOf` names the counter-order of a fill and never leaves the range; fees are `Decimal`. The match against the paper book's audit record is stage 4.*
 - [ ] Pause stops new placements and leaves protective exits running; resume
       continues from the book, not from a lost in-memory ladder.
 - [ ] Stop cancels every resting order owned by the grid and closes the owned
@@ -88,6 +90,7 @@ Implement the grid as its own bot kind, per
 - [ ] The editor warns when the level spacing does not exceed the round-trip
       fee and names the minimum viable spacing derived from the paper fee
       schedule (fees apply on both legs of every level cycle).
+      *Stage 2: `minimumViableSpacing` (`2f / (1 − f)`, taker fee on both legs) and `narrowestSpacing`. The warning itself is stage 5.*
 - [x] The stop-out rule is a required field — empty is refused, with no
       opt-out (ADR-0027: grid budget and stop-out limits are not optional).
       *Stage 1: `GridStopOutRequired` for an empty array; an absent field does not parse.*
@@ -99,6 +102,7 @@ Implement the grid as its own bot kind, per
 - [ ] The estimated budget (levels × size plus a fee buffer) and the
       worst-case loss (all opening levels filled, stop-out executed, fees on
       both legs included, as amount and share of the paper account) are displayed before the grid starts.
+      *Stage 2: `gridExposure` and `gridWorstCase` (all opening levels filled, stop-out executed, fees on both legs, amount and share of the account). The display is stage 5.*
 - [ ] A grid is bound to the paper account through `botAccount.ts`
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
@@ -113,7 +117,7 @@ its own PR:
    `technicals-wasm` (validation, refusals, content hash) plus the TS types
    and the integration test against the rebuilt artifact. Criteria 1, 9
    (the `percent_risk` refusal), 10 (the `send` refusal) and 13.
-2. **Ladder arithmetic.** A pure `Decimal` module: levels for both
+2. **Ladder arithmetic (delivered).** A pure `Decimal` module: levels for both
    spacings, the budget split rounded down to the quantity step, the
    rebalance target for a fill, the minimum viable spacing and the
    worst-case loss. Criteria 2, 3 and 9 (math halves).

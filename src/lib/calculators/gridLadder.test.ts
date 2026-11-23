@@ -40,7 +40,7 @@ const d = (value: string | number) => new Decimal(value);
 const strings = (values: Decimal[]) => values.map((v) => v.toString());
 
 function range(overrides: Partial<GridRange> = {}): GridRange {
-  return { lower: d("100"), upper: d("200"), levelCount: 5, spacing: "arithmetic", ...overrides };
+  return { lower: d("100"), upper: d("200"), levelCount: 4, spacing: "arithmetic", ...overrides };
 }
 
 function linesOf(overrides: Partial<GridRange> = {}, priceStep?: Decimal): Decimal[] {
@@ -57,19 +57,19 @@ describe("grid lines", () => {
 
   it("places geometric lines at an equal ratio and ends exactly on the upper bound", () => {
     // 100 to 400 in two intervals: ratio 2.
-    expect(strings(linesOf({ upper: d("400"), levelCount: 3, spacing: "geometric" }))).toEqual([
+    expect(strings(linesOf({ upper: d("400"), levelCount: 2, spacing: "geometric" }))).toEqual([
       "100",
       "200",
       "400",
     ]);
-    const lines = linesOf({ upper: d("150"), levelCount: 7, spacing: "geometric" });
+    const lines = linesOf({ upper: d("150"), levelCount: 6, spacing: "geometric" });
     expect(lines).toHaveLength(7);
     expect(lines[6].toString()).toBe("150");
   });
 
   it("rounds each line to the price step", () => {
     // 100 to 101 in three intervals: 100, 100.333…, 100.666…, 101 → step 0.1.
-    expect(strings(linesOf({ upper: d("101"), levelCount: 4 }, d("0.1")))).toEqual([
+    expect(strings(linesOf({ upper: d("101"), levelCount: 3 }, d("0.1")))).toEqual([
       "100",
       "100.3",
       "100.7",
@@ -79,7 +79,7 @@ describe("grid lines", () => {
 
   it("refuses a ladder whose rounded lines collapse into one another", () => {
     // 100 to 101 in ten intervals of 0.1 cannot survive a step of 1.
-    expect(gridLines(range({ upper: d("101"), levelCount: 11 }), d("1"))).toEqual({
+    expect(gridLines(range({ upper: d("101"), levelCount: 10 }), d("1"))).toEqual({
       ok: false,
       reason: "levels-collapse",
     });
@@ -94,7 +94,7 @@ describe("grid lines", () => {
 });
 
 describe("grid slots", () => {
-  it("has one slot fewer than lines, so no counter-order leaves the range", () => {
+  it("has one slot per level and one line more than levels, so no counter-order leaves the range", () => {
     const lines = linesOf();
     const result = gridSlots("long", lines, d("1000"));
     if (!result.ok) throw new Error(result.reason);
@@ -117,6 +117,14 @@ describe("grid slots", () => {
     expect(long.value[0].closePrice.toString()).toBe("125");
     expect(short.value[0].openPrice.toString()).toBe("125");
     expect(short.value[0].closePrice.toString()).toBe("100");
+  });
+
+  it("places exactly levelCount opening orders", () => {
+    for (const levelCount of [2, 7, 100]) {
+      const result = gridSlots("long", linesOf({ levelCount }), d("1000000"));
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.value).toHaveLength(levelCount);
+    }
   });
 
   it("splits the budget evenly and rounds each quantity down to the step", () => {
@@ -180,7 +188,7 @@ describe("fees against spacing", () => {
 
   it("finds the narrowest slot of a geometric ladder", () => {
     // Ratio 2 everywhere: every slot spans 100 %.
-    expect(narrowestSpacing(linesOf({ upper: d("400"), levelCount: 3, spacing: "geometric" }))?.toString()).toBe("1");
+    expect(narrowestSpacing(linesOf({ upper: d("400"), levelCount: 2, spacing: "geometric" }))?.toString()).toBe("1");
     // Arithmetic: the top slot is relatively the narrowest, 200 / 175 − 1.
     expect(narrowestSpacing(linesOf())?.toString()).toBe(d(200).div(175).minus(1).toString());
   });
@@ -188,9 +196,9 @@ describe("fees against spacing", () => {
 
 describe("budget and worst case", () => {
   function slots(side: "long" | "short") {
-    // Two lines, one slot: 100 to 110, budget 1000 → 10 at 100 (long) or
+    // Two lines, one level: 100 to 110, budget 1000 → 10 at 100 (long) or
     // 9.0909… → 9 at 110 (short) with a step of 1.
-    const result = gridSlots(side, linesOf({ upper: d("110"), levelCount: 2 }), d("1000"), d("1"));
+    const result = gridSlots(side, [d("100"), d("110")], d("1000"), d("1"));
     if (!result.ok) throw new Error(result.reason);
     return result.value;
   }

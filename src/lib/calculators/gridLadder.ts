@@ -23,14 +23,14 @@
  * trader is shown before start and the number the runtime places are the
  * same computation.
  *
- * **Lines and slots.** A grid of `levelCount` price lines has
- * `levelCount − 1` opening slots. A long grid opens with a buy on line `i`
- * and closes it with a sell on line `i + 1`; a short grid opens with a sell
- * on line `i + 1` and closes with a buy on line `i`. The top line of a long
- * grid (the bottom line of a short one) is therefore a closing line only:
- * its counter-order would lie outside the range, which ADR-0027 forbids.
- * The quote budget is split across the opening slots, because they are what
- * spends it.
+ * **Levels and lines.** A grid of `levelCount` levels has `levelCount + 1`
+ * price lines, the two bounds included; each level is the span between two
+ * neighbouring lines. A long level opens with a buy on its lower line and
+ * closes with a sell on its upper line; a short level opens with a sell on
+ * its upper line and closes with a buy on its lower line. So the ladder holds
+ * exactly `levelCount` opening orders, every counter-order lies inside the
+ * range (ADR-0027 point 4), and the quote budget is split evenly across the
+ * levels (point 10). The code calls a level a slot.
  */
 
 import { Decimal } from "decimal.js";
@@ -68,7 +68,8 @@ export interface GridSlot {
 }
 
 /**
- * The price lines of a grid, bottom to top, both bounds included.
+ * The price lines of a grid, bottom to top, both bounds included:
+ * `levelCount + 1` of them, `levelCount` levels between.
  *
  * Arithmetic spacing adds a constant amount; geometric spacing multiplies by
  * a constant ratio. With a `priceStep`, each line is rounded to the nearest
@@ -83,7 +84,7 @@ export function gridLines(
   if (!Number.isInteger(levelCount) || levelCount < 2 || lower.lte(0) || upper.lte(lower)) {
     return { ok: false, reason: "invalid-range" };
   }
-  const intervals = levelCount - 1;
+  const intervals = levelCount;
   const raw: Decimal[] = [];
   if (spacing === "arithmetic") {
     const step = upper.minus(lower).div(intervals);
