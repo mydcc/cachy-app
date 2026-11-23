@@ -30,7 +30,14 @@
  * now has.
  */
 
-export const RUNTIME_CACHE = "runtime-lazy";
+/**
+ * Bumped from "runtime-lazy" when the origin check arrived: entries written by
+ * the earlier worker were never checked for their origin, and a renamed cache
+ * is the one way to drop them all on activation (`deleteOldCaches` keeps only
+ * the current precache and this name). Bump it again whenever what may be
+ * stored here gets stricter.
+ */
+export const RUNTIME_CACHE = "runtime-lazy-v2";
 export const MAX_RUNTIME_CACHE_ENTRIES = 50;
 
 /** `_app/immutable/*` and `/ammo/*`, after any configured base path. */

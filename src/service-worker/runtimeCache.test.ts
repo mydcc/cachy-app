@@ -42,6 +42,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("RUNTIME_CACHE", () => {
+  it("is not the pre-origin-check name, so activation drops entries that were never origin-checked", () => {
+    expect(RUNTIME_CACHE).not.toBe("runtime-lazy");
+  });
+});
+
 describe("isRuntimeCacheablePath", () => {
   it("covers immutable build output and the physics engine, with or without a base path", () => {
     expect(isRuntimeCacheablePath("/_app/immutable/chunks/D50ODbxi.js")).toBe(true);

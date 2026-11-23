@@ -112,7 +112,8 @@ whose path matched `/ammo/*` — say a custom background video URL on another
 host — would have been stored under the app's own `/ammo/ammo.wasm.js` and
 later executed as its script. The service worker now leaves cross-origin
 requests to the browser, and the runtime cache refuses `cors`/`opaque`
-responses. A galaxy or trade-flow background selected offline before first use
+responses. The cache was renamed to `runtime-lazy-v2`, so activation deletes
+whatever the earlier worker stored without that check. A galaxy or trade-flow background selected offline before first use
 also stayed blank after reconnect; `BackgroundRenderer` now remounts it on
 `online`, only after such a failure.
 
