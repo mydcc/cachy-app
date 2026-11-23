@@ -4133,7 +4133,8 @@
     "diagnostics": "View Diagnostics",
     "providerSwitched": "Provider switched to {provider}",
     "switchFailed": "Failed to switch to {provider}",
-    "reconnectFailed": "Reconnection failed"
+    "reconnectFailed": "Reconnection failed",
+    "notCachedYet": "Not loaded while online yet, so it is unavailable offline. Use it once with a connection and it works offline afterwards."
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analysis Status",

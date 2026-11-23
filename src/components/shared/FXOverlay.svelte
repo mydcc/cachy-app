@@ -25,6 +25,7 @@
     import * as THREE from "three";
     import { settingsState } from "../../stores/settings.svelte";
     import { effectsState } from "../../stores/effects.svelte";
+    import { isBrowserOffline, reportNotAvailableOffline } from "../../lib/offlineAvailability";
     import { uiState } from "../../stores/ui.svelte";
     import { StressLogic } from "../../lib/physics/StressLogic";
     import { DuckLogic } from "../../lib/pets/DuckLogic";
@@ -664,6 +665,9 @@
         // Init Physics
         stressLogic = new StressLogic(scene);
         stressLogic.init().catch((e) => {
+            // FEAT-0265: ammo/ is cached on first use. Offline before that the
+            // overlay keeps running without physics; say why the shards are missing.
+            if (isBrowserOffline()) reportNotAvailableOffline();
             console.error("Failed to initialize physics", e);
         });
 

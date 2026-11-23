@@ -169,6 +169,32 @@ describe("installStaleDeploymentRecovery", () => {
     expect(listeners.has("unhandledrejection")).toBe(false);
   });
 
+  it("reports instead of reloading when the browser is offline (FEAT-0265)", async () => {
+    const notify = vi.fn();
+    vi.doMock("./offlineAvailability", () => ({
+      isBrowserOffline: () => true,
+      reportNotAvailableOffline: notify,
+    }));
+    const mod = await freshModule();
+    const listeners = stubWindow();
+    const { reload } = stubBrowser();
+
+    mod.installStaleDeploymentRecovery();
+    const preventDefault = vi.fn();
+    listeners.get("unhandledrejection")!({
+      reason: new TypeError(
+        "Failed to fetch dynamically imported module: https://dev.cachy.app/_app/immutable/chunks/XDJtinBa2.js",
+      ),
+      preventDefault,
+    });
+
+    // Handled, so no unhandled rejection reaches the console — but no reload.
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledTimes(1);
+    vi.doUnmock("./offlineAvailability");
+  });
+
   it("leaves unrelated rejections alone", async () => {
     const mod = await freshModule();
     const listeners = stubWindow();
@@ -213,6 +239,41 @@ describe("handleLazyLoadFailure", () => {
     // One recovery per tab: the guard suppresses a second stale chunk.
     expect(mod.handleLazyLoadFailure("AlertPanel", error)).toBe("reload");
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports an uncached chunk offline instead of spending the reload (FEAT-0265)", async () => {
+    const mod = await freshModule();
+    const reload = vi.fn();
+    const log = vi.fn();
+    const notifyOffline = vi.fn();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const action = mod.handleLazyLoadFailure("FireOverlay", new TypeError(staleMessage), {
+      reload,
+      log,
+      notifyOffline,
+      isOffline: () => true,
+    });
+
+    expect(action).toBe("offline");
+    expect(notifyOffline).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("keeps the reload path for a stale chunk while online", async () => {
+    const mod = await freshModule();
+    const reload = vi.fn();
+    const notifyOffline = vi.fn();
+
+    const action = mod.handleLazyLoadFailure("FireOverlay", new TypeError(staleMessage), {
+      reload,
+      notifyOffline,
+      isOffline: () => false,
+    });
+
+    expect(action).toBe("reload");
+    expect(notifyOffline).not.toHaveBeenCalled();
   });
 
   it("logs an ordinary failure without reloading", async () => {

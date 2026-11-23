@@ -19,6 +19,7 @@ import { defineConfig, configDefaults } from "vitest/config";
 import { loadEnv } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import { cspDirectives } from "./src/config/cspDirectives.ts";
+import { lazyPrecachePlugin } from "./src/config/lazyPrecache.ts";
 
 // Single source of truth for the app version: the `version` field in
 // package.json, which semantic-release bumps on every release.
@@ -159,6 +160,9 @@ export default defineConfig({
           },
         }),
     tailwindcss(),
+    // FEAT-0265: hands the service worker the lazy-only chunks it caches on
+    // first use instead of at install. See src/config/lazyPrecache.ts.
+    lazyPrecachePlugin(),
   ],
   resolve: {
     alias: {

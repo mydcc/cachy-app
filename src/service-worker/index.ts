@@ -21,6 +21,8 @@ import { assets, immutable } from "$app/manifest";
 import { asset } from "$app/paths";
 import { self } from "$app/service-worker";
 import type { AssetPath } from "$app/types";
+import { LAZY_ONLY_FILES } from "virtual:cachy-lazy-precache";
+import { RUNTIME_CACHE, isRuntimeCacheablePath, respondFromRuntimeCache } from "./runtimeCache";
 
 // Create a unique cache name for this deployment
 const CACHE = `cache-${version}`;
@@ -53,6 +55,15 @@ const NOT_PRECACHED = [
   "/seo-banner.png", // byte-identical to og-image.jpg
   "/knowledge/Tutorial_ RSI.pdf", // not linked from the app
   "/knowledge/setups/Dolphin Strategy PDF.pdf", // not linked from the app
+  // FEAT-0265: the physics engine, loaded only when the stress effect first
+  // runs (src/lib/physics/StressLogic.ts). Cached on first use instead.
+  "/ammo/ammo.wasm.js",
+  "/ammo/ammo.wasm.wasm",
+  // FEAT-0265: the three-vendor chunk and the galaxy/tradeFlow workers, which
+  // only a dynamic import reaches. Their names are content hashes, so the
+  // build computes them (src/config/lazyPrecache.ts) and fails if one of them
+  // turns up on the static path.
+  ...LAZY_ONLY_FILES.map((file) => `/${file}`),
 ];
 
 const ASSETS: string[] = [
@@ -103,7 +114,9 @@ self.addEventListener("activate", (event) => {
   // Remove previous caches
   async function deleteOldCaches() {
     for (const key of await caches.keys()) {
-      if (key !== CACHE) {
+      // FEAT-0265: the runtime cache is not version-keyed on purpose — what a
+      // user has loaded once must survive the deploy that replaces CACHE.
+      if (key !== CACHE && key !== RUNTIME_CACHE) {
         try {
           await caches.delete(key);
         } catch (err) {
@@ -143,6 +156,14 @@ self.addEventListener("fetch", (event) => {
     if (ASSETS.includes(url.pathname)) {
       const response = await cache.match(url.pathname);
       if (response) return response;
+    }
+
+    // FEAT-0265: lazily loaded files outside the precache — cache-first from
+    // the runtime cache, filled on first use.
+    if (!ASSETS.includes(url.pathname) && isRuntimeCacheablePath(url.pathname)) {
+      return respondFromRuntimeCache(url.pathname, fetchEvent.request, (work) =>
+        fetchEvent.waitUntil(work),
+      );
     }
 
     // PA-08: App-Shell fallback for navigations. A reload/kaltstart without

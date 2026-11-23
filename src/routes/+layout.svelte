@@ -112,7 +112,19 @@ import { afterNavigate } from "$app/navigation";
     }
   });
 
+  // FEAT-0265: three.js is cached on first use. An effect switched on while
+  // offline fails to load and is reported (handleLazyLoadFailure); bumping
+  // this on reconnect re-runs the effects below, so it loads without the user
+  // having to toggle it off and on again.
+  let reconnectCount = $state(0);
   $effect(() => {
+    const onOnline = () => reconnectCount++;
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  });
+
+  $effect(() => {
+    void reconnectCount;
     if (settingsState.enableAmbientTopline && !AmbientToplineComponent) {
       import("../components/shared/AmbientTopline.svelte")
         .then((m) => (AmbientToplineComponent = m.default))
@@ -121,6 +133,7 @@ import { afterNavigate } from "$app/navigation";
   });
 
   $effect(() => {
+    void reconnectCount;
     if (settingsState.enableBurningBorders && !FireOverlayComponent) {
       import("../components/shared/FireOverlay.svelte")
         .then((m) => (FireOverlayComponent = m.default))
@@ -134,6 +147,7 @@ import { afterNavigate } from "$app/navigation";
   // failure is retried on the next event, a stale chunk takes the reload path
   // above.
   $effect(() => {
+    void reconnectCount;
     const hasDuckEvents =
       settingsState.showDuck && effectsState.duckEvents.length > 0;
     const hasEvents =
