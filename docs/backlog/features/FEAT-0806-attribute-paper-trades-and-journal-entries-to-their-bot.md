@@ -52,20 +52,26 @@ blob.
 
 ## Acceptance criteria
 
-- [ ] A paper entry opened by a bot persists `origin: "bot"` with `botId`,
+- [x] A paper entry opened by a bot persists `origin: "bot"` with `botId`,
       `ruleId` and the 64-hex `strategyHash`; a manual entry persists
       `origin: "manual"` and no bot fields.
-- [ ] The journal entry created for that position carries the same four fields;
+      *`paperExchange.attribution.test.ts`: bot stamp on position, metadata and fill; manual entry carries `origin: "manual"` and no bot fields.*
+- [x] The journal entry created for that position carries the same four fields;
       an entry written before this change still parses and reads as unattributed.
-- [ ] The opening fill carries `botId` and `strategyHash`, so a position whose
+      *Same file: the journal copies all four fields; a pre-field journal entry normalizes as unattributed ("reads a journal entry written before the change").*
+- [x] The opening fill carries `botId` and `strategyHash`, so a position whose
       metadata was evicted still has an attributable fill.
-- [ ] A reload reconciles the paper book and the journal without losing the
+      *Same file: the opening fill is stamped, a closing fill inherits by `positionId`.*
+- [x] A reload reconciles the paper book and the journal without losing the
       attribution — pinned by a test that persists, reloads and reconciles.
+      *Same file: "survives a reload" persists, reloads and reconciles.*
 - [x] Deleting the bot rule after the fill leaves the position and journal entry
       attributable and renderable.
-- [ ] No new storage key, no network call, no rule data leaves the device
+- [x] No new storage key, no network call, no rule data leaves the device
       (ADR-0001).
-- [ ] Tests cover bot vs manual, the pre-field blob, and the deleted-rule case.
+      *Same file: a bot trade writes exactly the keys a manual one does, with no `fetch` call.*
+- [x] Tests cover bot vs manual, the pre-field blob, and the deleted-rule case.
+      *Bot vs manual, the pre-field book and journal blobs, and the deleted-rule case are all in the same file.*
 
 ## Out of scope
 

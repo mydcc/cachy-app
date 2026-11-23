@@ -78,9 +78,11 @@ in the journal's per-bot review (FEAT-0812).
 
 ## Acceptance criteria
 
-- [ ] A bot with `once_per_candle` fires at most once per closed candle even
-      when the condition holds on the next evaluation; the suppressed repeat
-      appears once in the guard log.
+- [x] A bot with `once_per_candle` fires at most once per closed candle even
+      when the condition holds on the next evaluation. The suppressed repeat
+      is silent: on that candle the bot already acted, so the guard log has
+      nothing to explain. *(Amended 2026-11-23, owner decision in BUG-0837;
+      the original wording asked for a guard row.)*
       *Delivered in halves, and only one of them is this item's: the
       within-candle suppression is real and pinned, but it happens in the
       evaluation gate's announce map (FEAT-0477, pinned in its own tests) —
@@ -91,7 +93,9 @@ in the journal's per-bot review (FEAT-0812).
       deferring that channel rather than breaking the core's boundary.
       What the guard log DOES record, pinned in botOrders tests: the
       `once` policy's expiry after a landed entry, and every limit
-      refusal.* 
+      refusal.*
+      *Settled in [`BUG-0837`](../bugs/BUG-0837-a-repeat-on-an-already-fired-candle-leaves-no-guard-log-row.md):
+      the repeat stays silent, no gate→ledger channel is built.*
 - [x] A `multi` bot with `max positions: 1` refuses a second entry with a
       visible reason and stays healthy for the next legitimate exit/entry
       cycle.

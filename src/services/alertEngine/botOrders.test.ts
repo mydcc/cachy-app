@@ -53,6 +53,7 @@ import {
 } from "./botOrders";
 import type { FiringSink, RuleFiring } from "./ruleEvaluationLoop";
 import { BOT_PAPER_ONLY_MESSAGE_KEY } from "../orderGate";
+import { isSpentAfterFiring } from "../../stores/alerts.svelte";
 
 // BUG-0491: the composition below drives the real gate, so the real core
 // must stay out of it — the verdicts are the test's, not the market's.
@@ -839,6 +840,103 @@ describe("no second order on the same candle after a reload — BUG-0491", () =>
     const later = rebuilt.evaluate(rule, next.ctx, next.anchorMs);
     expectFiring(later);
     sink({ rule, verdict: later, anchorMs: next.anchorMs });
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
+  });
+});
+
+/**
+ * FEAT-0805 — "the current conditional market order keeps working unchanged".
+ *
+ * A stage-2 bot as it was written before the epic: no `exits`, no
+ * `firing_policy`, no limits, no `entry_mode`, and the default `once`
+ * frequency. Driven through the real gate and the real sink, it must still
+ * place one market entry with its fixed stop and no target, and then be
+ * finished. The key set is pinned so a stage-3 field leaking onto this plan
+ * (a reduce flag, a take profit, an exit lane) fails here by name.
+ */
+describe("the stage-2 conditional market order is unchanged — FEAT-0805", () => {
+  const STEP_MS = 3_600_000;
+
+  function candleContext(n: number): { ctx: EvaluationContext; anchorMs: number } {
+    const candles = Array.from({ length: n }, (_, i) => ({
+      open_time_ms: ANCHOR_MS + i * STEP_MS,
+      open: "50000",
+      high: "50000",
+      low: "50000",
+      close: "50000",
+      volume: "1",
+    }));
+    return { ctx: { candles: { "1h": candles } }, anchorMs: ANCHOR_MS + (n - 1) * STEP_MS };
+  }
+
+  it("places one market entry with its fixed stop, then is finished", async () => {
+    const rule = botDocument();
+    // Arrange: nothing the epic added is on the document.
+    for (const field of [
+      "exits",
+      "firing_policy",
+      "max_positions",
+      "max_entries_per_day",
+      "max_risk_per_position",
+      "budget_cap",
+      "entry_mode",
+      "frequency",
+    ]) {
+      expect(rule, `pre-epic document carries ${field}`).not.toHaveProperty(field);
+    }
+    const { env, place } = environment();
+    const announce = vi.fn();
+    const sink = withBotOrders(announce, env);
+    const gate = new RuleEvaluationGate();
+
+    // Act: the first closed candle fires.
+    const first = candleContext(5);
+    const verdict = gate.evaluate(rule, first.ctx, first.anchorMs);
+    expect(verdict).toEqual({ verdict: "fires" });
+    sink({ rule, verdict: verdict as Verdict, anchorMs: first.anchorMs });
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(1));
+    await settle();
+
+    // Assert: announced, and exactly the stage-2 plan.
+    expect(announce).toHaveBeenCalledTimes(1);
+    const plan = place.mock.calls[0][0];
+    expect(Object.keys(plan).sort()).toEqual(
+      [
+        "accountSize",
+        "attribution",
+        "entryPrice",
+        "entryType",
+        "exchange",
+        "origin",
+        "qty",
+        "riskPercentage",
+        "stopLossPrice",
+        "symbol",
+        "takeProfits",
+        "tradeType",
+      ].sort(),
+    );
+    expect(plan).toMatchObject({
+      origin: "bot",
+      tradeType: "long",
+      entryType: "market",
+      takeProfits: [],
+    });
+    expect(plan.qty.toString()).toBe("0.002");
+    expect(plan.stopLossPrice.toString()).toBe("49000");
+
+    // Under the default `once` frequency the bot is finished. The gate does
+    // not own that — the announcing sink this one wraps disarms the rule
+    // (`notifyingRuleSink`, pinned in `alerts_firingSink.test.ts`) — so what
+    // is asserted here is that the pre-epic document still reads as spent.
+    expect(isSpentAfterFiring(rule)).toBe(true);
+    // And the order lane adds no second gate of its own: a later firing that
+    // did reach the sink would order again. Stage 3 changed nothing about
+    // who ends a stage-2 bot.
+    const second = candleContext(6);
+    const again = gate.evaluate(rule, second.ctx, second.anchorMs);
+    expect(again).toEqual({ verdict: "fires" });
+    sink({ rule, verdict: again as Verdict, anchorMs: second.anchorMs });
     await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
   });
 });

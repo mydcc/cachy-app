@@ -56,22 +56,30 @@ An exit evaluator runs while a bot owns a position:
 
 ## Acceptance criteria
 
-- [ ] A long bot with `exits: [{ when: RSI > 70, close: "all" }]` closes its
+- [x] A long bot with `exits: [{ when: RSI > 70, close: "all" }]` closes its
       position exactly once when the condition holds on a closed candle.
-- [ ] The close is a `reduce_only` order that passes `OrderGate`; a test proves
+      *`botExitExecution.integration.test.ts` "closes its owned position exactly once" (real core, loop and lane).*
+- [x] The close is a `reduce_only` order that passes `OrderGate`; a test proves
       no open/exposure-increasing order is produced.
-- [ ] A `close: "partial"` exit closes exactly `fraction` of the position; the
+      *Same file, partial case: the paper transport receives one `place-order` with `tradeSide: "CLOSE"` and `reduceOnly: true`; nothing opens and no network is reached.*
+- [x] A `close: "partial"` exit closes exactly `fraction` of the position; the
       remainder stays owned and can be closed by a later exit.
-- [ ] A rule that does not own the position cannot close it, even if its
+      *Same file, partial case; `botExits.test.ts` `closeAmountFor` uses the remaining amount, in Decimal.*
+- [x] A rule that does not own the position cannot close it, even if its
       conditions hold.
-- [ ] Two evaluations of the same `(ruleId, anchor, positionId)` produce one
+      *`ruleEvaluationLoop.test.ts` "a rule that owns nothing cannot close another bot's position".*
+- [x] Two evaluations of the same `(ruleId, anchor, positionId)` produce one
       close; a simulated reload mid-exit does not produce a second.
-- [ ] A manual close and a stop-out both end the bot's exit evaluation without a
+      *`botExits.test.ts` one close per owned position; e2e "a reload mid-exit does not close twice".*
+- [x] A manual close and a stop-out both end the bot's exit evaluation without a
       re-entry.
-- [ ] A gate refusal leaves the position open and reports the reason once.
+      *E2e "a manual close ends the bot's exit story"; `botExits.test.ts` refuses when the book no longer lists the position.*
+- [x] A gate refusal leaves the position open and reports the reason once.
+      *`botExits.test.ts`: a thrown close is a refusal and the position stays open; the same refusal reports once.*
 - [x] `take_profit` (if FEAT-0809 ships it) closes at the resolved distance from
       the actual entry, not from a stale price.
-- [ ] Tests are money-path tests: decimal quantities, no native-number math.
+- [x] Tests are money-path tests: decimal quantities, no native-number math.
+      *Quantities are `Decimal` throughout `botExits.test.ts` and the e2e.*
 
 ## Out of scope
 

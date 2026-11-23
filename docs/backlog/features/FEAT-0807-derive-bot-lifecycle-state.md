@@ -55,18 +55,24 @@ No new persisted state. The store is a projection, not a source.
 
 ## Acceptance criteria
 
-- [ ] `deriveBotState` is pure and table-driven tested for every transition,
+- [x] `deriveBotState` is pure and table-driven tested for every transition,
       including paused with an open position, expired with a position, and a
       deleted rule with a lingering book row.
-- [ ] The store recomputes on `rulesVersion` and on paper-book changes; no new
+      *`botState.test.ts`: the table covers paused with a position, expired with a position and a lingering row without a rule; a purity test runs it twice and checks nothing was mutated.*
+- [x] The store recomputes on `rulesVersion` and on paper-book changes; no new
       `localStorage` key is introduced.
-- [ ] A bot with no position and `enabled: true` reads `armed`, not `closed`.
-- [ ] A bot with an owned position reads `in_position` (or `paused` +
+      *`botsState.test.ts`: recomputes on rule changes and on book changes; "introduces no storage key of its own".*
+- [x] A bot with no position and `enabled: true` reads `armed`, not `closed`.
+      *`botsState.test.ts` "reads armed for an enabled bot that has done nothing", plus the table row.*
+- [x] A bot with an owned position reads `in_position` (or `paused` +
       `hasPosition: true`) and never `armed`.
-- [ ] The store exposes an owner index by `(symbol, side)` that FEAT-0808 and
+      *Table rows "an owned position reads in_position and never armed" and the paused-with-position row.*
+- [x] The store exposes an owner index by `(symbol, side)` that FEAT-0808 and
       FEAT-0810 can consume, including the two-bot collision case.
-- [ ] A paper-book parse failure degrades to `blocked` with a notice rather than
+      *`botState.test.ts` slot keying; `botsState.test.ts` "two bots on one slot".*
+- [x] A paper-book parse failure degrades to `blocked` with a notice rather than
       throwing in the sidebar.
+      *`botsState.test.ts` "an unreadable paper book degrades every bot to blocked with a notice".*
 
 ## Out of scope
 
