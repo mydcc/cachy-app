@@ -106,10 +106,30 @@ Implement the grid as its own bot kind, per
       and says that its ladder and its stop-out are frozen with the paper
       book. It never claims that its protective exits keep running.
 
-## State (2026-11-23)
+## State (2026-11-24)
 
-Stages 1 and 2 are delivered (#4624, and the ladder arithmetic in #4626);
-stages 3 to 5 are open. The item sits at `ready` between stages on purpose:
+Stages 1 to 3 are delivered (#4624, the ladder arithmetic in #4626, and the
+owned resting orders on `feature/feat-0819-owned-paper-orders`); stages 4
+and 5 are open.
+
+Stage 3 gives `PaperOrder` the four attribution fields the position and the
+opening fill already carry (`origin`, `botId`, `ruleId`, `strategyHash`;
+`botId` is ADR-0027's `ownerBotId`, kept under the book's existing name so
+one fact has one name). A resting order and the TP/SL plans a bot entry
+attaches are stamped through the same guard as the market path
+(`readProvenance` in `paperExchange.ts`), and `settleRestingOrders` hands
+the stamp to `applyOpen`/`recordFill`, so a bot's limit entry no longer
+reads as manual once the feed fills it. `paperExchange.cancelOrdersOwnedBy`
+cancels every resting order a bot owns and closes nothing — the primitive
+criterion 5's stop and the stop-out build on in stage 4. A TP/SL plan
+belongs to the owner of the position it protects, on every route that
+creates one (attached to an entry, `place-position`, or a leg added through
+`modify-position`), so a plan group never splits between owners. Stage 4
+must cancel before it closes: a tick between a close and the cancel could
+fill a resting entry and open a new position. Found on the way:
+[`BUG-0839`](../bugs/BUG-0839-paper-limit-entry-fills-without-its-attached-tp-sl.md)
+— a paper limit entry's attached TP/SL is lost at the fill, which a grid
+entry relying on attached plans would hit. The item sits at `ready` between stages on purpose:
 `backlog:check:stale` flags an `in-progress` claim whose branch has merged,
 and every stage merges its own branch. Whoever starts the next stage claims
 the item again with that stage's branch and hands it back at merge.

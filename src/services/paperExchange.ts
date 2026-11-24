@@ -36,7 +36,12 @@
 
 import { Decimal } from "decimal.js";
 import { validateTpSlPrice, normalizePositionSide } from "../lib/calculators/tpsl";
-import { paperState, type PaperFill, type PaperOrder } from "../stores/paperTrading.svelte";
+import {
+    paperState,
+    type PaperFill,
+    type PaperOrder,
+    type PaperPosition,
+} from "../stores/paperTrading.svelte";
 import type { BotAttribution } from "./orderGate";
 
 export class PaperExchangeError extends Error {
@@ -156,6 +161,54 @@ function ok(data: unknown): Record<string, unknown> {
  */
 function flat(data: Record<string, unknown>): Record<string, unknown> {
     return data;
+}
+
+/** Who placed an order, as the book records it (FEAT-0806). */
+interface OrderProvenance {
+    origin?: "bot" | "manual";
+    attribution?: BotAttribution;
+}
+
+/**
+ * FEAT-0806 — the single attribution guard, at the trust boundary: identity
+ * is a fact of a bot order, so it exists only when the source says
+ * `origin: "bot"` and all three fields are strings. Anything else reads as
+ * manual-or-unknown, never as a mis-stamped bot — a manual order cannot
+ * smuggle identity in late.
+ *
+ * FEAT-0819 reads a resting order back through the same guard when the feed
+ * fills it, so a stored row is held to the rule a payload is.
+ */
+function readProvenance(source: {
+    origin?: unknown;
+    botId?: unknown;
+    ruleId?: unknown;
+    strategyHash?: unknown;
+}): OrderProvenance {
+    const origin =
+        source.origin === "bot" || source.origin === "manual" ? source.origin : undefined;
+    const attribution: BotAttribution | undefined =
+        origin === "bot" &&
+        typeof source.botId === "string" &&
+        typeof source.ruleId === "string" &&
+        typeof source.strategyHash === "string"
+            ? {
+                  botId: source.botId,
+                  ruleId: source.ruleId,
+                  strategyHash: source.strategyHash,
+              }
+            : undefined;
+    return { origin, attribution };
+}
+
+/** The provenance in the flat shape the book's rows store it in. */
+function provenanceFields(
+    provenance: OrderProvenance,
+): Pick<PaperOrder, "origin" | "botId" | "ruleId" | "strategyHash"> {
+    return {
+        ...(provenance.origin !== undefined ? { origin: provenance.origin } : {}),
+        ...(provenance.attribution ?? {}),
+    };
 }
 
 interface FillResult {
@@ -394,7 +447,10 @@ class PaperExchange {
      */
     private planLeg(
         positionWide: boolean,
-        position: { symbol: string; side: string; amount: unknown; positionId: string },
+        position: Pick<
+            PaperPosition,
+            "symbol" | "side" | "amount" | "positionId" | "origin" | "botId" | "ruleId" | "strategyHash"
+        >,
         params: Record<string, unknown>,
         prefix: "tp" | "sl",
         planType: "TP" | "SL",
@@ -424,6 +480,10 @@ class PaperExchange {
             tradeSide: "CLOSE",
             positionId: position.positionId,
             createdAt: Date.now(),
+            // FEAT-0819 — a plan belongs to whoever owns the position it
+            // protects, whichever route created it: an added leg joins its
+            // group under the same owner, and a bot's stop reaches it.
+            ...provenanceFields(readProvenance(position)),
         };
     }
 
@@ -670,6 +730,10 @@ class PaperExchange {
                 positionId:
                     typeof payload.positionId === "string" ? payload.positionId : undefined,
                 createdAt: Date.now(),
+                // FEAT-0819 — the owner rests with the order, so the fill the
+                // feed delivers later is attributed like a market fill, and a
+                // bot's stop can cancel what it placed.
+                ...provenanceFields(readProvenance(payload)),
             };
             paperState.setOrders([...paperState.orders, resting]);
             return ok({ orderId, clientOrderId });
@@ -682,26 +746,7 @@ class PaperExchange {
         // payload by the paper seam in tradeService. A caller that drives the
         // simulator directly (tests, older callers) stamps nothing and the
         // trade reads as manual-or-unknown.
-        const origin =
-            payload.origin === "bot" || payload.origin === "manual"
-                ? payload.origin
-                : undefined;
-        // FEAT-0806 — the single attribution guard, at the trust boundary:
-        // identity is a fact of a bot entry, so it exists only when the
-        // payload says `origin: "bot"` and all three fields are strings.
-        // Anything else reads as manual-or-unknown, never as a mis-stamped
-        // bot — a manual order cannot smuggle identity in late.
-        const attribution: BotAttribution | undefined =
-            origin === "bot" &&
-            typeof payload.botId === "string" &&
-            typeof payload.ruleId === "string" &&
-            typeof payload.strategyHash === "string"
-                ? {
-                      botId: payload.botId,
-                      ruleId: payload.ruleId,
-                      strategyHash: payload.strategyHash,
-                  }
-                : undefined;
+        const { origin, attribution } = readProvenance(payload);
         // BUG-0552 review: TP/SL levels are validated before the zero-fill
         // shortcut below, so an order carrying invalid TP/SL is rejected even
         // when the market would have filled nothing. Only a fully valid order
@@ -848,6 +893,13 @@ class PaperExchange {
         const closeSide: "BUY" | "SELL" = side;
         // Both legs belong to one plan row, the way the venue returns them.
         const groupId = paperState.takeId("paper-tpsl");
+        // FEAT-0819 — a plan belongs to whoever owns the position it
+        // protects (see planLeg), not to whoever placed this entry: an
+        // entry that adds to someone else's position adds no owner of its
+        // own (FEAT-0806 netting).
+        const owner = provenanceFields(
+            readProvenance(paperState.positions.find((p) => p.positionId === positionId) ?? {}),
+        );
 
         for (const [priceKey, typeKey, stopKey, planType] of [
             ["tpPrice", "tpOrderType", "tpStopType", "TP"],
@@ -881,6 +933,7 @@ class PaperExchange {
                 // journal could not read the stop the trade was taken with.
                 positionId,
                 createdAt: Date.now(),
+                ...owner,
             });
         }
 
@@ -1245,6 +1298,10 @@ class PaperExchange {
                       )
                     : undefined;
             const qty = new Decimal(tracked?.amount ?? order.qty);
+            // FEAT-0819 — the owner the order rested with, read back through
+            // the same guard a payload passes, so this fill is attributed the
+            // way the market path attributes one.
+            const { origin, attribution } = readProvenance(order);
             try {
                 const fill = closes
                     ? this.applyClose(order.symbol, order.side, qty, price)
@@ -1254,6 +1311,8 @@ class PaperExchange {
                           qty,
                           price,
                           this.entryLeverage(order.symbol, {}),
+                          origin,
+                          attribution,
                       );
                 this.recordFill(fill, {
                     orderId: order.orderId,
@@ -1261,6 +1320,8 @@ class PaperExchange {
                     side: order.side,
                     orderType: order.orderType,
                     tradeSide: closes ? "CLOSE" : "OPEN",
+                    origin,
+                    attribution,
                     // FEAT-0812 — the feed crossed a resting plan; nobody
                     // pressed anything. Without this fact a bot's own stop
                     // reads as the trader stepping in, and the losses it
@@ -1281,6 +1342,34 @@ class PaperExchange {
             paperState.setOrders(remaining.filter((o) => survivors.has(o.orderId)));
             announceBookChange();
         }
+    }
+
+    /**
+     * Cancels every resting order a bot owns — FEAT-0819, ADR-0027 point 3.
+     *
+     * A grid's stop and its stop-out cancel the ladder before they close the
+     * position, so this reaches entries, counter-orders and the plans a bot
+     * entry attached alike. It closes nothing: the position stays for the
+     * caller to close through the gate.
+     *
+     * Ownership is read through the same guard a payload passes, so an
+     * order whose origin this build does not recognise is not the bot's,
+     * and an unattributed order never matches — not even an empty id.
+     *
+     * Not a venue endpoint: the venue cancels by symbol or by id, and the
+     * runtime that needs this is paper-only (FEAT-0819).
+     *
+     * @returns how many orders were cancelled.
+     */
+    public cancelOrdersOwnedBy(botId: string): number {
+        const remaining = paperState.orders.filter(
+            (o) => readProvenance(o).attribution?.botId !== botId,
+        );
+        const cancelled = paperState.orders.length - remaining.length;
+        if (cancelled === 0) return 0;
+        paperState.setOrders(remaining);
+        announceBookChange();
+        return cancelled;
     }
 
     private hasCrossed(order: PaperOrder, price: Decimal): boolean {
