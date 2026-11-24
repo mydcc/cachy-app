@@ -2,7 +2,9 @@
 id: FEAT-0819
 title: Run grid bots on the paper account
 type: feature
-status: ready
+status: in-progress
+assignee: claude
+branch: feature/feat-0819-owned-paper-orders
 priority: P3
 milestone: none
 editions: [community, pro, private]
