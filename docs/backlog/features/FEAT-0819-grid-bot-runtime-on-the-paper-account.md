@@ -2,9 +2,7 @@
 id: FEAT-0819
 title: Run grid bots on the paper account
 type: feature
-status: in-progress
-assignee: claude
-branch: feature/feat-0819-owned-paper-orders
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -108,10 +106,24 @@ Implement the grid as its own bot kind, per
       and says that its ladder and its stop-out are frozen with the paper
       book. It never claims that its protective exits keep running.
 
-## State (2026-11-23)
+## State (2026-11-24)
 
-Stages 1 and 2 are delivered (#4624, and the ladder arithmetic in #4626);
-stages 3 to 5 are open. The item sits at `ready` between stages on purpose:
+Stages 1 to 3 are delivered (#4624, the ladder arithmetic in #4626, and the
+owned resting orders on `feature/feat-0819-owned-paper-orders`); stages 4
+and 5 are open.
+
+Stage 3 gives `PaperOrder` the four attribution fields the position and the
+opening fill already carry (`origin`, `botId`, `ruleId`, `strategyHash`;
+`botId` is ADR-0027's `ownerBotId`, kept under the book's existing name so
+one fact has one name). A resting order and the TP/SL plans a bot entry
+attaches are stamped through the same guard as the market path
+(`readProvenance` in `paperExchange.ts`), and `settleRestingOrders` hands
+the stamp to `applyOpen`/`recordFill`, so a bot's limit entry no longer
+reads as manual once the feed fills it. `paperExchange.cancelOrdersOwnedBy`
+cancels every resting order a bot owns and closes nothing — the primitive
+criterion 5's stop and the stop-out build on in stage 4. Known gap: a plan
+leg added later through `modifyTpSlPlan` (the BUG-0687 path) is created
+without an owner; stage 4 decides whether a grid ever takes that path. The item sits at `ready` between stages on purpose:
 `backlog:check:stale` flags an `in-progress` claim whose branch has merged,
 and every stage merges its own branch. Whoever starts the next stage claims
 the item again with that stage's branch and hands it back at merge.

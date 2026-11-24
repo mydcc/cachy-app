@@ -37,7 +37,7 @@ vi.mock("./logger", () => ({
 const settings = vi.hoisted(() => ({ journalPaperTrades: true }));
 vi.mock("../stores/settings.svelte", () => ({ settingsState: settings }));
 
-import { paperExchange, setPaperPriceFeed } from "./paperExchange";
+import { paperExchange, setPaperBookListener, setPaperPriceFeed } from "./paperExchange";
 import { paperJournalService } from "./paperJournalService";
 import { paperState } from "../stores/paperTrading.svelte";
 import { CONSTANTS } from "../lib/constants";
@@ -338,5 +338,211 @@ describe("FEAT-0806 — blobs from other builds", () => {
         expect(paperState.fills).toHaveLength(1);
         expect(paperState.fills[0].origin).toBeUndefined();
         expect(paperState.fills[0].botId).toBe("rule-bot-1");
+    });
+});
+
+describe("FEAT-0819 — a resting order keeps its owner", () => {
+    /** A limit entry below the market, so it rests until the feed falls to it. */
+    async function rest(payload: Record<string, unknown> = {}, price = "49000") {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "LIMIT",
+            price,
+            qty: "0.02",
+            ...payload,
+        });
+    }
+
+    it("stamps a bot's resting limit order with the bot's attribution", async () => {
+        await rest(BOT_STAMP);
+
+        expect(paperState.positions).toHaveLength(0);
+        const order = paperState.orders[0];
+        expect(order.origin).toBe("bot");
+        expect(order.botId).toBe("rule-bot-1");
+        expect(order.ruleId).toBe("rule-bot-1");
+        expect(order.strategyHash).toBe(HASH);
+    });
+
+    it("carries the attribution onto the position and opening fill when the feed fills it", async () => {
+        // The case that read as manual before: the entry rested, the bot
+        // stamp stayed in the payload, and the later fill opened an
+        // unattributed position.
+        await rest(BOT_STAMP);
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(48900));
+
+        expect(paperState.orders).toHaveLength(0);
+        const position = paperState.positions[0];
+        expect(position.origin).toBe("bot");
+        expect(position.botId).toBe("rule-bot-1");
+        expect(position.strategyHash).toBe(HASH);
+        expect(paperState.getPositionMetadata(position.positionId)?.botId).toBe("rule-bot-1");
+
+        const fill = paperState.fills[0];
+        expect(fill.tradeSide).toBe("OPEN");
+        expect(fill.orderId).toBeDefined();
+        expect(fill.origin).toBe("bot");
+        expect(fill.botId).toBe("rule-bot-1");
+        expect(fill.strategyHash).toBe(HASH);
+    });
+
+    it("does not re-attribute a position when a bot's resting order adds to a manual one", async () => {
+        await open({ origin: "manual" });
+        await rest(BOT_STAMP);
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(48900));
+
+        expect(paperState.positions).toHaveLength(1);
+        expect(paperState.positions[0].origin).toBe("manual");
+        expect(paperState.positions[0].botId).toBeUndefined();
+    });
+
+    it("refuses bot identity on a manual resting order, like the market path", async () => {
+        await rest({
+            origin: "manual",
+            botId: "rule-bot-1",
+            ruleId: "rule-bot-1",
+            strategyHash: HASH,
+        });
+
+        const order = paperState.orders[0];
+        expect(order.origin).toBe("manual");
+        expect(order.botId).toBeUndefined();
+        expect(order.ruleId).toBeUndefined();
+        expect(order.strategyHash).toBeUndefined();
+    });
+
+    it("leaves an unstamped resting order unattributed", async () => {
+        await rest();
+
+        expect(paperState.orders[0].origin).toBeUndefined();
+        expect(paperState.orders[0].botId).toBeUndefined();
+    });
+
+    it("stamps the TP/SL plans a bot entry attaches with the same owner", async () => {
+        await open({ ...BOT_STAMP, tpPrice: "52000", slPrice: "48000" });
+
+        const plans = paperState.orders.filter((o) => o.planGroupId !== undefined);
+        expect(plans).toHaveLength(2);
+        for (const plan of plans) {
+            expect(plan.origin).toBe("bot");
+            expect(plan.botId).toBe("rule-bot-1");
+            expect(plan.strategyHash).toBe(HASH);
+        }
+    });
+
+    it("keeps a resting order's owner across a reload", async () => {
+        await rest(BOT_STAMP);
+        paperState.reloadFromStorage();
+
+        const order = paperState.orders[0];
+        expect(order.origin).toBe("bot");
+        expect(order.botId).toBe("rule-bot-1");
+        expect(order.strategyHash).toBe(HASH);
+    });
+
+    it("reads an unknown origin on a stored resting order as unattributed instead of wiping the book", async () => {
+        await rest(BOT_STAMP);
+        const blob = JSON.parse(
+            localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY) as string,
+        ) as { orders: Record<string, unknown>[] };
+        blob.orders[0].origin = "grid";
+        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, JSON.stringify(blob));
+        paperState.reloadFromStorage();
+
+        expect(paperState.orders).toHaveLength(1);
+        expect(paperState.orders[0].origin).toBeUndefined();
+        expect(paperState.orders[0].botId).toBe("rule-bot-1");
+    });
+});
+
+describe("FEAT-0819 — cancelling by owner", () => {
+    const OTHER_BOT = {
+        origin: "bot",
+        botId: "rule-bot-2",
+        ruleId: "rule-bot-2",
+        strategyHash: "cd".repeat(32),
+    };
+
+    async function rest(payload: Record<string, unknown>, price: string) {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "LIMIT",
+            price,
+            qty: "0.01",
+            ...payload,
+        });
+    }
+
+    it("cancels every resting order the bot owns and nothing else", async () => {
+        await rest(BOT_STAMP, "49000");
+        await rest(BOT_STAMP, "48000");
+        await rest(OTHER_BOT, "47000");
+        await rest({ origin: "manual" }, "46000");
+        await rest({}, "45000");
+
+        const cancelled = paperExchange.cancelOrdersOwnedBy("rule-bot-1");
+
+        expect(cancelled).toBe(2);
+        expect(paperState.orders.map((o) => o.price)).toEqual(["47000", "46000", "45000"]);
+        expect(paperState.orders.some((o) => o.botId === "rule-bot-1")).toBe(false);
+    });
+
+    it("cancels the bot's attached plans along with its resting entries", async () => {
+        await open({ ...BOT_STAMP, tpPrice: "52000", slPrice: "48000" });
+        await rest(BOT_STAMP, "49000");
+
+        expect(paperExchange.cancelOrdersOwnedBy("rule-bot-1")).toBe(3);
+        expect(paperState.orders).toHaveLength(0);
+        // Cancelling orders is not closing: the position stays for the
+        // caller to close through the gate.
+        expect(paperState.positions).toHaveLength(1);
+    });
+
+    it("answers zero and leaves the book untouched when the bot owns nothing", async () => {
+        await rest({ origin: "manual" }, "49000");
+        const before = paperState.orders;
+
+        expect(paperExchange.cancelOrdersOwnedBy("rule-bot-1")).toBe(0);
+        expect(paperState.orders).toBe(before);
+    });
+
+    it("never matches unattributed orders, even for an empty owner id", async () => {
+        await rest({}, "49000");
+        await rest({ origin: "manual" }, "48000");
+
+        expect(paperExchange.cancelOrdersOwnedBy("")).toBe(0);
+        expect(paperState.orders).toHaveLength(2);
+    });
+
+    it("tells the book listener once when it cancelled something", async () => {
+        const listener = vi.fn();
+        setPaperBookListener(listener);
+        try {
+            await rest(BOT_STAMP, "49000");
+            listener.mockClear();
+
+            paperExchange.cancelOrdersOwnedBy("rule-bot-1");
+            expect(listener).toHaveBeenCalledTimes(1);
+
+            paperExchange.cancelOrdersOwnedBy("rule-bot-1");
+            expect(listener).toHaveBeenCalledTimes(1);
+        } finally {
+            setPaperBookListener(null);
+        }
+    });
+
+    it("keeps the cancellation across a reload", async () => {
+        await rest(BOT_STAMP, "49000");
+        await rest(OTHER_BOT, "48000");
+        paperExchange.cancelOrdersOwnedBy("rule-bot-1");
+
+        paperState.reloadFromStorage();
+
+        expect(paperState.orders).toHaveLength(1);
+        expect(paperState.orders[0].botId).toBe("rule-bot-2");
     });
 });

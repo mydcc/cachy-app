@@ -179,6 +179,17 @@ export interface PaperOrder {
     tradeSide?: "OPEN" | "CLOSE";
     positionId?: string;
     createdAt: number;
+    /**
+     * FEAT-0819 — who placed this order, in the same four fields the
+     * position and the opening fill carry (FEAT-0806), so a resting entry
+     * that the feed fills later is attributed exactly like a market fill.
+     * `botId` is the owner ADR-0027 calls `ownerBotId`: the key a grid's
+     * stop cancels by. Absent means manual or unknown.
+     */
+    origin?: "bot" | "manual";
+    botId?: string;
+    ruleId?: string;
+    strategyHash?: string;
 }
 
 /**
@@ -221,9 +232,10 @@ export interface PaperFill {
      * `"plan"` is the TP/SL resting against the position: the feed crossed it
      * and nobody pressed anything. Absent on an opening fill, and absent on a
      * close means the trader asked for it. Who *wrote* the plan is not
-     * recorded here — `PaperOrder` carries no attribution yet (FEAT-0806
-     * deferred that) — so the journal resolves it through the position's own
-     * origin: a bot's position was taken with the bot's stop.
+     * recorded here: the plan order carries its writer while it rests
+     * (FEAT-0819), but a fired plan leaves the book, so the journal resolves
+     * it through the position's own origin — a bot's position was taken with
+     * the bot's stop.
      */
     exitBy?: "plan";
 }
@@ -329,6 +341,11 @@ const PaperOrderSchema = z.object({
     tradeSide: z.enum(["OPEN", "CLOSE"]).optional(),
     positionId: z.string().optional(),
     createdAt: z.number().catch(0),
+    // FEAT-0819 — see PaperPositionSchema's origin note on the catch.
+    origin: z.enum(["bot", "manual"]).optional().catch(undefined),
+    botId: z.string().optional(),
+    ruleId: z.string().optional(),
+    strategyHash: z.string().optional(),
 });
 
 const PositionMetadataSchema = z.object({
