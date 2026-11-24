@@ -121,9 +121,15 @@ attaches are stamped through the same guard as the market path
 the stamp to `applyOpen`/`recordFill`, so a bot's limit entry no longer
 reads as manual once the feed fills it. `paperExchange.cancelOrdersOwnedBy`
 cancels every resting order a bot owns and closes nothing — the primitive
-criterion 5's stop and the stop-out build on in stage 4. Known gap: a plan
-leg added later through `modifyTpSlPlan` (the BUG-0687 path) is created
-without an owner; stage 4 decides whether a grid ever takes that path. The item sits at `ready` between stages on purpose:
+criterion 5's stop and the stop-out build on in stage 4. A TP/SL plan
+belongs to the owner of the position it protects, on every route that
+creates one (attached to an entry, `place-position`, or a leg added through
+`modify-position`), so a plan group never splits between owners. Stage 4
+must cancel before it closes: a tick between a close and the cancel could
+fill a resting entry and open a new position. Found on the way:
+[`BUG-0839`](../bugs/BUG-0839-paper-limit-entry-fills-without-its-attached-tp-sl.md)
+— a paper limit entry's attached TP/SL is lost at the fill, which a grid
+entry relying on attached plans would hit. The item sits at `ready` between stages on purpose:
 `backlog:check:stale` flags an `in-progress` claim whose branch has merged,
 and every stage merges its own branch. Whoever starts the next stage claims
 the item again with that stage's branch and hands it back at merge.

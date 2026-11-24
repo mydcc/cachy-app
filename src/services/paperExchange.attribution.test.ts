@@ -546,3 +546,52 @@ describe("FEAT-0819 — cancelling by owner", () => {
         expect(paperState.orders[0].botId).toBe("rule-bot-2");
     });
 });
+
+describe("FEAT-0819 — a plan belongs to the owner of the position it protects", () => {
+    async function tpsl(action: string, params: Record<string, unknown>) {
+        await paperExchange.handle("/api/tpsl", { action, params });
+    }
+
+    function plans() {
+        return paperState.orders.filter((o) => o.planGroupId !== undefined);
+    }
+
+    it("owns a plan set on a bot's position through place-position", async () => {
+        await open(BOT_STAMP);
+        const { positionId } = paperState.positions[0];
+
+        await tpsl("place-position", { symbol: "BTCUSDT", positionId, slPrice: "48000" });
+
+        expect(plans()).toHaveLength(1);
+        expect(plans()[0].botId).toBe("rule-bot-1");
+        expect(plans()[0].strategyHash).toBe(HASH);
+    });
+
+    it("owns a leg added later through modify-position, so cancelling by owner removes the whole plan", async () => {
+        // The route that used to split a group: the bot's entry carried a
+        // target only, and the stop was added afterwards.
+        await open({ ...BOT_STAMP, tpPrice: "52000" });
+        const { positionId } = paperState.positions[0];
+
+        await tpsl("modify-position", { positionId, slPrice: "48000" });
+
+        expect(plans()).toHaveLength(2);
+        expect(plans().every((o) => o.botId === "rule-bot-1")).toBe(true);
+        expect(paperExchange.cancelOrdersOwnedBy("rule-bot-1")).toBe(2);
+        expect(plans()).toHaveLength(0);
+    });
+
+    it("leaves a plan on a manual position unowned, even when a bot entry attached it", async () => {
+        // A bot entry that adds to a manual position does not re-attribute
+        // it (FEAT-0806), so the stops it brings protect a manual position
+        // and must not be cancelled by the bot.
+        await open({ origin: "manual" });
+        await open({ ...BOT_STAMP, slPrice: "48000" });
+
+        expect(paperState.positions[0].origin).toBe("manual");
+        expect(plans()).toHaveLength(1);
+        expect(plans()[0].origin).toBe("manual");
+        expect(plans()[0].botId).toBeUndefined();
+        expect(paperExchange.cancelOrdersOwnedBy("rule-bot-1")).toBe(0);
+    });
+});

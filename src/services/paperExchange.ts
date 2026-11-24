@@ -36,7 +36,12 @@
 
 import { Decimal } from "decimal.js";
 import { validateTpSlPrice, normalizePositionSide } from "../lib/calculators/tpsl";
-import { paperState, type PaperFill, type PaperOrder } from "../stores/paperTrading.svelte";
+import {
+    paperState,
+    type PaperFill,
+    type PaperOrder,
+    type PaperPosition,
+} from "../stores/paperTrading.svelte";
 import type { BotAttribution } from "./orderGate";
 
 export class PaperExchangeError extends Error {
@@ -442,7 +447,10 @@ class PaperExchange {
      */
     private planLeg(
         positionWide: boolean,
-        position: { symbol: string; side: string; amount: unknown; positionId: string },
+        position: Pick<
+            PaperPosition,
+            "symbol" | "side" | "amount" | "positionId" | "origin" | "botId" | "ruleId" | "strategyHash"
+        >,
         params: Record<string, unknown>,
         prefix: "tp" | "sl",
         planType: "TP" | "SL",
@@ -472,6 +480,10 @@ class PaperExchange {
             tradeSide: "CLOSE",
             positionId: position.positionId,
             createdAt: Date.now(),
+            // FEAT-0819 — a plan belongs to whoever owns the position it
+            // protects, whichever route created it: an added leg joins its
+            // group under the same owner, and a bot's stop reaches it.
+            ...provenanceFields(readProvenance(position)),
         };
     }
 
@@ -881,9 +893,13 @@ class PaperExchange {
         const closeSide: "BUY" | "SELL" = side;
         // Both legs belong to one plan row, the way the venue returns them.
         const groupId = paperState.takeId("paper-tpsl");
-        // FEAT-0819 — the plans an entry attaches belong to whoever placed
-        // the entry, so cancelling by owner reaches a bot's stops too.
-        const owner = provenanceFields(readProvenance(payload));
+        // FEAT-0819 — a plan belongs to whoever owns the position it
+        // protects (see planLeg), not to whoever placed this entry: an
+        // entry that adds to someone else's position adds no owner of its
+        // own (FEAT-0806 netting).
+        const owner = provenanceFields(
+            readProvenance(paperState.positions.find((p) => p.positionId === positionId) ?? {}),
+        );
 
         for (const [priceKey, typeKey, stopKey, planType] of [
             ["tpPrice", "tpOrderType", "tpStopType", "TP"],
