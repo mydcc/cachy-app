@@ -180,6 +180,17 @@ export interface PaperOrder {
     positionId?: string;
     createdAt: number;
     /**
+     * BUG-0839 — attached TP/SL request levels carried by a resting entry
+     * until the feed crosses it, so `settleRestingOrders` can attach the
+     * protective plans on fill just as the MARKET path does.
+     */
+    tpPrice?: string;
+    tpStopType?: string;
+    tpOrderType?: string;
+    slPrice?: string;
+    slStopType?: string;
+    slOrderType?: string;
+    /**
      * FEAT-0819 — who placed this order, in the same four fields the
      * position and the opening fill carry (FEAT-0806), so a resting entry
      * that the feed fills later is attributed exactly like a market fill.
@@ -341,6 +352,13 @@ const PaperOrderSchema = z.object({
     tradeSide: z.enum(["OPEN", "CLOSE"]).optional(),
     positionId: z.string().optional(),
     createdAt: z.number().catch(0),
+    // BUG-0839 — attached TP/SL request levels on resting entries.
+    tpPrice: decimalString.optional().catch(undefined),
+    tpStopType: z.string().optional().catch(undefined),
+    tpOrderType: z.string().optional().catch(undefined),
+    slPrice: decimalString.optional().catch(undefined),
+    slStopType: z.string().optional().catch(undefined),
+    slOrderType: z.string().optional().catch(undefined),
     // FEAT-0819 — see PaperPositionSchema's origin note on the catch.
     origin: z.enum(["bot", "manual"]).optional().catch(undefined),
     botId: z.string().optional(),

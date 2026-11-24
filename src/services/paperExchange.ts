@@ -36,6 +36,7 @@
 
 import { Decimal } from "decimal.js";
 import { validateTpSlPrice, normalizePositionSide } from "../lib/calculators/tpsl";
+import { logger } from "./logger";
 import {
     paperState,
     type PaperFill,
@@ -709,6 +710,7 @@ class PaperExchange {
         const orderId = paperState.takeId("paper-order");
         const clientOrderId =
             typeof payload.clientOrderId === "string" ? payload.clientOrderId : undefined;
+        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
 
         // A limit or trigger order rests until the feed crosses it. Filling it
         // immediately would make every strategy that uses limits look better
@@ -730,6 +732,30 @@ class PaperExchange {
                 positionId:
                     typeof payload.positionId === "string" ? payload.positionId : undefined,
                 createdAt: Date.now(),
+                // BUG-0839 — carry attached TP/SL levels on opening entries
+                // until the feed fills them, matching the MARKET branch.
+                ...(!closes
+                    ? {
+                          tpPrice: toDecimal(payload.tpPrice)?.toString(),
+                          tpStopType:
+                              typeof payload.tpStopType === "string"
+                                  ? payload.tpStopType
+                                  : undefined,
+                          tpOrderType:
+                              typeof payload.tpOrderType === "string"
+                                  ? payload.tpOrderType
+                                  : undefined,
+                          slPrice: toDecimal(payload.slPrice)?.toString(),
+                          slStopType:
+                              typeof payload.slStopType === "string"
+                                  ? payload.slStopType
+                                  : undefined,
+                          slOrderType:
+                              typeof payload.slOrderType === "string"
+                                  ? payload.slOrderType
+                                  : undefined,
+                      }
+                    : {}),
                 // FEAT-0819 — the owner rests with the order, so the fill the
                 // feed delivers later is attributed like a market fill, and a
                 // bot's stop can cancel what it placed.
@@ -741,7 +767,6 @@ class PaperExchange {
 
         const price = requirePrice(symbol);
         const qty = this.fillQuantity(requested);
-        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
         // FEAT-0806 — provenance and identity for the book, merged into the
         // payload by the paper seam in tradeService. A caller that drives the
         // simulator directly (tests, older callers) stamps nothing and the
@@ -799,7 +824,7 @@ class PaperExchange {
         // with them. Simulating the atomic form as two separate steps would
         // hide exactly the window this feature exists to close.
         if (!closes) {
-            this.attachEntryPlans(symbol, side, fill.qty, payload, fill.price, fill.positionId);
+            this.attachEntryPlans(symbol, side, fill.qty, payload, fill.positionId);
         }
 
         return ok({
@@ -884,13 +909,13 @@ class PaperExchange {
         side: "BUY" | "SELL",
         qty: Decimal,
         payload: Record<string, unknown>,
-        entryPrice: Decimal,
         positionId: string,
-    ): void {
+    ): PaperOrder[] {
         const attached: PaperOrder[] = [];
         // Closing side, in the shape the close path expects: the position's
         // own side, not the execution direction (see applyClose).
         const closeSide: "BUY" | "SELL" = side;
+        const isLong = side === "BUY";
         // Both legs belong to one plan row, the way the venue returns them.
         const groupId = paperState.takeId("paper-tpsl");
         // FEAT-0819 — a plan belongs to whoever owns the position it
@@ -907,6 +932,14 @@ class PaperExchange {
         ] as const) {
             const trigger = toDecimal(payload[priceKey]);
             if (trigger === null || trigger.lte(0)) continue;
+            // Derived unconditionally from `(side, planType)` rather than
+            // comparing against `fill.price`: a gap-fill past `slPrice` (or
+            // tight `tpPrice` under slippage) would otherwise invert the
+            // trigger direction and leave the position unprotected.
+            const triggerDirection: "above" | "below" =
+                (isLong && planType === "TP") || (!isLong && planType === "SL")
+                    ? "above"
+                    : "below";
             attached.push({
                 orderId: paperState.takeId("paper-plan"),
                 planGroupId: groupId,
@@ -921,10 +954,7 @@ class PaperExchange {
                 planScope: "position",
                 qty: qty.toString(),
                 triggerPrice: trigger.toString(),
-                // Derived from where the level sits relative to the entry,
-                // not from the order side — both plans on a long are closing
-                // BUY orders, but the target fires above and the stop below.
-                triggerDirection: trigger.gt(entryPrice) ? "above" : "below",
+                triggerDirection,
                 planType,
                 reduceOnly: true,
                 tradeSide: "CLOSE",
@@ -938,8 +968,14 @@ class PaperExchange {
         }
 
         if (attached.length > 0) {
-            paperState.setOrders([...paperState.orders, ...attached]);
+            // Bitunix allows one position-wide plan per position; replacing
+            // keeps scale-ins from creating duplicate plan groups.
+            const kept = paperState.orders.filter(
+                (o) => !(o.positionId === positionId && o.planScope === "position"),
+            );
+            paperState.setOrders([...kept, ...attached]);
         }
+        return attached;
     }
 
     /** Slippage always works against the trader, on both sides of the book. */
@@ -1279,12 +1315,29 @@ class PaperExchange {
      * update; separate from `handle` because nothing requested it.
      */
     public settleRestingOrders(symbol: string, price: Decimal): void {
+        const queue: PaperOrder[] = [...paperState.orders];
         const remaining: PaperOrder[] = [];
         let changed = false;
 
-        for (const order of paperState.orders) {
+        for (let i = 0; i < queue.length; i++) {
+            const order = queue[i];
+            // A full close or position-wide plan replacement earlier in this
+            // pass may already have cancelled this order from the book.
+            if (!paperState.orders.some((o) => o.orderId === order.orderId)) {
+                continue;
+            }
             if (order.symbol !== symbol || !this.hasCrossed(order, price)) {
                 remaining.push(order);
+                continue;
+            }
+            // A position-bound plan must never fall back to closing a
+            // replacement position on the same (symbol, side) after its own
+            // position closed earlier in the same tick.
+            if (
+                order.positionId !== undefined &&
+                !paperState.positions.some((p) => p.positionId === order.positionId)
+            ) {
+                changed = true;
                 continue;
             }
             changed = true;
@@ -1297,12 +1350,12 @@ class PaperExchange {
                           (p) => p.positionId === order.positionId,
                       )
                     : undefined;
-            const qty = new Decimal(tracked?.amount ?? order.qty);
             // FEAT-0819 — the owner the order rested with, read back through
             // the same guard a payload passes, so this fill is attributed the
             // way the market path attributes one.
             const { origin, attribution } = readProvenance(order);
             try {
+                const qty = new Decimal(tracked?.amount ?? order.qty);
                 const fill = closes
                     ? this.applyClose(order.symbol, order.side, qty, price)
                     : this.applyOpen(
@@ -1328,9 +1381,43 @@ class PaperExchange {
                     // takes drop out of the bot's figures (Devin review).
                     ...(closes ? { exitBy: "plan" as const } : {}),
                 });
-            } catch {
+                // BUG-0839 — attach TP/SL plans when a resting entry fills,
+                // mirroring the MARKET path, and queue them into this pass so
+                // a stop already crossed at the fill quote triggers on the
+                // same tick (and uncrossed plans land in `remaining`).
+                if (!closes && (order.tpPrice !== undefined || order.slPrice !== undefined)) {
+                    const attached = this.attachEntryPlans(
+                        order.symbol,
+                        order.side,
+                        fill.qty,
+                        {
+                            tpPrice: order.tpPrice,
+                            tpStopType: order.tpStopType,
+                            tpOrderType: order.tpOrderType,
+                            slPrice: order.slPrice,
+                            slStopType: order.slStopType,
+                            slOrderType: order.slOrderType,
+                        },
+                        fill.positionId,
+                    );
+                    queue.push(...attached);
+                }
+            } catch (err) {
                 // A close with no position left is not an error worth
                 // surfacing — the position went away, the order is moot.
+                if (
+                    !(
+                        closes &&
+                        err instanceof PaperExchangeError &&
+                        err.code === "PAPER_NO_POSITION"
+                    )
+                ) {
+                    logger.error(
+                        "market",
+                        `[Paper] Resting order ${order.orderId} (${order.symbol}) settlement failed`,
+                        err,
+                    );
+                }
             }
         }
 
