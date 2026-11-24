@@ -353,12 +353,12 @@ const PaperOrderSchema = z.object({
     positionId: z.string().optional(),
     createdAt: z.number().catch(0),
     // BUG-0839 — attached TP/SL request levels on resting entries.
-    tpPrice: decimalString.optional(),
-    tpStopType: z.string().optional(),
-    tpOrderType: z.string().optional(),
-    slPrice: decimalString.optional(),
-    slStopType: z.string().optional(),
-    slOrderType: z.string().optional(),
+    tpPrice: decimalString.optional().catch(undefined),
+    tpStopType: z.string().optional().catch(undefined),
+    tpOrderType: z.string().optional().catch(undefined),
+    slPrice: decimalString.optional().catch(undefined),
+    slStopType: z.string().optional().catch(undefined),
+    slOrderType: z.string().optional().catch(undefined),
     // FEAT-0819 — see PaperPositionSchema's origin note on the catch.
     origin: z.enum(["bot", "manual"]).optional().catch(undefined),
     botId: z.string().optional(),

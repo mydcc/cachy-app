@@ -710,6 +710,7 @@ class PaperExchange {
         const orderId = paperState.takeId("paper-order");
         const clientOrderId =
             typeof payload.clientOrderId === "string" ? payload.clientOrderId : undefined;
+        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
 
         // A limit or trigger order rests until the feed crosses it. Filling it
         // immediately would make every strategy that uses limits look better
@@ -731,18 +732,30 @@ class PaperExchange {
                 positionId:
                     typeof payload.positionId === "string" ? payload.positionId : undefined,
                 createdAt: Date.now(),
-                // BUG-0839 — carry attached TP/SL levels until the feed fills
-                // the entry, matching the MARKET branch's atomic protection.
-                tpPrice: toDecimal(payload.tpPrice)?.toString(),
-                tpStopType:
-                    typeof payload.tpStopType === "string" ? payload.tpStopType : undefined,
-                tpOrderType:
-                    typeof payload.tpOrderType === "string" ? payload.tpOrderType : undefined,
-                slPrice: toDecimal(payload.slPrice)?.toString(),
-                slStopType:
-                    typeof payload.slStopType === "string" ? payload.slStopType : undefined,
-                slOrderType:
-                    typeof payload.slOrderType === "string" ? payload.slOrderType : undefined,
+                // BUG-0839 — carry attached TP/SL levels on opening entries
+                // until the feed fills them, matching the MARKET branch.
+                ...(!closes
+                    ? {
+                          tpPrice: toDecimal(payload.tpPrice)?.toString(),
+                          tpStopType:
+                              typeof payload.tpStopType === "string"
+                                  ? payload.tpStopType
+                                  : undefined,
+                          tpOrderType:
+                              typeof payload.tpOrderType === "string"
+                                  ? payload.tpOrderType
+                                  : undefined,
+                          slPrice: toDecimal(payload.slPrice)?.toString(),
+                          slStopType:
+                              typeof payload.slStopType === "string"
+                                  ? payload.slStopType
+                                  : undefined,
+                          slOrderType:
+                              typeof payload.slOrderType === "string"
+                                  ? payload.slOrderType
+                                  : undefined,
+                      }
+                    : {}),
                 // FEAT-0819 — the owner rests with the order, so the fill the
                 // feed delivers later is attributed like a market fill, and a
                 // bot's stop can cancel what it placed.
@@ -754,7 +767,6 @@ class PaperExchange {
 
         const price = requirePrice(symbol);
         const qty = this.fillQuantity(requested);
-        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
         // FEAT-0806 — provenance and identity for the book, merged into the
         // payload by the paper seam in tradeService. A caller that drives the
         // simulator directly (tests, older callers) stamps nothing and the
@@ -812,7 +824,7 @@ class PaperExchange {
         // with them. Simulating the atomic form as two separate steps would
         // hide exactly the window this feature exists to close.
         if (!closes) {
-            this.attachEntryPlans(symbol, side, fill.qty, payload, fill.price, fill.positionId);
+            this.attachEntryPlans(symbol, side, fill.qty, payload, fill.positionId);
         }
 
         return ok({
@@ -897,13 +909,13 @@ class PaperExchange {
         side: "BUY" | "SELL",
         qty: Decimal,
         payload: Record<string, unknown>,
-        entryPrice: Decimal,
         positionId: string,
     ): PaperOrder[] {
         const attached: PaperOrder[] = [];
         // Closing side, in the shape the close path expects: the position's
         // own side, not the execution direction (see applyClose).
         const closeSide: "BUY" | "SELL" = side;
+        const isLong = side === "BUY";
         // Both legs belong to one plan row, the way the venue returns them.
         const groupId = paperState.takeId("paper-tpsl");
         // FEAT-0819 — a plan belongs to whoever owns the position it
@@ -920,6 +932,14 @@ class PaperExchange {
         ] as const) {
             const trigger = toDecimal(payload[priceKey]);
             if (trigger === null || trigger.lte(0)) continue;
+            // Derived unconditionally from `(side, planType)` rather than
+            // comparing against `fill.price`: a gap-fill past `slPrice` (or
+            // tight `tpPrice` under slippage) would otherwise invert the
+            // trigger direction and leave the position unprotected.
+            const triggerDirection: "above" | "below" =
+                (isLong && planType === "TP") || (!isLong && planType === "SL")
+                    ? "above"
+                    : "below";
             attached.push({
                 orderId: paperState.takeId("paper-plan"),
                 planGroupId: groupId,
@@ -934,10 +954,7 @@ class PaperExchange {
                 planScope: "position",
                 qty: qty.toString(),
                 triggerPrice: trigger.toString(),
-                // Derived from where the level sits relative to the entry,
-                // not from the order side — both plans on a long are closing
-                // BUY orders, but the target fires above and the stop below.
-                triggerDirection: trigger.gt(entryPrice) ? "above" : "below",
+                triggerDirection,
                 planType,
                 reduceOnly: true,
                 tradeSide: "CLOSE",
@@ -951,7 +968,12 @@ class PaperExchange {
         }
 
         if (attached.length > 0) {
-            paperState.setOrders([...paperState.orders, ...attached]);
+            // Bitunix allows one position-wide plan per position; replacing
+            // keeps scale-ins from creating duplicate plan groups.
+            const kept = paperState.orders.filter(
+                (o) => !(o.positionId === positionId && o.planScope === "position"),
+            );
+            paperState.setOrders([...kept, ...attached]);
         }
         return attached;
     }
@@ -1359,7 +1381,6 @@ class PaperExchange {
                             slStopType: order.slStopType,
                             slOrderType: order.slOrderType,
                         },
-                        fill.price,
                         fill.positionId,
                     );
                     remaining.push(...attached);
