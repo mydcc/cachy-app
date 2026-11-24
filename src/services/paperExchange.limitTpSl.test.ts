@@ -218,7 +218,7 @@ describe("BUG-0839 — paper LIMIT entry fills with attached TP/SL plans", () =>
         expect(paperState.positions).toHaveLength(0);
     });
 
-    it("keeps SL direction below on a long gap-fill past slPrice so the stop still fires", async () => {
+    it("keeps SL direction below on a long gap-fill past slPrice and triggers the stop on the entry quote", async () => {
         await placeLimitEntry({
             ...BOT_STAMP,
             price: "49000",
@@ -227,15 +227,70 @@ describe("BUG-0839 — paper LIMIT entry fills with attached TP/SL plans", () =>
 
         // Feed gaps straight below the SL price when the limit fills.
         paperExchange.settleRestingOrders("BTCUSDT", new Decimal(47000));
-        expect(paperState.positions).toHaveLength(1);
-
-        const sl = paperState.orders.find((o) => o.planType === "SL");
-        expect(sl?.triggerDirection).toBe("below");
-
-        // Next falling tick triggers the SL and closes the position.
-        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(46500));
         expect(paperState.positions).toHaveLength(0);
         expect(paperState.orders).toHaveLength(0);
+        expect(paperState.fills).toHaveLength(2);
+        expect(paperState.fills[0].tradeSide).toBe("OPEN");
+        expect(paperState.fills[1].tradeSide).toBe("CLOSE");
+        expect(paperState.fills[1].exitBy).toBe("plan");
+
+        // Rebounding on the next tick leaves no unprotected position behind.
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(48500));
+        expect(paperState.positions).toHaveLength(0);
+    });
+
+    it("triggers a freshly attached SL when the entry fills at the exact stop quote and rebounds next tick", async () => {
+        paperState.setConfig("slippageBps", "10"); // +0.1% puts BUY fill above stop
+        await placeLimitEntry({
+            ...BOT_STAMP,
+            price: "49000",
+            slPrice: "48000",
+        });
+
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(48000));
+        expect(paperState.positions).toHaveLength(0);
+        expect(paperState.orders).toHaveLength(0);
+        expect(paperState.fills.map((f) => f.tradeSide)).toEqual(["OPEN", "CLOSE"]);
+
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(48100));
+        expect(paperState.positions).toHaveLength(0);
+    });
+
+    it("skips a cancelled stop from an earlier closed position instead of closing a replacement position", async () => {
+        feed.BTCUSDT = new Decimal(49000);
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "0.02",
+            ...BOT_STAMP,
+            slPrice: "47500",
+        });
+        const pos1Id = paperState.positions[0].positionId;
+
+        await placeLimitEntry({
+            ...BOT_STAMP,
+            price: "46000",
+            qty: "0.03",
+            slPrice: "44000",
+        });
+
+        await paperExchange.handle("/api/tpsl", {
+            action: "place",
+            params: { symbol: "BTCUSDT", positionId: pos1Id, slPrice: "47000", slQty: "0.02" },
+        });
+
+        // Order sequence in book: SL 47500 closes pos-1, limit 46000 opens pos-2,
+        // and the cancelled SL 47000 for pos-1 must not touch pos-2.
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(46000));
+
+        expect(paperState.positions).toHaveLength(1);
+        expect(paperState.positions[0].positionId).not.toBe(pos1Id);
+        expect(paperState.positions[0].amount).toBe("0.03");
+        expect(paperState.orders).toHaveLength(1);
+        expect(paperState.orders[0].triggerPrice).toBe("44000");
+        expect(paperState.orders[0].positionId).toBe(paperState.positions[0].positionId);
     });
 
     it("attaches SHORT TP below and SL above when a resting SELL limit fills", async () => {

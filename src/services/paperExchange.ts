@@ -1315,12 +1315,29 @@ class PaperExchange {
      * update; separate from `handle` because nothing requested it.
      */
     public settleRestingOrders(symbol: string, price: Decimal): void {
+        const queue: PaperOrder[] = [...paperState.orders];
         const remaining: PaperOrder[] = [];
         let changed = false;
 
-        for (const order of paperState.orders) {
+        for (let i = 0; i < queue.length; i++) {
+            const order = queue[i];
+            // A full close or position-wide plan replacement earlier in this
+            // pass may already have cancelled this order from the book.
+            if (!paperState.orders.some((o) => o.orderId === order.orderId)) {
+                continue;
+            }
             if (order.symbol !== symbol || !this.hasCrossed(order, price)) {
                 remaining.push(order);
+                continue;
+            }
+            // A position-bound plan must never fall back to closing a
+            // replacement position on the same (symbol, side) after its own
+            // position closed earlier in the same tick.
+            if (
+                order.positionId !== undefined &&
+                !paperState.positions.some((p) => p.positionId === order.positionId)
+            ) {
+                changed = true;
                 continue;
             }
             changed = true;
@@ -1365,9 +1382,9 @@ class PaperExchange {
                     ...(closes ? { exitBy: "plan" as const } : {}),
                 });
                 // BUG-0839 — attach TP/SL plans when a resting entry fills,
-                // mirroring the MARKET path, and include them in `remaining`
-                // so the final survivor filter keeps them unless a later fill
-                // in the same tick closed the position.
+                // mirroring the MARKET path, and queue them into this pass so
+                // a stop already crossed at the fill quote triggers on the
+                // same tick (and uncrossed plans land in `remaining`).
                 if (!closes && (order.tpPrice !== undefined || order.slPrice !== undefined)) {
                     const attached = this.attachEntryPlans(
                         order.symbol,
@@ -1383,7 +1400,7 @@ class PaperExchange {
                         },
                         fill.positionId,
                     );
-                    remaining.push(...attached);
+                    queue.push(...attached);
                 }
             } catch (err) {
                 // A close with no position left is not an error worth
