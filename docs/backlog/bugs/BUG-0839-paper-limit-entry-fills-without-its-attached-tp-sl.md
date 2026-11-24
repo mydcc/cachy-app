@@ -2,7 +2,7 @@
 id: BUG-0839
 title: A paper limit entry with TP/SL fills without its attached plans
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -69,12 +69,12 @@ the exchange it models.
 
 ## Acceptance criteria
 
-- [ ] A test places a paper LIMIT entry with `tpPrice` and `slPrice`, crosses
+- [x] A test places a paper LIMIT entry with `tpPrice` and `slPrice`, crosses
       it with the feed, and finds both plans on the new position; it fails
       without the fix
-- [ ] The test passes with the fix, and the plans carry the position's owner
-- [ ] A resting order with stored levels survives a reload with the levels
-- [ ] An opening fill that throws inside `settleRestingOrders` is logged, not
+- [x] The test passes with the fix, and the plans carry the position's owner
+- [x] A resting order with stored levels survives a reload with the levels
+- [x] An opening fill that throws inside `settleRestingOrders` is logged, not
       silently dropped; a close against a missing position stays quiet
 
 ## Out of scope

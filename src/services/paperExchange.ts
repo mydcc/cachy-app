@@ -36,6 +36,7 @@
 
 import { Decimal } from "decimal.js";
 import { validateTpSlPrice, normalizePositionSide } from "../lib/calculators/tpsl";
+import { logger } from "./logger";
 import {
     paperState,
     type PaperFill,
@@ -730,6 +731,18 @@ class PaperExchange {
                 positionId:
                     typeof payload.positionId === "string" ? payload.positionId : undefined,
                 createdAt: Date.now(),
+                // BUG-0839 — carry attached TP/SL levels until the feed fills
+                // the entry, matching the MARKET branch's atomic protection.
+                tpPrice: toDecimal(payload.tpPrice)?.toString(),
+                tpStopType:
+                    typeof payload.tpStopType === "string" ? payload.tpStopType : undefined,
+                tpOrderType:
+                    typeof payload.tpOrderType === "string" ? payload.tpOrderType : undefined,
+                slPrice: toDecimal(payload.slPrice)?.toString(),
+                slStopType:
+                    typeof payload.slStopType === "string" ? payload.slStopType : undefined,
+                slOrderType:
+                    typeof payload.slOrderType === "string" ? payload.slOrderType : undefined,
                 // FEAT-0819 — the owner rests with the order, so the fill the
                 // feed delivers later is attributed like a market fill, and a
                 // bot's stop can cancel what it placed.
@@ -886,7 +899,7 @@ class PaperExchange {
         payload: Record<string, unknown>,
         entryPrice: Decimal,
         positionId: string,
-    ): void {
+    ): PaperOrder[] {
         const attached: PaperOrder[] = [];
         // Closing side, in the shape the close path expects: the position's
         // own side, not the execution direction (see applyClose).
@@ -940,6 +953,7 @@ class PaperExchange {
         if (attached.length > 0) {
             paperState.setOrders([...paperState.orders, ...attached]);
         }
+        return attached;
     }
 
     /** Slippage always works against the trader, on both sides of the book. */
@@ -1297,12 +1311,12 @@ class PaperExchange {
                           (p) => p.positionId === order.positionId,
                       )
                     : undefined;
-            const qty = new Decimal(tracked?.amount ?? order.qty);
             // FEAT-0819 — the owner the order rested with, read back through
             // the same guard a payload passes, so this fill is attributed the
             // way the market path attributes one.
             const { origin, attribution } = readProvenance(order);
             try {
+                const qty = new Decimal(tracked?.amount ?? order.qty);
                 const fill = closes
                     ? this.applyClose(order.symbol, order.side, qty, price)
                     : this.applyOpen(
@@ -1328,9 +1342,44 @@ class PaperExchange {
                     // takes drop out of the bot's figures (Devin review).
                     ...(closes ? { exitBy: "plan" as const } : {}),
                 });
-            } catch {
+                // BUG-0839 — attach TP/SL plans when a resting entry fills,
+                // mirroring the MARKET path, and include them in `remaining`
+                // so the final survivor filter keeps them unless a later fill
+                // in the same tick closed the position.
+                if (!closes && (order.tpPrice !== undefined || order.slPrice !== undefined)) {
+                    const attached = this.attachEntryPlans(
+                        order.symbol,
+                        order.side,
+                        fill.qty,
+                        {
+                            tpPrice: order.tpPrice,
+                            tpStopType: order.tpStopType,
+                            tpOrderType: order.tpOrderType,
+                            slPrice: order.slPrice,
+                            slStopType: order.slStopType,
+                            slOrderType: order.slOrderType,
+                        },
+                        fill.price,
+                        fill.positionId,
+                    );
+                    remaining.push(...attached);
+                }
+            } catch (err) {
                 // A close with no position left is not an error worth
                 // surfacing — the position went away, the order is moot.
+                if (
+                    !(
+                        closes &&
+                        err instanceof PaperExchangeError &&
+                        err.code === "PAPER_NO_POSITION"
+                    )
+                ) {
+                    logger.error(
+                        "market",
+                        `[Paper] Resting order ${order.orderId} (${order.symbol}) settlement failed`,
+                        err,
+                    );
+                }
             }
         }
 
