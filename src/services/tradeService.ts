@@ -113,6 +113,8 @@ import { createPlaceOrderService, newClientOrderId as mintClientOrderId } from "
 import { createAddToPositionService, type AddToPositionParams } from "./trade/addToPosition";
 import { createClosePositionService, type ClosePositionParams } from "./trade/closePosition";
 import { createCloseAllPositionsService } from "./trade/closeAllPositions";
+import { createGridOrderService, type PlaceGridOrderParams } from "./trade/gridOrder";
+export type { PlaceGridOrderParams } from "./trade/gridOrder";
 
 /**
  * The credentials of an account that does not exist.
@@ -372,6 +374,44 @@ class TradeService {
         closePosition: (params) => this.closePosition(params),
         cachedPositions: () => this.cachedPositions(),
         reportCloseAllFailure: (symbol, cause) => this.reportCloseAllFailure(symbol, cause),
+    });
+
+    /**
+     * Grid bot lane (see ./trade/gridOrder) — FEAT-0819 stage 4.
+     * Routes paper grid opening slots (`kind: "grid"`) and reduce-only
+     * counter-orders (`kind: "reduce"`) through the same gate.
+     */
+    private readonly orderGrid = createGridOrderService({
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        effectFor: (effect) => this.effectFor(effect),
+        bitgetUtaOpenFields: (direction) => this.bitgetUtaOpenFields(direction),
+        bitgetUtaCloseFields: (positionSide) => this.bitgetUtaCloseFields(positionSide),
+        activeVenue: () => settingsState.apiProvider || "bitunix",
+        lookupSymbolMeta: (symbol) => this.lookupSymbolMeta(symbol),
+        usdtBalance: () => this.usdtBalance(),
+        accountSize: () => {
+            const reading = this.usdtBalance();
+            if (reading && reading.available.isFinite() && reading.available.gt(0)) {
+                return reading.available;
+            }
+            return paperState.enabled && paperState.balance.gt(0)
+                ? paperState.balance
+                : undefined;
+        },
+        leverage: () => {
+            try {
+                const raw = tradeState.leverage;
+                if (raw !== null && raw !== undefined) {
+                    const lev = new Decimal(String(raw));
+                    if (lev.isFinite() && lev.gt(0)) return lev;
+                }
+            } catch {
+                // fall through
+            }
+            return tradeState.remoteLeverage && tradeState.remoteLeverage.gt(0)
+                ? tradeState.remoteLeverage
+                : undefined;
+        },
     });
 
     // Helper to sign and send requests to backend
@@ -1089,6 +1129,11 @@ class TradeService {
     /** Partial or full close — see ./trade/closePosition. */
     public async closePosition(params: ClosePositionParams) {
         return this.orderClose.closePosition(params);
+    }
+
+    /** Paper grid order (opening slot or reduce-only counter-order) — see ./trade/gridOrder. */
+    public async placeGridOrder(params: PlaceGridOrderParams) {
+        return this.orderGrid.placeGridOrder(params);
     }
 
     /**

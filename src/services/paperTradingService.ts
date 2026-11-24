@@ -44,6 +44,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { accountEpoch } from "./accountEpoch.svelte";
 import { logger } from "./logger";
 import type { OMSPosition } from "./omsTypes";
+import { notifyGridBookChanged } from "./alertEngine/gridBookBus";
 
 /**
  * How often the whole book is marked to market — FEAT-0327.
@@ -124,6 +125,7 @@ class PaperTradingService {
         setPaperBookListener(() => {
             this.syncToStores();
             paperJournalService.reconcile();
+            if (paperState.enabled) notifyGridBookChanged();
         });
 
         if (paperState.enabled) {
@@ -233,6 +235,7 @@ class PaperTradingService {
             this.startTicking();
             this.syncToStores();
             paperJournalService.reconcile();
+            notifyGridBookChanged();
         } else {
             // Nothing to mark to market, and a timer that keeps sweeping a
             // book nobody is trading is the kind of thing that survives into

@@ -396,6 +396,8 @@ class RiskManagementService {
         // more of the same exposure, so the limits must check it even though
         // `add` is otherwise verified like a reduce.
         if (intent.kind === "add") return true;
+        // FEAT-0819: a grid opening order adds exposure on its side.
+        if (intent.kind === "grid") return true;
         if (intent.kind === "modify") return intent.endpoint !== "/api/tpsl";
         return false;
     }
@@ -427,7 +429,7 @@ class RiskManagementService {
 
     private blocksKind(kind: OrderIntent["kind"], endpoint?: string): boolean {
         const config = riskState.killSwitchConfig;
-        if (kind === "open") return true;
+        if (kind === "open" || kind === "grid") return true;
         if (kind === "add") return config.blockAdds;
         if (kind === "modify") {
             return config.blockNonTpSlModifies && endpoint !== "/api/tpsl";
@@ -635,6 +637,12 @@ class RiskManagementService {
                 this.checkPositionSize(intent) ??
                 this.checkLossPerTrade(intent)
             );
+        }
+
+        // FEAT-0819: grid opening orders use stop_out conditions instead of a
+        // per-trade attached SL price, so check daily loss and position size cap.
+        if (intent.kind === "grid") {
+            return this.checkDailyLoss() ?? this.checkPositionSize(intent);
         }
 
         // An amendment that enlarges the resting order makes the exposure
@@ -972,6 +980,13 @@ class RiskManagementService {
             const positionAmount = intent.displayed.positionAmount;
             if (positionAmount === undefined) return null;
             return positionAmount.plus(qty).times(price);
+        }
+        if (intent.kind === "grid") {
+            const prior = intent.displayed.pendingGridNotional;
+            const slotNotional = qty.times(price);
+            return prior !== undefined && prior.isFinite() && prior.gt(0)
+                ? prior.plus(slotNotional)
+                : slotNotional;
         }
         return qty.times(price);
     }

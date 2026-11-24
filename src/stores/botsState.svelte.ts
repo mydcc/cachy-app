@@ -36,9 +36,11 @@
  * store.
  */
 
-import type { RuleDocument } from "../lib/rules/types";
+import type { GridDocument, RuleDocument } from "../lib/rules/types";
 import { Decimal } from "decimal.js";
 import { readBots } from "../services/alertEngine/botStore";
+import { readGrids, readGridStates } from "../services/alertEngine/gridStore";
+import { deriveGridState, type GridLifeState } from "../services/alertEngine/gridState";
 import { readRuleStates } from "../services/alertEngine/ruleStateStore";
 import { localDayKey, openRiskOfRow, type OwnedRowLite } from "../services/alertEngine/botGuards";
 import {
@@ -264,6 +266,50 @@ class BotsStateManager {
         void alertState.rulesVersion;
         return {
             rules: readBotsOrRefusal().unreadable,
+            book: paperState.bookUnreadable,
+        };
+    });
+
+    /** FEAT-0819 — live lifecycle state of each stored grid bot. */
+    gridStates = $derived.by(() => {
+        void alertState.gridsVersion;
+        const executingAccount = executingBotAccount(paperState.enabled);
+        let grids: GridDocument[];
+        try {
+            grids = readGrids();
+        } catch {
+            return new Map<string, GridLifeState>();
+        }
+        const runtimeStates = readGridStates();
+        const activeGrids = grids.map((grid) => ({
+            grid,
+            status: runtimeStates[grid.id]?.status ?? ("armed" as const),
+        }));
+        const book = {
+            executingAccount,
+            positions: paperState.positions,
+            orders: paperState.orders,
+            activeGrids,
+            bookUnreadable: paperState.bookUnreadable,
+        };
+        const result = new Map<string, GridLifeState>();
+        for (const grid of grids) {
+            if (typeof grid.id !== "string") continue;
+            result.set(grid.id, deriveGridState(grid, runtimeStates[grid.id], book));
+        }
+        return result;
+    });
+
+    gridDegraded = $derived.by(() => {
+        void alertState.gridsVersion;
+        let gridsUnreadable = false;
+        try {
+            readGrids();
+        } catch {
+            gridsUnreadable = true;
+        }
+        return {
+            grids: gridsUnreadable,
             book: paperState.bookUnreadable,
         };
     });

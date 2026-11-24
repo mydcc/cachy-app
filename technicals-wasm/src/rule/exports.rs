@@ -49,8 +49,8 @@ use super::condition::PositionSide;
 use super::document::{parse_document, serialise_document};
 use super::grid::{parse_grid, serialise_grid};
 use super::evaluate::{
-    evaluate_exits, evaluate_with_lifecycle, AccountSnapshot, Candle, InMemoryMarket,
-    OwnedPositionContext,
+    evaluate_exits, evaluate_grid, evaluate_with_lifecycle, AccountSnapshot, Candle,
+    InMemoryMarket, OwnedPositionContext,
 };
 use super::indicator::IndicatorRef;
 use super::lifecycle::RuleState;
@@ -294,6 +294,19 @@ struct OwnedPositionPayload {
     side: PositionSide,
 }
 
+fn parse_ctx(
+    ctx_json: &str,
+) -> Result<(InMemoryMarket, Option<AccountSnapshot>, RuleState), Refused> {
+    let payload: CtxPayload = serde_json::from_str(ctx_json).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "ctx",
+            format!("ctx is not valid JSON: {e}"),
+        )
+    })?;
+    market_from_ctx(payload)
+}
+
 /// Evaluate `document` against a JSON-carried market/account snapshot.
 ///
 /// Assembles an [`InMemoryMarket`] from `ctx_json` and hands it to
@@ -302,15 +315,7 @@ struct OwnedPositionPayload {
 /// on anything malformed, same as every other export in this module.
 pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refused> {
     let document = parse_document(document_json)?;
-
-    let payload: CtxPayload = serde_json::from_str(ctx_json).map_err(|e| {
-        Refused::one(
-            RefusalCode::UnknownField,
-            "ctx",
-            format!("ctx is not valid JSON: {e}"),
-        )
-    })?;
-    let (market, account, state) = market_from_ctx(payload)?;
+    let (market, account, state) = parse_ctx(ctx_json)?;
 
     let verdict = evaluate_with_lifecycle(&document, &market, account.as_ref(), state);
     serde_json::to_string(&verdict).map_err(|e| {
@@ -336,15 +341,7 @@ pub fn evaluate_exits_json(
     position_json: &str,
 ) -> Result<String, Refused> {
     let document = parse_document(document_json)?;
-
-    let payload: CtxPayload = serde_json::from_str(ctx_json).map_err(|e| {
-        Refused::one(
-            RefusalCode::UnknownField,
-            "ctx",
-            format!("ctx is not valid JSON: {e}"),
-        )
-    })?;
-    let (market, account, _) = market_from_ctx(payload)?;
+    let (market, account, _) = parse_ctx(ctx_json)?;
 
     let position: OwnedPositionPayload = serde_json::from_str(position_json).map_err(|e| {
         Refused::one(
@@ -391,6 +388,44 @@ pub fn grid_content_hash_json(document_json: &str) -> Result<String, Refused> {
     parse_grid(document_json)?
         .content_hash()
         .map_err(|e| Refused { refusals: vec![e] })
+}
+
+/// FEAT-0819 — candles of `evaluation_timeframe` history needed by the grid.
+pub fn grid_warmup_candles_json(document_json: &str) -> Result<u32, Refused> {
+    Ok(parse_grid(document_json)?.warmup_candles())
+}
+
+/// FEAT-0819 — every timeframe the grid reads, canonical spellings, evaluation timeframe first.
+pub fn grid_timeframes_json(document_json: &str) -> Result<Vec<String>, Refused> {
+    Ok(parse_grid(document_json)?
+        .timeframes()
+        .iter()
+        .map(|t| t.canonical())
+        .collect())
+}
+
+/// FEAT-0819 — every timeframe the grid reads from the mark-price series.
+pub fn grid_mark_timeframes_json(document_json: &str) -> Result<Vec<String>, Refused> {
+    Ok(parse_grid(document_json)?
+        .mark_timeframes()
+        .iter()
+        .map(|t| t.canonical())
+        .collect())
+}
+
+/// FEAT-0819 — evaluate a grid's `trend_filter` and `stop_out` against `ctx_json`.
+pub fn grid_evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refused> {
+    let document = parse_grid(document_json)?;
+    let (market, account, _) = parse_ctx(ctx_json)?;
+
+    let verdict = evaluate_grid(&document, &market, account.as_ref());
+    serde_json::to_string(&verdict).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "verdict",
+            format!("grid verdict could not be serialised: {e}"),
+        )
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -481,6 +516,34 @@ pub fn grid_validate(document_json: &str) -> Result<String, JsValue> {
 #[wasm_bindgen]
 pub fn grid_content_hash(document_json: &str) -> Result<String, JsValue> {
     grid_content_hash_json(document_json).map_err(refused_to_js)
+}
+
+/// FEAT-0819 — [`grid_warmup_candles_json`] behind the wasm boundary.
+#[wasm_bindgen]
+pub fn grid_warmup_candles(document_json: &str) -> Result<u32, JsValue> {
+    grid_warmup_candles_json(document_json).map_err(refused_to_js)
+}
+
+/// FEAT-0819 — [`grid_timeframes_json`] behind the wasm boundary.
+#[wasm_bindgen]
+pub fn grid_timeframes(document_json: &str) -> Result<JsValue, JsValue> {
+    let names = grid_timeframes_json(document_json).map_err(refused_to_js)?;
+    serde_wasm_bindgen::to_value(&names)
+        .map_err(|e| JsValue::from_str(&format!("could not serialise timeframes: {e}")))
+}
+
+/// FEAT-0819 — [`grid_mark_timeframes_json`] behind the wasm boundary.
+#[wasm_bindgen]
+pub fn grid_mark_timeframes(document_json: &str) -> Result<JsValue, JsValue> {
+    let names = grid_mark_timeframes_json(document_json).map_err(refused_to_js)?;
+    serde_wasm_bindgen::to_value(&names)
+        .map_err(|e| JsValue::from_str(&format!("could not serialise mark timeframes: {e}")))
+}
+
+/// FEAT-0819 — [`grid_evaluate_json`] behind the wasm boundary.
+#[wasm_bindgen]
+pub fn grid_evaluate(document_json: &str, ctx_json: &str) -> Result<String, JsValue> {
+    grid_evaluate_json(document_json, ctx_json).map_err(refused_to_js)
 }
 
 /// FEAT-0810 — [`evaluate_exits_json`] behind the wasm boundary.
@@ -920,6 +983,28 @@ mod tests {
             verdict, r#"{"verdict":"does_not_fire"}"#,
             "expected the newly-closed second 4h candle to be read"
         );
+    }
+
+    #[test]
+    fn grid_exports_evaluate_timeframes_and_warmup() {
+        let tfs = grid_timeframes_json(GRID).unwrap();
+        assert_eq!(tfs, vec!["1h"]);
+        assert!(grid_mark_timeframes_json(GRID).unwrap().is_empty());
+        assert_eq!(grid_warmup_candles_json(GRID).unwrap(), 2);
+
+        let ctx = r#"{
+            "candles": {
+                "1h": [
+                    {"open_time_ms":0,"open":"41000","high":"41000","low":"37000","close":"37500","volume":"1"}
+                ]
+            }
+        }"#;
+        let out = grid_evaluate_json(GRID, ctx).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(parsed["anchor_time_ms"], 0);
+        assert!(parsed["trend_filter"].is_null());
+        assert_eq!(parsed["stop_out_triggered"], true);
+        assert_eq!(parsed["stop_out_verdicts"][0]["status"], "true");
     }
 }
 

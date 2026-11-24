@@ -682,9 +682,31 @@ class PaperExchange {
 
     // -- placing ------------------------------------------------------------
 
+    private resolveClosePositionSide(
+        payload: Record<string, unknown>,
+        fallbackSide: "BUY" | "SELL",
+    ): "BUY" | "SELL" {
+        if (typeof payload.posSide === "string") {
+            const upper = payload.posSide.toUpperCase();
+            if (upper === "LONG") return "BUY";
+            if (upper === "SHORT") return "SELL";
+        }
+        if (typeof payload.positionId === "string") {
+            const pos = paperState.positions.find(
+                (p) => p.positionId === payload.positionId,
+            );
+            if (pos) return pos.side === "long" ? "BUY" : "SELL";
+        }
+        return fallbackSide;
+    }
+
     private placeOrder(payload: Record<string, unknown>): Record<string, unknown> {
         const symbol = String(payload.symbol ?? "");
-        const side = String(payload.side ?? "").toUpperCase() as "BUY" | "SELL";
+        const rawSide = String(payload.side ?? "").toUpperCase() as "BUY" | "SELL";
+        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
+        const side = closes
+            ? this.resolveClosePositionSide(payload, rawSide)
+            : rawSide;
         const orderType = String(payload.orderType ?? "MARKET").toUpperCase();
         const requested = toDecimal(payload.qty);
 
@@ -709,8 +731,11 @@ class PaperExchange {
 
         const orderId = paperState.takeId("paper-order");
         const clientOrderId =
-            typeof payload.clientOrderId === "string" ? payload.clientOrderId : undefined;
-        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
+            typeof payload.clientOrderId === "string"
+                ? payload.clientOrderId
+                : typeof payload.clientId === "string"
+                  ? payload.clientId
+                  : undefined;
 
         // A limit or trigger order rests until the feed crosses it. Filling it
         // immediately would make every strategy that uses limits look better
@@ -727,7 +752,7 @@ class PaperExchange {
                 triggerPrice: (
                     toDecimal(payload.triggerPrice) ?? toDecimal(payload.stopPrice)
                 )?.toString(),
-                reduceOnly: payload.reduceOnly === true,
+                reduceOnly: closes || payload.reduceOnly === true,
                 tradeSide: payload.tradeSide === "CLOSE" ? "CLOSE" : "OPEN",
                 positionId:
                     typeof payload.positionId === "string" ? payload.positionId : undefined,
@@ -809,6 +834,7 @@ class PaperExchange {
               );
         this.recordFill(fill, {
             orderId,
+            ...(clientOrderId !== undefined ? { clientOrderId } : {}),
             symbol,
             side,
             orderType,
@@ -860,6 +886,7 @@ class PaperExchange {
         fill: FillResult,
         context: {
             orderId: string;
+            clientOrderId?: string;
             symbol: string;
             side: "BUY" | "SELL";
             orderType: string;
@@ -875,6 +902,9 @@ class PaperExchange {
         const record: PaperFill = {
             fillId: paperState.takeId("paper-fill"),
             orderId: context.orderId,
+            ...(context.clientOrderId !== undefined
+                ? { clientOrderId: context.clientOrderId }
+                : {}),
             symbol: context.symbol,
             side: context.side,
             tradeSide: context.tradeSide,
@@ -1013,8 +1043,9 @@ class PaperExchange {
         /** FEAT-0806 — who opened this position; stamped only on a new one. */
         origin?: "bot" | "manual",
         attribution?: BotAttribution,
+        applySlippage = true,
     ): FillResult {
-        const price = this.fillPrice(reference, side);
+        const price = applySlippage ? this.fillPrice(reference, side) : reference;
         const notional = price.times(qty);
         const fee = this.takerFee(notional);
         const positionSide: "long" | "short" = side === "BUY" ? "long" : "short";
@@ -1088,6 +1119,7 @@ class PaperExchange {
         side: "BUY" | "SELL",
         qty: Decimal,
         reference: Decimal,
+        applySlippage = true,
     ): FillResult {
         // Bitunix's close shape carries the *position's* side, not the
         // execution direction (see buildCloseOrderFields in tradeService), so
@@ -1107,8 +1139,9 @@ class PaperExchange {
         const position = positions[index];
         const held = new Decimal(position.amount);
         const closing = Decimal.min(qty, held);
+        const execSide: "BUY" | "SELL" = positionSide === "long" ? "SELL" : "BUY";
         // Closing a long sells into the book, so slippage points the other way.
-        const price = this.fillPrice(reference, positionSide === "long" ? "SELL" : "BUY");
+        const price = applySlippage ? this.fillPrice(reference, execSide) : reference;
         const entry = new Decimal(position.entryPrice);
 
         const gross =
@@ -1356,19 +1389,42 @@ class PaperExchange {
             const { origin, attribution } = readProvenance(order);
             try {
                 const qty = new Decimal(tracked?.amount ?? order.qty);
+                const limitLevel =
+                    order.orderType === "LIMIT" &&
+                    order.planGroupId === undefined &&
+                    order.triggerDirection === undefined
+                        ? toDecimal(order.price)
+                        : null;
+                let fillRef = price;
+                const useSlippage = limitLevel === null;
+                if (limitLevel !== null) {
+                    const execSide: "BUY" | "SELL" = closes
+                        ? order.side === "BUY"
+                            ? "SELL"
+                            : "BUY"
+                        : order.side;
+                    fillRef =
+                        execSide === "BUY"
+                            ? Decimal.min(limitLevel, price)
+                            : Decimal.max(limitLevel, price);
+                }
                 const fill = closes
-                    ? this.applyClose(order.symbol, order.side, qty, price)
+                    ? this.applyClose(order.symbol, order.side, qty, fillRef, useSlippage)
                     : this.applyOpen(
                           order.symbol,
                           order.side,
                           qty,
-                          price,
+                          fillRef,
                           this.entryLeverage(order.symbol, {}),
                           origin,
                           attribution,
+                          useSlippage,
                       );
                 this.recordFill(fill, {
                     orderId: order.orderId,
+                    ...(order.clientOrderId !== undefined
+                        ? { clientOrderId: order.clientOrderId }
+                        : {}),
                     symbol: order.symbol,
                     side: order.side,
                     orderType: order.orderType,
@@ -1376,10 +1432,11 @@ class PaperExchange {
                     origin,
                     attribution,
                     // FEAT-0812 — the feed crossed a resting plan; nobody
-                    // pressed anything. Without this fact a bot's own stop
-                    // reads as the trader stepping in, and the losses it
-                    // takes drop out of the bot's figures (Devin review).
-                    ...(closes ? { exitBy: "plan" as const } : {}),
+                    // pressed anything. Stamp only for plan orders (`planGroupId`),
+                    // never for plain manual/grid reduce-only limits.
+                    ...(closes && order.planGroupId !== undefined
+                        ? { exitBy: "plan" as const }
+                        : {}),
                 });
                 // BUG-0839 — attach TP/SL plans when a resting entry fills,
                 // mirroring the MARKET path, and queue them into this pass so
@@ -1448,15 +1505,50 @@ class PaperExchange {
      *
      * @returns how many orders were cancelled.
      */
-    public cancelOrdersOwnedBy(botId: string): number {
-        const remaining = paperState.orders.filter(
-            (o) => readProvenance(o).attribution?.botId !== botId,
-        );
+    private cancelMatchingOrders(predicate: (order: PaperOrder) => boolean): number {
+        const remaining = paperState.orders.filter((o) => !predicate(o));
         const cancelled = paperState.orders.length - remaining.length;
         if (cancelled === 0) return 0;
         paperState.setOrders(remaining);
         announceBookChange();
         return cancelled;
+    }
+
+    /**
+     * Cancels every resting order a bot owns — FEAT-0819, ADR-0027 point 3.
+     *
+     * A grid's stop and its stop-out cancel the ladder before they close the
+     * position, so this reaches entries, counter-orders and the plans a bot
+     * entry attached alike. It closes nothing: the position stays for the
+     * caller to close through the gate.
+     *
+     * Ownership is read through the same guard a payload passes, so an
+     * order whose origin this build does not recognise is not the bot's,
+     * and an unattributed order never matches — not even an empty id.
+     *
+     * Not a venue endpoint: the venue cancels by symbol or by id, and the
+     * runtime that needs this is paper-only (FEAT-0819).
+     *
+     * @returns how many orders were cancelled.
+     */
+    public cancelOrdersOwnedBy(botId: string): number {
+        return this.cancelMatchingOrders(
+            (o) => readProvenance(o).attribution?.botId === botId,
+        );
+    }
+
+    /**
+     * FEAT-0819 — cancels resting unfilled OPENING orders owned by `botId`
+     * while preserving reduce-only counter-orders and protective plans (used
+     * when a grid's `trend_filter` turns false).
+     */
+    public cancelOpeningOrdersOwnedBy(botId: string): number {
+        return this.cancelMatchingOrders(
+            (o) =>
+                readProvenance(o).attribution?.botId === botId &&
+                o.tradeSide !== "CLOSE" &&
+                !o.reduceOnly,
+        );
     }
 
     private hasCrossed(order: PaperOrder, price: Decimal): boolean {
@@ -1470,9 +1562,16 @@ class PaperExchange {
                 ? price.gte(level)
                 : price.lte(level);
         }
+        const closes = order.tradeSide === "CLOSE" || order.reduceOnly;
+        const executionSide = closes
+            ? order.side === "BUY"
+                ? "SELL"
+                : "BUY"
+            : order.side;
         // A plain limit order: a buy fills at or below its level, a sell at
-        // or above it.
-        return order.side === "BUY" ? price.lte(level) : price.gte(level);
+        // or above it. Closing limit orders store the position's side (`BUY`
+        // for long, `SELL` for short), so execution direction is inverted.
+        return executionSide === "BUY" ? price.lte(level) : price.gte(level);
     }
 }
 

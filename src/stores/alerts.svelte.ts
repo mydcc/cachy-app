@@ -64,6 +64,16 @@ import type {
     UnevaluableRule,
 } from "../services/alertEngine/ruleEvaluationLoop";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
+import {
+    readGridStates,
+    readGrids,
+    subscribeGridStore,
+} from "../services/alertEngine/gridStore";
+import { reservedGridSlots } from "../services/alertEngine/gridState";
+import { setGridBookChangeListener } from "../services/alertEngine/gridBookBus";
+import { gridRuntime, type GridRuntimeEnvironment } from "../services/alertEngine/gridRuntime";
+import { slotKey } from "../services/alertEngine/botState";
+import { normalizeSymbol } from "../utils/symbolUtils";
 import { isBot, readBots, setBotEnabled } from "../services/alertEngine/botStore";
 import { submitBotExit, type BotExitEnvironment, type BotExitRefusal, type BotCloseParams } from "../services/alertEngine/botExits";
 import type { AccountSnapshot, RuleDocument } from "../lib/rules/types";
@@ -192,6 +202,12 @@ class AlertsManager {
      * that closes the gap.
      */
     guardsVersion = $state(0);
+
+    /**
+     * FEAT-0819 — bumped by every write to `cachy_grids_v1` or `cachy_grid_state_v1`,
+     * so `botsState.gridStates` re-reads the local grid store cleanly.
+     */
+    gridsVersion = $state(0);
 }
 
 export const alertState = new AlertsManager();
@@ -383,10 +399,31 @@ export function botOrderEnvironment(
         // pointed at the hydrated copy would miss the first entry in the tick
         // before it lands — which is the same one-tick window the in-flight
         // guard closes for a single rule.
-        hasOpenPosition: (symbol, side) =>
-            paperState.positions.some(
-                (p) => p.symbol === symbol && p.side === side,
-            ),
+        hasOpenPosition: (symbol, side) => {
+            const normSym = symbol.trim().toUpperCase();
+            if (
+                paperState.positions.some(
+                    (p) => p.symbol.trim().toUpperCase() === normSym && p.side === side,
+                )
+            ) {
+                return true;
+            }
+            // FEAT-0819 — single-entry bots must also honour `(symbol, side)`
+            // slots reserved by active, paused, or stopping grids (ADR-0027).
+            try {
+                const reserved = reservedGridSlots(
+                    readGrids(),
+                    readGridStates(),
+                    paperState.orders,
+                    paperState.positions,
+                );
+                return reserved.has(slotKey(normSym, side));
+            } catch {
+                // Fail closed when the grid store cannot be read so a single-entry
+                // bot cannot collide with an unreadable grid's `(symbol, side)`.
+                return true;
+            }
+        },
         // FEAT-0822 — the guard ports: the stores this wiring already owns,
         // handed to the lane so it stays testable and store-free. The
         // ownership read is the same degraded one the exits use: an
@@ -860,6 +897,93 @@ let unevaluableSubscribed = false;
 /** The gap mirror is registered once for the same reason as the one above. */
 let seriesGapSubscribed = false;
 
+/** FEAT-0819 — grid store change counter is registered once across re-inits. */
+let gridStoreSubscribed = false;
+
+export interface GridRuntimeDependencies {
+    tradeService: typeof import("../services/tradeService").tradeService;
+    paperExchange: typeof import("../services/paperExchange").paperExchange;
+    paperTradingService: typeof import("../services/paperTradingService").paperTradingService;
+    externalFeedStore: typeof import("../services/alertEngine/externalFeedStore").externalFeedStore;
+    readCandles: (symbol: string, timeframe: string) => import("../lib/rules/types").EvaluationCandle[];
+    readMarkCandles: (symbol: string, timeframe: string) => import("../lib/rules/types").EvaluationCandle[];
+}
+
+export function gridRuntimeEnvironment(
+    deps: GridRuntimeDependencies,
+): GridRuntimeEnvironment {
+    return {
+        paperEnabled: () => paperState.enabled,
+        bookUnreadable: () => paperState.bookUnreadable,
+        availableBalance: () => paperState.balance,
+        feeRate: () => paperState.numeric("takerFeeBps").div(10_000),
+        symbolSteps: (symbol) => {
+            const meta =
+                marketState.symbolMeta?.[
+                    normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")
+                ];
+            return {
+                priceStep:
+                    meta?.quotePrecision !== undefined
+                        ? new Decimal(10).pow(-meta.quotePrecision)
+                        : undefined,
+                quantityStep:
+                    meta?.basePrecision !== undefined
+                        ? new Decimal(10).pow(-meta.basePrecision)
+                        : undefined,
+            };
+        },
+        positions: () => paperState.positions,
+        orders: () => paperState.orders,
+        fills: () => paperState.fills,
+        placeGridOrder: (params) => deps.tradeService.placeGridOrder(params),
+        cancelOrdersOwnedBy: (botId) => deps.paperExchange.cancelOrdersOwnedBy(botId),
+        cancelOpeningOrdersOwnedBy: (botId) =>
+            deps.paperExchange.cancelOpeningOrdersOwnedBy(botId),
+        closePosition: (params) => deps.tradeService.closePosition(params),
+        recordBotExit: (positionId) => {
+            void import("../services/paperJournalService")
+                .then(({ paperJournalService }) => {
+                    paperJournalService.recordBotExit(positionId);
+                })
+                .catch((e: unknown) => {
+                    logger.error(
+                        "alerts",
+                        `[GridRuntime] Could not record grid exit for ${positionId}`,
+                        e,
+                    );
+                });
+        },
+        readCandles: deps.readCandles,
+        readMarkCandles: deps.readMarkCandles,
+        readFeeds: (symbol) => deps.externalFeedStore.readFeeds(symbol),
+        ensureSymbolMeta: async (symbol) => {
+            const key = normalizeSymbol(symbol, settingsState.apiProvider || "bitunix");
+            if (marketState.symbolMeta?.[key]) return;
+            try {
+                await deps.tradeService.fetchTradingPairInfo(symbol);
+            } catch (e) {
+                logger.warn(
+                    "alerts",
+                    `[GridRuntime] Failed to fetch pair metadata for ${symbol}`,
+                    e,
+                );
+            }
+        },
+        accountSnapshot: (_grid, position) =>
+            position !== undefined
+                ? exitAccountSnapshot(position)
+                : {
+                      position_size: "0",
+                      unrealised_pnl: "0",
+                      unrealised_pnl_percent: "0",
+                      exposure: "0",
+                      available_balance: paperState.balance.toString(),
+                  },
+        syncBook: () => deps.paperTradingService.syncToStores(),
+    };
+}
+
 /**
  * Stops the rule path — FEAT-0406.
  *
@@ -874,6 +998,8 @@ function disarmRuleEngine(): void {
     const disarm = disarmRuleLoop;
     disarmRuleLoop = null;
     disarm?.();
+    setGridBookChangeListener(null);
+    gridRuntime.configure(null);
 }
 
 /**
@@ -1036,6 +1162,13 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         alertState.seriesGapReport = ruleEvaluationLoop.seriesGaps();
     }
 
+    if (!gridStoreSubscribed) {
+        gridStoreSubscribed = true;
+        subscribeGridStore(() => {
+            alertState.gridsVersion += 1;
+        });
+    }
+
     // FEAT-0388: one-shot, best-effort — migrateAlertsToRuleDocuments()
     // never throws, so a migration hiccup cannot block the engine below.
     // FEAT-0399 left this in place deliberately: the startup path below is
@@ -1096,9 +1229,12 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // Imported once, here, rather than at module scope: the wiring — and the
     // market store it reads — stays out of the import graph on the path this
     // function returns early from.
-    const { ledgerSink, startRuleEvaluationLoop } = await import(
-        "../services/alertEngine/ruleLoopWiring"
-    );
+    const {
+        ledgerSink,
+        readClosedCandles,
+        readMarkCandles,
+        startRuleEvaluationLoop,
+    } = await import("../services/alertEngine/ruleLoopWiring");
     // Bots ride the same sink the alerts do, so they load with it rather than
     // at module scope: a session with no bot never pays for the order path.
     const { closeAtAnchor, livePriceAt, withBotOrders } = await import("../services/alertEngine/botOrders");
@@ -1106,6 +1242,9 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // close lane it hands the sink is the trade service's single-close path:
     // loaded here so a session with no bot never pulls the trade stack in.
     const { withBotExits } = await import("../services/alertEngine/botExits");
+    const { externalFeedStore } = await import("../services/alertEngine/externalFeedStore");
+    const { paperExchange } = await import("../services/paperExchange");
+    const { paperTradingService } = await import("../services/paperTradingService");
     const { tradeService } = await import("../services/tradeService");
 
     // FEAT-0406: one read, and every later tick re-decides from its own.
@@ -1159,6 +1298,23 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         alertState.awaitingReport = [];
     }
 
+    if (mode === "live") {
+        gridRuntime.configure(
+            gridRuntimeEnvironment({
+                tradeService,
+                paperExchange,
+                paperTradingService,
+                externalFeedStore,
+                readCandles: readClosedCandles,
+                readMarkCandles,
+            }),
+        );
+        setGridBookChangeListener(() => {
+            gridRuntime.notifyBookChanged();
+        });
+        void gridRuntime.reconcileAllGrids();
+    }
+
     disarmRuleLoop = startRuleEvaluationLoop(
         mode === "live"
             ? withBotOrders(
@@ -1177,9 +1333,10 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         // alarms back to, so saying so is the whole job.
         mode === "live"
             ? () => {
-                  if (ruleSchema.isReady()) return;
-                  disarmRuleEngine();
-                  alertState.engineStatus = "failed";
+                  if (!ruleSchema.isReady()) {
+                      disarmRuleEngine();
+                      alertState.engineStatus = "failed";
+                  }
               }
             : undefined,
         // FEAT-0810 — the exit window rides the same loop, live mode only:
@@ -1218,5 +1375,12 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         // FEAT-0814 — vetoed triggers are logged in live mode only; a shadow
         // run measures the evaluator and leaves no trace in the trader's log.
         mode === "live" ? vetoSuppressionSink : undefined,
+        // FEAT-0819 — evaluate each closed candle oldest-first across backfill batches.
+        mode === "live"
+            ? (symbol, timeframe, anchorMs) => {
+                  if (!ruleSchema.isReady()) return;
+                  void gridRuntime.onGridCandleClose(symbol, timeframe, anchorMs);
+              }
+            : undefined,
     );
 }

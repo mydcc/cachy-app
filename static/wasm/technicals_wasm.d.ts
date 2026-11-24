@@ -35,9 +35,29 @@ export class TechnicalsCalculator {
 export function grid_content_hash(document_json: string): string;
 
 /**
+ * FEAT-0819 — [`grid_evaluate_json`] behind the wasm boundary.
+ */
+export function grid_evaluate(document_json: string, ctx_json: string): string;
+
+/**
+ * FEAT-0819 — [`grid_mark_timeframes_json`] behind the wasm boundary.
+ */
+export function grid_mark_timeframes(document_json: string): any;
+
+/**
+ * FEAT-0819 — [`grid_timeframes_json`] behind the wasm boundary.
+ */
+export function grid_timeframes(document_json: string): any;
+
+/**
  * FEAT-0819 — [`grid_validate_json`] behind the wasm boundary.
  */
 export function grid_validate(document_json: string): string;
+
+/**
+ * FEAT-0819 — [`grid_warmup_candles_json`] behind the wasm boundary.
+ */
+export function grid_warmup_candles(document_json: string): number;
 
 export function rule_authorise(document_json: string, requested_level: string): void;
 
@@ -100,7 +120,11 @@ export interface InitOutput {
     readonly alertenginewasm_remove_alert: (a: number, b: number, c: number) => void;
     readonly alertenginewasm_set_alerts: (a: number, b: number, c: number, d: number) => void;
     readonly grid_content_hash: (a: number, b: number, c: number) => void;
+    readonly grid_evaluate: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly grid_mark_timeframes: (a: number, b: number, c: number) => void;
+    readonly grid_timeframes: (a: number, b: number, c: number) => void;
     readonly grid_validate: (a: number, b: number, c: number) => void;
+    readonly grid_warmup_candles: (a: number, b: number, c: number) => void;
     readonly rule_authorise: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly rule_content_hash: (a: number, b: number, c: number) => void;
     readonly rule_evaluate: (a: number, b: number, c: number, d: number, e: number) => void;

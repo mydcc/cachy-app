@@ -1793,4 +1793,57 @@ describe("BUG-0557 — cleared max-open-positions is no limit, not zero", () => 
         expect(riskState.maxOpenPositions).toBe(null);
         expect(orderGate.verify(openIntent()).approved).toBe(true);
     });
+
+    it("enforces cumulative maxPositionSizeUsdt and maxDailyLossUsdt on kind: grid intents (FEAT-0819)", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "1500");
+        const gridOrder: OrderIntent = {
+            kind: "grid",
+            endpoint: "/api/orders",
+            origin: "bot",
+            attribution: {
+                botId: "grid-1",
+                ruleId: "grid-1",
+                strategyHash: "ab".repeat(32),
+            },
+            payload: {
+                type: "place-order",
+                symbol: "BTCUSDT",
+                side: "BUY",
+                orderType: "LIMIT",
+                qty: "0.02",
+                price: "40000",
+                reduceOnly: false,
+                tradeSide: "OPEN",
+                clientId: "grid:grid-1:s1:open",
+            },
+            displayed: {
+                ...ACCOUNT,
+                paperMode: true,
+                symbol: "BTCUSDT",
+                side: "BUY",
+                entryPrice: new Decimal(40000),
+                gridQuantity: new Decimal("0.02"),
+                pendingGridNotional: new Decimal("800"), // 800 + (0.02 * 40000) = 1600 > 1500
+                availableMargin: new Decimal(5000),
+                stepSize: new Decimal("0.01"),
+                minTradeVolume: new Decimal("0.01"),
+            },
+        };
+
+        const refusal = orderGate.verify(gridOrder).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.values.actual).toBe("1600");
+
+        // Within position cap once prior notional is smaller, still blocked by daily loss.
+        riskState.setLimit("maxPositionSizeUsdt", null);
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        const noon = Date.UTC(2026, 7, 16, 12, 0, 0);
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(noon);
+        try {
+            journal.entries = [closedTrade("-120", noon - 1000)];
+            expect(orderGate.verify(gridOrder).refusal?.field).toBe("maxDailyLoss");
+        } finally {
+            nowSpy.mockRestore();
+        }
+    });
 });

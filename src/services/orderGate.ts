@@ -270,7 +270,7 @@ export interface OrderGateVerdict {
  * displayed, against the instrument's step, and — uniquely — against available
  * margin, which is the only real ceiling an add has.
  */
-export type OrderIntentKind = "open" | "add" | "reduce" | "cancel" | "modify" | "bulk";
+export type OrderIntentKind = "open" | "add" | "reduce" | "cancel" | "modify" | "bulk" | "grid";
 
 /**
  * The state the UI displayed at the moment of confirmation, captured
@@ -353,6 +353,19 @@ export interface DisplayedState {
      * is not a verified size.
      */
     addQuantity?: Decimal;
+    /**
+     * For `grid` intents (FEAT-0819): the slot quantity computed from the grid
+     * document and verified against payload `qty`, step size, volume limits,
+     * and available margin. Grid opening orders are paper-only.
+     */
+    gridQuantity?: Decimal;
+    /**
+     * For `grid` intents (FEAT-0819): cumulative notional of the grid's
+     * already-held position and resting opening orders before this slot, so
+     * RMS enforces `maxPositionSizeUsdt` / `maxPositionSizePercent` across
+     * the whole grid rather than each slot in isolation.
+     */
+    pendingGridNotional?: Decimal;
     /**
      * For `modify` intents: the flat order quantity the caller asked to set
      * (`modifyOrder`), never re-derived, only compared — BUG-0505.
@@ -862,6 +875,14 @@ class OrderGate {
                 values: {},
             });
         }
+        if (kind === "grid" && (intent.origin !== "bot" || displayed.paperMode !== true)) {
+            return refuse({
+                field: "mode",
+                reason: "unsupported",
+                messageKey: BOT_PAPER_ONLY_MESSAGE_KEY,
+                values: {},
+            });
+        }
 
         // --- account -------------------------------------------------------
         checked.push("account");
@@ -892,7 +913,13 @@ class OrderGate {
         // side and not the other is not: an unverifiable symbol is not a
         // verified symbol.
         const payloadSymbol = typeof payload.symbol === "string" ? payload.symbol : undefined;
-        if (kind === "open" || kind === "reduce" || payloadSymbol !== undefined || displayed.symbol !== undefined) {
+        if (
+            kind === "open" ||
+            kind === "reduce" ||
+            kind === "grid" ||
+            payloadSymbol !== undefined ||
+            displayed.symbol !== undefined
+        ) {
             checked.push("symbol");
             if (payloadSymbol === undefined) return refuse(missing("symbol"));
             if (displayed.symbol === undefined) return refuse(missing("symbol"));
@@ -1186,7 +1213,7 @@ class OrderGate {
         // the position's own leverage; re-checking it there would refuse valid
         // closes whenever the cached account read had gone stale — the exact
         // situation in which closing matters most.
-        if (kind === "open" || kind === "add") {
+        if (kind === "open" || kind === "add" || kind === "grid") {
             const accountRefusal = this.checkAccountState(intent, checked);
             if (accountRefusal) return refuse(accountRefusal);
         }
@@ -1199,7 +1226,7 @@ class OrderGate {
         // then, and this refuses it here if it is asked for anyway. A balance
         // that has not loaded still skips an open (that refusal belongs to the
         // add, BUG-0511): an open keeps its risk-derived size check either way.
-        if (kind === "open" || kind === "add") {
+        if (kind === "open" || kind === "add" || kind === "grid") {
             const marginRefusal = this.checkMargin(intent, checked);
             if (marginRefusal) return refuse(marginRefusal);
         }
@@ -1328,39 +1355,41 @@ class OrderGate {
             return null;
         }
 
-        if (kind === "add") {
-            // FEAT-0334. Verified against the quantity the screen showed, the
-            // way a reduce is verified against the position it reduces — and
-            // for the same reason: there is no second, independent way to
-            // derive it. An add carries no new stop, so the risk formula below
+        if (kind === "add" || kind === "grid") {
+            // FEAT-0334 / FEAT-0819. Verified against the quantity the screen
+            // showed (or the grid ladder computed), the way a reduce is
+            // verified against the position it reduces — and for the same
+            // reason: there is no second, independent way to derive it. An add
+            // or grid slot carries no attached stop, so the risk formula below
             // has nothing to divide by, and feeding it invented inputs would
             // make the gate agree with a fiction.
             //
             // What *is* checked independently is available margin
-            // (`checkMargin`), which is the ceiling an add actually has — the
-            // counterpart of the position ceiling on the reduce side.
+            // (`checkMargin`), which is the ceiling an add/grid slot actually
+            // has — the counterpart of the position ceiling on the reduce side.
+            const expectedQty = kind === "grid" ? displayed.gridQuantity : displayed.addQuantity;
             checked.push("qty");
             if (payloadQty === null) return missing("qty");
             if (payloadQty.lte(0)) {
                 return mismatch("qty", "> 0", payloadQty.toString());
             }
-            if (displayed.addQuantity === undefined) {
+            if (expectedQty === undefined) {
                 // An unverifiable size is not a verified size — the same
                 // standard the `open` branch holds itself to below.
                 return missing("qty.inputs");
             }
-            if (!decimalsAgree(payloadQty, displayed.addQuantity)) {
+            if (!decimalsAgree(payloadQty, expectedQty)) {
                 return mismatch(
                     "qty",
-                    displayed.addQuantity.toString(),
+                    expectedQty.toString(),
                     payloadQty.toString(),
                 );
             }
 
-            // An add has to be a quantity the venue can fill. Unlike a full
-            // close there is no exemption to make here: nothing forces an add
-            // to be an odd size, so a non-fillable one is a defect rather than
-            // the only way out of a position.
+            // An add/grid order has to be a quantity the venue can fill. Unlike
+            // a full close there is no exemption to make here: nothing forces
+            // an add to be an odd size, so a non-fillable one is a defect
+            // rather than the only way out of a position.
             //
             // The modulo is written out rather than taken from
             // `addToPosition.ts`, whose rounding *produces* this quantity —
@@ -1579,7 +1608,7 @@ class OrderGate {
         // one rather than comparing against NaN (every comparison is false,
         // so NaN would approve with the check marked as run).
         if (available === undefined || !available.isFinite()) {
-            if (intent.kind === "add") {
+            if (intent.kind === "add" || intent.kind === "grid") {
                 checked.push("availableMargin");
                 return {
                     field: "availableMargin",

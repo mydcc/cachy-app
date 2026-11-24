@@ -35,7 +35,7 @@
 import { browser } from "$app/env";
 import { feedsNamedBy, type FeedReading } from "../../lib/rules/feedReadings";
 import { isKnownFeed, type ExternalFeedId } from "../../lib/rules/externalFeeds";
-import type { RuleDocument } from "../../lib/rules/types";
+import type { Condition, GridDocument, RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
 import {
   OI_MAX_SPAN_MS,
@@ -72,18 +72,37 @@ const REFRESH_MS: Record<ExternalFeedId, number> = {
 const MAX_OI_SAMPLES = 120;
 
 type RuleReader = () => RuleDocument[];
+type GridReader = () => readonly GridDocument[];
 
 /**
- * The outside world this store needs: which rules decide what is worth
- * fetching, and who answers the funding batch.
+ * The outside world this store needs: which rules and grids decide what is
+ * worth fetching, and who answers the funding batch.
  *
- * Both are injected for the reason the loop's readers are -- this module stays
- * callable without a store, and without the venue layer it would otherwise
- * have to import (see `FundingRateFetcher`).
+ * All ports are injected for the reason the loop's readers are -- this module
+ * stays callable without a store, and without the venue layer it would
+ * otherwise have to import (see `FundingRateFetcher`).
  */
 export interface FeedStorePorts {
   readRules: RuleReader;
+  readGrids?: GridReader;
   fetchFundingRates: FundingRateFetcher;
+}
+
+function addWantedFeeds(
+  wanted: Map<ExternalFeedId, Set<string>>,
+  symbol: string,
+  tree: Condition | undefined,
+): void {
+  if (!tree) return;
+  for (const feed of feedsNamedBy(tree)) {
+    // `isKnownFeed` rather than a key check: `in` sees inherited properties,
+    // so a stored feed id of `constructor` or `toString` would pass one and
+    // index the table with a function.
+    if (!isKnownFeed(feed)) continue;
+    const markets = wanted.get(feed) ?? new Set<string>();
+    markets.add(symbol);
+    wanted.set(feed, markets);
+  }
 }
 
 class ExternalFeedStore {
@@ -97,12 +116,14 @@ class ExternalFeedStore {
   /** Requests in flight, so a slow source cannot be asked again every tick. */
   private readonly inFlight = new Set<string>();
   private readRules: RuleReader = () => [];
+  private readGrids: GridReader = () => [];
   private fetchFundingRates: FundingRateFetcher | undefined;
   private timer: ReturnType<typeof setInterval> | undefined;
 
   /** Bind the ports. Until this runs, nothing is wanted and nothing is read. */
   configure(ports: FeedStorePorts): void {
     this.readRules = ports.readRules;
+    this.readGrids = ports.readGrids ?? (() => []);
     this.fetchFundingRates = ports.fetchFundingRates;
   }
 
@@ -143,23 +164,19 @@ class ExternalFeedStore {
     return [...this.global.values(), ...(market === undefined ? [] : market.values())];
   }
 
-  /** The (market, feed) pairs the armed rules' vetoes actually read. */
+  /** The (market, feed) pairs armed rules' vetoes and grids' trend_filters read. */
   private wanted(): Map<ExternalFeedId, Set<string>> {
     const wanted = new Map<ExternalFeedId, Set<string>>();
 
     for (const rule of this.readRules()) {
       // A paused rule is not evaluated, so its veto asks nothing of anyone.
       if (rule.enabled === false) continue;
-      for (const feed of feedsNamedBy(rule.veto)) {
-        // `isKnownFeed` rather than a key check on the table below: `in` sees
-        // inherited properties, so a stored feed id of `constructor` or
-        // `toString` would pass one and then index the table with a function.
-        // No source supplies such a feed either way, and it stays unavailable.
-        if (!isKnownFeed(feed)) continue;
-        const markets = wanted.get(feed) ?? new Set<string>();
-        markets.add(rule.symbol);
-        wanted.set(feed, markets);
-      }
+      addWantedFeeds(wanted, rule.symbol, rule.veto);
+    }
+
+    for (const grid of this.readGrids()) {
+      if (grid.enabled === false) continue;
+      addWantedFeeds(wanted, grid.symbol, grid.trend_filter);
     }
 
     return wanted;

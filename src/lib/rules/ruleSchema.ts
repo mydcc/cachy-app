@@ -33,6 +33,7 @@
 
 import type {
   GridDocument,
+  GridEvaluationVerdict,
   RuleDocument,
   Refused,
   RuleRefusal,
@@ -63,6 +64,10 @@ interface RuleWasmExports {
   rule_evaluate_exits(documentJson: string, ctxJson: string, positionJson: string): string;
   grid_validate(documentJson: string): string;
   grid_content_hash(documentJson: string): string;
+  grid_warmup_candles(documentJson: string): number;
+  grid_timeframes(documentJson: string): string[];
+  grid_mark_timeframes(documentJson: string): string[];
+  grid_evaluate(documentJson: string, ctxJson: string): string;
   default: (wasmBinaryPath: string) => Promise<unknown>;
 }
 
@@ -226,6 +231,48 @@ class RuleSchemaService {
     const core = this.require();
     try {
       return core.grid_content_hash(JSON.stringify(document));
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /** FEAT-0819 — candles of `evaluation_timeframe` history needed by the grid. */
+  gridWarmupCandles(document: GridDocument): number {
+    const core = this.require();
+    try {
+      return core.grid_warmup_candles(JSON.stringify(document));
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /** FEAT-0819 — every timeframe the grid reads, evaluation timeframe first. */
+  gridTimeframes(document: GridDocument): string[] {
+    const core = this.require();
+    try {
+      return core.grid_timeframes(JSON.stringify(document));
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /** FEAT-0819 — every timeframe the grid reads from the mark-price series. */
+  gridMarkTimeframes(document: GridDocument): string[] {
+    const core = this.require();
+    try {
+      return core.grid_mark_timeframes(JSON.stringify(document));
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /** FEAT-0819 — evaluate a grid's `trend_filter` and `stop_out` conditions. */
+  evaluateGrid(document: GridDocument, ctx: EvaluationContext): GridEvaluationVerdict {
+    const core = this.require();
+    try {
+      return JSON.parse(
+        core.grid_evaluate(JSON.stringify(document), JSON.stringify(ctx)),
+      ) as GridEvaluationVerdict;
     } catch (e) {
       throw toRefusedError(e);
     }

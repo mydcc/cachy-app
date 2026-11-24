@@ -162,4 +162,52 @@ describe("a grid document (FEAT-0819)", () => {
       expect(lookup(de, key), `de: ${key}`).toEqual(expect.any(String));
     }
   });
+
+  it("exposes timeframes, mark timeframes, warmup candles, and single-evaluator grid verdicts", () => {
+    const doc = gridDocument({
+      trend_filter: {
+        kind: "compare",
+        left: { kind: "indicator", indicator: { id: "ema", params: { period: 20 } } },
+        op: "gt",
+        right: { kind: "constant", value: "42000" },
+        timeframe: "4h",
+      },
+      stop_out: [
+        {
+          kind: "compare",
+          left: { kind: "price", field: "close", source: "mark" },
+          op: "lt",
+          right: { kind: "constant", value: "38000" },
+          timeframe: "1h",
+        },
+      ],
+    });
+
+    expect(ruleSchema.gridTimeframes(doc)).toEqual(["1h", "4h"]);
+    expect(ruleSchema.gridMarkTimeframes(doc)).toEqual(["1h"]);
+    expect(ruleSchema.gridWarmupCandles(doc)).toBe(21);
+
+    const HOUR_MS = 3_600_000;
+    const verdict = ruleSchema.evaluateGrid(doc, {
+      candles: {
+        "1h": [{ open_time_ms: 3 * HOUR_MS, open: "41000", high: "41000", low: "39000", close: "40000" }],
+        "4h": [{ open_time_ms: 0, open: "41000", high: "41000", low: "39000", close: "40000" }],
+      },
+      mark_candles: {
+        "1h": [{ open_time_ms: 3 * HOUR_MS, open: "41000", high: "41000", low: "37500", close: "37500" }],
+      },
+      indicators: [
+        {
+          indicator: { id: "ema", params: { period: 20 } },
+          timeframe: "4h",
+          values: ["41000"],
+        },
+      ],
+    });
+
+    expect(verdict.anchor_time_ms).toBe(3 * HOUR_MS);
+    expect(verdict.trend_filter).toEqual({ status: "false" });
+    expect(verdict.stop_out_triggered).toBe(true);
+    expect(verdict.stop_out_verdicts).toEqual([{ status: "true" }]);
+  });
 });
