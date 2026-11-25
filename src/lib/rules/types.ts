@@ -502,6 +502,20 @@ export interface GridDocument {
   provenance: Provenance;
 }
 
+/** Three-valued status of one grid condition. Mirrors `evaluate::GridConditionVerdict`. */
+export type GridConditionVerdict =
+  | { status: "true" }
+  | { status: "false" }
+  | { status: "indeterminate"; reason: string };
+
+/** Mirrors `evaluate::GridEvaluationVerdict`. */
+export interface GridEvaluationVerdict {
+  anchor_time_ms: number | null;
+  trend_filter: GridConditionVerdict | null;
+  stop_out_triggered: boolean;
+  stop_out_verdicts: GridConditionVerdict[];
+}
+
 /**
  * A channel a trigger is announced on. Mirrors `lifecycle::TriggerMethod`.
  *

@@ -145,10 +145,12 @@ describe("RuleEvaluationLoop", () => {
       // that kept calling it would drive coverage decisions on behalf of an
       // evaluator that no longer evaluates anything.
       const onClose = vi.fn();
+      const onEachClose = vi.fn();
       const loop = new RuleEvaluationLoop({
         readCandles: () => [],
         readRules: () => [rule()],
         onClose,
+        onEachClose,
       });
       loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
 
@@ -156,6 +158,7 @@ describe("RuleEvaluationLoop", () => {
       loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
 
       expect(onClose).not.toHaveBeenCalled();
+      expect(onEachClose).not.toHaveBeenCalled();
     });
 
     it("keeps its series state, so a re-arm does not skip a close", () => {

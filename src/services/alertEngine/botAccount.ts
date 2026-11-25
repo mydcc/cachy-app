@@ -34,7 +34,7 @@
  * template carries no account.
  */
 
-import type { ConsequenceLevel, RuleDocument } from "../../lib/rules/types";
+import type { ConsequenceLevel, GridDocument, RuleDocument } from "../../lib/rules/types";
 
 /**
  * The level that makes a rule a bot.
@@ -96,6 +96,14 @@ export function isBotAccountExecuting(
     return account !== null && account === executing;
 }
 
+function accountUnavailableFor(
+    account: BotAccount | null,
+    executing: BotAccount | null,
+): boolean {
+    if (executing === null) return true;
+    return account !== null && account !== executing;
+}
+
 /**
  * The lanes' refusal test: `true` when no account executes at all, or when
  * this bot's own account is not the executing one.
@@ -110,7 +118,36 @@ export function botAccountUnavailable(
     rule: RuleDocument,
     executing: BotAccount | null,
 ): boolean {
-    if (executing === null) return true;
-    const account = botAccountOf(rule);
-    return account !== null && account !== executing;
+    return accountUnavailableFor(botAccountOf(rule), executing);
+}
+
+/** FEAT-0819 / ADR-0028 — whether a grid is bound to the paper account. */
+export function isGridPaperOnly(grid: GridDocument): boolean {
+    return grid.consequence_level === BOT_CONSEQUENCE_LEVEL;
+}
+
+/** The account a grid bot executes against, or `null` if non-paper. */
+export function gridAccountOf(grid: GridDocument): BotAccount | null {
+    return isGridPaperOnly(grid) ? PAPER_ACCOUNT : null;
+}
+
+/** Whether a grid bot's bound account is currently executing. */
+export function isGridAccountExecuting(
+    grid: GridDocument,
+    executing: BotAccount | null,
+): boolean {
+    const account = gridAccountOf(grid);
+    return account !== null && account === executing;
+}
+
+/**
+ * FEAT-0819 / ADR-0028 — `true` when no bot account is executing (paper is
+ * off, so ladder and stop-out are frozen with the paper book) or the grid's
+ * account disagrees with the active executing account.
+ */
+export function gridAccountUnavailable(
+    grid: GridDocument,
+    executing: BotAccount | null,
+): boolean {
+    return accountUnavailableFor(gridAccountOf(grid), executing);
 }

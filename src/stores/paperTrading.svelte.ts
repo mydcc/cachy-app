@@ -215,6 +215,8 @@ export interface PaperOrder {
 export interface PaperFill {
     fillId: string;
     orderId: string;
+    /** FEAT-0819: preserves deterministic slot clientOrderId across fills. */
+    clientOrderId?: string;
     symbol: string;
     /** Execution direction: BUY buys, SELL sells. */
     side: "BUY" | "SELL";
@@ -314,6 +316,7 @@ const PaperPositionSchema = z.object({
 const PaperFillSchema = z.object({
     fillId: z.string(),
     orderId: z.string(),
+    clientOrderId: z.string().optional().catch(undefined),
     symbol: z.string(),
     side: z.enum(["BUY", "SELL"]),
     tradeSide: z.enum(["OPEN", "CLOSE"]),

@@ -159,9 +159,11 @@ export const fetchMarkCandles: MarkCandleFetcher = async (
 export class MarkCandleCache {
   private readonly series = new Map<string, EvaluationCandle[]>();
   private readonly lastFetchMs = new Map<string, number>();
+  private readonly lastErrorMs = new Map<string, number>();
   private readonly inFlight = new Set<string>();
   /** Series the venue told us it cannot serve. Never retried. */
   private readonly unsupported = new Set<string>();
+  private readonly listeners = new Set<(symbol: string, timeframe: string) => void>();
 
   constructor(
     private fetcher: MarkCandleFetcher = fetchMarkCandles,
@@ -172,6 +174,14 @@ export class MarkCandleCache {
   configure(fetcher: MarkCandleFetcher, now?: () => number): void {
     this.fetcher = fetcher;
     if (now) this.now = now;
+  }
+
+  /** Subscribe to successful mark-candle cache updates. */
+  subscribe(listener: (symbol: string, timeframe: string) => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   /**
@@ -185,19 +195,34 @@ export class MarkCandleCache {
   }
 
   /**
-   * Refresh the series if it is stale, without waiting for the result.
+   * Refresh the series if it is stale (or if `requiredOpenMs` is not yet in cache),
+   * without waiting for the result.
    *
    * Returns the in-flight promise so a test can await it; callers on the hot
    * path ignore it. Concurrent calls for the same series collapse into one
    * request — two rules on the same symbol and timeframe are the normal case,
    * not the exception.
    */
-  ensure(symbol: string, timeframe: string): Promise<void> | undefined {
+  ensure(
+    symbol: string,
+    timeframe: string,
+    requiredOpenMs?: number,
+  ): Promise<void> | undefined {
     const key = keyFor(symbol, timeframe);
     if (this.unsupported.has(key) || this.inFlight.has(key)) return undefined;
 
     const last = this.lastFetchMs.get(key);
-    if (last !== undefined && this.now() - last < REFRESH_AFTER_MS) {
+    const missingRequired =
+      requiredOpenMs !== undefined &&
+      !(this.series.get(key)?.some((c) => c.open_time_ms >= requiredOpenMs));
+    const recentError =
+      this.lastErrorMs.get(key) !== undefined &&
+      this.now() - (this.lastErrorMs.get(key) as number) < REFRESH_AFTER_MS;
+
+    if (!missingRequired && last !== undefined && this.now() - last < REFRESH_AFTER_MS) {
+      return undefined;
+    }
+    if (missingRequired && recentError) {
       return undefined;
     }
 
@@ -210,10 +235,13 @@ export class MarkCandleCache {
     symbol: string,
     timeframe: string,
   ): Promise<void> {
+    let updated = false;
     try {
       const candles = await this.fetcher(symbol, timeframe, SERIES_LIMIT);
       this.series.set(key, candles);
       this.lastFetchMs.set(key, this.now());
+      this.lastErrorMs.delete(key);
+      updated = true;
     } catch (error) {
       const status = (error as { status?: number } | null)?.status;
       if (status === 501) {
@@ -236,9 +264,19 @@ export class MarkCandleCache {
           error,
         );
         this.lastFetchMs.set(key, this.now());
+        this.lastErrorMs.set(key, this.now());
       }
     } finally {
       this.inFlight.delete(key);
+    }
+    if (updated) {
+      for (const listener of this.listeners) {
+        try {
+          listener(symbol, timeframe);
+        } catch (e) {
+          logger.error("alerts", `[MarkCandleCache] Listener failed for ${symbol} ${timeframe}`, e);
+        }
+      }
     }
   }
 

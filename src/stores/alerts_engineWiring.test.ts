@@ -171,6 +171,11 @@ const mockStartRuleEvaluationLoop = vi.fn();
 vi.mock("../services/alertEngine/ruleLoopWiring", () => ({
   isSeriesObserved: mockIsSeriesObserved,
   ledgerSink: mockLedgerSink,
+  readClosedCandles: vi.fn(() => []),
+  readMarkCandles: vi.fn(() => []),
+  ensureMarkCandles: vi.fn(() => undefined),
+  subscribeMarkCandles: vi.fn(() => () => {}),
+  droppedVetoSink: vi.fn(),
   startRuleEvaluationLoop: mockStartRuleEvaluationLoop,
 }));
 

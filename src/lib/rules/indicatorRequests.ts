@@ -34,7 +34,7 @@
  */
 
 import { effectiveFieldOf } from "./alertPathIndicators";
-import type { IndicatorRef, RuleDocument, TimeframeString } from "./types";
+import type { Condition, GridDocument, IndicatorRef, RuleDocument, TimeframeString } from "./types";
 
 /** One indicator series a document reads, at one timeframe. */
 export interface IndicatorRequest {
@@ -78,7 +78,9 @@ export function indicatorKey(
  * on — the caller turns a missing series into an indeterminate verdict, which
  * is the safe direction.
  */
-export function collectIndicators(rule: RuleDocument): IndicatorRequest[] {
+export function collectIndicatorsFromTrees(
+  trees: readonly (Condition | undefined)[],
+): IndicatorRequest[] {
   const found = new Map<string, IndicatorRequest>();
 
   const takeOperand = (operand: unknown, timeframe: string, depth = 0): void => {
@@ -142,10 +144,19 @@ export function collectIndicators(rule: RuleDocument): IndicatorRequest[] {
     takeOperand(node.right, node.timeframe);
   };
 
-  walk(rule.conditions);
-  walk(rule.veto);
-  // FEAT-0815: an exit can read a volatility rank too ("stop when volatility
-  // collapses"); without its ATR series that exit would stay unknown for good.
-  for (const exit of rule.exits ?? []) walk(exit.when);
+  for (const tree of trees) walk(tree);
   return [...found.values()];
+}
+
+export function collectIndicators(rule: RuleDocument): IndicatorRequest[] {
+  return collectIndicatorsFromTrees([
+    rule.conditions,
+    rule.veto,
+    ...(rule.exits ?? []).map((exit) => exit.when),
+  ]);
+}
+
+/** FEAT-0819 — every indicator series named by a grid's trend filter or stop-out. */
+export function collectGridIndicators(grid: GridDocument): IndicatorRequest[] {
+  return collectIndicatorsFromTrees([grid.trend_filter, ...(grid.stop_out ?? [])]);
 }

@@ -26,7 +26,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Condition, RuleDocument } from "../../lib/rules/types";
+import type { Condition, GridDocument, RuleDocument } from "../../lib/rules/types";
 
 vi.mock("$app/env", () => ({ browser: true, dev: false }));
 vi.mock("../logger", () => ({
@@ -216,5 +216,56 @@ describe("the feed store", () => {
     externalFeedStore.stop();
 
     expect(externalFeedStore.readFeeds(SYMBOL)).toEqual([]);
+  });
+
+  it("polls external feeds named by enabled grids' trend_filter (FEAT-0819)", async () => {
+    vi.mocked(readFundingRate).mockResolvedValue({
+      feed: "funding_rate",
+      source: "bitunix:futures/market/funding_rate/batch",
+      value: "0.0005",
+      asOfMs: START_MS,
+    });
+    const gridDoc: GridDocument = {
+      kind: "grid",
+      schema_version: 1,
+      id: "grid-feed-1",
+      name: "Feed Grid",
+      symbol: "ETHUSDT",
+      side: "long",
+      evaluation_timeframe: "1h",
+      lower_price: "2000",
+      upper_price: "2400",
+      level_count: 2,
+      spacing: "arithmetic",
+      sizing: { basis: "quote_budget", amount: "1000" },
+      trend_filter: fundingVeto,
+      stop_out: [
+        {
+          kind: "compare",
+          left: { kind: "price", field: "close" },
+          op: "lt",
+          right: { kind: "constant", value: "1800" },
+          timeframe: "1h",
+        },
+      ],
+      consequence_level: "simulate",
+      enabled: true,
+      provenance: { source: "human", created_at_ms: START_MS },
+    };
+
+    externalFeedStore.configure({
+      readRules: () => [],
+      readGrids: () => [gridDoc],
+      fetchFundingRates: fundingPort,
+    });
+    externalFeedStore.start();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(readFundingRate).toHaveBeenCalledWith("ETHUSDT", fundingPort);
+    expect(externalFeedStore.readFeeds("ETHUSDT")).toEqual([
+      expect.objectContaining({ feed: "funding_rate", value: "0.0005" }),
+    ]);
   });
 });

@@ -56,6 +56,7 @@ import { feedNameKey, isKnownFeed } from "../../lib/rules/externalFeeds";
 import type { TranslationKey } from "../../locales/schema";
 import { recordFiring } from "./shadowLedger";
 import { clearBotAnchors, readBotAnchors, readRuleState, saveBotAnchors } from "./ruleStateStore";
+import { readGrids, readGridStates } from "./gridStore";
 import { isBot } from "./botStore";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { drawingStore } from "../../stores/drawings.svelte";
@@ -352,6 +353,24 @@ export function readMarkCandles(symbol: string, timeframe: string): EvaluationCa
 }
 
 /**
+ * Trigger an asynchronous mark-candle refresh for a required anchor bucket and
+ * subscribe to cache updates so pending mark-dependent evaluations can replay.
+ */
+export function ensureMarkCandles(
+  symbol: string,
+  timeframe: string,
+  requiredOpenMs?: number,
+): Promise<void> | undefined {
+  return markCandleCache.ensure(symbol, timeframe, requiredOpenMs);
+}
+
+export function subscribeMarkCandles(
+  listener: (symbol: string, timeframe: string) => void,
+): () => void {
+  return markCandleCache.subscribe(listener);
+}
+
+/**
  * Points the loop at the live market store and at the sink the caller chose.
  *
  * The sink is a parameter rather than a constant because it is the cutover:
@@ -484,6 +503,8 @@ export function startRuleEvaluationLoop(
   // FEAT-0814 — where a vetoed trigger goes. Absent (shadow mode) records
   // nothing.
   onSuppressed?: SuppressionSink,
+  // FEAT-0819 — runs once per closed anchor oldest-first inside backfill loops.
+  onEachClose?: SeriesCloseHook,
 ): () => void {
   // A no-op disposer rather than `undefined`: SSR must not hand the caller a
   // value it has to null-check, and there is nothing armed to stop.
@@ -502,6 +523,7 @@ export function startRuleEvaluationLoop(
     onFiring,
     onSuppressed,
     onClose,
+    onEachClose,
     onUnevaluable: settingsAwareUnevaluableSink,
     // FEAT-0816 — the third-party feeds a veto may read, and the report when
     // one of them cannot be read. Wired in both modes on purpose: a shadow run
@@ -545,6 +567,17 @@ export function startRuleEvaluationLoop(
   // stay out of the app's import cycle.
   externalFeedStore.configure({
     readRules: readStoredRules,
+    readGrids: () => {
+      try {
+        const states = readGridStates();
+        return readGrids().filter((grid) => {
+          const status = states[grid.id]?.status;
+          return status === "active" || status === "paused";
+        });
+      } catch {
+        return [];
+      }
+    },
     fetchFundingRates: () => fetchBitunixFundingRates(),
   });
   externalFeedStore.start();

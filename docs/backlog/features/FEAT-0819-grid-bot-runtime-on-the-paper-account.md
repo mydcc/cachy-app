@@ -55,35 +55,35 @@ Implement the grid as its own bot kind, per
 - [x] A grid document with arithmetic and one with geometric spacing both
       validate and round-trip.
       *Stage 1: `GridDocument` in `technicals-wasm/src/rule/grid.rs`; Rust round-trip test for both spacings, and `gridDocument.integration.test.ts` against the rebuilt artifact.*
-- [ ] The runtime places exactly `level_count` orders within the range, never
+- [x] The runtime places exactly `level_count` orders within the range, never
       more than the budget allows, and each order carries `ownerBotId`.
-      *Stage 2 (`gridLadder.ts`): `level_count` is the number of levels, so a ladder has `level_count + 1` lines and exactly `level_count` opening slots; the budget never exceeds its cap because each slot rounds down. Placement and `ownerBotId` are stage 4.*
-- [ ] A fill re-places the opposite level within the range and never outside it;
+      *Stage 2 (`gridLadder.ts`) + Stage 4 (`gridRuntime.ts`, `gridOrder.ts`, `OrderGate` `kind: "grid"`, `gridRuntime.test.ts`).*
+- [x] A fill re-places the opposite level within the range and never outside it;
       fills and fees are `Decimal` and match the paper book's audit record.
-      *Stage 2: `counterOrderOf` names the counter-order of a fill and never leaves the range; fees are `Decimal`. The match against the paper book's audit record is stage 4.*
-- [ ] Pause stops new placements and leaves protective exits running; resume
+      *Stage 2 (`counterOrderOf`) + Stage 4 (`paperExchange.ts` counter-order trigger direction & limit fill bounds, `gridRuntime.ts` durable `openSlots` + `isCounterOrder`, verified in `gridRuntime.test.ts` and `paperExchange.gridCounterOrders.test.ts`).*
+- [x] Pause stops new placements and leaves protective exits running; resume
       continues from the book, not from a lost in-memory ladder.
-- [ ] Stop cancels every resting order owned by the grid and closes the owned
+- [x] Stop cancels every resting order owned by the grid and closes the owned
       position through the gate; a crash between cancel and close is recoverable
       on restart.
-- [ ] A reload mid-ladder rebuilds the same ladder (same levels, same owner)
+- [x] A reload mid-ladder rebuilds the same ladder (same levels, same owner)
       from the document and the book.
-- [ ] A grid refuses to start while its `(symbol, side)` holds a manual
+- [x] A grid refuses to start while its `(symbol, side)` holds a manual
       position or another bot; a position on the opposite side does not block
       it.
-- [ ] When the trend filter reads false, every resting unfilled opening order
+- [x] When the trend filter reads false, every resting unfilled opening order
       of the grid is cancelled while counter-orders, exits and the stop-out
       stay; when it reads true again the ladder is rebuilt from document and
       book.
-- [ ] A grid document sized with `percent_risk` is refused with a named
+- [x] A grid document sized with `percent_risk` is refused with a named
       reason; the quote budget is split evenly across levels as `Decimal`,
       each level's quantity rounded down to the quantity step so the ladder
       never exceeds the budget.
       *Stage 1 delivered the refusal (`GridRiskSizingUnsupported`); the even split and the step rounding are stage 2.*
-- [ ] No live order path is reachable; the grid is paper-only and a `send`-level
+- [x] No live order path is reachable; the grid is paper-only and a `send`-level
       document is refused as today.
-      *Stage 1 delivered the document half (`GridPaperOnly` for `send`); the runtime half is stage 4.*
-- [ ] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
+      *Stage 1 delivered the document half (`GridPaperOnly` for `send`); stage 4 enforces paper-only + `origin: "bot"` across `gridRuntime.ts`, `botAccount.ts`, `gridOrder.ts`, and `OrderGate` (`kind: "grid"`).*
+- [x] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
       restart, and the two-grid collision case.
 - [ ] The editor warns when the level spacing does not exceed the round-trip
       fee and names the minimum viable spacing derived from the paper fee
@@ -105,12 +105,13 @@ Implement the grid as its own bot kind, per
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
       book. It never claims that its protective exits keep running.
+      *Stage 4 delivered `botAccount.ts` grid binding, `account_unavailable` projection, and frozen ladder/stop-out evaluation while paper trading is off; the panel UI copy is stage 5.*
 
 ## State (2026-11-24)
 
-Stages 1 to 3 are delivered (#4624, the ladder arithmetic in #4626, and the
-owned resting orders on `feature/feat-0819-owned-paper-orders`); stages 4
-and 5 are open.
+Stages 1 to 4 are delivered (#4624, #4626, #4627, and Stage 4 runtime on `feature/feat-0819-grid-runtime`); stage 5 remains open (coordinated with FEAT-0820).
+
+Stage 4 delivers the Rust `evaluate_grid` / `timeframes` / `warmup_candles` WASM exports, the Class A grid stores (`gridStore.ts`), pure projection & `(symbol, side)` reservation (`gridState.ts`), `OrderGate` `kind: "grid"` & cumulative `rmsService` checks, paper simulator counter-order / Bitget close / limit-bound execution support (`paperExchange.ts`), `gridOrder.ts`, and `gridRuntime.ts` (ladder placement, rebalance, pause/resume, `trend_filter` withdraw/rebuild, strict cancel-before-close stop & `stop_out`, crash recovery from `"stopping"`, and durable fill-eviction-safe reload reconciliation). The item returns to `ready` between stages so stage 5 can claim it cleanly.
 
 Stage 3 gives `PaperOrder` the four attribution fields the position and the
 opening fill already carry (`origin`, `botId`, `ruleId`, `strategyHash`;

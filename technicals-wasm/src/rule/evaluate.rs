@@ -52,6 +52,7 @@ use super::condition::{
 };
 use super::consequence::StopDistance;
 use super::document::{ExitClose, RuleDocument};
+use super::grid::GridDocument;
 /// Only the test documents below name the mode; evaluation itself reads the
 /// anchor it is handed and never asks how that anchor was chosen.
 #[cfg(test)]
@@ -1020,6 +1021,95 @@ fn truth(value: bool) -> Truth {
         Truth::True
     } else {
         Truth::False
+    }
+}
+
+/// FEAT-0819 — three-valued status of one grid condition (`trend_filter` or
+/// a `stop_out` entry) at an evaluation anchor.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum GridConditionVerdict {
+    True,
+    False,
+    Indeterminate { reason: String },
+}
+
+/// FEAT-0819 — the core's answer for a grid document at the last closed
+/// candle of its `evaluation_timeframe`.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct GridEvaluationVerdict {
+    /// Open time (ms) of the anchor candle used for evaluation, or `None`
+    /// when no closed candle on `evaluation_timeframe` is available.
+    pub anchor_time_ms: Option<i64>,
+    /// `trend_filter` answer, or `None` when the grid declares no filter.
+    pub trend_filter: Option<GridConditionVerdict>,
+    /// `true` iff at least one `stop_out` condition evaluated to `True`.
+    pub stop_out_triggered: bool,
+    /// Positional verdict for each entry in `document.stop_out`.
+    pub stop_out_verdicts: Vec<GridConditionVerdict>,
+}
+
+fn truth_to_grid_verdict(value: Truth) -> GridConditionVerdict {
+    match value {
+        Truth::True => GridConditionVerdict::True,
+        Truth::False => GridConditionVerdict::False,
+        Truth::Unknown(reason) => GridConditionVerdict::Indeterminate { reason },
+    }
+}
+
+/// FEAT-0819 — evaluate a grid's `trend_filter` and `stop_out` conditions at
+/// the last closed candle of `evaluation_timeframe`, using the exact same
+/// condition evaluator as rules and exits (ADR-0012: one evaluator).
+pub fn evaluate_grid(
+    document: &GridDocument,
+    market: &dyn MarketView,
+    account: Option<&AccountSnapshot>,
+) -> GridEvaluationVerdict {
+    let tf = document.evaluation_timeframe;
+    let Some(anchor) = market.closed_candles(tf).last() else {
+        let reason = format!("no closed {tf} candle to evaluate on");
+        return GridEvaluationVerdict {
+            anchor_time_ms: None,
+            trend_filter: document
+                .trend_filter
+                .as_ref()
+                .map(|_| GridConditionVerdict::Indeterminate {
+                    reason: reason.clone(),
+                }),
+            stop_out_triggered: false,
+            stop_out_verdicts: vec![
+                GridConditionVerdict::Indeterminate { reason };
+                document.stop_out.len()
+            ],
+        };
+    };
+
+    let anchor_close_ms = anchor.open_time_ms + tf.milliseconds();
+    let ctx = Ctx {
+        market,
+        account,
+        anchor_close_ms,
+    };
+
+    let trend_filter = document
+        .trend_filter
+        .as_ref()
+        .map(|filter| truth_to_grid_verdict(eval(filter, &ctx)));
+
+    let stop_out_verdicts: Vec<GridConditionVerdict> = document
+        .stop_out
+        .iter()
+        .map(|rule| truth_to_grid_verdict(eval(rule, &ctx)))
+        .collect();
+    let stop_out_triggered = stop_out_verdicts
+        .iter()
+        .any(|v| matches!(v, GridConditionVerdict::True));
+
+    GridEvaluationVerdict {
+        anchor_time_ms: Some(anchor.open_time_ms),
+        trend_filter,
+        stop_out_triggered,
+        stop_out_verdicts,
     }
 }
 
@@ -2395,5 +2485,109 @@ mod tests {
             panic!("`either` is a condition's question, not a facing");
         };
         assert!(reason.contains("long or short"), "reason names it: {reason}");
+    }
+
+    fn grid_doc(
+        trend_filter: Option<Condition>,
+        stop_out: Vec<Condition>,
+    ) -> GridDocument {
+        use crate::rule::grid::{GridKind, GridSide, GridSizeBasis, GridSizing, GridSpacing};
+        GridDocument {
+            kind: GridKind::Grid,
+            schema_version: 1,
+            id: "grid-eval-1".to_string(),
+            name: "Grid eval test".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            side: GridSide::Long,
+            evaluation_timeframe: tf("4h"),
+            lower_price: d("90"),
+            upper_price: d("110"),
+            level_count: 4,
+            spacing: GridSpacing::Arithmetic,
+            sizing: GridSizing {
+                basis: GridSizeBasis::QuoteBudget,
+                amount: d("400"),
+            },
+            trend_filter,
+            stop_out,
+            consequence_level: ConsequenceLevel::Simulate,
+            enabled: true,
+            provenance: Provenance {
+                source: AuthoringSource::Human,
+                created_at_ms: 0,
+                model: None,
+                derived_from_hash: None,
+            },
+        }
+    }
+
+    #[test]
+    fn evaluate_grid_evaluates_trend_filter_and_any_of_stop_out() {
+        let filter = Condition::Compare {
+            left: Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            },
+            op: CompareOp::Gt,
+            right: Operand::Constant { value: d("95") },
+            timeframe: tf("4h"),
+        };
+        let stop_price = Condition::Compare {
+            left: Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            },
+            op: CompareOp::Lt,
+            right: Operand::Constant { value: d("85") },
+            timeframe: tf("4h"),
+        };
+        let stop_drawdown = Condition::Account {
+            field: AccountField::UnrealisedPnlPercent,
+            op: CompareOp::Lt,
+            value: d("-10"),
+        };
+        let doc = grid_doc(Some(filter), vec![stop_price, stop_drawdown]);
+
+        // Price 92: filter False, close stop False, drawdown -15% -> stop_out True.
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "92"]));
+        let account = AccountSnapshot {
+            position_size: d("2"),
+            unrealised_pnl: d("-16"),
+            unrealised_pnl_percent: d("-15"),
+            exposure: d("200"),
+            available_balance: d("800"),
+        };
+        let verdict = evaluate_grid(&doc, &market, Some(&account));
+        assert_eq!(verdict.anchor_time_ms, Some(14_400_000));
+        assert_eq!(verdict.trend_filter, Some(GridConditionVerdict::False));
+        assert!(verdict.stop_out_triggered);
+        assert_eq!(
+            verdict.stop_out_verdicts,
+            vec![GridConditionVerdict::False, GridConditionVerdict::True]
+        );
+
+        // No account snapshot + close 98 -> filter True, account stop-out Indeterminate, stop_out_triggered False.
+        let market_ok = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100", "98"]));
+        let verdict_ok = evaluate_grid(&doc, &market_ok, None);
+        assert_eq!(verdict_ok.trend_filter, Some(GridConditionVerdict::True));
+        assert!(!verdict_ok.stop_out_triggered);
+        assert!(matches!(
+            verdict_ok.stop_out_verdicts[1],
+            GridConditionVerdict::Indeterminate { .. }
+        ));
+    }
+
+    #[test]
+    fn evaluate_grid_with_no_anchor_marks_everything_indeterminate() {
+        let doc = grid_doc(None, vec![price_holds_above("110")]);
+        let empty = InMemoryMarket::new();
+        let verdict = evaluate_grid(&doc, &empty, None);
+        assert_eq!(verdict.anchor_time_ms, None);
+        assert_eq!(verdict.trend_filter, None);
+        assert!(!verdict.stop_out_triggered);
+        assert!(matches!(
+            &verdict.stop_out_verdicts[0],
+            GridConditionVerdict::Indeterminate { reason } if reason.contains("no closed 4h candle")
+        ));
     }
 }

@@ -396,6 +396,8 @@ class RiskManagementService {
         // more of the same exposure, so the limits must check it even though
         // `add` is otherwise verified like a reduce.
         if (intent.kind === "add") return true;
+        // FEAT-0819: a grid opening order adds exposure on its side.
+        if (intent.kind === "grid") return true;
         if (intent.kind === "modify") return intent.endpoint !== "/api/tpsl";
         return false;
     }
@@ -427,7 +429,7 @@ class RiskManagementService {
 
     private blocksKind(kind: OrderIntent["kind"], endpoint?: string): boolean {
         const config = riskState.killSwitchConfig;
-        if (kind === "open") return true;
+        if (kind === "open" || kind === "grid") return true;
         if (kind === "add") return config.blockAdds;
         if (kind === "modify") {
             return config.blockNonTpSlModifies && endpoint !== "/api/tpsl";
@@ -634,6 +636,18 @@ class RiskManagementService {
                 this.checkDailyLoss() ??
                 this.checkPositionSize(intent) ??
                 this.checkLossPerTrade(intent)
+            );
+        }
+
+        // FEAT-0819: grid opening orders use stop_out conditions instead of a
+        // per-trade attached SL price, so check daily loss, open position cap,
+        // leverage cap, and cumulative position size cap (`ADR-0012` decision 5).
+        if (intent.kind === "grid") {
+            return (
+                this.checkDailyLoss() ??
+                this.checkOpenPositions(intent) ??
+                this.checkLeverage(intent) ??
+                this.checkPositionSize(intent)
             );
         }
 
@@ -972,6 +986,11 @@ class RiskManagementService {
             const positionAmount = intent.displayed.positionAmount;
             if (positionAmount === undefined) return null;
             return positionAmount.plus(qty).times(price);
+        }
+        if (intent.kind === "grid") {
+            const prior = intent.displayed.pendingGridNotional;
+            if (prior === undefined || !prior.isFinite() || prior.lt(0)) return null;
+            return prior.plus(qty.times(price));
         }
         return qty.times(price);
     }

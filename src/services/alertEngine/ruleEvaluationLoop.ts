@@ -440,6 +440,8 @@ export interface RuleEvaluationLoopOptions {
   onSuppressed?: SuppressionSink;
   /** No-op by default — most callers have nothing that depends on this. */
   onClose?: SeriesCloseHook;
+  /** Runs once per closed anchor oldest-first inside reconnect/backfill loops. */
+  onEachClose?: SeriesCloseHook;
   /**
    * FEAT-0029: where a rule's threshold comes from.
    *
@@ -603,6 +605,7 @@ export class RuleEvaluationLoop {
   private onFiring: FiringSink = shadowSink;
   private onSuppressed: SuppressionSink = () => {};
   private onClose: SeriesCloseHook = () => {};
+  private onEachClose: SeriesCloseHook = () => {};
   private onUnevaluable: UnevaluableSink = logUnevaluable;
   private readFeeds: FeedReader = NO_FEEDS;
   private onDroppedVeto: DroppedVetoSink = logDroppedVeto;
@@ -669,6 +672,7 @@ export class RuleEvaluationLoop {
     this.onFiring = options.onFiring ?? shadowSink;
     this.onSuppressed = options.onSuppressed ?? (() => {});
     this.onClose = options.onClose ?? (() => {});
+    this.onEachClose = options.onEachClose ?? (() => {});
     this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
     this.readFeeds = options.readFeeds ?? NO_FEEDS;
     this.onDroppedVeto = options.onDroppedVeto ?? logDroppedVeto;
@@ -859,6 +863,7 @@ export class RuleEvaluationLoop {
         // asks whether to enter, this asks whether to leave. Same anchor, so
         // the two answers can never disagree about which candle they read.
         this.evaluateExitWindow(symbol, timeframe, anchorMs);
+        this.onEachClose(symbol, timeframe, anchorMs);
       }
       return firings;
     } catch (e) {
@@ -1896,6 +1901,7 @@ export class RuleEvaluationLoop {
     this.readFeeds = NO_FEEDS;
     this.droppedVetoes.clear();
     this.onClose = () => {};
+    this.onEachClose = () => {};
     this.onUnevaluable = logUnevaluable;
     // FEAT-0823 review — the held waits die with the engine that formed
     // them: a shadow pass's memo must never be consumed by the live pass

@@ -345,6 +345,47 @@ impl GridDocument {
         })?;
         Ok(sha256_hex(canonical.as_bytes()))
     }
+
+    /// Every timeframe the grid reads, evaluation timeframe first.
+    pub fn timeframes(&self) -> Vec<Timeframe> {
+        let mut out = vec![self.evaluation_timeframe];
+        if let Some(filter) = &self.trend_filter {
+            filter.timeframes(&mut out);
+        }
+        for rule in &self.stop_out {
+            rule.timeframes(&mut out);
+        }
+        out
+    }
+
+    /// Every timeframe the grid reads from the mark-price series.
+    pub fn mark_timeframes(&self) -> Vec<Timeframe> {
+        let mut out = Vec::new();
+        if let Some(filter) = &self.trend_filter {
+            filter.mark_timeframes(&mut out);
+        }
+        for rule in &self.stop_out {
+            rule.mark_timeframes(&mut out);
+        }
+        out
+    }
+
+    /// How many candles of history the evaluation timeframe needs before the
+    /// grid's conditions can produce an answer at all.
+    pub fn warmup_candles(&self) -> u32 {
+        let filter = self
+            .trend_filter
+            .as_ref()
+            .map(|f| f.warmup_candles())
+            .unwrap_or(0);
+        let stop_out = self
+            .stop_out
+            .iter()
+            .map(|r| r.warmup_candles())
+            .max()
+            .unwrap_or(0);
+        filter.max(stop_out)
+    }
 }
 
 /// Parse untrusted JSON into a validated grid.
@@ -761,5 +802,47 @@ mod tests {
         .content_hash()
         .unwrap();
         assert_eq!(budget, base);
+    }
+
+    #[test]
+    fn timeframes_mark_timeframes_and_warmup_collect_from_filter_and_stop_out() {
+        let doc = parse_grid(&grid_json(&[
+            (
+                "trend_filter",
+                serde_json::json!({
+                    "kind": "compare",
+                    "left": { "kind": "indicator", "indicator": { "id": "ema", "params": { "period": 50 } } },
+                    "op": "gt",
+                    "right": { "kind": "constant", "value": "40000" },
+                    "timeframe": "4h"
+                }),
+            ),
+            (
+                "stop_out",
+                serde_json::json!([
+                    {
+                        "kind": "compare",
+                        "left": { "kind": "price", "field": "close", "source": "mark" },
+                        "op": "lt",
+                        "right": { "kind": "constant", "value": "38000" },
+                        "timeframe": "1d"
+                    },
+                    {
+                        "kind": "compare",
+                        "left": { "kind": "indicator", "indicator": { "id": "rsi", "params": { "period": 14 } } },
+                        "op": "lt",
+                        "right": { "kind": "constant", "value": "20" },
+                        "timeframe": "1h"
+                    }
+                ]),
+            ),
+        ]))
+        .unwrap();
+
+        let tfs: Vec<String> = doc.timeframes().iter().map(|t| t.canonical()).collect();
+        assert_eq!(tfs, vec!["1h", "4h", "1d"]);
+        let mark_tfs: Vec<String> = doc.mark_timeframes().iter().map(|t| t.canonical()).collect();
+        assert_eq!(mark_tfs, vec!["1d"]);
+        assert_eq!(doc.warmup_candles(), 51);
     }
 }
