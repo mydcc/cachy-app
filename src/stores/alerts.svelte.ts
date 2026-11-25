@@ -1348,8 +1348,8 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
 
     alertState.engineStatus = "ready";
     const botsGeneration = botsSinkGeneration;
-    let closeAt: ((symbol: string, timeframe: string, anchorMs: number) => import("decimal.js").Decimal | null) | undefined;
-    let livePrice: ((symbol: string) => import("decimal.js").Decimal | null) | undefined;
+    let closeAt: typeof import("../services/alertEngine/botOrders").closeAtAnchor | undefined;
+    let livePrice: typeof import("../services/alertEngine/botOrders").livePriceAt | undefined;
     let closeWithTradeService: ((params: BotCloseParams) => Promise<unknown>) | undefined;
     if (mode !== "live") {
         clearBotSubmissions();
