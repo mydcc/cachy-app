@@ -68,7 +68,11 @@ import type { Condition, EvaluationCandle, GridDocument } from "../../lib/rules/
 import { marketState } from "../../stores/market.svelte";
 import { paperState } from "../../stores/paperTrading.svelte";
 import { botsState } from "../../stores/botsState.svelte";
-import { botOrderEnvironment, gridRuntimeEnvironment } from "../../stores/alerts.svelte";
+import {
+  botOrderEnvironment,
+  gridRuntimeEnvironment,
+  syncGridMarketSubscriptions,
+} from "../../stores/alerts.svelte";
 import { omsService } from "../omsService";
 import { registerConfirmationCheck, registerKillSwitch, registerRiskLimitCheck } from "../orderGate";
 import { paperExchange } from "../paperExchange";
@@ -1012,21 +1016,215 @@ describe("gridRuntime (FEAT-0819 stage 4)", () => {
       ).toBe(true);
     });
 
-    // 3. Partial close leaves position open -> stopGrid must refuse position-remaining WITHOUT calling recordBotExit.
+    // 3. Partial close (both 0 and 0.5) leaves position open -> stopGrid refuses position-remaining
+    // WITHOUT calling recordBotExit AND WITHOUT entering a microtask retry loop!
     const recordExitSpy = vi.fn();
-    gridRuntime.configure(buildTestEnv({ recordBotExit: recordExitSpy }));
-    paperState.setConfig("failureMode", "partial");
-    paperState.setConfig("partialFillRatio", "0.5");
+    let closeCalls = 0;
+    const origClose = tradeService.closePosition.bind(tradeService);
+    gridRuntime.configure(
+      buildTestEnv({
+        recordBotExit: recordExitSpy,
+        closePosition: async (params) => {
+          closeCalls += 1;
+          return origClose(params);
+        },
+      }),
+    );
 
+    paperState.setConfig("failureMode", "partial");
+    paperState.setConfig("partialFillRatio", "0");
     expect(await gridRuntime.stopGrid("grid-b-small", "manual")).toEqual({
       ok: false,
       reason: "position-remaining",
     });
+    // Flush microtasks while failureMode === "partial" (ratio 0) is STILL active.
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(closeCalls).toBe(1);
     expect(recordExitSpy).not.toHaveBeenCalled();
 
-    // Once full close succeeds, recordBotExit fires and grid reaches closed.
+    paperState.setConfig("partialFillRatio", "0.5");
+    expect(await gridRuntime.stopGrid("grid-b-small", "manual")).toEqual({
+      ok: false,
+      reason: "position-remaining",
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(closeCalls).toBe(2);
+    expect(recordExitSpy).not.toHaveBeenCalled();
+
+    // Once full close succeeds on manual stop, grid reaches closed (recordBotExit reserved for stop_out).
     paperState.setConfig("failureMode", "none");
     expect(await gridRuntime.stopGrid("grid-b-small", "manual")).toEqual({ ok: true });
-    expect(recordExitSpy).toHaveBeenCalledTimes(1);
+    expect(readGridState("grid-b-small")?.status).toBe("closed");
+    expect(recordExitSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks startGrid on active/paused/stopping grids and propagates resume/reconcile refusals", async () => {
+    const grid = makeGrid({
+      lower_price: "40000",
+      upper_price: "42000",
+      level_count: 2,
+      sizing: { basis: "quote_budget", amount: "2000" },
+    });
+    saveGrid(grid);
+    expect(await gridRuntime.startGrid("grid-1")).toEqual({ ok: true });
+    expect(await gridRuntime.startGrid("grid-1")).toEqual({
+      ok: false,
+      reason: "invalid-state:active",
+    });
+
+    expect(await gridRuntime.pauseGrid("grid-1")).toEqual({ ok: true });
+    expect(await gridRuntime.startGrid("grid-1")).toEqual({
+      ok: false,
+      reason: "invalid-state:paused",
+    });
+
+    // Simulate kill switch engaging while paused -> resumeGrid must fail and revert to paused.
+    paperExchange.cancelOpeningOrdersOwnedBy("grid-1");
+    registerKillSwitch(() => true);
+    const resumeRes = await gridRuntime.resumeGrid("grid-1");
+    expect(resumeRes.ok).toBe(false);
+    expect(readGridState("grid-1")?.status).toBe("paused");
+    registerKillSwitch(null);
+
+    expect(await gridRuntime.resumeGrid("grid-1")).toEqual({ ok: true });
+    expect(await gridRuntime.stopGrid("grid-1", "manual")).toEqual({ ok: true });
+  });
+
+  it("fires price stop_out without waiting for unwarmed trend_filter indicators and replays mark-price stop_out on cache update", async () => {
+    const emaFilter: Condition = {
+      kind: "compare",
+      left: { kind: "indicator", indicator: { id: "ema", params: { period: 20 }, output: "value" } },
+      op: "gt",
+      right: { kind: "constant", value: "39000" },
+      timeframe: "1h",
+    };
+    const markStop: Condition = {
+      kind: "compare",
+      left: { kind: "price", field: "close", source: "mark" },
+      op: "lt",
+      right: { kind: "constant", value: "38000" },
+      timeframe: "1h",
+    };
+
+    const ensured: Array<[string, string, number | undefined]> = [];
+    gridRuntime.configure(
+      buildTestEnv({
+        ensureMarkCandles: (sym, tf, req) => {
+          ensured.push([sym, tf, req]);
+          return undefined;
+        },
+      }),
+    );
+
+    saveGrid(makeGrid({ id: "grid-warmup", trend_filter: emaFilter }));
+    expect(await gridRuntime.startGrid("grid-warmup")).toEqual({ ok: true });
+
+    // Only 2 candles (< EMA(20) warmup): price stop_out below 38000 MUST still fire immediately.
+    testCandles = [makeCandle(0, "42000"), makeCandle(1, "37000")];
+    await gridRuntime.onGridCandleClose("BTCUSDT", "1h", 1 * HOUR_MS);
+    expect(readGridState("grid-warmup")?.status).toBe("closed");
+    expect(readGridState("grid-warmup")?.stopReason).toBe("stop_out");
+
+    // Stale mark candle cache (only bucket 0 while closing anchor is bucket 1): must withhold stale data and replay when bucket 1 arrives!
+    saveGrid(makeGrid({ id: "grid-mark", stop_out: [markStop] }));
+    expect(await gridRuntime.startGrid("grid-mark")).toEqual({ ok: true });
+    testCandles = [makeCandle(0, "42000"), makeCandle(1, "40500")];
+    testMarkCandles = [makeCandle(0, "42000")];
+    await gridRuntime.onGridCandleClose("BTCUSDT", "1h", 1 * HOUR_MS);
+    expect(readGridState("grid-mark")?.lastEvaluatedAnchorMs).toBeUndefined();
+    expect(ensured).toEqual([["BTCUSDT", "1h", 1 * HOUR_MS]]);
+
+    testMarkCandles = [makeCandle(0, "42000"), makeCandle(1, "37500")];
+    await gridRuntime.notifyMarkCandlesUpdated("BTCUSDT", "1h");
+    expect(readGridState("grid-mark")?.status).toBe("closed");
+    expect(readGridState("grid-mark")?.stopReason).toBe("stop_out");
+  });
+
+  it("fails open on unavailable trend_filter feeds with once-per-outage notice, blocks manual collision, and closes grids on book reset", async () => {
+    const droppedNotices: Array<{ ruleId: string; feeds: string[] }> = [];
+    gridRuntime.configure(
+      buildTestEnv({
+        onDroppedTrendFilter: (info) => droppedNotices.push({ ruleId: info.ruleId, feeds: info.feeds }),
+      }),
+    );
+
+    const grid = makeGrid({
+      id: "grid-adr29",
+      lower_price: "40000",
+      upper_price: "42000",
+      level_count: 2,
+      sizing: { basis: "quote_budget", amount: "2000" },
+      trend_filter: {
+        kind: "external_feed",
+        feed: "funding_rate",
+        op: "lt",
+        value: "0.01",
+      },
+    });
+    saveGrid(grid);
+    expect(await gridRuntime.startGrid("grid-adr29")).toEqual({ ok: true });
+
+    // 1. Live feed healthy -> negative check withdraws entries cleanly.
+    testFeeds = [
+      { feed: "funding_rate", symbol: "BTCUSDT", source: "bitunix", value: "0.05", asOfMs: Date.now() },
+    ];
+    testCandles = [makeCandle(0, "42000"), makeCandle(1, "42000")];
+    await gridRuntime.onGridCandleClose("BTCUSDT", "1h", 1 * HOUR_MS);
+    expect(paperState.orders).toHaveLength(0);
+
+    // 2. Manual paper order on reserved active (BTCUSDT, long) slot must be blocked!
+    await expect(
+      paperExchange.handle("/api/orders", {
+        type: "place-order",
+        symbol: "BTCUSDT",
+        side: "BUY",
+        orderType: "MARKET",
+        qty: "0.01",
+        tradeSide: "OPEN",
+        origin: "manual",
+      }),
+    ).rejects.toThrow("settings.automation.orderRefusedPositionOpen");
+
+    // 3. Feed outage -> ADR-0029 fail-open rebuilds entries and signals ONCE per outage across consecutive closes.
+    testFeeds = [];
+    testCandles.push(makeCandle(2, "42100"), makeCandle(3, "42200"));
+    await gridRuntime.onGridCandleClose("BTCUSDT", "1h", 2 * HOUR_MS);
+    await gridRuntime.onGridCandleClose("BTCUSDT", "1h", 3 * HOUR_MS);
+    expect(droppedNotices).toEqual([{ ruleId: "grid-adr29", feeds: ["funding_rate"] }]);
+    expect(paperState.orders).toHaveLength(2);
+
+    // 4. Book reset closes occupying grids rather than leaving stale active states.
+    paperTradingService.resetBook();
+    expect(readGridState("grid-adr29")?.status).toBe("closed");
+
+    // 5. Active/paused grids maintain independent marketWatcher kline & price subscriptions across lifecycle and release on stop.
+    const watcher = { register: vi.fn(), unregister: vi.fn() };
+    gridRuntime.configure(
+      buildTestEnv({
+        syncSubscriptions: () => syncGridMarketSubscriptions(watcher),
+      }),
+    );
+    saveGrid(makeGrid({ id: "grid-sub", evaluation_timeframe: "1h", stop_out: [
+      {
+        kind: "compare",
+        left: { kind: "price", field: "close" },
+        op: "lt",
+        right: { kind: "constant", value: "38000" },
+        timeframe: "4h",
+      },
+    ] }));
+    expect(await gridRuntime.startGrid("grid-sub")).toEqual({ ok: true });
+    expect(watcher.register).toHaveBeenCalledWith("BTCUSDT", "price", "stateless");
+    expect(watcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "stateless");
+    expect(watcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1h", "stateless");
+
+    expect(await gridRuntime.stopGrid("grid-sub", "manual")).toEqual({ ok: true });
+    expect(watcher.unregister).toHaveBeenCalledWith("BTCUSDT", "price", "stateless");
+    expect(watcher.unregister).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "stateless");
+    expect(watcher.unregister).toHaveBeenCalledWith("BTCUSDT", "kline_1h", "stateless");
+    syncGridMarketSubscriptions(null);
   });
 });

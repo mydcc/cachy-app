@@ -900,6 +900,70 @@ let seriesGapSubscribed = false;
 /** FEAT-0819 — grid store change counter is registered once across re-inits. */
 let gridStoreSubscribed = false;
 
+export interface GridMarketWatcherPort {
+    register: (symbol: string, channel: string, requirement?: "chart" | "stateless") => void;
+    unregister: (symbol: string, channel: string, requirement?: "chart" | "stateless") => void;
+}
+
+let activeGridWatcher: GridMarketWatcherPort | null = null;
+let heldGridSubscriptions: Array<{ symbol: string; channel: string }> = [];
+let unsubscribeMarkCandlesListener: (() => void) | null = null;
+
+export function syncGridMarketSubscriptions(watcher: GridMarketWatcherPort | null): void {
+    const desiredMap = new Map<string, { symbol: string; channel: string }>();
+    if (watcher !== null && ruleSchema.isReady() && paperState.enabled) {
+        try {
+            const states = readGridStates();
+            for (const grid of readGrids()) {
+                const status = states[grid.id]?.status;
+                if (status !== "active" && status !== "paused") continue;
+                desiredMap.set(`${grid.symbol}|price`, {
+                    symbol: grid.symbol,
+                    channel: "price",
+                });
+                let timeframes: string[];
+                try {
+                    timeframes = ruleSchema.gridTimeframes(grid);
+                } catch {
+                    timeframes = grid.evaluation_timeframe ? [grid.evaluation_timeframe] : [];
+                }
+                for (const tf of timeframes) {
+                    const channel = `kline_${tf}`;
+                    desiredMap.set(`${grid.symbol}|${channel}`, {
+                        symbol: grid.symbol,
+                        channel,
+                    });
+                }
+            }
+        } catch {
+            // Preserve existing subscriptions on transient storage error; teardown still clears when watcher is null.
+            return;
+        }
+    }
+
+    const active = watcher ?? activeGridWatcher;
+    const nextHeld: Array<{ symbol: string; channel: string }> = [];
+    for (const prev of heldGridSubscriptions) {
+        const key = `${prev.symbol}|${prev.channel}`;
+        if (!desiredMap.has(key)) {
+            active?.unregister(prev.symbol, prev.channel, "stateless");
+        } else {
+            nextHeld.push(prev);
+        }
+    }
+
+    const heldKeys = new Set(nextHeld.map((entry) => `${entry.symbol}|${entry.channel}`));
+    if (watcher !== null) {
+        for (const [key, item] of desiredMap) {
+            if (!heldKeys.has(key)) {
+                watcher.register(item.symbol, item.channel, "stateless");
+                nextHeld.push(item);
+            }
+        }
+    }
+    heldGridSubscriptions = nextHeld;
+}
+
 export interface GridRuntimeDependencies {
     tradeService: typeof import("../services/tradeService").tradeService;
     paperExchange: typeof import("../services/paperExchange").paperExchange;
@@ -907,6 +971,18 @@ export interface GridRuntimeDependencies {
     externalFeedStore: typeof import("../services/alertEngine/externalFeedStore").externalFeedStore;
     readCandles: (symbol: string, timeframe: string) => import("../lib/rules/types").EvaluationCandle[];
     readMarkCandles: (symbol: string, timeframe: string) => import("../lib/rules/types").EvaluationCandle[];
+    ensureMarkCandles?: (
+        symbol: string,
+        timeframe: string,
+        requiredOpenMs?: number,
+    ) => Promise<void> | undefined;
+    onDroppedTrendFilter?: (dropped: {
+        ruleId: string;
+        name: string;
+        symbol: string;
+        feeds: string[];
+    }) => void;
+    syncSubscriptions?: () => void;
 }
 
 export function gridRuntimeEnvironment(
@@ -956,7 +1032,9 @@ export function gridRuntimeEnvironment(
         },
         readCandles: deps.readCandles,
         readMarkCandles: deps.readMarkCandles,
+        ensureMarkCandles: deps.ensureMarkCandles,
         readFeeds: (symbol) => deps.externalFeedStore.readFeeds(symbol),
+        onDroppedTrendFilter: deps.onDroppedTrendFilter,
         ensureSymbolMeta: async (symbol) => {
             const key = normalizeSymbol(symbol, settingsState.apiProvider || "bitunix");
             if (marketState.symbolMeta?.[key]) return;
@@ -981,6 +1059,7 @@ export function gridRuntimeEnvironment(
                       available_balance: paperState.balance.toString(),
                   },
         syncBook: () => deps.paperTradingService.syncToStores(),
+        syncSubscriptions: deps.syncSubscriptions,
     };
 }
 
@@ -998,6 +1077,10 @@ function disarmRuleEngine(): void {
     const disarm = disarmRuleLoop;
     disarmRuleLoop = null;
     disarm?.();
+    unsubscribeMarkCandlesListener?.();
+    unsubscribeMarkCandlesListener = null;
+    syncGridMarketSubscriptions(null);
+    activeGridWatcher = null;
     setGridBookChangeListener(null);
     gridRuntime.configure(null);
 }
@@ -1166,6 +1249,9 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         gridStoreSubscribed = true;
         subscribeGridStore(() => {
             alertState.gridsVersion += 1;
+            if (activeGridWatcher !== null) {
+                syncGridMarketSubscriptions(activeGridWatcher);
+            }
         });
     }
 
@@ -1229,23 +1315,13 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // Imported once, here, rather than at module scope: the wiring — and the
     // market store it reads — stays out of the import graph on the path this
     // function returns early from.
+    const wiring = await import("../services/alertEngine/ruleLoopWiring");
     const {
         ledgerSink,
-        readClosedCandles,
-        readMarkCandles,
         startRuleEvaluationLoop,
-    } = await import("../services/alertEngine/ruleLoopWiring");
-    // Bots ride the same sink the alerts do, so they load with it rather than
-    // at module scope: a session with no bot never pays for the order path.
-    const { closeAtAnchor, livePriceAt, withBotOrders } = await import("../services/alertEngine/botOrders");
-    // FEAT-0810 — the exit half rides beside it, for the same reason, and the
-    // close lane it hands the sink is the trade service's single-close path:
-    // loaded here so a session with no bot never pulls the trade stack in.
-    const { withBotExits } = await import("../services/alertEngine/botExits");
-    const { externalFeedStore } = await import("../services/alertEngine/externalFeedStore");
-    const { paperExchange } = await import("../services/paperExchange");
-    const { paperTradingService } = await import("../services/paperTradingService");
-    const { tradeService } = await import("../services/tradeService");
+    } = wiring;
+    const readClosedCandles = wiring.readClosedCandles ?? (() => []);
+    const readMarkCandles = wiring.readMarkCandles ?? (() => []);
 
     // FEAT-0406: one read, and every later tick re-decides from its own.
     const ready = ruleSchema.isReady();
@@ -1271,22 +1347,10 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     }
 
     alertState.engineStatus = "ready";
-    // Bots ride the live sink only. Shadow mode exists to measure the
-    // evaluator without consequences, and an order — even a simulated one —
-    // is a consequence: it moves the paper balance every later sizing
-    // decision is measured against. Wrapping the ledger sink also breaks
-    // `startRuleEvaluationLoop`'s `onFiring === ledgerSink` identity check,
-    // which is what makes a shadow run say so in the log instead of claiming
-    // it is notifying.
-    // FEAT-0807 — the snapshot belongs to whichever sink this init arms:
-    // the observer checks the generation, so a retired sink settling late
-    // cannot overwrite it. Shadow mode arms the ledger sink — an order is a
-    // consequence, even a simulated one — so nothing observes the guard
-    // and the projection is reset instead of left stale. The notify channel
-    // carries both across: the wiring may not import the projection store,
-    // because that edge would grow the cycle the architecture ratchet
-    // freezes.
     const botsGeneration = botsSinkGeneration;
+    let closeAt: ((symbol: string, timeframe: string, anchorMs: number) => import("decimal.js").Decimal | null) | undefined;
+    let livePrice: ((symbol: string) => import("decimal.js").Decimal | null) | undefined;
+    let closeWithTradeService: ((params: BotCloseParams) => Promise<unknown>) | undefined;
     if (mode !== "live") {
         clearBotSubmissions();
         // An exit is a consequence like an entry; shadow mode arms neither.
@@ -1299,6 +1363,22 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     }
 
     if (mode === "live") {
+        // Bots ride the same sink the alerts do, so they load only in live mode
+        // rather than pulling the trade stack into shadow/failed runs.
+        const { closeAtAnchor, livePriceAt } = await import("../services/alertEngine/botOrders");
+        const { externalFeedStore } = await import("../services/alertEngine/externalFeedStore");
+        const { paperExchange } = await import("../services/paperExchange");
+        const { paperTradingService } = await import("../services/paperTradingService");
+        const { tradeService } = await import("../services/tradeService");
+        const marketWatcher =
+            typeof window !== "undefined"
+                ? (await import("../services/marketWatcher")).marketWatcher
+                : null;
+        closeAt = closeAtAnchor;
+        livePrice = livePriceAt;
+        closeWithTradeService = (params) => tradeService.closePosition(params);
+        activeGridWatcher = marketWatcher;
+
         gridRuntime.configure(
             gridRuntimeEnvironment({
                 tradeService,
@@ -1307,19 +1387,37 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
                 externalFeedStore,
                 readCandles: readClosedCandles,
                 readMarkCandles,
+                ensureMarkCandles: wiring.ensureMarkCandles,
+                onDroppedTrendFilter: wiring.droppedVetoSink,
+                syncSubscriptions: () => syncGridMarketSubscriptions(activeGridWatcher),
             }),
         );
+        unsubscribeMarkCandlesListener =
+            wiring.subscribeMarkCandles?.((symbol, timeframe) => {
+                void gridRuntime.notifyMarkCandlesUpdated(symbol, timeframe);
+            }) ?? null;
         setGridBookChangeListener(() => {
+            syncGridMarketSubscriptions(activeGridWatcher);
             gridRuntime.notifyBookChanged();
         });
+        syncGridMarketSubscriptions(activeGridWatcher);
         void gridRuntime.reconcileAllGrids();
     }
 
-    disarmRuleLoop = startRuleEvaluationLoop(
+    const { withBotOrders } =
         mode === "live"
+            ? await import("../services/alertEngine/botOrders")
+            : { withBotOrders: undefined };
+    const { withBotExits } =
+        mode === "live"
+            ? await import("../services/alertEngine/botExits")
+            : { withBotExits: undefined };
+
+    disarmRuleLoop = startRuleEvaluationLoop(
+        mode === "live" && withBotOrders && closeAt && livePrice
             ? withBotOrders(
                   notifyingRuleSink,
-                  botOrderEnvironment(closeAtAnchor, livePriceAt),
+                  botOrderEnvironment(closeAt, livePrice),
                   reportBotOrderRefusal,
                   (ids) => {
                       if (botsGeneration !== botsSinkGeneration) return;
@@ -1346,13 +1444,13 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         // lane a manual close takes. Shadow mode gets no exit ports at all —
         // the window then evaluates nothing and fires nothing, which is the
         // measurement shape shadow mode exists for.
-        mode === "live"
+        mode === "live" && withBotExits && closeWithTradeService
             ? {
                   ownedPositions: ownedBotPositions,
                   accountForPosition: accountForOwnedPosition,
                   recordExitAction: recordExitActionAnchor,
                   onExitFiring: withBotExits(
-                      botExitEnvironment((params) => tradeService.closePosition(params)),
+                      botExitEnvironment(closeWithTradeService),
                       reportBotExitRefusal,
                       (ids) => {
                           if (botsGeneration !== botsSinkGeneration) return;

@@ -275,12 +275,13 @@ class BotsStateManager {
         void alertState.gridsVersion;
         const executingAccount = executingBotAccount(paperState.enabled);
         let grids: GridDocument[];
+        let runtimeStates: ReturnType<typeof readGridStates>;
         try {
             grids = readGrids();
+            runtimeStates = readGridStates();
         } catch {
             return new Map<string, GridLifeState>();
         }
-        const runtimeStates = readGridStates();
         const activeGrids = grids.map((grid) => ({
             grid,
             status: runtimeStates[grid.id]?.status ?? ("armed" as const),
@@ -305,6 +306,7 @@ class BotsStateManager {
         let gridsUnreadable = false;
         try {
             readGrids();
+            readGridStates();
         } catch {
             gridsUnreadable = true;
         }

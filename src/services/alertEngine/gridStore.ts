@@ -28,8 +28,30 @@
 
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type { GridDocument } from "../../lib/rules/types";
-import { safeLocalStorage } from "../../utils/storageWrapper";
+import { stripLegacyVenueSuffix } from "../../utils/symbolUtils";
 import { logger } from "../logger";
+
+/**
+ * `localStorage` reached directly, not through `utils/storageWrapper`.
+ *
+ * `storageWrapper` sits inside the import graph's frozen 196-file cycle, so a
+ * store-layer module importing it pulls both itself and `gridRuntime` into
+ * that cycle (`cycle_ratchet.test.ts`). Guarded helpers below preserve the same
+ * try/catch discipline without crossing that edge.
+ */
+function readStorageRaw(key: string): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    throw new GridStoreUnreadableError(e);
+  }
+}
+
+function writeStorageRaw(key: string, value: string): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(key, value);
+}
 
 export const GRIDS_STORAGE_KEY = "cachy_grids_v1";
 export const GRID_STATE_STORAGE_KEY = "cachy_grid_state_v1";
@@ -86,7 +108,7 @@ function emitGridStoreChange(): void {
 
 /** Read all stored grid documents. Throws `GridStoreUnreadableError` on corrupt data. */
 export function readGrids(): GridDocument[] {
-  const raw = safeLocalStorage.getItem(GRIDS_STORAGE_KEY);
+  const raw = readStorageRaw(GRIDS_STORAGE_KEY);
   if (raw === null) return [];
   let parsed: unknown;
   try {
@@ -97,7 +119,24 @@ export function readGrids(): GridDocument[] {
   if (!Array.isArray(parsed)) {
     throw new GridStoreUnreadableError("stored value is not an array");
   }
-  return parsed as GridDocument[];
+  const normalized: GridDocument[] = [];
+  for (const item of parsed) {
+    if (
+      item === null ||
+      typeof item !== "object" ||
+      Array.isArray(item) ||
+      typeof (item as Record<string, unknown>).id !== "string" ||
+      typeof (item as Record<string, unknown>).symbol !== "string"
+    ) {
+      throw new GridStoreUnreadableError("corrupt grid document entry");
+    }
+    const grid = item as GridDocument;
+    normalized.push({
+      ...grid,
+      symbol: stripLegacyVenueSuffix(grid.symbol.trim().toUpperCase()),
+    });
+  }
+  return normalized;
 }
 
 export function getGrid(gridId: string): GridDocument | undefined {
@@ -114,7 +153,7 @@ export function saveGrid(document: GridDocument): GridDocument[] {
   const next = existing.some((g) => g.id === canonical.id)
     ? existing.map((g) => (g.id === canonical.id ? canonical : g))
     : [...existing, canonical];
-  safeLocalStorage.setItem(GRIDS_STORAGE_KEY, JSON.stringify(next));
+  writeStorageRaw(GRIDS_STORAGE_KEY, JSON.stringify(next));
   emitGridStoreChange();
   return next;
 }
@@ -124,7 +163,7 @@ export function deleteGrid(gridId: string): boolean {
   const existing = readGrids();
   const next = existing.filter((g) => g.id !== gridId);
   if (next.length === existing.length) return false;
-  safeLocalStorage.setItem(GRIDS_STORAGE_KEY, JSON.stringify(next));
+  writeStorageRaw(GRIDS_STORAGE_KEY, JSON.stringify(next));
   clearGridStateEntry(gridId);
   emitGridStoreChange();
   return true;
@@ -170,24 +209,23 @@ function normalizeRuntimeRecord(raw: unknown): GridRuntimeRecord | undefined {
 }
 
 export function readGridStates(): Record<string, GridRuntimeRecord> {
-  const raw = safeLocalStorage.getItem(GRID_STATE_STORAGE_KEY);
+  const raw = readStorageRaw(GRID_STATE_STORAGE_KEY);
   if (raw === null) return {};
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      logger.warn("alerts", "[GridStore] Runtime state blob is not an object; treating as empty");
-      return {};
-    }
-    const result: Record<string, GridRuntimeRecord> = {};
-    for (const [id, entry] of Object.entries(parsed as Record<string, unknown>)) {
-      const normalized = normalizeRuntimeRecord(entry);
-      if (normalized !== undefined) result[id] = normalized;
-    }
-    return result;
+    parsed = JSON.parse(raw);
   } catch (e) {
-    logger.warn("alerts", "[GridStore] Failed to parse runtime state blob", e);
-    return {};
+    throw new GridStoreUnreadableError(e);
   }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new GridStoreUnreadableError("runtime state blob is not an object");
+  }
+  const result: Record<string, GridRuntimeRecord> = {};
+  for (const [id, entry] of Object.entries(parsed as Record<string, unknown>)) {
+    const normalized = normalizeRuntimeRecord(entry);
+    if (normalized !== undefined) result[id] = normalized;
+  }
+  return result;
 }
 
 export function readGridState(gridId: string): GridRuntimeRecord | undefined {
@@ -197,7 +235,7 @@ export function readGridState(gridId: string): GridRuntimeRecord | undefined {
 export function writeGridState(gridId: string, record: GridRuntimeRecord): void {
   const states = readGridStates();
   states[gridId] = record;
-  safeLocalStorage.setItem(GRID_STATE_STORAGE_KEY, JSON.stringify(states));
+  writeStorageRaw(GRID_STATE_STORAGE_KEY, JSON.stringify(states));
   emitGridStoreChange();
 }
 
@@ -215,7 +253,7 @@ function clearGridStateEntry(gridId: string): boolean {
   const states = readGridStates();
   if (!(gridId in states)) return false;
   delete states[gridId];
-  safeLocalStorage.setItem(GRID_STATE_STORAGE_KEY, JSON.stringify(states));
+  writeStorageRaw(GRID_STATE_STORAGE_KEY, JSON.stringify(states));
   return true;
 }
 

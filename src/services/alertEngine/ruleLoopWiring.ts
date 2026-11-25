@@ -56,7 +56,7 @@ import { feedNameKey, isKnownFeed } from "../../lib/rules/externalFeeds";
 import type { TranslationKey } from "../../locales/schema";
 import { recordFiring } from "./shadowLedger";
 import { clearBotAnchors, readBotAnchors, readRuleState, saveBotAnchors } from "./ruleStateStore";
-import { readGrids } from "./gridStore";
+import { readGrids, readGridStates } from "./gridStore";
 import { isBot } from "./botStore";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { drawingStore } from "../../stores/drawings.svelte";
@@ -353,6 +353,24 @@ export function readMarkCandles(symbol: string, timeframe: string): EvaluationCa
 }
 
 /**
+ * Trigger an asynchronous mark-candle refresh for a required anchor bucket and
+ * subscribe to cache updates so pending mark-dependent evaluations can replay.
+ */
+export function ensureMarkCandles(
+  symbol: string,
+  timeframe: string,
+  requiredOpenMs?: number,
+): Promise<void> | undefined {
+  return markCandleCache.ensure(symbol, timeframe, requiredOpenMs);
+}
+
+export function subscribeMarkCandles(
+  listener: (symbol: string, timeframe: string) => void,
+): () => void {
+  return markCandleCache.subscribe(listener);
+}
+
+/**
  * Points the loop at the live market store and at the sink the caller chose.
  *
  * The sink is a parameter rather than a constant because it is the cutover:
@@ -551,7 +569,11 @@ export function startRuleEvaluationLoop(
     readRules: readStoredRules,
     readGrids: () => {
       try {
-        return readGrids();
+        const states = readGridStates();
+        return readGrids().filter((grid) => {
+          const status = states[grid.id]?.status;
+          return status === "active" || status === "paused";
+        });
       } catch {
         return [];
       }

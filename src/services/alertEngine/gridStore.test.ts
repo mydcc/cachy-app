@@ -127,6 +127,14 @@ describe("gridStore (FEAT-0819 stage 4)", () => {
     localStorage.setItem(GRIDS_STORAGE_KEY, JSON.stringify({ id: "not-an-array" }));
     expect(() => readGrids()).toThrow(GridStoreUnreadableError);
     expect(() => deleteGrid("grid-2")).toThrow(GridStoreUnreadableError);
+
+    localStorage.setItem(GRID_STATE_STORAGE_KEY, "{not valid json");
+    expect(() => readGridStates()).toThrow(GridStoreUnreadableError);
+    expect(() => patchGridState("grid-1", { status: "active" })).toThrow(GridStoreUnreadableError);
+    expect(localStorage.getItem(GRID_STATE_STORAGE_KEY)).toBe("{not valid json");
+
+    localStorage.setItem(GRID_STATE_STORAGE_KEY, JSON.stringify(["not-an-object"]));
+    expect(() => readGridStates()).toThrow(GridStoreUnreadableError);
   });
 
   it("persists and normalizes runtime state entries including startedAfterFillId", () => {

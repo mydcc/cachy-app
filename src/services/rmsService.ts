@@ -640,9 +640,15 @@ class RiskManagementService {
         }
 
         // FEAT-0819: grid opening orders use stop_out conditions instead of a
-        // per-trade attached SL price, so check daily loss and position size cap.
+        // per-trade attached SL price, so check daily loss, open position cap,
+        // leverage cap, and cumulative position size cap (`ADR-0012` decision 5).
         if (intent.kind === "grid") {
-            return this.checkDailyLoss() ?? this.checkPositionSize(intent);
+            return (
+                this.checkDailyLoss() ??
+                this.checkOpenPositions(intent) ??
+                this.checkLeverage(intent) ??
+                this.checkPositionSize(intent)
+            );
         }
 
         // An amendment that enlarges the resting order makes the exposure
@@ -983,10 +989,8 @@ class RiskManagementService {
         }
         if (intent.kind === "grid") {
             const prior = intent.displayed.pendingGridNotional;
-            const slotNotional = qty.times(price);
-            return prior !== undefined && prior.isFinite() && prior.gt(0)
-                ? prior.plus(slotNotional)
-                : slotNotional;
+            if (prior === undefined || !prior.isFinite() || prior.lt(0)) return null;
+            return prior.plus(qty.times(price));
         }
         return qty.times(price);
     }

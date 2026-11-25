@@ -16,13 +16,21 @@
  */
 
 /**
- * Leaf event channel between `paperTradingService` and `gridRuntime`
- * (matching `botSubmissionBus.ts` so services stay out of import cycles).
+ * Leaf event & reservation bus between `paperTradingService` / `paperExchange`
+ * and `gridRuntime` (matching `botSubmissionBus.ts` so services stay out of import cycles).
  */
 
 type GridBookChangeListener = () => void;
+type GridBookResetListener = () => void;
+export type GridSlotReservationCheck = (
+  symbol: string,
+  side: "long" | "short",
+  botId?: string,
+) => boolean;
 
 let listener: GridBookChangeListener | null = null;
+let resetListener: GridBookResetListener | null = null;
+let slotReservationCheck: GridSlotReservationCheck | null = null;
 
 export function setGridBookChangeListener(next: GridBookChangeListener | null): void {
   listener = next;
@@ -30,4 +38,24 @@ export function setGridBookChangeListener(next: GridBookChangeListener | null): 
 
 export function notifyGridBookChanged(): void {
   listener?.();
+}
+
+export function setGridBookResetListener(next: GridBookResetListener | null): void {
+  resetListener = next;
+}
+
+export function notifyGridBookReset(): void {
+  resetListener?.();
+}
+
+export function setGridSlotReservationCheck(next: GridSlotReservationCheck | null): void {
+  slotReservationCheck = next;
+}
+
+export function isGridSlotReservedForOther(
+  symbol: string,
+  side: "long" | "short",
+  botId?: string,
+): boolean {
+  return slotReservationCheck ? slotReservationCheck(symbol, side, botId) : false;
 }

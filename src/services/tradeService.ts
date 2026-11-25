@@ -394,7 +394,7 @@ class TradeService {
             if (reading && reading.available.isFinite() && reading.available.gt(0)) {
                 return reading.available;
             }
-            return paperState.enabled && paperState.balance.gt(0)
+            return this.paperMode && paperState.balance.gt(0)
                 ? paperState.balance
                 : undefined;
         },
@@ -408,9 +408,10 @@ class TradeService {
             } catch {
                 // fall through
             }
-            return tradeState.remoteLeverage && tradeState.remoteLeverage.gt(0)
-                ? tradeState.remoteLeverage
-                : undefined;
+            if (tradeState.remoteLeverage && tradeState.remoteLeverage.gt(0)) {
+                return tradeState.remoteLeverage;
+            }
+            return this.paperMode ? new Decimal(1) : undefined;
         },
     });
 

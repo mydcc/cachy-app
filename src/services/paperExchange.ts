@@ -44,6 +44,7 @@ import {
     type PaperPosition,
 } from "../stores/paperTrading.svelte";
 import type { BotAttribution } from "./orderGate";
+import { isGridSlotReservedForOther } from "./alertEngine/gridBookBus";
 
 export class PaperExchangeError extends Error {
     constructor(
@@ -737,6 +738,19 @@ class PaperExchange {
                   ? payload.clientId
                   : undefined;
 
+        // FEAT-0806 / FEAT-0819 — provenance and `(symbol, side)` grid reservation
+        // apply identically to MARKET orders and newly placed resting limits.
+        const { origin, attribution } = readProvenance(payload);
+        if (!closes) {
+            const posSide: "long" | "short" = side === "BUY" ? "long" : "short";
+            if (isGridSlotReservedForOther(symbol, posSide, attribution?.botId)) {
+                throw new PaperExchangeError(
+                    "PAPER_GRID_SLOT_RESERVED",
+                    "settings.automation.orderRefusedPositionOpen",
+                );
+            }
+        }
+
         // A limit or trigger order rests until the feed crosses it. Filling it
         // immediately would make every strategy that uses limits look better
         // than it is.
@@ -784,7 +798,7 @@ class PaperExchange {
                 // FEAT-0819 — the owner rests with the order, so the fill the
                 // feed delivers later is attributed like a market fill, and a
                 // bot's stop can cancel what it placed.
-                ...provenanceFields(readProvenance(payload)),
+                ...provenanceFields({ origin, attribution }),
             };
             paperState.setOrders([...paperState.orders, resting]);
             return ok({ orderId, clientOrderId });
@@ -792,11 +806,6 @@ class PaperExchange {
 
         const price = requirePrice(symbol);
         const qty = this.fillQuantity(requested);
-        // FEAT-0806 — provenance and identity for the book, merged into the
-        // payload by the paper seam in tradeService. A caller that drives the
-        // simulator directly (tests, older callers) stamps nothing and the
-        // trade reads as manual-or-unknown.
-        const { origin, attribution } = readProvenance(payload);
         // BUG-0552 review: TP/SL levels are validated before the zero-fill
         // shortcut below, so an order carrying invalid TP/SL is rejected even
         // when the market would have filled nothing. Only a fully valid order
@@ -1373,7 +1382,6 @@ class PaperExchange {
                 changed = true;
                 continue;
             }
-            changed = true;
             const closes = order.tradeSide === "CLOSE" || order.reduceOnly;
             // A position-wide plan closes what the position holds *now*, not
             // what it held when the plan was attached.
@@ -1387,6 +1395,14 @@ class PaperExchange {
             // the same guard a payload passes, so this fill is attributed the
             // way the market path attributes one.
             const { origin, attribution } = readProvenance(order);
+            if (!closes) {
+                const posSide: "long" | "short" = order.side === "BUY" ? "long" : "short";
+                if (isGridSlotReservedForOther(order.symbol, posSide, attribution?.botId)) {
+                    changed = true;
+                    continue;
+                }
+            }
+            changed = true;
             try {
                 const qty = new Decimal(tracked?.amount ?? order.qty);
                 const limitLevel =
@@ -1404,9 +1420,11 @@ class PaperExchange {
                             : "BUY"
                         : order.side;
                     fillRef =
-                        execSide === "BUY"
-                            ? Decimal.min(limitLevel, price)
-                            : Decimal.max(limitLevel, price);
+                        !closes && origin === "bot" && execSide === "SELL"
+                            ? limitLevel
+                            : execSide === "BUY"
+                              ? Decimal.min(limitLevel, price)
+                              : Decimal.max(limitLevel, price);
                 }
                 const fill = closes
                     ? this.applyClose(order.symbol, order.side, qty, fillRef, useSlippage)
@@ -1431,10 +1449,10 @@ class PaperExchange {
                     tradeSide: closes ? "CLOSE" : "OPEN",
                     origin,
                     attribution,
-                    // FEAT-0812 — the feed crossed a resting plan; nobody
-                    // pressed anything. Stamp only for plan orders (`planGroupId`),
-                    // never for plain manual/grid reduce-only limits.
-                    ...(closes && order.planGroupId !== undefined
+                    // FEAT-0812 / FEAT-0819 — stamp autonomous closes (attached
+                    // plans and bot-owned reduce-only counter-orders) so the
+                    // journal records exitOrigin: "bot" instead of "manual".
+                    ...(closes && (order.planGroupId !== undefined || origin === "bot")
                         ? { exitBy: "plan" as const }
                         : {}),
                 });
@@ -1488,23 +1506,6 @@ class PaperExchange {
         }
     }
 
-    /**
-     * Cancels every resting order a bot owns — FEAT-0819, ADR-0027 point 3.
-     *
-     * A grid's stop and its stop-out cancel the ladder before they close the
-     * position, so this reaches entries, counter-orders and the plans a bot
-     * entry attached alike. It closes nothing: the position stays for the
-     * caller to close through the gate.
-     *
-     * Ownership is read through the same guard a payload passes, so an
-     * order whose origin this build does not recognise is not the bot's,
-     * and an unattributed order never matches — not even an empty id.
-     *
-     * Not a venue endpoint: the venue cancels by symbol or by id, and the
-     * runtime that needs this is paper-only (FEAT-0819).
-     *
-     * @returns how many orders were cancelled.
-     */
     private cancelMatchingOrders(predicate: (order: PaperOrder) => boolean): number {
         const remaining = paperState.orders.filter((o) => !predicate(o));
         const cancelled = paperState.orders.length - remaining.length;

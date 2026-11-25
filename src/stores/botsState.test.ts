@@ -386,4 +386,12 @@ describe("FEAT-0807 — the botsState projection", () => {
 
         expect([...botsState.states.keys()]).toEqual(["bot-1"]);
     });
+
+    it("degrades gridStates and gridDegraded when grid runtime state JSON is corrupt", () => {
+        localStorage.setItem("cachy_grid_state_v1", "{not-valid-json");
+        alertState.gridsVersion += 1;
+
+        expect(botsState.gridDegraded.grids).toBe(true);
+        expect(botsState.gridStates.size).toBe(0);
+    });
 });

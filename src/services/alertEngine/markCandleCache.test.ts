@@ -186,6 +186,26 @@ describe("MarkCandleCache", () => {
     await cache.ensure("BTCUSDT", "4h");
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
+
+  it("notifies subscribers on fresh data and bypasses throttle when requiredOpenMs is missing", async () => {
+    const updates: Array<[string, string]> = [];
+    const unsubscribe = cache.subscribe((sym, tf) => updates.push([sym, tf]));
+
+    await cache.ensure("BTCUSDT", "1h");
+    expect(updates).toEqual([["BTCUSDT", "1h"]]);
+
+    // Throttle bypass when a newer required candle bucket is requested immediately.
+    fetcher.mockResolvedValueOnce([candle(1, "100"), candle(3_600_001, "105")]);
+    now += 1_000;
+    await cache.ensure("BTCUSDT", "1h", 3_600_000);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(updates).toEqual([
+      ["BTCUSDT", "1h"],
+      ["BTCUSDT", "1h"],
+    ]);
+
+    unsubscribe();
+  });
 });
 
 /**

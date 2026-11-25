@@ -49,15 +49,19 @@ import type {
 import type { PaperFill, PaperOrder, PaperPosition } from "../../stores/paperTrading.svelte";
 import { logger } from "../logger";
 import type { PlaceGridOrderParams } from "../trade/gridOrder";
+import { safeTfToMs } from "../../utils/timeUtils";
 import { executingBotAccount, gridAccountUnavailable, isGridPaperOnly } from "./botAccount";
 import type { BotCloseParams } from "./botExits";
+import { setGridBookResetListener, setGridSlotReservationCheck } from "./gridBookBus";
 import {
   findGridSlotConflict,
   isClosingOrder,
   isCounterOrder,
   isGridOccupyingSlot,
+  reservedGridSlots,
   type GridBook,
 } from "./gridState";
+import { slotKey } from "./botState";
 import {
   clearGridState,
   getGrid,
@@ -91,13 +95,25 @@ export interface GridRuntimeEnvironment {
   recordBotExit: (positionId: string) => void;
   readCandles: (symbol: string, timeframe: string) => EvaluationCandle[];
   readMarkCandles: (symbol: string, timeframe: string) => EvaluationCandle[];
+  ensureMarkCandles?: (
+    symbol: string,
+    timeframe: string,
+    requiredOpenMs?: number,
+  ) => Promise<void> | undefined;
   readFeeds?: (symbol: string) => readonly FeedReading[];
+  onDroppedTrendFilter?: (dropped: {
+    ruleId: string;
+    name: string;
+    symbol: string;
+    feeds: string[];
+  }) => void;
   ensureSymbolMeta?: (symbol: string) => Promise<void>;
   accountSnapshot?: (
     grid: GridDocument,
     position: PaperPosition | undefined,
   ) => AccountSnapshot;
   syncBook?: () => void;
+  syncSubscriptions?: () => void;
   now?: () => number;
 }
 
@@ -177,16 +193,68 @@ export class GridRuntime {
   private ownSyncDepth = 0;
   private pendingExternalReconcile = false;
   private reconcileQueued = false;
+  private readonly droppedTrendFilters = new Map<string, string>();
+  private readonly pendingMarkAnchors = new Map<string, number>();
 
   public configure(env: GridRuntimeEnvironment | null): void {
     this.generation += 1;
     this.env = env;
+    this.droppedTrendFilters.clear();
+    this.pendingMarkAnchors.clear();
     if (env === null) {
+      setGridSlotReservationCheck(null);
+      setGridBookResetListener(null);
       this.locks.clear();
       this.selfMutationDepth = 0;
       this.ownSyncDepth = 0;
       this.pendingExternalReconcile = false;
       this.reconcileQueued = false;
+    } else {
+      setGridSlotReservationCheck((symbol, side, botId) =>
+        this.isSlotReservedForOther(symbol, side, botId, env),
+      );
+      setGridBookResetListener(() => this.handleBookReset());
+    }
+  }
+
+  private isSlotReservedForOther(
+    symbol: string,
+    side: "long" | "short",
+    botId: string | undefined,
+    env: GridRuntimeEnvironment,
+  ): boolean {
+    if (this.env !== env) return false;
+    try {
+      const grids = readGrids().filter((g) => g.id !== botId);
+      const states = readGridStates();
+      const orders = botId ? env.orders().filter((o) => o.botId !== botId) : env.orders();
+      const positions = botId
+        ? env.positions().filter((p) => p.botId !== botId)
+        : env.positions();
+      const reserved = reservedGridSlots(grids, states, orders, positions);
+      return reserved.has(slotKey(symbol.trim().toUpperCase(), side));
+    } catch {
+      // Fail closed when persisted grid state cannot be verified so manual/other
+      // entries never silently merge into an unreadable active grid slot.
+      return true;
+    }
+  }
+
+  private handleBookReset(): void {
+    try {
+      const states = readGridStates();
+      let changed = false;
+      for (const [gridId, rec] of Object.entries(states)) {
+        if (rec.status === "active" || rec.status === "paused" || rec.status === "stopping") {
+          patchGridState(gridId, { status: "closed", stopReason: "manual", openSlots: [] });
+          changed = true;
+        }
+      }
+      if (changed) {
+        this.env?.syncSubscriptions?.();
+      }
+    } catch (e) {
+      logger.warn("alerts", "[GridRuntime] Could not reset grid states on book reset", e);
     }
   }
 
@@ -198,6 +266,8 @@ export class GridRuntime {
    * Handle paper book change notifications. External fills occurring while a
    * self-mutation await is in flight set a dirty flag and schedule a single
    * coalesced reconcile once `selfMutationDepth` drops back to 0.
+   * Book-change events never auto-retry `"stopping"` grids so partial/zero
+   * closes cannot loop on their own book notifications.
    */
   public notifyBookChanged(): void {
     if (!this.env || this.ownSyncDepth > 0) return;
@@ -205,7 +275,7 @@ export class GridRuntime {
       this.pendingExternalReconcile = true;
       return;
     }
-    void this.reconcileAllGrids();
+    void this.reconcileAllGrids({ includeStopping: false });
   }
 
   private runOwnSync<T>(fn: () => T): T {
@@ -214,6 +284,33 @@ export class GridRuntime {
       return fn();
     } finally {
       this.ownSyncDepth -= 1;
+    }
+  }
+
+  private async callOwnOrderOp<T>(
+    env: GridRuntimeEnvironment,
+    ownPositionId: string | undefined,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    const prevPending = this.pendingExternalReconcile;
+    const prevLastFillId = env.fills().at(-1)?.fillId;
+    try {
+      return await fn();
+    } finally {
+      const fills = env.fills();
+      const idx = prevLastFillId !== undefined
+        ? fills.findIndex((f) => f.fillId === prevLastFillId)
+        : -1;
+      const newFills =
+        idx >= 0 ? fills.slice(idx + 1) : fills;
+      const hasExternalFill =
+        (idx >= 0 || prevLastFillId === undefined || newFills.length > 0) &&
+        newFills.some(
+          (f) => ownPositionId === undefined || f.positionId !== ownPositionId,
+        );
+      if (!hasExternalFill) {
+        this.pendingExternalReconcile = prevPending;
+      }
     }
   }
 
@@ -256,7 +353,7 @@ export class GridRuntime {
         queueMicrotask(() => {
           this.reconcileQueued = false;
           if (this.env && this.generation === gen && this.selfMutationDepth === 0) {
-            void this.reconcileAllGrids();
+            void this.reconcileAllGrids({ includeStopping: false });
           }
         });
       }
@@ -264,13 +361,15 @@ export class GridRuntime {
   }
 
   private buildBook(env: GridRuntimeEnvironment): GridBook {
-    let grids: GridDocument[];
+    let grids: GridDocument[] = [];
+    let states: Record<string, GridRuntimeRecord> = {};
+    let unreadable = env.bookUnreadable();
     try {
       grids = readGrids();
+      states = readGridStates();
     } catch {
-      grids = [];
+      unreadable = true;
     }
-    const states = readGridStates();
     return {
       executingAccount: executingBotAccount(env.paperEnabled()),
       positions: env.positions(),
@@ -279,7 +378,7 @@ export class GridRuntime {
         grid,
         status: states[grid.id]?.status ?? "armed",
       })),
-      bookUnreadable: env.bookUnreadable(),
+      bookUnreadable: unreadable,
     };
   }
 
@@ -288,12 +387,13 @@ export class GridRuntime {
     env: GridRuntimeEnvironment,
   ): Decimal {
     let grids: GridDocument[];
+    let states: Record<string, GridRuntimeRecord>;
     try {
       grids = readGrids();
+      states = readGridStates();
     } catch {
       return new Decimal(0);
     }
-    const states = readGridStates();
     const feeRate = env.feeRate();
     let total = new Decimal(0);
     for (const other of grids) {
@@ -362,6 +462,35 @@ export class GridRuntime {
 
     try {
       const canonical = ruleSchema.validateGrid(grid);
+      let prevState: GridRuntimeRecord | undefined;
+      try {
+        prevState = readGridState(canonical.id);
+      } catch {
+        return { ok: false, reason: "state-unreadable" };
+      }
+      if (
+        prevState !== undefined &&
+        prevState.status !== "armed" &&
+        prevState.status !== "closed"
+      ) {
+        return { ok: false, reason: `invalid-state:${prevState.status}` };
+      }
+      if (prevState?.status === "closed") {
+        const hasResidual =
+          env.orders().some((o) => o.origin === "bot" && o.botId === canonical.id) ||
+          env
+            .positions()
+            .some(
+              (p) =>
+                p.origin === "bot" &&
+                p.botId === canonical.id &&
+                new Decimal(p.amount).gt(0),
+            );
+        if (hasResidual) {
+          return { ok: false, reason: "exposure-remaining" };
+        }
+      }
+
       await env.ensureSymbolMeta?.(canonical.symbol);
       const book = this.buildBook(env);
       const conflict = findGridSlotConflict(canonical.symbol, canonical.side, canonical.id, book);
@@ -383,7 +512,6 @@ export class GridRuntime {
       const allFills = env.fills();
       const startedAfterFillId =
         allFills.length > 0 ? allFills[allFills.length - 1].fillId : undefined;
-      const prevState = readGridState(canonical.id);
 
       const startedState = patchGridState(canonical.id, {
         status: "active",
@@ -419,6 +547,7 @@ export class GridRuntime {
           reason: placement.firstError ?? "start-order-refused",
         };
       }
+      env.syncSubscriptions?.();
       return { ok: true };
     } catch (e) {
       if (isRuleRefusedError(e)) {
@@ -474,8 +603,26 @@ export class GridRuntime {
         return { ok: false, reason: `slot-conflict:${conflict.reason}` };
       }
 
+      await env.ensureSymbolMeta?.(canonical.symbol);
+      const precheckSlots = this.computeSlots(canonical, env);
+      if (!precheckSlots.ok) return precheckSlots;
+
+      const openOrdersBefore = env
+        .orders()
+        .filter((o) => o.origin === "bot" && o.botId === gridId && !isClosingOrder(o)).length;
       patchGridState(gridId, { status: "active" });
-      await this.reconcileGridUnlocked(canonical, env);
+      const reconcileRes = await this.reconcileGridUnlocked(canonical, env);
+      if (!reconcileRes.ok) {
+        const openOrdersAfter = env
+          .orders()
+          .filter((o) => o.origin === "bot" && o.botId === gridId && !isClosingOrder(o)).length;
+        if (openOrdersAfter === openOrdersBefore) {
+          patchGridState(gridId, { status: "paused" });
+        }
+        env.syncSubscriptions?.();
+        return reconcileRes;
+      }
+      env.syncSubscriptions?.();
       return { ok: true };
     });
   }
@@ -535,11 +682,13 @@ export class GridRuntime {
         .find((p) => p.origin === "bot" && p.botId === grid.id);
       if (owned && new Decimal(owned.amount).gt(0)) {
         try {
-          await env.closePosition({
-            symbol: owned.symbol,
-            positionSide: owned.side,
-            forceFullClose: true,
-          });
+          await this.callOwnOrderOp(env, owned.positionId, () =>
+            env.closePosition({
+              symbol: owned.symbol,
+              positionSide: owned.side,
+              forceFullClose: true,
+            }),
+          );
           this.runOwnSync(() => env.syncBook?.());
         } catch (e) {
           logger.error("alerts", `[GridRuntime] Failed to close position for grid ${gridId}`, e);
@@ -552,11 +701,16 @@ export class GridRuntime {
         if (leftover && new Decimal(leftover.amount).gt(0)) {
           return { ok: false, reason: "position-remaining" };
         }
-        env.recordBotExit(owned.positionId);
+        if (reason === "stop_out") {
+          env.recordBotExit(owned.positionId);
+        }
       }
 
       // Step 4: Only mark closed once both orders and position are clear.
       patchGridState(gridId, { status: "closed", stopReason: reason, openSlots: [] });
+      this.pendingMarkAnchors.delete(gridId);
+      this.droppedTrendFilters.delete(gridId);
+      env.syncSubscriptions?.();
       return { ok: true };
     });
   }
@@ -582,7 +736,12 @@ export class GridRuntime {
     const accountErr = this.checkGridAccount(grid, env);
     if (accountErr) return accountErr;
 
-    const runtime = readGridState(grid.id);
+    let runtime: GridRuntimeRecord | undefined;
+    try {
+      runtime = readGridState(grid.id);
+    } catch {
+      return { ok: false, reason: "state-unreadable" };
+    }
     if (runtime?.status === "stopping") {
       return this.stopGridInternal(grid.id, runtime.stopReason ?? "manual");
     }
@@ -595,7 +754,16 @@ export class GridRuntime {
     if (!slotsRes.ok) return slotsRes;
 
     const strategyHash = ruleSchema.gridContentHash(grid);
-    await this.placeMissingOrders(grid, slotsRes.slots, runtime, strategyHash, env);
+    const placement = await this.placeMissingOrders(
+      grid,
+      slotsRes.slots,
+      runtime,
+      strategyHash,
+      env,
+    );
+    if (placement.failed > 0) {
+      return { ok: false, reason: placement.firstError ?? "reconcile-order-refused" };
+    }
     return { ok: true };
   }
 
@@ -705,21 +873,23 @@ export class GridRuntime {
             if (counter.price.gte(lowerBound) && counter.price.lte(upperBound)) {
               const closeQty = Decimal.min(slot.quantity, remainingCloseQty);
               try {
-                await env.placeGridOrder({
-                  symbol: grid.symbol,
-                  gridSide: grid.side,
-                  leg: "close",
-                  price: counter.price,
-                  qty: closeQty,
-                  clientId: closeId,
-                  attribution: {
-                    botId: grid.id,
-                    ruleId: grid.id,
-                    strategyHash,
-                  },
-                  positionId: ownedPosition.positionId,
-                  positionAmount,
-                });
+                await this.callOwnOrderOp(env, ownedPosition.positionId, () =>
+                  env.placeGridOrder({
+                    symbol: grid.symbol,
+                    gridSide: grid.side,
+                    leg: "close",
+                    price: counter.price,
+                    qty: closeQty,
+                    clientId: closeId,
+                    attribution: {
+                      botId: grid.id,
+                      ruleId: grid.id,
+                      strategyHash,
+                    },
+                    positionId: ownedPosition.positionId,
+                    positionAmount,
+                  }),
+                );
                 remainingCloseQty = remainingCloseQty.minus(closeQty);
                 placed += 1;
               } catch (e) {
@@ -745,20 +915,22 @@ export class GridRuntime {
         if (openTarget.price.lt(lowerBound) || openTarget.price.gt(upperBound)) continue;
 
         try {
-          await env.placeGridOrder({
-            symbol: grid.symbol,
-            gridSide: grid.side,
-            leg: "open",
-            price: openTarget.price,
-            qty: slot.quantity,
-            clientId: openId,
-            attribution: {
-              botId: grid.id,
-              ruleId: grid.id,
-              strategyHash,
-            },
-            pendingGridNotional: cumulativeGridNotional,
-          });
+          await this.callOwnOrderOp(env, ownedPosition?.positionId, () =>
+            env.placeGridOrder({
+              symbol: grid.symbol,
+              gridSide: grid.side,
+              leg: "open",
+              price: openTarget.price,
+              qty: slot.quantity,
+              clientId: openId,
+              attribution: {
+                botId: grid.id,
+                ruleId: grid.id,
+                strategyHash,
+              },
+              pendingGridNotional: cumulativeGridNotional,
+            }),
+          );
           cumulativeGridNotional = cumulativeGridNotional.plus(openTarget.price.times(slot.quantity));
           placed += 1;
         } catch (e) {
@@ -781,13 +953,35 @@ export class GridRuntime {
     return { placed, failed, firstError };
   }
 
-  public async onGridCandleClose(
-    symbol: string,
-    timeframe: string,
-    anchorMs: number,
-  ): Promise<void> {
+  private reportDroppedTrendFilter(
+    grid: GridDocument,
+    feeds: readonly string[],
+    env: GridRuntimeEnvironment,
+  ): void {
+    const sorted = [...feeds].sort();
+    const outageKey = sorted.join(",");
+    if (this.droppedTrendFilters.get(grid.id) === outageKey) return;
+    this.droppedTrendFilters.set(grid.id, outageKey);
+    try {
+      env.onDroppedTrendFilter?.({
+        ruleId: grid.id,
+        name: grid.name,
+        symbol: grid.symbol,
+        feeds: sorted,
+      });
+    } catch (e) {
+      logger.error("alerts", `[GridRuntime] onDroppedTrendFilter failed for ${grid.id}`, e);
+    }
+  }
+
+  /**
+   * Re-evaluate any grids on `symbol` that deferred a candle anchor while
+   * awaiting mark-candle cache hydration.
+   */
+  public async notifyMarkCandlesUpdated(symbol: string, _timeframe: string): Promise<void> {
     const env = this.env;
     if (!env || !env.paperEnabled() || env.bookUnreadable()) return;
+    if (this.pendingMarkAnchors.size === 0) return;
 
     let grids: GridDocument[];
     try {
@@ -798,6 +992,34 @@ export class GridRuntime {
 
     const normSym = symbol.trim().toUpperCase();
     for (const grid of grids) {
+      if (grid.symbol.trim().toUpperCase() !== normSym) continue;
+      const pendingAnchor = this.pendingMarkAnchors.get(grid.id);
+      if (pendingAnchor === undefined) continue;
+      this.pendingMarkAnchors.delete(grid.id);
+      await this.onGridCandleClose(grid.symbol, grid.evaluation_timeframe, pendingAnchor);
+    }
+  }
+
+  public async onGridCandleClose(
+    symbol: string,
+    timeframe: string,
+    anchorMs: number,
+  ): Promise<void> {
+    const env = this.env;
+    if (!env || !env.paperEnabled() || env.bookUnreadable()) return;
+
+    let grids: GridDocument[];
+    let allStates: Record<string, GridRuntimeRecord>;
+    try {
+      grids = readGrids();
+      allStates = readGridStates();
+    } catch {
+      return;
+    }
+
+    const normSym = symbol.trim().toUpperCase();
+    const tasks: Array<Promise<void>> = [];
+    for (const grid of grids) {
       if (
         grid.symbol.trim().toUpperCase() !== normSym ||
         grid.evaluation_timeframe !== timeframe
@@ -805,7 +1027,7 @@ export class GridRuntime {
         continue;
       }
 
-      const current = readGridState(grid.id);
+      const current = allStates[grid.id];
       if (
         current === undefined ||
         (current.status !== "active" && current.status !== "paused")
@@ -820,73 +1042,103 @@ export class GridRuntime {
       }
 
       const capturedGen = this.generation;
-      await this.withGridLock(grid.id, async () => {
-        if (this.env !== env || this.generation !== capturedGen) return;
-        if (!env.paperEnabled() || env.bookUnreadable()) return;
-        const freshState = readGridState(grid.id);
-        if (
-          freshState === undefined ||
-          (freshState.status !== "active" && freshState.status !== "paused")
-        ) {
-          return;
-        }
-        if (
-          freshState.lastEvaluatedAnchorMs !== undefined &&
-          anchorMs <= freshState.lastEvaluatedAnchorMs
-        ) {
-          return;
-        }
+      tasks.push(
+        this.withGridLock(grid.id, async () => {
+          if (this.env !== env || this.generation !== capturedGen) return;
+          if (!env.paperEnabled() || env.bookUnreadable()) return;
+          let freshState: GridRuntimeRecord | undefined;
+          try {
+            freshState = readGridState(grid.id);
+          } catch {
+            return;
+          }
+          if (
+            freshState === undefined ||
+            (freshState.status !== "active" && freshState.status !== "paused")
+          ) {
+            return;
+          }
+          if (
+            freshState.lastEvaluatedAnchorMs !== undefined &&
+            anchorMs <= freshState.lastEvaluatedAnchorMs
+          ) {
+            return;
+          }
 
-        const ctx = this.buildEvaluationContext(grid, anchorMs, env);
-        if (!ctx) return;
+          const ctx = this.buildEvaluationContext(grid, anchorMs, env);
+          if (!ctx) return;
 
-        const warmupNeeded = ruleSchema.gridWarmupCandles(grid);
-        if ((ctx.candles[grid.evaluation_timeframe]?.length ?? 0) < warmupNeeded) {
-          return;
-        }
+          // ADR-0029 fail-open: drop unavailable trend_filter feeds and signal once per outage.
+          const namedFeeds = grid.trend_filter ? feedsNamedBy(grid.trend_filter) : [];
+          const unavailableFeeds = namedFeeds.filter((f) => !(ctx.feeds && f in ctx.feeds));
+          const evalGridDoc =
+            unavailableFeeds.length > 0 ? { ...grid, trend_filter: undefined } : grid;
 
-        let verdict;
-        try {
-          verdict = ruleSchema.evaluateGrid(grid, ctx);
-        } catch (e) {
-          logger.error("alerts", `[GridRuntime] evaluateGrid failed for ${grid.id}`, e);
-          return;
-        }
+          let verdict;
+          try {
+            verdict = ruleSchema.evaluateGrid(evalGridDoc, ctx);
+          } catch (e) {
+            logger.error("alerts", `[GridRuntime] evaluateGrid failed for ${grid.id}`, e);
+            return;
+          }
 
-        const hasIndeterminate =
-          verdict.trend_filter?.status === "indeterminate" ||
-          verdict.stop_out_verdicts.some((c) => c.status === "indeterminate");
-        if (verdict.stop_out_triggered || !hasIndeterminate) {
-          patchGridState(grid.id, { lastEvaluatedAnchorMs: anchorMs });
-        }
+          if (unavailableFeeds.length === 0) {
+            this.droppedTrendFilters.delete(grid.id);
+          } else {
+            this.reportDroppedTrendFilter(grid, unavailableFeeds, env);
+          }
 
-        if (verdict.stop_out_triggered) {
-          await this.stopGridInternal(grid.id, "stop_out");
-          return;
-        }
+          const hasIndeterminate =
+            verdict.trend_filter?.status === "indeterminate" ||
+            verdict.stop_out_verdicts.some((c) => c.status === "indeterminate");
+          if (verdict.stop_out_triggered || !hasIndeterminate) {
+            patchGridState(grid.id, { lastEvaluatedAnchorMs: anchorMs });
+          }
 
-        if (verdict.trend_filter?.status === "false") {
-          patchGridState(grid.id, { lastTrendFilter: false });
-          await this.runSelfMutation(() => {
-            this.runOwnSync(() => {
-              env.cancelOpeningOrdersOwnedBy(grid.id);
-              env.syncBook?.();
+          if (verdict.stop_out_triggered) {
+            await this.stopGridInternal(grid.id, "stop_out");
+            return;
+          }
+
+          if (unavailableFeeds.length > 0) {
+            if (freshState.lastTrendFilter === false) {
+              patchGridState(grid.id, { lastTrendFilter: true });
+              if (freshState.status === "active") {
+                await this.reconcileGridUnlocked(grid, env);
+              }
+            }
+            return;
+          }
+
+          if (verdict.trend_filter?.status === "false") {
+            patchGridState(grid.id, { lastTrendFilter: false });
+            await this.runSelfMutation(() => {
+              this.runOwnSync(() => {
+                env.cancelOpeningOrdersOwnedBy(grid.id);
+                env.syncBook?.();
+              });
             });
-          });
-          return;
-        }
+            return;
+          }
 
-        if (verdict.trend_filter?.status === "true") {
-          const wasBlocked = freshState.lastTrendFilter === false;
-          if (wasBlocked || freshState.lastTrendFilter === null || freshState.lastTrendFilter === undefined) {
-            patchGridState(grid.id, { lastTrendFilter: true });
+          if (verdict.trend_filter?.status === "true") {
+            const wasBlocked = freshState.lastTrendFilter === false;
+            if (
+              wasBlocked ||
+              freshState.lastTrendFilter === null ||
+              freshState.lastTrendFilter === undefined
+            ) {
+              patchGridState(grid.id, { lastTrendFilter: true });
+            }
+            if (freshState.status === "active" && wasBlocked) {
+              await this.reconcileGridUnlocked(grid, env);
+            }
           }
-          if (freshState.status === "active" && wasBlocked) {
-            await this.reconcileGridUnlocked(grid, env);
-          }
-        }
-      });
+        }),
+      );
     }
+
+    await Promise.all(tasks);
   }
 
   private buildEvaluationContext(
@@ -894,15 +1146,23 @@ export class GridRuntime {
     anchorMs: number,
     env: GridRuntimeEnvironment,
   ): EvaluationContext | undefined {
+    const evalStepMs = safeTfToMs(grid.evaluation_timeframe);
+    const anchorCloseMs = anchorMs + evalStepMs;
+
     const readTruncated = (
       reader: (s: string, tf: string) => EvaluationCandle[],
       tf: string,
-    ): EvaluationCandle[] =>
-      reader(grid.symbol, tf).filter((c) => c.open_time_ms <= anchorMs);
+    ): EvaluationCandle[] => {
+      const stepMs = safeTfToMs(tf);
+      return reader(grid.symbol, tf).filter((c) => c.open_time_ms + stepMs <= anchorCloseMs);
+    };
 
     const candles: Record<string, EvaluationCandle[]> = {};
     for (const tf of ruleSchema.gridTimeframes(grid)) {
       candles[tf] = readTruncated(env.readCandles, tf);
+    }
+    if ((candles[grid.evaluation_timeframe]?.length ?? 0) === 0) {
+      return undefined;
     }
 
     const markTfs = ruleSchema.gridMarkTimeframes(grid);
@@ -910,7 +1170,25 @@ export class GridRuntime {
       markTfs.length > 0 ? {} : undefined;
     if (markCandles) {
       for (const tf of markTfs) {
-        markCandles[tf] = readTruncated(env.readMarkCandles, tf);
+        const markStepMs = safeTfToMs(tf);
+        const expectedOpenMs =
+          Math.floor(anchorCloseMs / markStepMs) * markStepMs - markStepMs;
+        const truncated = readTruncated(env.readMarkCandles, tf);
+        if (
+          expectedOpenMs >= 0 &&
+          (truncated.length === 0 || truncated[truncated.length - 1].open_time_ms < expectedOpenMs)
+        ) {
+          // Withhold stale prior-bucket mark candles so Rust evaluates to Indeterminate
+          // and retries once MarkCandleCache hydrates the closing bucket.
+          markCandles[tf] = [];
+          const prevPending = this.pendingMarkAnchors.get(grid.id);
+          if (prevPending === undefined || anchorMs > prevPending) {
+            this.pendingMarkAnchors.set(grid.id, anchorMs);
+          }
+          void env.ensureMarkCandles?.(grid.symbol, tf, expectedOpenMs);
+        } else {
+          markCandles[tf] = truncated;
+        }
       }
     }
 
@@ -965,14 +1243,17 @@ export class GridRuntime {
     };
   }
 
-  public async reconcileAllGrids(): Promise<void> {
+  public async reconcileAllGrids(options?: { includeStopping?: boolean }): Promise<void> {
+    const includeStopping = options?.includeStopping ?? true;
     const env = this.env;
     const capturedGen = this.generation;
     if (!env || !env.paperEnabled() || env.bookUnreadable()) return;
 
     let grids: GridDocument[];
+    let allStates: Record<string, GridRuntimeRecord>;
     try {
       grids = readGrids();
+      allStates = readGridStates();
     } catch {
       return;
     }
@@ -981,10 +1262,12 @@ export class GridRuntime {
       if (this.env !== env || this.generation !== capturedGen || !env.paperEnabled() || env.bookUnreadable()) {
         return;
       }
-      const runtime = readGridState(grid.id);
+      const runtime = allStates[grid.id];
       if (!runtime) continue;
       if (runtime.status === "stopping") {
-        await this.stopGrid(grid.id, runtime.stopReason ?? "manual");
+        if (includeStopping) {
+          await this.stopGrid(grid.id, runtime.stopReason ?? "manual");
+        }
       } else if (runtime.status === "active" || runtime.status === "paused") {
         await this.reconcileGrid(grid.id);
       }

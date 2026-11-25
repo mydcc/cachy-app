@@ -181,7 +181,7 @@ describe("paperExchange — resting grid counter-orders and clientId attribution
     expect(paperState.orders.map((o) => o.clientOrderId)).toEqual(["grid:grid-1:s1:close"]);
   });
 
-  it("stores reduceOnly: true on Bitget UTA close orders and executes resting LIMIT within limit bounds without exitBy: plan", async () => {
+  it("stores reduceOnly: true on Bitget UTA close orders, bounds LIMIT fills without slippage, and stamps exitBy only for bot/plan closes", async () => {
     paperState.setConfig("slippageBps", "100"); // 1% slippage must not worsen resting LIMIT fills
     await paperExchange.handle("/api/orders", {
       type: "place-order",
@@ -218,6 +218,49 @@ describe("paperExchange — resting grid counter-orders and clientId attribution
 
     paperExchange.settleRestingOrders("BTCUSDT", new Decimal("42000"));
     expect(paperState.fills[1].price).toBe("42000");
-    expect(paperState.fills[1].exitBy).toBeUndefined();
+    // Autonomous bot reduce-only counter-order closes count as bot exits in journal.
+    expect(paperState.fills[1].exitBy).toBe("plan");
+
+    // Manual reduce-only LIMIT close still leaves exitBy undefined.
+    await paperExchange.handle("/api/orders", {
+      type: "place-order",
+      symbol: "ETHUSDT",
+      side: "BUY",
+      orderType: "MARKET",
+      qty: "0.1",
+      tradeSide: "OPEN",
+      origin: "manual",
+    });
+    await paperExchange.handle("/api/orders", {
+      type: "place-order",
+      symbol: "ETHUSDT",
+      side: "BUY",
+      orderType: "LIMIT",
+      qty: "0.1",
+      price: "2500",
+      reduceOnly: true,
+      tradeSide: "CLOSE",
+      origin: "manual",
+    });
+    paperExchange.settleRestingOrders("ETHUSDT", new Decimal("2500"));
+    expect(paperState.fills.at(-1)?.exitBy).toBeUndefined();
+  });
+
+  it("settles bot short opening LIMIT at its resting limit level on upward price gaps (preserving quote budget)", async () => {
+    await paperExchange.handle("/api/orders", {
+      type: "place-order",
+      symbol: "BTCUSDT",
+      side: "SELL",
+      orderType: "LIMIT",
+      qty: "0.01",
+      price: "40000",
+      tradeSide: "OPEN",
+      clientId: "grid:grid-1:s0:open",
+      ...BOT_STAMP,
+    });
+    paperExchange.settleRestingOrders("BTCUSDT", new Decimal("45000"));
+    expect(paperState.fills).toHaveLength(1);
+    expect(paperState.fills[0].price).toBe("40000");
+    expect(paperState.positions[0].entryPrice).toBe("40000");
   });
 });

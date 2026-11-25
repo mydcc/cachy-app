@@ -1901,6 +1901,7 @@ export class RuleEvaluationLoop {
     this.readFeeds = NO_FEEDS;
     this.droppedVetoes.clear();
     this.onClose = () => {};
+    this.onEachClose = () => {};
     this.onUnevaluable = logUnevaluable;
     // FEAT-0823 review — the held waits die with the engine that formed
     // them: a shadow pass's memo must never be consumed by the live pass
