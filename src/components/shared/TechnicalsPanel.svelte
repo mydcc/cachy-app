@@ -997,24 +997,6 @@
                 {$_("settings.workspace.signals")}
               </div>
 
-              <!-- Market Structure (New) -->
-              {#if data.advanced?.marketStructure}
-                {#if data.advanced.marketStructure.highs.length > 0}
-                  {@const lastHigh = data.advanced.marketStructure.highs[data.advanced.marketStructure.highs.length - 1]}
-                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
-                    <span>{$_("settings.technicals.marketStructureHigh")}</span>
-                    <span class="font-mono">{lastHigh.type} @ {TechnicalsPresenter.formatVal(lastHigh.value, indicatorSettings?.precision)}</span>
-                  </div>
-                {/if}
-                {#if data.advanced.marketStructure.lows.length > 0}
-                  {@const lastLow = data.advanced.marketStructure.lows[data.advanced.marketStructure.lows.length - 1]}
-                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
-                    <span>{$_("settings.technicals.marketStructureLow")}</span>
-                    <span class="font-mono">{lastLow.type} @ {TechnicalsPresenter.formatVal(lastLow.value, indicatorSettings?.precision)}</span>
-                  </div>
-                {/if}
-              {/if}
-
               {#if data.divergences && data.divergences.length > 0}
                 {#each data.divergences as div}
                   <div
@@ -1052,7 +1034,7 @@
                     </div>
                   </div>
                 {/each}
-              {:else if (!data.advanced?.marketStructure?.highs.length && !data.advanced?.marketStructure?.lows.length)}
+              {:else}
                 <div
                   class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
                 >
