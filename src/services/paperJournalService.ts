@@ -398,7 +398,7 @@ class PaperJournalService {
             if (entry === undefined) continue;
             this.completeEntry(
                 fill.positionId,
-                entry.id,
+                String(entry.id),
                 sumFills(fill.positionId, { origin: "bot", botId: fill.botId }),
             );
         }

@@ -167,6 +167,8 @@ const COLORS = {
     takeProfit: "#26a69a",
     stopLoss: "#ef5350",
     pendingOrder: "#787b86",
+    gridResting: undefined,
+    gridFilled: undefined,
 } as const;
 
 const LINE_STYLE_SOLID = 0;

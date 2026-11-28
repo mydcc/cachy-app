@@ -525,7 +525,9 @@ class PaperTradingManager {
         return true;
     }
 
-    public numeric(key: Exclude<keyof PaperConfig, "failureMode">): Decimal {
+    public numeric(
+        key: Exclude<keyof PaperConfig, "failureMode" | "allowManualAddsToGridPositions">,
+    ): Decimal {
         try {
             const d = new Decimal(this._config[key]);
             return d.isFinite() ? d : new Decimal(DEFAULT_PAPER_CONFIG[key]);

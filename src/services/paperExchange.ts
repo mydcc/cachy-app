@@ -1132,8 +1132,8 @@ class PaperExchange {
 
             let gridOwnedAmount = existing.gridOwnedAmount;
             let gridEntryPrice = existing.gridEntryPrice;
-            if (origin === "bot" && attribution !== undefined) {
-                if (existing.origin !== "bot" || existing.botId !== attribution.botId) {
+            if (origin === "bot" && attribution !== undefined && existing.origin === "bot") {
+                if (existing.botId !== attribution.botId) {
                     // The slot reservation should have refused this before the
                     // simulator. Fail closed rather than merge two bot owners.
                     throw new PaperExchangeError(
