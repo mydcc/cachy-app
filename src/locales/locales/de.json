@@ -192,7 +192,16 @@
     "marketActivity": "Marktaktivität",
     "positions": "Positionen",
     "openOrders": {
-      "viewDetails": "{symbol} – Orderdetails anzeigen, {time}"
+      "viewDetails": "{symbol} – Orderdetails anzeigen, {time}",
+      "gridGroup": {
+        "summary": "{name} · {symbol} · {count} Stufen",
+        "expandNamed": "Orders für Grid {name} ausklappen ({count} Stufen)",
+        "collapseNamed": "Orders für Grid {name} einklappen ({count} Stufen)",
+        "owner": "Besitzer: {name}",
+        "level": "Stufe {price}",
+        "legOpen": "Einstieg",
+        "legClose": "Gegenorder"
+      }
     },
     "orders": "Orders",
     "bots": "Bots",
@@ -1053,7 +1062,9 @@
       "blocked": "Blockiert",
       "expired": "Abgelaufen",
       "limit_reached": "Limit erreicht",
-      "awaiting_confirmation": "Wartet auf Bestätigung"
+      "awaiting_confirmation": "Wartet auf Bestätigung",
+      "active": "Aktiv",
+      "stopping": "Wird gestoppt"
     },
     "empty": "Noch keine Bots. Das Kontrollzentrum erstellt sie aus deinen Alarmen.",
     "rulesUnreadable": "Die Bot-Liste konnte nicht gelesen werden. Es wurde nichts geändert.",
@@ -1096,7 +1107,25 @@
     "viewPositionSymbol": "Die {symbol}-Position anzeigen",
     "timeframe": "Zeitrahmen",
     "lingeringTitle": "Position eines gelöschten Bots",
-    "lingeringHint": "Der Bot, der diese Position eröffnet hat, existiert nicht mehr. Die Position bleibt, bis sie geschlossen wird."
+    "lingeringHint": "Der Bot, der diese Position eröffnet hat, existiert nicht mehr. Die Position bleibt, bis sie geschlossen wird.",
+    "grid": {
+      "badge": "Grid",
+      "sideLong": "Long",
+      "sideShort": "Short",
+      "range": "{lower} – {upper} · {spacing}",
+      "spacingArithmetic": "arithmetisch",
+      "spacingGeometric": "geometrisch",
+      "progress": "{filled} / {total} Stufen gefüllt",
+      "pnl": "PnL",
+      "start": "Starten",
+      "startNamed": "{name} starten",
+      "accountUnavailable": "Paper-Trading ist ausgeschaltet: Die Leiter dieses Grids und sein Stop-out sind zusammen mit dem Paper-Orderbuch eingefroren.",
+      "stopConfirmWithPosition": "{orders} ruhende Order(s) stornieren und die {side}-Position ({amount} {symbol}) schließen?",
+      "stopConfirmOrdersOnly": "{orders} ruhende Order(s) auf {symbol} stornieren? Keine offene Position zu schließen.",
+      "stopConfirmExecute": "Grid stoppen",
+      "stopConfirmCancel": "Weiterlaufen lassen",
+      "actionRefused": "Grid-Aktion abgelehnt: {reason}"
+    }
   },
   "journal": {
     "title": "Trade Journal",
@@ -1244,7 +1273,10 @@
       "deletedBot": "gelöscht",
       "selectBot": "Nur die Trades dieses Bots zeigen",
       "clearSelection": "Alle Trades zeigen",
-      "unattributed": "abgeschlossene Trades tragen keine Bot-Zuordnung und bleiben in jeder Bilanz außen vor. Sie entstanden, bevor ein Trade festhielt, wer ihn eröffnet hat."
+      "unattributed": "abgeschlossene Trades tragen keine Bot-Zuordnung und bleiben in jeder Bilanz außen vor. Sie entstanden, bevor ein Trade festhielt, wer ihn eröffnet hat.",
+      "unrealizedPnl": "Unrealisierte PnL",
+      "mtmEquity": "Mark-to-Market",
+      "mtmUnpriced": "kein Kurs"
     },
     "filters": {
       "quickToday": "Heute",
@@ -3169,6 +3201,52 @@
         "readbackEntriesDay": "bis zu {count} Einstiege pro Tag",
         "readbackRisk": "höchstens {amount} Risiko pro Einstieg",
         "readbackBudget": "{amount} Risiko-Budget gesamt"
+      },
+      "grid": {
+        "sectionTitle": "Grid-Bots",
+        "createButton": "Grid-Bot erstellen",
+        "createTitle": "Grid-Bot erstellen",
+        "editTitle": "Grid-Bot bearbeiten",
+        "hint": "Platziert eine Leiter ruhender Paper-Limit-Orders über eine Preisspanne und legt bei Ausführungen Gegenorders nach. Nur auf dem Paper-Konto.",
+        "noGrids": "Noch keine Grid-Bots vorhanden. Erstelle einen Grid-Bot für eine Paper-Order-Leiter.",
+        "name": "Name",
+        "symbol": "Symbol",
+        "side": "Richtung",
+        "sideLong": "Long (unten kaufen, oben verkaufen)",
+        "sideShort": "Short (oben verkaufen, unten kaufen)",
+        "timeframe": "Auswertungs-Zeitrahmen",
+        "lowerPrice": "Unterer Preis",
+        "upperPrice": "Oberer Preis",
+        "levelCount": "Stufen (2–100)",
+        "spacing": "Abstand",
+        "spacingArithmetic": "Arithmetisch (gleicher Preisabstand)",
+        "spacingGeometric": "Geometrisch (gleicher %-Abstand)",
+        "quoteBudget": "Quote-Budget (USDT)",
+        "atrSuggestion": "ATR({period}) liegt bei {atr}: {levels} Stufen (~{step} pro Stufe).",
+        "atrApply": "ATR-Vorschlag übernehmen",
+        "stepRoundingNotice": "Die Tick-Größe hat die Spanne nach innen auf {lower} – {upper} gerundet, damit keine Order außerhalb deiner Grenzen liegt.",
+        "feeWarning": "Der engste Stufenabstand ({narrowest}%) übersteigt nicht die Round-Trip-Taker-Gebühr — der minimal tragfähige Abstand beträgt {minViable}%.",
+        "prestartTitle": "Budget & Risiko vor dem Start",
+        "estimatedBudget": "Geschätzte Reserve: {reserve} USDT ({notional} Notional + {openFees} Eröffnungsgebühren; {roundTripFees} Round-Trip-Gebühren je vollem Zyklus).",
+        "worstCaseWithShare": "Maximalverlust beim Stop-out ({stopPrice}): {loss} USDT ({share}% des Paper-Kontos, Gebühren beider Seiten eingerechnet).",
+        "worstCaseNoShare": "Maximalverlust beim Stop-out ({stopPrice}): {loss} USDT (Gebühren beider Seiten eingerechnet).",
+        "worstCaseNonPrice": "Der Maximalverlust vor dem Start erfordert eine feste Preis-Stop-out-Schwelle.",
+        "trendFilterTitle": "Optionaler Trendfilter",
+        "trendFilterHint": "Solange falsch, werden ruhende ungefüllte Eröffnungsorders zurückgezogen; Gegenorders und Stop-out laufen weiter.",
+        "trendFilterAdd": "Trendfilter hinzufügen",
+        "trendFilterRemove": "Trendfilter entfernen",
+        "stopOutTitle": "Pflicht-Stop-out-Regeln",
+        "stopOutHint": "Sobald eine Regel zutrifft, wird zuerst die Leiter storniert und danach die gehaltene Position über das OrderGate geschlossen.",
+        "stopOutAdd": "Stop-out-Bedingung hinzufügen",
+        "stopOutRemove": "Entfernen",
+        "saveAndStart": "Speichern & starten",
+        "stopOutRequired": "Mindestens eine Stop-out-Bedingung ist erforderlich.",
+        "rangeInvalid": "Der obere Preis muss größer als der untere Preis sein, mit 2 bis 100 ganzen Stufen und positivem Budget.",
+        "levelsCollapse": "Die Spanne ist bei der Tick-Größe dieses Marktes zu eng für {levels} Stufen — Stufen würden auf denselben Preis fallen.",
+        "slotBelowStep": "Das Quote-Budget pro Stufe ist kleiner als eine minimale Mengenstufe auf diesem Markt.",
+        "accountUnavailableBanner": "Grid-Bots auf dem Paper-Konto ({count}): Paper-Trading ist aus — jedes Grid meldet Konto nicht verfügbar, und sowohl seine Leiter als auch sein Stop-out sind mit dem Paper-Orderbuch eingefroren.",
+        "mtmSummary": "Realisiert: {realized} USDT · Unrealisiert: {unrealized} USDT · Mark-to-Market: {mtm} USDT",
+        "mtmUnpriced": "Realisiert: {realized} USDT · Mark-to-Market: wartet auf Mark-Preis"
       }
     },
     "densityTitle": "Dichte",
@@ -5177,7 +5255,9 @@
       "takeProfit": "TP",
       "stopLoss": "SL",
       "buyLimit": "Kauf",
-      "sellLimit": "Verkauf"
+      "sellLimit": "Verkauf",
+      "gridLevel": "Grid {price}",
+      "gridLevelFilled": "Grid {price} (gefüllt)"
     },
     "pane": {
       "collapse": "Pane einklappen",

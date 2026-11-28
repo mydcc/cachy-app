@@ -40,21 +40,50 @@
         type SentenceTranslator,
     } from "../../../lib/rules/ruleSentence";
     import type { TranslationKey } from "../../../locales/schema";
-    import type { OrderIntent, RuleDocument, SizeBasis } from "../../../lib/rules/types";
+    import type {
+        EvaluationCandle,
+        GridDocument,
+        OrderIntent,
+        RuleDocument,
+        SizeBasis,
+        TimeframeString,
+    } from "../../../lib/rules/types";
+    import { Decimal } from "decimal.js";
     import { readRuleStore } from "../../../services/alertEngine/armRule";
     import {
         deleteBot,
         isBot,
         setBotEnabled,
     } from "../../../services/alertEngine/botStore";
+    import {
+        deleteGrid,
+        readGrids,
+        readGridStates,
+        saveGrid,
+    } from "../../../services/alertEngine/gridStore";
+    import { deriveGridState, type GridLifeStatus } from "../../../services/alertEngine/gridState";
     import { promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
     import {
         executingBotAccount,
         isBotAccountExecuting,
     } from "../../../services/alertEngine/botAccount";
     import { paperState } from "../../../stores/paperTrading.svelte";
+    import { marketState } from "../../../stores/market.svelte";
+    import { settingsState } from "../../../stores/settings.svelte";
+    import { journalState } from "../../../stores/journal.svelte";
+    import { normalizeSymbol } from "../../../utils/symbolUtils";
+    import { formatDynamicDecimal } from "../../../utils/utils";
+    import { calculateLiveUnrealizedPnl } from "../../../services/mappers";
+    import { botTrackRecords, entriesForTradeMode } from "../../../lib/botTrackRecord";
     import { logger } from "../../../services/logger";
-    import { alertState, stopAllBots } from "../../../stores/alerts.svelte";
+    import {
+        alertState,
+        pauseGridBot,
+        resumeGridBot,
+        startGridBot,
+        stopAllBots,
+        stopGridBot,
+    } from "../../../stores/alerts.svelte";
     import {
         readBotGuards,
         BOT_GUARD_REASON_KEYS as GUARD_REASON_KEYS,
@@ -63,6 +92,7 @@
     import Toggle from "../../shared/Toggle.svelte";
     import InfoTip from "../../shared/InfoTip.svelte";
     import BotEditor from "./BotEditor.svelte";
+    import GridBotEditor from "./GridBotEditor.svelte";
 
     /**
      * What to tell the trader about the last failed promotion: the i18n key and
@@ -86,6 +116,12 @@
     let editingBotSnapshot = $state<RuleDocument | null>(null);
     /** FEAT-0811 — the direct-creation mode: no snapshot, nothing to edit. */
     let creatingBot = $state(false);
+    /** FEAT-0819 / FEAT-0820 — grid creation, editing, and stop confirmation state. */
+    let creatingGrid = $state(false);
+    let editingGridId = $state<string | null>(null);
+    let editingGridSnapshot = $state<GridDocument | null>(null);
+    let gridStopConfirmId = $state<string | null>(null);
+    let gridActionError = $state<Record<string, string>>({});
 
     /**
      * The rule set, re-read whenever it changes.
@@ -295,6 +331,244 @@
         "base_quantity",
         "quote_notional",
     ];
+
+    // ---- FEAT-0819 stage 5 + FEAT-0820 — Grid bots surface -----------------
+    let gridRead = $derived.by<{
+        grids: GridDocument[];
+        states: ReturnType<typeof readGridStates>;
+        failure: string | null;
+    }>(() => {
+        void alertState.gridsVersion;
+        try {
+            return {
+                grids: readGrids(),
+                states: readGridStates(),
+                failure: null,
+            };
+        } catch (e) {
+            const keyed = (e as { translationKey?: unknown }).translationKey;
+            return {
+                grids: [],
+                states: {},
+                failure:
+                    typeof keyed === "string"
+                        ? keyed
+                        : "dashboard.alerts.panel.storeUnreadable",
+            };
+        }
+    });
+
+    let paperFeeRate = $derived(paperState.numeric("takerFeeBps").div(10_000));
+    let paperEquity = $derived(paperState.balance);
+
+    let gridRealizedById = $derived.by(() => {
+        const records = botTrackRecords(
+            entriesForTradeMode(journalState.entries, "paper"),
+        );
+        const totals = new Map<string, Decimal>();
+        for (const rec of records) {
+            totals.set(rec.botId, (totals.get(rec.botId) ?? new Decimal(0)).plus(rec.totalPnl));
+        }
+        return totals;
+    });
+
+    interface ControlGridView {
+        grid: GridDocument;
+        status: GridLifeStatus;
+        filledCount: number;
+        restingOrderCount: number;
+        position: (typeof paperState.positions)[number] | null;
+        unrealizedPnl: Decimal | null;
+        realizedPnl: Decimal;
+        mtmPnl: Decimal | null;
+    }
+
+    let gridViews = $derived.by<ControlGridView[]>(() => {
+        const activeGrids = gridRead.grids.map((g) => ({
+            grid: g,
+            status: gridRead.states[g.id]?.status ?? ("armed" as const),
+        }));
+        const book = {
+            executingAccount,
+            positions: paperState.positions,
+            orders: paperState.orders,
+            activeGrids,
+            bookUnreadable: paperState.bookUnreadable,
+        };
+        return gridRead.grids.map((grid) => {
+            const rec = gridRead.states[grid.id];
+            const life = deriveGridState(grid, rec, book);
+            const position =
+                paperState.positions.find(
+                    (p) => p.origin === "bot" && p.botId === grid.id,
+                ) ?? null;
+            const restingOrderCount = paperState.orders.filter(
+                (o) => o.origin === "bot" && o.botId === grid.id && o.planGroupId === undefined,
+            ).length;
+            const filledCount = Math.min(
+                grid.level_count,
+                Math.max(rec?.openSlots?.length ?? 0, life.counterOrderCount),
+            );
+            let unrealizedPnl: Decimal | null = new Decimal(0);
+            if (position) {
+                const symData = marketState.data[position.symbol];
+                const mark = symData?.markPrice ?? symData?.lastPrice;
+                if (mark instanceof Decimal && mark.gt(0)) {
+                    unrealizedPnl = calculateLiveUnrealizedPnl(
+                        position.side,
+                        new Decimal(position.entryPrice),
+                        mark,
+                        new Decimal(position.amount),
+                    );
+                } else {
+                    unrealizedPnl = null;
+                }
+            }
+            const realizedPnl = gridRealizedById.get(grid.id) ?? new Decimal(0);
+            const mtmPnl =
+                unrealizedPnl !== null ? realizedPnl.plus(unrealizedPnl) : null;
+            return {
+                grid,
+                status: life.status,
+                filledCount,
+                restingOrderCount,
+                position,
+                unrealizedPnl,
+                realizedPnl,
+                mtmPnl,
+            };
+        });
+    });
+
+    const GRID_STATE_KEY: Record<GridLifeStatus, TranslationKey> = {
+        armed: "botsList.state.armed",
+        active: "botsList.state.active",
+        paused: "botsList.state.paused",
+        stopping: "botsList.state.stopping",
+        closed: "botsList.state.closed",
+        account_unavailable: "botsList.state.account_unavailable",
+    };
+
+    function gridTranslator(): SentenceTranslator {
+        void $locale;
+        return (key, values) => $_(key as TranslationKey, { values: values || {} });
+    }
+
+    function gridStepsFor(sym: string): { priceStep?: Decimal; quantityStep?: Decimal } {
+        const key = normalizeSymbol(sym, settingsState.apiProvider || "bitunix");
+        const meta = marketState.symbolMeta?.[key];
+        return {
+            priceStep:
+                meta?.quotePrecision !== undefined
+                    ? new Decimal(10).pow(-meta.quotePrecision)
+                    : undefined,
+            quantityStep:
+                meta?.basePrecision !== undefined
+                    ? new Decimal(10).pow(-meta.basePrecision)
+                    : undefined,
+        };
+    }
+
+    function gridCandlesFor(sym: string, tf: TimeframeString): readonly EvaluationCandle[] {
+        const key = normalizeSymbol(sym, settingsState.apiProvider || "bitunix");
+        const klines = marketState.data[key]?.klines?.[tf] ?? [];
+        return klines.map((k) => ({
+            open_time_ms: k.time,
+            open: String(k.open),
+            high: String(k.high),
+            low: String(k.low),
+            close: String(k.close),
+            volume: String(k.volume ?? "0"),
+        }));
+    }
+
+    function formatGridError(e: unknown): string {
+        if (isRuleRefusedError(e)) {
+            const first = e.refusals[0];
+            return $_((first?.i18n_key ?? e.translationKey) as TranslationKey, {
+                values: { field: first?.field ?? "" },
+            });
+        }
+        const keyed = (e as { translationKey?: unknown }).translationKey;
+        if (typeof keyed === "string") {
+            return $_(keyed as TranslationKey);
+        }
+        return $_("settings.automation.editFailed");
+    }
+
+    function persistGridDraft(draft: GridDocument): string | null {
+        try {
+            saveGrid(draft);
+            alertState.gridsVersion += 1;
+            creatingGrid = false;
+            editingGridId = null;
+            editingGridSnapshot = null;
+            return null;
+        } catch (e) {
+            return formatGridError(e);
+        }
+    }
+
+    async function persistAndStartGridDraft(draft: GridDocument): Promise<string | null> {
+        try {
+            saveGrid(draft);
+            alertState.gridsVersion += 1;
+        } catch (e) {
+            return formatGridError(e);
+        }
+        const res = await startGridBot(draft.id);
+        alertState.gridsVersion += 1;
+        if (!res.ok) {
+            return $_("botsList.grid.actionRefused", { values: { reason: res.reason } });
+        }
+        creatingGrid = false;
+        editingGridId = null;
+        editingGridSnapshot = null;
+        return null;
+    }
+
+    async function runGridStart(gridId: string): Promise<void> {
+        delete gridActionError[gridId];
+        const res = await startGridBot(gridId);
+        alertState.gridsVersion += 1;
+        if (!res.ok) {
+            gridActionError[gridId] = $_("botsList.grid.actionRefused", {
+                values: { reason: res.reason },
+            });
+        }
+    }
+
+    async function runGridPauseToggle(view: ControlGridView): Promise<void> {
+        const gridId = view.grid.id;
+        delete gridActionError[gridId];
+        const res =
+            view.status === "paused"
+                ? await resumeGridBot(gridId)
+                : await pauseGridBot(gridId);
+        alertState.gridsVersion += 1;
+        if (!res.ok) {
+            gridActionError[gridId] = $_("botsList.grid.actionRefused", {
+                values: { reason: res.reason },
+            });
+        }
+    }
+
+    async function confirmControlGridStop(gridId: string): Promise<void> {
+        gridStopConfirmId = null;
+        delete gridActionError[gridId];
+        const res = await stopGridBot(gridId);
+        alertState.gridsVersion += 1;
+        if (!res.ok) {
+            gridActionError[gridId] = $_("botsList.grid.actionRefused", {
+                values: { reason: res.reason },
+            });
+        }
+    }
+
+    function removeGrid(gridId: string): void {
+        deleteGrid(gridId);
+        alertState.gridsVersion += 1;
+    }
 </script>
 
 <div class="bots-tab">
@@ -468,6 +742,266 @@
                                     {/each}
                                 </ul>
                             </details>
+                        {/if}
+                    </li>
+                {/each}
+            </ul>
+        {/if}
+    </section>
+
+    <section class="flex flex-col gap-3" data-testid="bots-grid-section">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="text-sm font-semibold text-[var(--text-primary)]">
+                {$_("settings.automation.grid.sectionTitle")}
+            </h3>
+            {#if !creatingGrid}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                        editingGridId = null;
+                        editingGridSnapshot = null;
+                        creatingGrid = true;
+                    }}
+                >
+                    {$_("settings.automation.grid.createButton")}
+                </Button>
+            {/if}
+        </div>
+
+        {#if gridRead.failure}
+            <p class="text-sm text-[var(--danger-color)]" role="alert">
+                {$_(gridRead.failure as TranslationKey)}
+            </p>
+        {/if}
+
+        {#if creatingGrid}
+            <GridBotEditor
+                grid={null}
+                feeRate={paperFeeRate}
+                accountEquity={paperEquity}
+                candlesFor={gridCandlesFor}
+                stepsFor={gridStepsFor}
+                t={gridTranslator()}
+                onsave={persistGridDraft}
+                onsaveandstart={paperState.enabled ? persistAndStartGridDraft : undefined}
+                oncancel={() => (creatingGrid = false)}
+            />
+        {/if}
+
+        {#if !paperState.enabled && gridViews.some((v) => v.status === "account_unavailable")}
+            <p
+                class="text-sm text-[var(--warning-color)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
+                role="status"
+                data-testid="grids-account-unavailable"
+            >
+                {$_("settings.automation.grid.accountUnavailableBanner", {
+                    values: {
+                        count: gridViews.filter((v) => v.status === "account_unavailable").length,
+                    },
+                })}
+            </p>
+        {/if}
+
+        {#if gridViews.length === 0}
+            <p class="text-sm text-[var(--text-secondary)] rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4">
+                {$_("settings.automation.grid.noGrids")}
+            </p>
+        {:else}
+            <ul class="flex flex-col gap-2">
+                {#each gridViews as view (view.grid.id)}
+                    {@const g = view.grid}
+                    <li
+                        class="flex flex-col gap-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
+                        data-testid={`control-grid-row-${g.id}`}
+                    >
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-accent-paired">
+                                    {$_("botsList.grid.badge")}
+                                </span>
+                                <span class="font-semibold text-[var(--text-primary)] truncate">
+                                    {g.name}
+                                </span>
+                                <span class="text-xs text-[var(--text-secondary)]">
+                                    {g.symbol} · {g.side.toUpperCase()}
+                                </span>
+                                <span
+                                    class="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide border border-[var(--border-color)]"
+                                    class:bg-success-paired={view.status === "active"}
+                                    class:bg-warning-paired={view.status === "stopping"}
+                                    class:bg-accent-paired={view.status === "armed"}
+                                    class:bg-danger-paired={view.status === "account_unavailable"}
+                                    class:text-[var(--text-secondary)]={view.status === "paused" || view.status === "closed"}
+                                    data-testid={`control-grid-state-${g.id}`}
+                                >
+                                    {$_(GRID_STATE_KEY[view.status])}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-2 flex-wrap">
+                                {#if view.status === "armed" || view.status === "closed"}
+                                    <Button
+                                        variant="accent"
+                                        size="sm"
+                                        onClick={() => void runGridStart(g.id)}
+                                    >
+                                        {$_("botsList.grid.start")}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            creatingGrid = false;
+                                            editingGridId = g.id;
+                                            editingGridSnapshot = g;
+                                        }}
+                                    >
+                                        {$_("settings.automation.edit")}
+                                    </Button>
+                                    {#if view.restingOrderCount === 0 && !view.position}
+                                        <Button
+                                            variant="ghost-danger"
+                                            size="sm"
+                                            onClick={() => removeGrid(g.id)}
+                                        >
+                                            {$_("settings.automation.delete")}
+                                        </Button>
+                                    {/if}
+                                {/if}
+                                {#if view.status === "active" || view.status === "paused"}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => void runGridPauseToggle(view)}
+                                    >
+                                        {view.status === "paused"
+                                            ? $_("botsList.resume")
+                                            : $_("botsList.pause")}
+                                    </Button>
+                                {/if}
+                                {#if view.status === "active" || view.status === "paused" || view.restingOrderCount > 0 || view.position !== null}
+                                    {#if view.status !== "account_unavailable"}
+                                        <Button
+                                            variant="ghost-danger"
+                                            size="sm"
+                                            onClick={() => (gridStopConfirmId = g.id)}
+                                        >
+                                            {$_("botsList.stop")}
+                                        </Button>
+                                    {/if}
+                                {/if}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)] flex-wrap">
+                            <span>
+                                {$_("botsList.grid.range", {
+                                    values: {
+                                        lower: g.lower_price,
+                                        upper: g.upper_price,
+                                        spacing:
+                                            g.spacing === "geometric"
+                                                ? $_("botsList.grid.spacingGeometric")
+                                                : $_("botsList.grid.spacingArithmetic"),
+                                    },
+                                })}
+                            </span>
+                            <span class="font-mono text-[var(--text-primary)]" data-testid={`control-grid-progress-${g.id}`}>
+                                {$_("botsList.grid.progress", {
+                                    values: { filled: view.filledCount, total: g.level_count },
+                                })}
+                            </span>
+                        </div>
+
+                        <p class="text-xs text-[var(--text-secondary)] font-mono" data-testid={`grid-mtm-summary-${g.id}`}>
+                            {#if view.mtmPnl !== null && view.unrealizedPnl !== null}
+                                {$_("settings.automation.grid.mtmSummary", {
+                                    values: {
+                                        realized: view.realizedPnl.toFixed(2),
+                                        unrealized: view.unrealizedPnl.toFixed(2),
+                                        mtm: view.mtmPnl.toFixed(2),
+                                    },
+                                })}
+                            {:else}
+                                {$_("settings.automation.grid.mtmUnpriced", {
+                                    values: { realized: view.realizedPnl.toFixed(2) },
+                                })}
+                            {/if}
+                        </p>
+
+                        {#if view.status === "account_unavailable"}
+                            <p
+                                class="text-xs text-[var(--warning-color)]"
+                                role="status"
+                                data-testid={`control-grid-unavailable-${g.id}`}
+                            >
+                                {$_("botsList.grid.accountUnavailable")}
+                            </p>
+                        {/if}
+
+                        {#if gridStopConfirmId === g.id}
+                            <div
+                                class="flex items-center gap-2 flex-wrap text-xs text-[var(--warning-color)] rounded border border-[var(--border-color)] bg-[var(--bg-primary)] p-2"
+                                role="alert"
+                                data-testid={`control-grid-stop-confirm-${g.id}`}
+                            >
+                                <span>
+                                    {#if view.position}
+                                        {$_("botsList.grid.stopConfirmWithPosition", {
+                                            values: {
+                                                orders: view.restingOrderCount,
+                                                side: view.position.side.toUpperCase(),
+                                                amount: formatDynamicDecimal(view.position.amount),
+                                                symbol: g.symbol,
+                                            },
+                                        })}
+                                    {:else}
+                                        {$_("botsList.grid.stopConfirmOrdersOnly", {
+                                            values: {
+                                                orders: view.restingOrderCount,
+                                                symbol: g.symbol,
+                                            },
+                                        })}
+                                    {/if}
+                                </span>
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => void confirmControlGridStop(g.id)}
+                                >
+                                    {$_("botsList.grid.stopConfirmExecute")}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => (gridStopConfirmId = null)}
+                                >
+                                    {$_("botsList.grid.stopConfirmCancel")}
+                                </Button>
+                            </div>
+                        {/if}
+
+                        {#if gridActionError[g.id]}
+                            <p class="text-xs text-[var(--danger-color)]" role="alert">
+                                {gridActionError[g.id]}
+                            </p>
+                        {/if}
+
+                        {#if editingGridId === g.id && editingGridSnapshot}
+                            <GridBotEditor
+                                grid={editingGridSnapshot}
+                                feeRate={paperFeeRate}
+                                accountEquity={paperEquity}
+                                candlesFor={gridCandlesFor}
+                                stepsFor={gridStepsFor}
+                                t={gridTranslator()}
+                                onsave={persistGridDraft}
+                                oncancel={() => {
+                                    editingGridId = null;
+                                    editingGridSnapshot = null;
+                                }}
+                            />
                         {/if}
                     </li>
                 {/each}

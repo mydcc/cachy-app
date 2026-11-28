@@ -2,7 +2,7 @@
 id: FEAT-0819
 title: Run grid bots on the paper account
 type: feature
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -85,31 +85,33 @@ Implement the grid as its own bot kind, per
       *Stage 1 delivered the document half (`GridPaperOnly` for `send`); stage 4 enforces paper-only + `origin: "bot"` across `gridRuntime.ts`, `botAccount.ts`, `gridOrder.ts`, and `OrderGate` (`kind: "grid"`).*
 - [x] Tests cover budget exhaustion, range edges, pause/resume, stop-out,
       restart, and the two-grid collision case.
-- [ ] The editor warns when the level spacing does not exceed the round-trip
+- [x] The editor warns when the level spacing does not exceed the round-trip
       fee and names the minimum viable spacing derived from the paper fee
       schedule (fees apply on both legs of every level cycle).
-      *Stage 2: `minimumViableSpacing` (`2f / (1 − f)`, taker fee on both legs) and `narrowestSpacing`. The warning itself is stage 5.*
+      *Stage 2: `minimumViableSpacing` (`2f / (1 − f)`, taker fee on both legs) and `narrowestSpacing`. Stage 5: `gridEditorPreview.ts` + `GridBotEditor.svelte`.*
 - [x] The stop-out rule is a required field — empty is refused, with no
       opt-out (ADR-0027: grid budget and stop-out limits are not optional).
       *Stage 1: `GridStopOutRequired` for an empty array; an absent field does not parse.*
-- [ ] The grid's review surfaces show mark-to-market equity alongside
+- [x] The grid's review surfaces show mark-to-market equity alongside
       realized closed trades, never closed-trade-only curves.
-- [ ] The editor offers an ATR-derived spacing suggestion from existing
+      *Stage 5: `botTrackRecord.ts` (`gridMarks`), `JournalBotCards.svelte`, `JournalContent.svelte`, and `BotsTab.svelte`.*
+- [x] The editor offers an ATR-derived spacing suggestion from existing
       indicator data — a suggestion the trader accepts, never silently
       applied.
-- [ ] The estimated budget (levels × size plus a fee buffer) and the
+      *Stage 5: `suggestGridLevelsFromAtr` (`gridEditorPreview.ts`) + explicit apply control in `GridBotEditor.svelte`.*
+- [x] The estimated budget (levels × size plus a fee buffer) and the
       worst-case loss (all opening levels filled, stop-out executed, fees on
       both legs included, as amount and share of the paper account) are displayed before the grid starts.
-      *Stage 2: `gridExposure` (notional, opening fees, round-trip fees and the reserve, which holds the opening-leg fees only) and `gridWorstCase` (all opening levels filled, stop-out executed, fees on both legs, amount and share of the account; a slot opened beyond the stop-out price contributes its fees, never an offsetting gain). The display is stage 5.*
-- [ ] A grid is bound to the paper account through `botAccount.ts`
+      *Stage 2 (`gridExposure`, `gridWorstCase`) + Stage 5 (`computeGridPreview`, `GridBotEditor.svelte`).*
+- [x] A grid is bound to the paper account through `botAccount.ts`
       (ADR-0028). While paper trading is off, it reads `account_unavailable`
       and says that its ladder and its stop-out are frozen with the paper
       book. It never claims that its protective exits keep running.
-      *Stage 4 delivered `botAccount.ts` grid binding, `account_unavailable` projection, and frozen ladder/stop-out evaluation while paper trading is off; the panel UI copy is stage 5.*
+      *Stage 4 (`botAccount.ts`, `gridState.ts`, `gridRuntime.ts`) + Stage 5 (`BotsTab.svelte`, `BotsList.svelte`).*
 
-## State (2026-11-24)
+## State (2026-11-25)
 
-Stages 1 to 4 are delivered (#4624, #4626, #4627, and Stage 4 runtime on `feature/feat-0819-grid-runtime`); stage 5 remains open (coordinated with FEAT-0820).
+All 5 stages are delivered (#4624, #4626, #4627, #4630, and Stage 5 editor/review surfaces with FEAT-0820).
 
 Stage 4 delivers the Rust `evaluate_grid` / `timeframes` / `warmup_candles` WASM exports, the Class A grid stores (`gridStore.ts`), pure projection & `(symbol, side)` reservation (`gridState.ts`), `OrderGate` `kind: "grid"` & cumulative `rmsService` checks, paper simulator counter-order / Bitget close / limit-bound execution support (`paperExchange.ts`), `gridOrder.ts`, and `gridRuntime.ts` (ladder placement, rebalance, pause/resume, `trend_filter` withdraw/rebuild, strict cancel-before-close stop & `stop_out`, crash recovery from `"stopping"`, and durable fill-eviction-safe reload reconciliation). The item returns to `ready` between stages so stage 5 can claim it cleanly.
 

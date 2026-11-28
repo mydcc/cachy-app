@@ -533,4 +533,57 @@ describe("PriceLineManager — pending (unfilled) orders", () => {
         manager.update(baseInput({ pendingOrders: [] }));
         expect(lines.size).toBe(5);
     });
+
+    it("renders every grid level, distinguishes filled levels, keeps them read-only, and removes them on stop", () => {
+        const { series, lines } = makeFakeSeries();
+        const onDrop = vi.fn();
+        const manager = new PriceLineManager(series, { onDrop });
+        const container = document.createElement("div");
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0,
+            left: 0,
+            right: 400,
+            bottom: 400,
+            width: 400,
+            height: 400,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+        });
+        manager.attach(container);
+
+        manager.update(
+            baseInput({
+                position: null,
+                takeProfit: null,
+                stopLoss: null,
+                gridLevels: [
+                    { id: "g:0", price: new Decimal(90), filled: false, title: "Grid 90" },
+                    { id: "g:1", price: new Decimal(95), filled: true, title: "Grid 95 (filled)" },
+                    { id: "g:2", price: new Decimal(100), filled: false, title: "Grid 100" },
+                ],
+            }),
+        );
+
+        expect(lines.size).toBe(3);
+        const titles = [...lines.values()].map((l) => l.title);
+        expect(titles).toEqual(["Grid 90", "Grid 95 (filled)", "Grid 100"]);
+
+        // Grid levels are read-only — mousedown + mousemove + mouseup on price 95 does not drag/drop
+        container.dispatchEvent(mouseEvent("mousedown", 95));
+        container.dispatchEvent(mouseEvent("mousemove", 98));
+        window.dispatchEvent(mouseEvent("mouseup", 98));
+        expect(onDrop).not.toHaveBeenCalled();
+
+        // Stopping the grid passes empty gridLevels and removes all lines
+        manager.update(
+            baseInput({
+                position: null,
+                takeProfit: null,
+                stopLoss: null,
+                gridLevels: [],
+            }),
+        );
+        expect(lines.size).toBe(0);
+    });
 });

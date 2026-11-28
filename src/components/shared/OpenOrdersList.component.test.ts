@@ -407,4 +407,66 @@ describe("BUG-0562 — order popover coordinates stay inside the viewport", () =
         expect(style).toContain("left: 10px");
         expect(style).toContain("top: 10px");
     });
+
+    it("groups grid ladder orders under one row collapsed by default, and expands to show each level and owner", () => {
+        const gridOrder1: NormalizedOrder = {
+            ...ORDER,
+            id: "go-1",
+            orderId: "go-1",
+            clientId: "grid:grid-1:s0:open",
+            price: "90000",
+            amount: "0.01",
+            side: "BUY",
+            reduceOnly: false,
+        };
+        const gridOrder2: NormalizedOrder = {
+            ...ORDER,
+            id: "go-2",
+            orderId: "go-2",
+            clientId: "grid:grid-1:s1:close",
+            price: "94000",
+            amount: "0.01",
+            side: "SELL",
+            reduceOnly: true,
+        };
+        component = mount(OpenOrdersList, {
+            target: host,
+            props: {
+                orders: [gridOrder1, gridOrder2, SECOND_ORDER],
+                gridNames: new Map([["grid-1", "BTC Range Ladder"]]),
+            },
+        }) as never;
+        flushSync();
+
+        const group = host.querySelector<HTMLElement>('[data-testid="grid-order-group-grid-1"]');
+        expect(group).not.toBeNull();
+        const toggle = host.querySelector<HTMLButtonElement>(
+            '[data-testid="grid-order-group-toggle-grid-1"]',
+        )!;
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        expect(toggle.textContent).toContain("BTC Range Ladder");
+        expect(toggle.textContent).toContain("2 levels");
+        // Collapsed by default: individual grid items are not rendered yet
+        expect(host.querySelector('[data-testid="grid-order-group-items-grid-1"]')).toBeNull();
+
+        // Expand group
+        toggle.click();
+        flushSync();
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
+        const itemsContainer = host.querySelector<HTMLElement>(
+            '[data-testid="grid-order-group-items-grid-1"]',
+        );
+        expect(itemsContainer).not.toBeNull();
+        const item1 = host.querySelector<HTMLElement>('[data-testid="grid-order-item-go-1"]')!;
+        const item2 = host.querySelector<HTMLElement>('[data-testid="grid-order-item-go-2"]')!;
+        expect(item1.textContent).toContain("Level 90000");
+        expect(item1.textContent).toContain("Owner: BTC Range Ladder");
+        expect(item2.textContent).toContain("Level 94000");
+        expect(item2.textContent).toContain("Counter");
+    });
+
+    it("renders the empty state when there are no open orders", () => {
+        render([]);
+        expect(host.textContent).toContain(lookup("dashboard.noOpenOrders"));
+    });
 });

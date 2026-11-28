@@ -2,7 +2,7 @@
 id: FEAT-0820
 title: Add grid bot controls and chart visualisation
 type: feature
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -41,19 +41,19 @@ A grid surface built on the runtime from FEAT-0819:
 
 ## Acceptance criteria
 
-- [ ] A grid can be configured, started, paused, resumed and stopped from the
+- [x] A grid can be configured, started, paused, resumed and stopped from the
       panel; each action is reflected in the Bots tab and the orders group.
-- [ ] The chart shows every level in the range, marks filled levels, and removes
+- [x] The chart shows every level in the range, marks filled levels, and removes
       them when the grid stops.
-- [ ] The orders tab groups the ladder under one row; expanding shows the
+- [x] The orders tab groups the ladder under one row; expanding shows the
       individual orders with their level and owner.
-- [ ] The Bots tab row shows state, `filled / total`, owned position and PnL;
+- [x] The Bots tab row shows state, `filled / total`, owned position and PnL;
       the position row remains the single money source.
-- [ ] Stopping asks for confirmation naming the orders to cancel and the position
+- [x] Stopping asks for confirmation naming the orders to cancel and the position
       to close.
-- [ ] The panel is keyboard reachable, labelled, and the strings exist in both
+- [x] The panel is keyboard reachable, labelled, and the strings exist in both
       locales.
-- [ ] Component tests cover start/pause/stop, the chart lines, the grouped
+- [x] Component tests cover start/pause/stop, the chart lines, the grouped
       orders and the empty state.
 
 ## Out of scope

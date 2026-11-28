@@ -80,6 +80,8 @@
   import BotsList from "./BotsList.svelte";
   import { botsState } from "../../stores/botsState.svelte";
   import { readBots } from "../../services/alertEngine/botStore";
+  import { readGrids } from "../../services/alertEngine/gridStore";
+  import { alertState } from "../../stores/alerts.svelte";
   import { positionNotional } from "../../services/positionFleet";
 
   let { fetchEnabled = true }: { fetchEnabled?: boolean } = $props();
@@ -112,6 +114,7 @@
     accountState.openOrders.map((o) => ({
       id: o.orderId,
       orderId: o.orderId,
+      clientId: o.clientId,
       symbol: o.symbol,
       type: o.type,
       side: o.side.toUpperCase(),
@@ -120,6 +123,7 @@
       filled: o.filled.toString(),
       status: o.status,
       time: o.timestamp,
+      reduceOnly: o.reduceOnly,
       // Pending orders haven't been filled yet, so both are always zero —
       // OpenOrdersList doesn't render either, this only satisfies the
       // shared NormalizedOrder shape.
@@ -190,6 +194,33 @@
    * Keyed by positionId, so a live venue row can never match a `paper-pos-*`
    * id — the badge cannot attach to a position the book does not own.
    */
+  let gridNamesById = $derived.by(() => {
+    void alertState.gridsVersion;
+    try {
+      return new Map<string, string | null>(
+        readGrids().map((grid) => [grid.id, grid.name]),
+      );
+    } catch {
+      return new Map<string, string | null>();
+    }
+  });
+
+  let gridOrderOwners = $derived.by(() => {
+    const owners = new Map<string, { gridId: string; name: string | null }>();
+    if (!paperState.enabled) return owners;
+    for (const order of paperState.orders) {
+      if (order.origin !== "bot" || typeof order.botId !== "string") continue;
+      if (!gridNamesById.has(order.botId) && !order.clientOrderId?.startsWith("grid:")) {
+        continue;
+      }
+      owners.set(order.orderId, {
+        gridId: order.botId,
+        name: gridNamesById.get(order.botId) ?? null,
+      });
+    }
+    return owners;
+  });
+
   let botOwners = $derived.by(() => {
     void botsState.states;
     let names = new Map<string, string>();
@@ -199,6 +230,9 @@
       } catch {
         names = new Map();
       }
+    }
+    for (const [gridId, gridName] of gridNamesById) {
+      if (typeof gridName === "string") names.set(gridId, gridName);
     }
     const owners = new Map<string, { botId: string; name: string | null }>();
     for (const position of paperState.positions) {
@@ -1501,12 +1535,16 @@
       {:else if activeTab === "bots"}
         <BotsList
           onshowposition={paperState.enabled ? showBotPosition : undefined}
+          pricedPositions={mappedPositions}
         />
       {:else if activeTab === "orders"}
-        <OpenOrdersList oncancel={handleCancelOrder}
+        <OpenOrdersList
+          oncancel={handleCancelOrder}
           orders={openOrders}
           loading={loadingOrders}
           error={errorOrders}
+          gridNames={gridNamesById}
+          gridOrderOwners={gridOrderOwners}
         />
       {:else if activeTab === "tpsl" && canPlaceStandaloneTpSl}
         <TpSlList isActive={activeTab === "tpsl"} />

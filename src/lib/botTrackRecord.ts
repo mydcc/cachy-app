@@ -85,6 +85,31 @@ export interface BotTrackRecord {
     openTrades: number;
     /** Latest activity (close, else entry date) in epoch ms — the sort key. */
     lastActivityMs: number;
+    /** FEAT-0819 — true when this record belongs to a grid bot. */
+    isGrid?: boolean;
+    /** FEAT-0819 — live mark-to-market unrealized PnL of the grid's open inventory, or null when unpriced. */
+    unrealizedPnl?: Decimal | null;
+    /** FEAT-0819 — mark-to-market net equity (`totalPnl + unrealizedPnl`), or null when unpriced. */
+    markToMarketPnl?: Decimal | null;
+    /** FEAT-0819 — mark-to-market equity curve shown alongside realized closed trades. */
+    markToMarketCurve?: Decimal[];
+}
+
+/**
+ * FEAT-0819 stage 5 — live mark-to-market inventory snapshot for one grid bot,
+ * supplied by the caller so `botTrackRecord.ts` stays pure and store-free.
+ */
+export interface GridMarkInput {
+    strategyHash: string | null;
+    hasOpenPosition: boolean;
+    /** Live unrealized PnL in quote currency, or `null` when mark price is unavailable. */
+    unrealizedPnl: Decimal | null;
+    startedAtMs?: number;
+}
+
+export interface BotTrackRecordOptions {
+    /** Grid bots keyed by `gridId`, so grid review surfaces always include mark-to-market equity. */
+    gridMarks?: ReadonlyMap<string, GridMarkInput>;
 }
 
 /** Which population of the journal a view wants. */
@@ -214,7 +239,10 @@ interface Bucket {
  * attribution — a record built over "probably this bot's" would be worse than
  * no record, because it reads exactly as authoritative.
  */
-export function botTrackRecords(entries: JournalEntry[]): BotTrackRecord[] {
+export function botTrackRecords(
+    entries: JournalEntry[],
+    options?: BotTrackRecordOptions,
+): BotTrackRecord[] {
     const buckets = new Map<string, Bucket>();
 
     for (const entry of entries) {
@@ -248,7 +276,70 @@ export function botTrackRecords(entries: JournalEntry[]): BotTrackRecord[] {
         }
     }
 
-    const records = [...buckets.values()].map(summarise);
+    const gridMarks = options?.gridMarks;
+    if (gridMarks) {
+        for (const [gridId, mark] of gridMarks) {
+            const key = `${gridId}\u0000${mark.strategyHash ?? ""}`;
+            if (!buckets.has(key) && mark.hasOpenPosition) {
+                buckets.set(key, {
+                    botId: gridId,
+                    strategyHash: mark.strategyHash,
+                    counted: [],
+                    manualExits: [],
+                    openTrades: 1,
+                    lastActivityMs: mark.startedAtMs ?? 0,
+                });
+            }
+        }
+    }
+
+    const records = [...buckets.values()].map((bucket) => {
+        const summary = summarise(bucket);
+        const gridMark = gridMarks?.get(bucket.botId);
+        if (!gridMark) return summary;
+        const matchesActiveVersion =
+            gridMark.strategyHash === null ||
+            bucket.strategyHash === null ||
+            gridMark.strategyHash === bucket.strategyHash;
+        if (!matchesActiveVersion) {
+            return {
+                ...summary,
+                isGrid: true,
+                unrealizedPnl: ZERO,
+                markToMarketPnl: summary.totalPnl,
+                markToMarketCurve:
+                    summary.equityCurve.length >= 2
+                        ? [...summary.equityCurve]
+                        : [ZERO, summary.totalPnl],
+            };
+        }
+        const openCount =
+            gridMark.hasOpenPosition && summary.openTrades === 0
+                ? 1
+                : summary.openTrades;
+        if (gridMark.unrealizedPnl === null) {
+            return {
+                ...summary,
+                openTrades: openCount,
+                isGrid: true,
+                unrealizedPnl: null,
+                markToMarketPnl: null,
+                markToMarketCurve: [],
+            };
+        }
+        const unrealized = gridMark.unrealizedPnl;
+        const mtmTotal = summary.totalPnl.plus(unrealized);
+        const baseCurve =
+            summary.equityCurve.length > 0 ? summary.equityCurve : [ZERO];
+        return {
+            ...summary,
+            openTrades: openCount,
+            isGrid: true,
+            unrealizedPnl: unrealized,
+            markToMarketPnl: mtmTotal,
+            markToMarketCurve: [...baseCurve, mtmTotal],
+        };
+    });
     // Most recently active first; the bot id breaks ties so the order of two
     // records that closed in the same millisecond does not depend on the
     // journal's internal order.

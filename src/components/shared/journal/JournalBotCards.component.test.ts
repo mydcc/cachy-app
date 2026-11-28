@@ -293,4 +293,36 @@ describe("FEAT-0812 — JournalBotCards", () => {
         const polyline = host.querySelector("polyline");
         expect(polyline?.getAttribute("points")).toBe("0.00,0.00 120.00,28.00");
     });
+
+    it("renders mark-to-market equity and sparkline alongside realized closed trades for a grid bot", () => {
+        const gridMarks = new Map([
+            [
+                "grid-1",
+                {
+                    strategyHash: HASH_A,
+                    hasOpenPosition: true,
+                    unrealizedPnl: new Decimal("-25"),
+                },
+            ],
+        ]);
+        const closed = botTrade({
+            botId: "grid-1",
+            strategyHash: HASH_A,
+            netProfit: "10",
+        });
+        component = mount(JournalBotCards, {
+            target: host,
+            props: {
+                records: botTrackRecords([closed], { gridMarks }),
+                botNames: new Map([["grid-1", "BTC Range Grid"]]),
+                unattributedCount: 0,
+            },
+        });
+        flushSync();
+
+        expect(textAt("metric-total-pnl")).toBe("10.00");
+        expect(textAt("metric-unrealized-pnl")).toBe("-25.00");
+        expect(textAt("metric-mtm-equity")).toBe("-15.00");
+        expect(at("bot-mtm-sparkline")).not.toBeNull();
+    });
 });

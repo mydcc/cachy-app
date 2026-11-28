@@ -38,6 +38,7 @@ export interface Position {
 
 export interface OpenOrder {
   orderId: string;
+  clientId?: string;
   symbol: string;
   side: "buy" | "sell";
   type: "limit" | "market";
@@ -46,6 +47,7 @@ export interface OpenOrder {
   filled: Decimal;
   status: string;
   timestamp: number;
+  reduceOnly?: boolean;
   // Descriptive metadata, not live-price data — plain strings rather than
   // Decimal since nothing here needs arithmetic. Both REST (Get Pending
   // Orders) and the WS order channel send all of these on every push
@@ -454,6 +456,7 @@ class AccountManager {
       if (existing) {
         const newOrder: OpenOrder = {
           orderId: String(data.orderId),
+          clientId: existing.clientId,
           symbol: data.symbol ?? "",
           side: (data.side ? data.side.toLowerCase() : existing.side) as "buy" | "sell",
           type: (data.type ? data.type.toLowerCase() : existing.type) as "limit" | "market",
@@ -462,6 +465,7 @@ class AccountManager {
           filled: safeDecimal(data.dealAmount, existing.filled),
           status: data.orderStatus || existing.status,
           timestamp: parseTimestamp(data.ctime) || existing.timestamp,
+          reduceOnly: existing.reduceOnly,
           mtime: parseTimestamp(data.mtime) || existing.mtime,
           leverage: data.leverage !== undefined ? String(data.leverage) : existing.leverage,
           marginMode: data.positionType ?? existing.marginMode,
@@ -629,6 +633,7 @@ class AccountManager {
     this.#snapshotAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
     this.openOrders = raw.map((o) => ({
       orderId: String(o.orderId ?? o.id ?? ""),
+      clientId: o.clientId,
       symbol: o.symbol,
       side: (o.side || "buy").toLowerCase() as "buy" | "sell",
       type: (o.type || "limit").toLowerCase() as "limit" | "market",
@@ -637,6 +642,7 @@ class AccountManager {
       filled: parseDecimal(o.filled),
       status: o.status || "",
       timestamp: Number(o.time) || Date.now(), // audit: safe — epoch-ms timestamp, not a financial value
+      reduceOnly: o.reduceOnly,
       mtime: o.mtime,
       leverage: o.leverage,
       marginMode: o.marginMode,

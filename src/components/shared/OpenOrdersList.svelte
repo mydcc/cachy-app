@@ -22,15 +22,27 @@
   import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
   import { clampPopoverPosition } from "../../utils/tooltipPosition";
   import { activeAccountLabel } from "../../stores/settings/activeAccount";
+  import { parseGridOrderClientId } from "../../lib/calculators/gridEditorPreview";
 
   interface Props {
     orders?: NormalizedOrder[];
     loading?: boolean;
     error?: string;
     oncancel?: (orderId: string, symbol: string) => void;
+    /** Optional gridId -> grid name lookup so grouped ladders display human names. */
+    gridNames?: ReadonlyMap<string, string | null>;
+    /** Optional orderId -> grid owner lookup from the paper book. */
+    gridOrderOwners?: ReadonlyMap<string, { gridId: string; name: string | null }>;
   }
 
-  let { orders = [], loading = false, error = "", oncancel }: Props = $props();
+  let {
+    orders = [],
+    loading = false,
+    error = "",
+    oncancel,
+    gridNames,
+    gridOrderOwners,
+  }: Props = $props();
 
   const instanceId = $props.id();
   const POPOVER_ID = `order-details-popover-${instanceId}`;
@@ -242,6 +254,64 @@
         oncancel?.(order.id || order.orderId, order.symbol);
     }
   }
+
+  interface GridGroupedOrder {
+    order: NormalizedOrder;
+    leg: "open" | "close";
+  }
+
+  type OrderListEntry =
+    | { kind: "single"; order: NormalizedOrder }
+    | {
+        kind: "grid-group";
+        gridId: string;
+        gridName: string;
+        symbol: string;
+        items: GridGroupedOrder[];
+      };
+
+  /** FEAT-0820 — collapsed by default; keyed by `gridId`. */
+  let expandedGroups = $state<Record<string, boolean>>({});
+
+  function toggleGroup(gridId: string): void {
+    expandedGroups[gridId] = !expandedGroups[gridId];
+  }
+
+  let displayEntries = $derived.by<OrderListEntry[]>(() => {
+    const entries: OrderListEntry[] = [];
+    const groupsByGridId = new Map<
+      string,
+      { gridId: string; gridName: string; symbol: string; items: GridGroupedOrder[] }
+    >();
+
+    for (const order of orders) {
+      const orderId = getOrderId(order);
+      const parsedClient = parseGridOrderClientId(order.clientId);
+      const explicitOwner = gridOrderOwners?.get(orderId);
+      const gridId = parsedClient?.gridId ?? explicitOwner?.gridId;
+      if (!gridId) {
+        entries.push({ kind: "single", order });
+        continue;
+      }
+      const leg: "open" | "close" =
+        parsedClient?.leg ?? (order.reduceOnly ? "close" : "open");
+      let group = groupsByGridId.get(gridId);
+      if (!group) {
+        const resolvedName =
+          explicitOwner?.name ?? gridNames?.get(gridId) ?? gridId;
+        group = {
+          gridId,
+          gridName: resolvedName,
+          symbol: order.symbol,
+          items: [],
+        };
+        groupsByGridId.set(gridId, group);
+        entries.push({ kind: "grid-group", ...group });
+      }
+      group.items.push({ order, leg });
+    }
+    return entries;
+  });
 </script>
 
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
@@ -275,7 +345,93 @@
     </div>
   {:else}
     <div class="flex flex-col gap-2">
-      {#each orders as order (getOrderId(order))}
+      {#each displayEntries as entry (entry.kind === "single" ? getOrderId(entry.order) : `grid:${entry.gridId}`)}
+        {#if entry.kind === "grid-group"}
+          {@const isExpanded = Boolean(expandedGroups[entry.gridId])}
+          <div
+            class="bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] overflow-hidden"
+            data-testid={`grid-order-group-${entry.gridId}`}
+          >
+            <button
+              type="button"
+              class="w-full p-2 flex items-center justify-between gap-2 text-left hover:bg-[var(--bg-tertiary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
+              data-testid={`grid-order-group-toggle-${entry.gridId}`}
+              aria-expanded={isExpanded}
+              aria-label={isExpanded
+                ? $_("dashboard.openOrders.gridGroup.collapseNamed", {
+                    values: { name: entry.gridName, count: entry.items.length },
+                  })
+                : $_("dashboard.openOrders.gridGroup.expandNamed", {
+                    values: { name: entry.gridName, count: entry.items.length },
+                  })}
+              onclick={() => toggleGroup(entry.gridId)}
+            >
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-accent-paired">
+                  {$_("botsList.grid.badge")}
+                </span>
+                <span class="text-xs font-semibold text-[var(--text-primary)] truncate">
+                  {$_("dashboard.openOrders.gridGroup.summary", {
+                    values: {
+                      name: entry.gridName,
+                      symbol: entry.symbol,
+                      count: entry.items.length,
+                    },
+                  })}
+                </span>
+              </div>
+              <span class="text-xs text-[var(--text-secondary)] font-mono">
+                {isExpanded ? "▾" : "▸"}
+              </span>
+            </button>
+
+            {#if isExpanded}
+              <div
+                class="flex flex-col gap-1 border-t border-[var(--border-color)] p-2 bg-[var(--bg-secondary)]"
+                data-testid={`grid-order-group-items-${entry.gridId}`}
+              >
+                {#each entry.items as item (getOrderId(item.order))}
+                  {@const order = item.order}
+                  <div
+                    class="flex items-center justify-between gap-2 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-xs"
+                    data-testid={`grid-order-item-${getOrderId(order)}`}
+                  >
+                    <div class="flex flex-col gap-0.5 min-w-0">
+                      <span class="font-mono font-semibold text-[var(--text-primary)]">
+                        {$_("dashboard.openOrders.gridGroup.level", {
+                          values: { price: formatDynamicDecimal(order.price) },
+                        })}
+                      </span>
+                      <span class="text-[10px] text-[var(--text-secondary)] truncate">
+                        {$_("dashboard.openOrders.gridGroup.owner", {
+                          values: { name: entry.gridName },
+                        })}
+                      </span>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                      <span
+                        class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"
+                        class:bg-success-paired={order.side === "BUY"}
+                        class:bg-danger-paired={order.side === "SELL"}
+                      >
+                        {order.side === "BUY" ? "Buy" : "Sell"}
+                        ·
+                        {item.leg === "close"
+                          ? $_("dashboard.openOrders.gridGroup.legClose")
+                          : $_("dashboard.openOrders.gridGroup.legOpen")}
+                      </span>
+                      <span class="font-mono text-[11px] text-[var(--text-primary)]">
+                        {formatDynamicDecimal(order.amount)}
+                      </span>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {:else}
+          {@const order = entry.order}
         <div
           class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors relative group"
         >
@@ -396,6 +552,7 @@
             </div>
           </div>
         </div>
+        {/if}
       {/each}
     </div>
   {/if}

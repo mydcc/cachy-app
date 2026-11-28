@@ -36,6 +36,7 @@ const mocks = vi.hoisted(() => ({
   createBotDraft: vi.fn(),
   readRuleStore: vi.fn(),
   validate: vi.fn(),
+  validateGrid: vi.fn((doc: unknown) => doc),
 }));
 
 vi.mock("../../../services/alertEngine/armRule", () => ({
@@ -66,7 +67,7 @@ vi.mock("../../../services/alertEngine/botStore", () => ({
 
 vi.mock("../../../lib/rules/ruleSchema", () => ({
   isRuleRefusedError: (error: unknown) => error instanceof Error && error.name === "RuleRefusedError",
-  ruleSchema: { validate: mocks.validate },
+  ruleSchema: { validate: mocks.validate, validateGrid: mocks.validateGrid },
 }));
 
 vi.mock("../../../services/logger", () => ({
@@ -562,5 +563,37 @@ describe("FEAT-0811 — direct bot creation", () => {
     expect(fields.name).toBe("RSI dip bot");
     expect(mocks.promoteAlertToBot).not.toHaveBeenCalled();
     expect(host.querySelector("#bot-create-name")).toBeNull();
+  });
+
+  it("creates a grid bot from the control panel, shows mark-to-market summary, and renders account_unavailable when paper is off", () => {
+    localStorage.clear();
+    paperState.setEnabled(true);
+    render();
+
+    button(translation(en as Record<string, unknown>, "settings.automation.grid.createButton")).click();
+    flushSync();
+
+    setInput(host.querySelector("#grid-create-name") as HTMLInputElement, "ETH Ladder");
+    setInput(host.querySelector("#grid-create-symbol") as HTMLInputElement, "ETHUSDT");
+    setInput(host.querySelector("#grid-create-lower") as HTMLInputElement, "2500");
+    setInput(host.querySelector("#grid-create-upper") as HTMLInputElement, "3000");
+    setInput(host.querySelector("#grid-create-levels") as HTMLInputElement, "5");
+    setInput(host.querySelector("#grid-create-budget") as HTMLInputElement, "500");
+    setInput(host.querySelector("#grid-create-stopout-0-value") as HTMLInputElement, "2300");
+
+    host.querySelector<HTMLButtonElement>('[data-testid="grid-editor-save"]')!.click();
+    flushSync();
+
+    expect(mocks.validateGrid).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('[data-testid="grid-bot-editor"]')).toBeNull();
+    expect(host.textContent).toContain("ETH Ladder");
+    expect(host.textContent).toContain("Mark-to-market:");
+
+    // Turning paper trading off shows the frozen ladder + stop-out account_unavailable notice
+    paperState.setEnabled(false);
+    flushSync();
+    const banner = host.querySelector<HTMLElement>('[data-testid="grids-account-unavailable"]');
+    expect(banner).not.toBeNull();
+    expect(banner!.textContent).toContain("frozen with the paper book");
   });
 });
