@@ -51,7 +51,8 @@
     import JournalDeepDive from "./journal/JournalDeepDive.svelte";
     import JournalBotCards from "./journal/JournalBotCards.svelte";
     import {
-        botTrackRecords,
+        applyGridMarks,
+        botTrackRecordsBase,
         entriesForTradeMode,
         matchesOriginFilter,
         modeForBot,
@@ -63,7 +64,7 @@
     import { readGrids, readGridStates } from "../../services/alertEngine/gridStore";
     import { alertState } from "../../stores/alerts.svelte";
     import { marketState } from "../../stores/market.svelte";
-    import { calculateLiveUnrealizedPnl } from "../../services/mappers";
+    import { gridOwnedAmount, gridUnrealizedPnl } from "../../lib/gridPositionShare";
     import TradeDetailDrawer from "./journal/TradeDetailDrawer.svelte";
 
   import Button from "./Button.svelte";
@@ -461,20 +462,11 @@
             if (owned) {
                 const symData = marketState.data[owned.symbol];
                 const mark = symData?.markPrice ?? symData?.lastPrice;
-                if (mark instanceof Decimal && mark.gt(0)) {
-                    unrealizedPnl = calculateLiveUnrealizedPnl(
-                        owned.side,
-                        new Decimal(owned.entryPrice),
-                        mark,
-                        new Decimal(owned.amount),
-                    );
-                } else {
-                    unrealizedPnl = null;
-                }
+                unrealizedPnl = gridUnrealizedPnl(owned, mark);
             }
             map.set(grid.id, {
                 strategyHash: owned?.strategyHash ?? null,
-                hasOpenPosition: Boolean(owned),
+                hasOpenPosition: Boolean(owned && gridOwnedAmount(owned).gt(0)),
                 unrealizedPnl,
                 startedAtMs: runtimeStates[grid.id]?.startedAt ?? grid.provenance.created_at_ms,
             });
@@ -482,11 +474,10 @@
         return map;
     });
 
-    let botRecords = $derived(
-        botTrackRecords(entriesForTradeMode(journalState.entries, tradeMode), {
-            gridMarks,
-        }),
+    let botRecordsBase = $derived(
+        botTrackRecordsBase(entriesForTradeMode(journalState.entries, tradeMode)),
     );
+    let botRecords = $derived(applyGridMarks(botRecordsBase, gridMarks));
 
     let unattributedTrades = $derived(
         unattributedClosedCount(journalState.entries),

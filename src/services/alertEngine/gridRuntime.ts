@@ -108,6 +108,8 @@ export interface GridRuntimeEnvironment {
     feeds: string[];
   }) => void;
   ensureSymbolMeta?: (symbol: string) => Promise<void>;
+  /** FEAT-0820 — user policy for manual adds into a grid-owned position. */
+  allowManualGridAdds?: () => boolean;
   accountSnapshot?: (
     grid: GridDocument,
     position: PaperPosition | undefined,
@@ -210,8 +212,8 @@ export class GridRuntime {
       this.pendingExternalReconcile = false;
       this.reconcileQueued = false;
     } else {
-      setGridSlotReservationCheck((symbol, side, botId) =>
-        this.isSlotReservedForOther(symbol, side, botId, env),
+      setGridSlotReservationCheck((symbol, side, botId, positionId) =>
+        this.isSlotReservedForOther(symbol, side, botId, env, positionId),
       );
       setGridBookResetListener(() => this.handleBookReset());
     }
@@ -222,6 +224,7 @@ export class GridRuntime {
     side: "long" | "short",
     botId: string | undefined,
     env: GridRuntimeEnvironment,
+    positionId?: string,
   ): boolean {
     if (this.env !== env) return false;
     try {
@@ -231,6 +234,20 @@ export class GridRuntime {
       const positions = botId
         ? env.positions().filter((p) => p.botId !== botId)
         : env.positions();
+      if (positionId && env.allowManualGridAdds?.() === true) {
+        const target = positions.find((p) => p.positionId === positionId);
+        if (target?.origin === "bot" && target.botId) {
+          const owner = grids.find((g) => g.id === target.botId);
+          if (
+            owner &&
+            slotKey(owner.symbol, owner.side) === slotKey(symbol, side)
+          ) {
+            // The add targets the grid's own position, so it is not a competing
+            // entry. The simulator preserves the grid-owned share separately.
+            return false;
+          }
+        }
+      }
       const reserved = reservedGridSlots(grids, states, orders, positions);
       return reserved.has(slotKey(symbol.trim().toUpperCase(), side));
     } catch {
@@ -701,7 +718,11 @@ export class GridRuntime {
     const existingState = readGridState(gridId);
     const hasOwnedExposure =
       env.orders().some((o) => o.origin === "bot" && o.botId === grid.id) ||
-      env.positions().some((p) => p.origin === "bot" && p.botId === grid.id && new Decimal(p.amount).gt(0));
+      env.positions().some((p) => {
+        if (p.origin !== "bot" || p.botId !== grid.id) return false;
+        const ownedAmount = p.gridOwnedAmount ? new Decimal(p.gridOwnedAmount) : new Decimal(p.amount);
+        return ownedAmount.gt(0);
+      });
     if (existingState?.status === "closed" && !hasOwnedExposure) {
       return { ok: true };
     }
@@ -711,22 +732,33 @@ export class GridRuntime {
       patchGridState(gridId, { status: "stopping", stopReason: reason });
 
       // Step 2: Cancel resting orders FIRST so no intervening tick fills a new entry.
-      this.runOwnSync(() => {
-        env.cancelOrdersOwnedBy(grid.id);
-        env.syncBook?.();
-      });
+      try {
+        this.runOwnSync(() => {
+          env.cancelOrdersOwnedBy(grid.id);
+          env.syncBook?.();
+        });
+      } catch (e) {
+        logger.error("alerts", `[GridRuntime] Failed to cancel orders for grid ${gridId}`, e);
+        return { ok: false, reason: "cancel-failed" };
+      }
 
       // Step 3: Close owned position SECOND via OrderGate.
       const owned = env
         .positions()
         .find((p) => p.origin === "bot" && p.botId === grid.id);
-      if (owned && new Decimal(owned.amount).gt(0)) {
+      const ownedAmount = owned
+        ? owned.gridOwnedAmount
+          ? new Decimal(owned.gridOwnedAmount)
+          : new Decimal(owned.amount)
+        : new Decimal(0);
+      if (owned && ownedAmount.gt(0)) {
         try {
           await this.callOwnOrderOp(env, owned.positionId, () =>
             env.closePosition({
               symbol: owned.symbol,
               positionSide: owned.side,
-              forceFullClose: true,
+              // Only the grid's share. A permitted manual add stays open.
+              amount: ownedAmount,
               // Stamped like the ladder's close legs: a paper toggle that races this
               // close is refused by the bot-provenance checks instead of going live.
               origin: "bot",
@@ -743,15 +775,19 @@ export class GridRuntime {
           return { ok: false, reason: "close-refused" };
         }
 
-        const leftover = env
-          .positions()
-          .find((p) => p.origin === "bot" && p.botId === grid.id);
-        if (leftover && new Decimal(leftover.amount).gt(0)) {
+        const leftover = env.positions().find((p) => {
+          if (p.origin !== "bot" || p.botId !== grid.id) return false;
+          const remainingOwned = p.gridOwnedAmount
+            ? new Decimal(p.gridOwnedAmount)
+            : new Decimal(p.amount);
+          return remainingOwned.gt(0);
+        });
+        if (leftover) {
           return { ok: false, reason: "position-remaining" };
         }
-        if (reason === "stop_out") {
-          env.recordBotExit(owned.positionId);
-        }
+        // A manual stop is still the bot's exit; without this the track record
+        // drops the PnL of the very close the trader requested.
+        env.recordBotExit(owned.positionId);
       }
 
       // Step 4: Only mark closed once both orders and position are clear.
@@ -781,7 +817,14 @@ export class GridRuntime {
     env: GridRuntimeEnvironment,
   ): Promise<GridActionResult> {
     if (env.bookUnreadable()) return { ok: false, reason: "book-unreadable" };
-    const accountErr = this.checkGridAccount(grid, env);
+    let canonical: GridDocument;
+    try {
+      canonical = ruleSchema.validateGrid(grid);
+    } catch (e) {
+      logger.error("alerts", `[GridRuntime] Stored grid ${grid.id} failed validation`, e);
+      return { ok: false, reason: "reconcile-validation-failed" };
+    }
+    const accountErr = this.checkGridAccount(canonical, env);
     if (accountErr) return accountErr;
 
     let runtime: GridRuntimeRecord | undefined;
@@ -797,13 +840,13 @@ export class GridRuntime {
       return { ok: true };
     }
 
-    await env.ensureSymbolMeta?.(grid.symbol);
-    const slotsRes = this.computeSlots(grid, env);
+    await env.ensureSymbolMeta?.(canonical.symbol);
+    const slotsRes = this.computeSlots(canonical, env);
     if (!slotsRes.ok) return slotsRes;
 
-    const strategyHash = ruleSchema.gridContentHash(grid);
+    const strategyHash = ruleSchema.gridContentHash(canonical);
     const placement = await this.placeMissingOrders(
-      grid,
+      canonical,
       slotsRes.slots,
       runtime,
       strategyHash,
@@ -1312,12 +1355,17 @@ export class GridRuntime {
       }
       const runtime = allStates[grid.id];
       if (!runtime) continue;
-      if (runtime.status === "stopping") {
-        if (includeStopping) {
-          await this.stopGrid(grid.id, runtime.stopReason ?? "manual");
+      try {
+        if (runtime.status === "stopping") {
+          if (includeStopping) {
+            await this.stopGrid(grid.id, runtime.stopReason ?? "manual");
+          }
+        } else if (runtime.status === "active" || runtime.status === "paused") {
+          await this.reconcileGrid(grid.id);
         }
-      } else if (runtime.status === "active" || runtime.status === "paused") {
-        await this.reconcileGrid(grid.id);
+      } catch (e) {
+        // One corrupt or unavailable grid must not abort the rest of the book.
+        logger.error("alerts", `[GridRuntime] Reconcile failed for grid ${grid.id}`, e);
       }
     }
   }

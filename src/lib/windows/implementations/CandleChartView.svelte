@@ -1713,8 +1713,8 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                     takeProfit: getVar("--success-color") || "#26a69a",
                     stopLoss: getVar("--danger-color") || "#ef5350",
                     pendingOrder: getVar("--text-secondary") || "#787b86",
-                    gridResting: getVar("--text-secondary") || "#787b86",
-                    gridFilled: getVar("--accent-color") || "#2962ff",
+                    gridResting: getVar("--text-secondary"),
+                    gridFilled: getVar("--accent-color"),
                 },
             });
         });

@@ -167,8 +167,6 @@ const COLORS = {
     takeProfit: "#26a69a",
     stopLoss: "#ef5350",
     pendingOrder: "#787b86",
-    gridResting: "#787b86",
-    gridFilled: "#26a69a",
 } as const;
 
 const LINE_STYLE_SOLID = 0;
@@ -339,8 +337,8 @@ export class PriceLineManager {
 
         this.syncPendingOrders(input.pendingOrders ?? [], colors, input.labels);
         this.syncGridLevels(input.gridLevels ?? [], {
-            resting: colors.gridResting ?? COLORS.gridResting,
-            filled: colors.gridFilled ?? COLORS.gridFilled,
+            resting: colors.gridResting || colors.pendingOrder,
+            filled: colors.gridFilled || colors.takeProfit,
         });
     }
 
@@ -442,7 +440,7 @@ export class PriceLineManager {
         // available. A null lastInput means update() never ran, which means
         // there are no pending-order lines to clear either.
         if (this.lastInput) this.syncPendingOrders([], COLORS, this.lastInput.labels);
-        this.syncGridLevels([], { resting: COLORS.gridResting, filled: COLORS.gridFilled });
+        this.syncGridLevels([], { resting: COLORS.pendingOrder, filled: COLORS.takeProfit });
         this.lastInput = null;
     }
 

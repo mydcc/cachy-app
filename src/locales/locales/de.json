@@ -1120,7 +1120,9 @@
       "start": "Starten",
       "startNamed": "{name} starten",
       "accountUnavailable": "Paper-Trading ist ausgeschaltet: Die Leiter dieses Grids und sein Stop-out sind zusammen mit dem Paper-Orderbuch eingefroren.",
-      "stopConfirmWithPosition": "{orders} ruhende Order(s) stornieren und die {side}-Position ({amount} {symbol}) schließen?",
+      "allowManualAdds": "Manuelle Zukäufe zu Grid-Positionen",
+      "allowManualAddsDesc": "An: Zukäufe bleiben erlaubt; Grid-PnL und Grid-Stop betreffen nur den Grid-Anteil. Aus: Zukäufe in dieselbe Richtung werden blockiert, solange das Grid den Slot hält.",
+      "stopConfirmWithPosition": "{orders} ruhende Order(s) stornieren und den {side}-Anteil des Grids ({amount} {symbol}) schließen? Manuelle Zukäufe bleiben offen.",
       "stopConfirmOrdersOnly": "{orders} ruhende Order(s) auf {symbol} stornieren? Keine offene Position zu schließen.",
       "stopConfirmExecute": "Grid stoppen",
       "stopConfirmCancel": "Weiterlaufen lassen",
@@ -1132,6 +1134,8 @@
         "slotConflict": "Ein anderer Bot hält bereits dieses Symbol und diese Seite.",
         "state": "Das Grid befindet sich in einem Zustand, der diese Aktion nicht erlaubt.",
         "internal": "Unerwarteter Fehler. Die Details stehen im Log.",
+        "manualAddBlocked": "Manuelle Zukäufe zu dieser Grid-Position sind blockiert. Aktiviere „Manuelle Zukäufe zu Grid-Positionen“ im Bots-Tab, um sie zu erlauben.",
+        "noOwnedPosition": "Dieses Grid besitzt keinen Anteil der Position mehr.",
         "generic": "Die Grid-Aktion wurde abgelehnt."
       }
     }
@@ -3114,7 +3118,7 @@
       "intro": "Ein Bot ist einer deiner Alarme, hochgestuft vom Melden zum Handeln. Er beobachtet dieselben Bedingungen, auf denselben Daten, ausgewertet von derselben Engine.",
       "simulateOnly": "Bots schlagen Orders ausschließlich im simulierten Konto vor. Nichts davon erreicht eine Börse — echtes Senden ist eine eigene Funktion mit eigenem Order-Gate und eigener Bestätigung.",
       "yourBots": "Deine Bots",
-      "stopAll": "Alle Bots stoppen",
+      "stopAll": "Regel-Bots stoppen",
       "guardHistory": "Guard-Verlauf ({count} Einträge)",
       "noBots": "Noch keine Bots. Stufe unten einen deiner Alarme hoch, um anzufangen.",
       "accountInactive": "Bots auf dem Paper-Konto: {count}. Solange ein Live-Konto aktiv ist, handeln sie nicht, und das Paper-Buch steht still: offene Paper-Positionen, Stops und Take-Profits werden nicht weiter simuliert. Schalte das Paper Trading ein (Einstellungen → Handel & Markt → Paper Trading), um sie zu sehen und zu bearbeiten. Neue Bots laufen immer auf dem Paper-Konto.",
@@ -3163,7 +3167,7 @@
       "simulateOnlyShort": "Bots simulieren nur — nichts von dieser Seite erreicht eine Börse.",
       "promoteHintShort": "Der Alarm bleibt scharf; Hochstufen legt einen Bot an.",
       "orderRefusedBookUnreadable": "Das Positions-Buch ließ sich nicht lesen, daher können die Limits von {name} nicht greifen — es wurde nichts eröffnet.",
-      "stopAllDone": "{count} Bots gestoppt: keine neuen Entries, bis du einen fortsetzt.",
+      "stopAllDone": "{count} Regel-Bots gestoppt: keine neuen Entries, bis du einen fortsetzt. Grids bleiben unverändert.",
       "editor": {
         "createButton": "Bot erstellen",
         "createTitle": "Bot erstellen",

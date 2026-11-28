@@ -1031,6 +1031,7 @@ export function gridRuntimeEnvironment(
 ): GridRuntimeEnvironment {
     return {
         paperEnabled: () => paperState.enabled,
+        allowManualGridAdds: () => paperState.config.allowManualAddsToGridPositions,
         bookUnreadable: () => paperState.bookUnreadable,
         availableBalance: () => paperState.balance,
         feeRate: () => paperState.numeric("takerFeeBps").div(10_000),

@@ -62,6 +62,47 @@ describe("GridBotEditor — FEAT-0819 stage 5 + FEAT-0820", () => {
         host.remove();
     });
 
+    it("reuses the generated grid id when create-and-start is retried", async () => {
+        const onsaveandstart = vi
+            .fn()
+            .mockResolvedValueOnce("start refused")
+            .mockResolvedValueOnce(null);
+        component = mount(GridBotEditor, {
+            target: host,
+            props: {
+                grid: null,
+                feeRate: new Decimal("0.0006"),
+                accountEquity: new Decimal("10000"),
+                candlesFor: () => [],
+                stepsFor: () => ({ priceStep: new Decimal("0.1"), quantityStep: new Decimal("0.001") }),
+                t: makeTranslator(en as Record<string, unknown>),
+                onsave: vi.fn(() => null),
+                onsaveandstart,
+                oncancel: vi.fn(),
+            },
+        });
+        flushSync();
+        setInput(host.querySelector<HTMLInputElement>("#grid-create-lower")!, "40000");
+        setInput(host.querySelector<HTMLInputElement>("#grid-create-upper")!, "44000");
+        setInput(host.querySelector<HTMLInputElement>("#grid-create-levels")!, "4");
+        setInput(host.querySelector<HTMLInputElement>("#grid-create-budget")!, "4000");
+        setInput(host.querySelector<HTMLInputElement>("#grid-create-stopout-0-value")!, "38000");
+
+        const start = host.querySelector<HTMLButtonElement>('[data-testid="grid-editor-save-start"]')!;
+        start.click();
+        await vi.waitFor(() => expect(host.textContent).toContain("start refused"));
+        flushSync();
+        start.click();
+        await vi.waitFor(() => expect(onsaveandstart).toHaveBeenCalledTimes(2));
+        flushSync();
+
+        expect(onsaveandstart).toHaveBeenCalledTimes(2);
+        const first = onsaveandstart.mock.calls[0][0] as GridDocument;
+        const second = onsaveandstart.mock.calls[1][0] as GridDocument;
+        expect(first.id).toMatch(/^grid-/);
+        expect(second.id).toBe(first.id);
+    });
+
     it("warns when spacing does not exceed round-trip fee, shows inward tick rounding, offers explicit ATR suggestion, and displays pre-start budget & worst-case loss", () => {
         const candles: EvaluationCandle[] = Array.from({ length: 20 }, (_, i) => ({
             open_time_ms: (i + 1) * 3_600_000,

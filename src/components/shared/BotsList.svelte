@@ -60,6 +60,7 @@
   } from "../../stores/alerts.svelte";
   import { readBotGuards, BOT_GUARD_REASON_KEYS } from "../../services/alertEngine/botGuardStore";
   import { gridRefusalKey } from "./gridRefusalKey";
+  import { gridOwnedAmount, gridUnrealizedPnl } from "../../lib/gridPositionShare";
   import { botsState } from "../../stores/botsState.svelte";
   import {
     PAPER_ACCOUNT,
@@ -205,7 +206,7 @@
    * `guardsVersion` is what keeps the newest guard event (FEAT-0822) from
    * going stale: the ledger it reads is localStorage, not a rune.
    */
-  let rows = $derived.by<Row[]>(() => {
+  let baseRows = $derived.by<Row[]>(() => {
     const states = botsState.states;
     const degraded = botsState.degraded;
     const positions = paperState.positions;
@@ -289,8 +290,6 @@
       }
     }
 
-    const fallbackFeedPositions =
-      pricedPositions === undefined ? (paperAccountFeed()?.positions() ?? []) : [];
     const gridRows: GridRow[] = [];
     for (const grid of storedGrids) {
       if (typeof grid.id !== "string") continue;
@@ -309,20 +308,6 @@
         grid.level_count,
         Math.max(openSlotsCount, life.counterOrderCount),
       );
-      let pnl: Decimal | null = null;
-      if (position && executing === PAPER_ACCOUNT) {
-        const omsMatch = pricedPositions?.find((p) => p.positionId === position.positionId);
-        if (omsMatch) {
-          pnl = omsMatch.unpriced ? null : (omsMatch.unrealizedPnl ?? null);
-        } else {
-          const feedMatch = fallbackFeedPositions.find(
-            (p) => p.positionId === position.positionId,
-          );
-          if (feedMatch?.unrealizedPnL !== undefined) {
-            pnl = parseDecimal(feedMatch.unrealizedPnL);
-          }
-        }
-      }
       gridRows.push({
         kind: "grid",
         id: grid.id,
@@ -337,7 +322,7 @@
         restingOrderCount,
         life,
         position,
-        pnl,
+        pnl: null,
       });
     }
 
@@ -372,6 +357,33 @@
     lingering.sort((a, b) => a.position.symbol.localeCompare(b.position.symbol));
 
     return [...gridRows, ...botRows, ...lingering];
+  });
+
+  /**
+   * Price ticks only overlay grid PnL. The static rows above keep their store
+   * reads and guard-ledger parsing off this hot path.
+   */
+  let rows = $derived.by<Row[]>(() => {
+    if (botsState.executingAccount !== PAPER_ACCOUNT) return baseRows;
+    const pricedById = new Map(
+      (pricedPositions ?? []).map((position) => [position.positionId, position]),
+    );
+    const feedById = new Map(
+      (pricedPositions === undefined ? (paperAccountFeed()?.positions() ?? []) : []).map(
+        (position) => [position.positionId, position],
+      ),
+    );
+    return baseRows.map((row) => {
+      if (row.kind !== "grid" || !row.position) return row;
+      const position = row.position;
+      const omsMatch = pricedById.get(position.positionId);
+      const pnl = omsMatch
+        ? omsMatch.unpriced
+          ? null
+          : gridUnrealizedPnl(position, omsMatch.markPrice)
+        : gridUnrealizedPnl(position, parseDecimal(feedById.get(position.positionId)?.markPrice));
+      return { ...row, pnl };
+    });
   });
 
   /** Nothing can be listed while the rule store refuses to be read. */
@@ -542,23 +554,36 @@
 
   let stopConfirmGridId = $state<string | null>(null);
   let gridErrorById = $state<Record<string, string>>({});
+  let pendingGridIds = $state(new Set<string>());
 
   async function handleStartGrid(row: GridRow): Promise<void> {
+    if (pendingGridIds.has(row.id)) return;
+    pendingGridIds.add(row.id);
     delete gridErrorById[row.id];
-    const res = await startGridBot(row.id);
-    if (!res.ok) {
-      gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+    try {
+      const res = await startGridBot(row.id);
+      if (!res.ok) {
+        gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+      }
+    } finally {
+      pendingGridIds.delete(row.id);
     }
   }
 
   async function handleTogglePauseGrid(row: GridRow): Promise<void> {
+    if (pendingGridIds.has(row.id)) return;
+    pendingGridIds.add(row.id);
     delete gridErrorById[row.id];
-    const res =
-      row.life.status === "paused"
-        ? await resumeGridBot(row.id)
-        : await pauseGridBot(row.id);
-    if (!res.ok) {
-      gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+    try {
+      const res =
+        row.life.status === "paused"
+          ? await resumeGridBot(row.id)
+          : await pauseGridBot(row.id);
+      if (!res.ok) {
+        gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+      }
+    } finally {
+      pendingGridIds.delete(row.id);
     }
   }
 
@@ -568,10 +593,16 @@
   }
 
   async function confirmStopGrid(row: GridRow): Promise<void> {
+    if (pendingGridIds.has(row.id)) return;
+    pendingGridIds.add(row.id);
     stopConfirmGridId = null;
-    const res = await stopGridBot(row.id);
-    if (!res.ok) {
-      gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+    try {
+      const res = await stopGridBot(row.id);
+      if (!res.ok) {
+        gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+      }
+    } finally {
+      pendingGridIds.delete(row.id);
     }
   }
 
@@ -695,6 +726,7 @@
                       data-testid="grid-start"
                       aria-label={$_("botsList.grid.startNamed", { values: { name: row.name } })}
                       onclick={() => void handleStartGrid(row)}
+                      disabled={pendingGridIds.has(row.id)}
                     >
                       {$_("botsList.grid.start")}
                     </button>
@@ -708,6 +740,7 @@
                         ? $_("botsList.resumeNamed", { values: { name: row.name } })
                         : $_("botsList.pauseNamed", { values: { name: row.name } })}
                       onclick={() => void handleTogglePauseGrid(row)}
+                      disabled={pendingGridIds.has(row.id)}
                     >
                       {row.life.status === "paused" ? $_("botsList.resume") : $_("botsList.pause")}
                     </button>
@@ -719,6 +752,7 @@
                       data-testid="grid-stop"
                       aria-label={$_("botsList.stopNamed", { values: { name: row.name } })}
                       onclick={() => requestStopGrid(row)}
+                      disabled={pendingGridIds.has(row.id)}
                     >
                       {$_("botsList.stop")}
                     </button>
@@ -738,7 +772,7 @@
                     values: {
                       orders: row.restingOrderCount,
                       side: row.position.side.toUpperCase(),
-                      amount: formatDynamicDecimal(row.position.amount),
+                      amount: formatDynamicDecimal(gridOwnedAmount(row.position).toString()),
                       symbol: row.symbol,
                     },
                   })}
@@ -755,6 +789,7 @@
                   class="py-0.5 px-2 text-[10px] bg-[var(--danger-color)] text-[var(--text-on-danger)] rounded border border-[var(--border-color)]"
                   data-testid="grid-stop-confirm-execute"
                   onclick={() => void confirmStopGrid(row)}
+                  disabled={pendingGridIds.has(row.id)}
                 >
                   {$_("botsList.grid.stopConfirmExecute")}
                 </button>
@@ -814,7 +849,7 @@
                   </span>
                   ·
                   <span class="font-mono text-[var(--text-primary)]">
-                    {formatDynamicDecimal(row.position.amount)}
+                    {formatDynamicDecimal(gridOwnedAmount(row.position).toString())}
                   </span>
                   {#if row.pnl !== null}
                     · {$_("botsList.grid.pnl")}

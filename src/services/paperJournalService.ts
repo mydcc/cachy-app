@@ -35,6 +35,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { gridEntryPrice, gridOwnedAmount } from "../lib/gridPositionShare";
 import { paperState, type PaperFill, type PaperPosition } from "../stores/paperTrading.svelte";
 import { journalState } from "../stores/journal.svelte";
 import { logger } from "./logger";
@@ -55,7 +56,10 @@ interface FillTotals {
     lastCloseBy?: "plan";
 }
 
-function sumFills(positionId: string): FillTotals {
+function sumFills(
+    positionId: string,
+    filter?: { origin: "bot" | "manual"; botId?: string },
+): FillTotals {
     const totals: FillTotals = {
         openQty: new Decimal(0),
         openNotional: new Decimal(0),
@@ -70,6 +74,10 @@ function sumFills(positionId: string): FillTotals {
 
     for (const fill of paperState.fills as readonly PaperFill[]) {
         if (fill.positionId !== positionId) continue;
+        if (filter?.origin === "bot" && (fill.origin !== "bot" || fill.botId !== filter.botId)) {
+            continue;
+        }
+        if (filter?.origin === "manual" && fill.origin === "bot") continue;
         const qty = new Decimal(fill.qty);
         const price = new Decimal(fill.price);
         const fee = new Decimal(fill.fee);
@@ -104,6 +112,17 @@ function sumFills(positionId: string): FillTotals {
     return totals;
 }
 
+/** Fills belonging to the share represented by the current position. */
+function totalsForPosition(position: PaperPosition): FillTotals {
+    if (position.origin === "bot" && position.botId) {
+        return sumFills(position.positionId, { origin: "bot", botId: position.botId });
+    }
+    if (position.origin === "manual") {
+        return sumFills(position.positionId, { origin: "manual" });
+    }
+    return sumFills(position.positionId);
+}
+
 /** The stop the position was taken with, from the plan resting against it. */
 function plannedStop(position: PaperPosition): Decimal | null {
     const plan = paperState.orders.find(
@@ -131,7 +150,9 @@ function plannedTarget(position: PaperPosition): Decimal | null {
  */
 function riskOf(position: PaperPosition, stop: Decimal | null): Decimal {
     if (stop === null || stop.lte(0)) return new Decimal(0);
-    return new Decimal(position.entryPrice).minus(stop).abs().times(position.amount);
+    const entry = position.origin === "bot" ? gridEntryPrice(position) : new Decimal(position.entryPrice);
+    const amount = position.origin === "bot" ? gridOwnedAmount(position) : new Decimal(position.amount);
+    return entry.minus(stop).abs().times(amount);
 }
 
 class PaperJournalService {
@@ -147,6 +168,7 @@ class PaperJournalService {
     public reconcile(): void {
         if (!paperState.enabled) return;
         try {
+            this.completeBotShareEntries();
             this.openEntries();
             this.completeClosedEntries();
         } catch (e) {
@@ -180,7 +202,7 @@ class PaperJournalService {
         const entries = journalState.entries;
         let entry: JournalEntry | undefined;
         for (let i = entries.length - 1; i >= 0; i--) {
-            if (entries[i].tradeId === positionId) {
+            if (entries[i].tradeId === positionId && entries[i].origin === "bot") {
                 entry = entries[i];
                 break;
             }
@@ -211,8 +233,10 @@ class PaperJournalService {
     private createEntry(position: PaperPosition): void {
         const stop = plannedStop(position);
         const target = plannedTarget(position);
-        const totals = sumFills(position.positionId);
+        const totals = totalsForPosition(position);
         const risk = riskOf(position, stop);
+        const shareAmount = position.origin === "bot" ? gridOwnedAmount(position) : new Decimal(position.amount);
+        const shareEntry = position.origin === "bot" ? gridEntryPrice(position) : new Decimal(position.entryPrice);
         const accountSize = new Decimal(
             position.accountSizeAtEntry ?? paperState.balance.toString(),
         );
@@ -233,7 +257,7 @@ class PaperJournalService {
                 : new Decimal(0),
             leverage: new Decimal(position.leverage),
             fees: totals.entryFee,
-            entryPrice: new Decimal(position.entryPrice),
+            entryPrice: shareEntry,
             stopLossPrice: stop ?? new Decimal(0),
             totalRR: new Decimal(0),
             totalNetProfit: new Decimal(0),
@@ -243,7 +267,7 @@ class PaperJournalService {
             entryFeeType: "taker",
             maxPotentialProfit:
                 target !== null
-                    ? target.minus(position.entryPrice).abs().times(position.amount)
+                    ? target.minus(shareEntry).abs().times(shareAmount)
                     : new Decimal(0),
             notes: "",
             targets:
@@ -251,7 +275,7 @@ class PaperJournalService {
                     ? [{ price: target, percent: new Decimal(100), isLocked: false }]
                     : [],
             calculatedTpDetails: [],
-            positionSize: new Decimal(position.amount),
+            positionSize: shareAmount,
             // FEAT-0806 — attribution copied once from the position, as a
             // recorded fact: the entry owns its copy, so a rule deleted later
             // never erases the track record, and an entry written before
@@ -290,11 +314,11 @@ class PaperJournalService {
      * shrinking incorrectly and inflating the R-multiple on the remainder.
      */
     private refreshOpenEntry(existing: JournalEntry, position: PaperPosition): void {
-        const totals = sumFills(position.positionId);
+        const totals = totalsForPosition(position);
         const stop = plannedStop(position) ?? existing.stopLossPrice;
-        const size = new Decimal(position.amount);
-        const entryPrice = new Decimal(position.entryPrice);
-        const realized = new Decimal(position.realizedPnl);
+        const size = position.origin === "bot" ? gridOwnedAmount(position) : new Decimal(position.amount);
+        const entryPrice = position.origin === "bot" ? gridEntryPrice(position) : new Decimal(position.entryPrice);
+        const realized = totals.closeRealized;
 
         const unchanged =
             existing.positionSize?.eq(size) === true &&
@@ -339,6 +363,48 @@ class PaperJournalService {
     }
 
     /**
+     * A bot-only close can finish the bot's trade while a permitted manual
+     * remainder keeps the same paper position alive. Complete the bot entry
+     * from bot-attributed fills; openEntries then creates a fresh manual entry.
+     */
+    private completeBotShareEntries(): void {
+        const openByPosition = new Map(
+            paperState.positions.map((position) => [position.positionId, position]),
+        );
+        for (const fill of paperState.fills) {
+            if (fill.tradeSide !== "CLOSE" || fill.origin !== "bot" || !fill.botId) continue;
+            const position = openByPosition.get(fill.positionId);
+            const owned = position
+                ? position.origin === "bot" &&
+                  position.botId === fill.botId &&
+                  (position.gridOwnedAmount
+                      ? new Decimal(position.gridOwnedAmount).gt(0)
+                      : new Decimal(position.amount).gt(0))
+                : false;
+            if (owned) continue;
+
+            let entry: JournalEntry | undefined;
+            for (let i = journalState.entries.length - 1; i >= 0; i--) {
+                const candidate = journalState.entries[i];
+                if (
+                    candidate.tradeId === fill.positionId &&
+                    candidate.origin === "bot" &&
+                    candidate.status === "Open"
+                ) {
+                    entry = candidate;
+                    break;
+                }
+            }
+            if (entry === undefined) continue;
+            this.completeEntry(
+                fill.positionId,
+                entry.id,
+                sumFills(fill.positionId, { origin: "bot", botId: fill.botId }),
+            );
+        }
+    }
+
+    /**
      * Completes the entry of every position that has gone away.
      *
      * A link outliving its position is exactly the signal that the trade
@@ -355,14 +421,17 @@ class PaperJournalService {
         }
     }
 
-    private completeEntry(positionId: string, entryId: string): void {
+    private completeEntry(
+        positionId: string,
+        entryId: string,
+        totals: FillTotals = sumFills(positionId),
+    ): void {
         const existing = journalState.entries.find((e) => e.id === entryId);
         if (existing === undefined) {
             paperState.clearJournalLink(positionId);
             return;
         }
 
-        const totals = sumFills(positionId);
         if (totals.closeQty.lte(0)) {
             // Nothing closed, yet the position is gone. Not a state the
             // simulator produces; leaving the entry alone beats writing an

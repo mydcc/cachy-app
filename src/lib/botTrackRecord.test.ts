@@ -364,6 +364,36 @@ describe("FEAT-0819 stage 5 — grid mark-to-market equity alongside realized cl
         expect(record.markToMarketCurve?.map((d) => d.toString())).toEqual(["15", "25", "-15"]);
     });
 
+    it("applies a null-hash mark to one bucket only", () => {
+        const older = botTrade({
+            botId: "grid-1",
+            strategyHash: HASH_A,
+            netProfit: "10",
+            exitDate: "2026-01-01T02:00:00.000Z",
+        });
+        const newer = botTrade({
+            botId: "grid-1",
+            strategyHash: HASH_B,
+            netProfit: "20",
+            exitDate: "2026-01-02T02:00:00.000Z",
+        });
+        const gridMarks = new Map([
+            [
+                "grid-1",
+                {
+                    strategyHash: null,
+                    hasOpenPosition: true,
+                    unrealizedPnl: new Decimal("5"),
+                },
+            ],
+        ]);
+
+        const records = botTrackRecords([older, newer], { gridMarks });
+        expect(records).toHaveLength(3);
+        expect(records.filter((record) => record.unrealizedPnl?.eq(5))).toHaveLength(1);
+        expect(records.find((record) => record.strategyHash === null)?.unrealizedPnl?.toString()).toBe("5");
+    });
+
     it("surfaces a grid holding open inventory even before its first closed trade", () => {
         const gridMarks = new Map([
             [

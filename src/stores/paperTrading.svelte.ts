@@ -62,6 +62,11 @@ export interface PaperConfig {
     failureMode: PaperFailureMode;
     /** Fraction of the requested quantity a "partial" fill delivers, 0–1. */
     partialFillRatio: string;
+    /**
+     * FEAT-0820 — when true, a manual add may join a grid-owned position and
+     * the grid keeps its own share. When false, the grid slot rejects the add.
+     */
+    allowManualAddsToGridPositions: boolean;
 }
 
 export const DEFAULT_PAPER_CONFIG: PaperConfig = {
@@ -71,6 +76,7 @@ export const DEFAULT_PAPER_CONFIG: PaperConfig = {
     makerFeeBps: "2",
     failureMode: "none",
     partialFillRatio: "0.5",
+    allowManualAddsToGridPositions: true,
 };
 
 /** A simulated position, in the same shape the real one is mapped from. */
@@ -127,6 +133,14 @@ export interface PaperPosition {
     ruleId?: string;
     /** 64 lowercase hex — the strategy version the rule fired under. */
     strategyHash?: string;
+    /**
+     * FEAT-0820 — the bot/grid-owned share of a netted position. A manual add
+     * changes `amount` and `entryPrice` for the whole position, so these two
+     * fields preserve the share and its basis for bot review and bot-only closes.
+     * Absent on legacy positions; the first attributed write migrates them.
+     */
+    gridOwnedAmount?: string;
+    gridEntryPrice?: string;
 }
 
 /** A resting simulated order, waiting for the feed to cross it. */
@@ -231,9 +245,10 @@ export interface PaperFill {
     positionId: string;
     createdAt: number;
     /**
-     * FEAT-0806 — stamped on the opening fill only, so attribution survives
-     * metadata eviction (the book caps at 500 fills). A closing fill carries
-     * none and inherits by `positionId`.
+     * FEAT-0806 — stamped on the opening fill so attribution survives metadata
+     * eviction (the book caps at 500 fills). FEAT-0820 — a bot close carries it
+     * too, so a bot-only close of a netted position is distinguishable from a
+     * manual close of the remainder.
      */
     origin?: "bot" | "manual";
     botId?: string;
@@ -311,6 +326,8 @@ const PaperPositionSchema = z.object({
     botId: z.string().optional(),
     ruleId: z.string().optional(),
     strategyHash: z.string().optional(),
+    gridOwnedAmount: decimalString.optional().catch(undefined),
+    gridEntryPrice: decimalString.optional().catch(undefined),
 });
 
 const PaperFillSchema = z.object({
@@ -394,6 +411,7 @@ const PaperStateSchema = z.object({
             makerFeeBps: decimalString,
             failureMode: z.enum(["none", "reject", "timeout", "partial"]),
             partialFillRatio: decimalString,
+            allowManualAddsToGridPositions: z.boolean().catch(true),
         })
         .partial()
         .catch({}),
@@ -476,6 +494,12 @@ class PaperTradingManager {
     }
 
     public setConfig<K extends keyof PaperConfig>(key: K, value: PaperConfig[K]): boolean {
+        if (key === "allowManualAddsToGridPositions") {
+            if (typeof value !== "boolean") return false;
+            this._config = { ...this._config, allowManualAddsToGridPositions: value };
+            this.persist();
+            return true;
+        }
         if (key === "failureMode") {
             const mode = String(value) as PaperFailureMode;
             if (!["none", "reject", "timeout", "partial"].includes(mode)) return false;

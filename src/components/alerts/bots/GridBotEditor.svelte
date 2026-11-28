@@ -161,6 +161,8 @@
     let refusalMessage = $state<string | null>(null);
     let refusalField = $state<string | null>(null);
     let startingBusy = $state(false);
+    // A create-and-start retry must upsert the same grid, not create a second one.
+    let newGridId: string | null = null;
 
     let normalizedSym = $derived(symbol.trim().toUpperCase());
     let parsedLevelCount = $derived.by(() => {
@@ -302,11 +304,13 @@
             }
         }
 
-        const id =
-            grid?.id ??
-            (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                ? `grid-${crypto.randomUUID()}`
-                : `grid-${Date.now()}`);
+        if (grid?.id === undefined && newGridId === null) {
+            newGridId =
+                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                    ? `grid-${crypto.randomUUID()}`
+                    : `grid-${Date.now()}`;
+        }
+        const id = grid?.id ?? newGridId ?? "";
         const defaultName = `${normalizedSym} ${side.toUpperCase()} Grid`;
 
         return {

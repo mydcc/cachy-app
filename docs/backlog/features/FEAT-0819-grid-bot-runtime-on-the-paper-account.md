@@ -95,9 +95,9 @@ Implement the grid as its own bot kind, per
 - [x] The grid's review surfaces show mark-to-market equity alongside
       realized closed trades, never closed-trade-only curves.
       *Stage 5: `botTrackRecord.ts` (`gridMarks`), `JournalBotCards.svelte`, `JournalContent.svelte`, and `BotsTab.svelte`.*
-- [x] The editor offers an ATR-derived spacing suggestion from existing
+- [x] The editor offers an ATR-derived level-count suggestion from existing
       indicator data — a suggestion the trader accepts, never silently
-      applied.
+      applied. The range determines the spacing once the level count is set.
       *Stage 5: `suggestGridLevelsFromAtr` (`gridEditorPreview.ts`) + explicit apply control in `GridBotEditor.svelte`.*
 - [x] The estimated budget (levels × size plus a fee buffer) and the
       worst-case loss (all opening levels filled, stop-out executed, fees on
@@ -114,6 +114,8 @@ Implement the grid as its own bot kind, per
 All 5 stages are delivered (#4624, #4626, #4627, #4630, and Stage 5 editor/review surfaces with FEAT-0820).
 
 Stage 4 delivers the Rust `evaluate_grid` / `timeframes` / `warmup_candles` WASM exports, the Class A grid stores (`gridStore.ts`), pure projection & `(symbol, side)` reservation (`gridState.ts`), `OrderGate` `kind: "grid"` & cumulative `rmsService` checks, paper simulator counter-order / Bitget close / limit-bound execution support (`paperExchange.ts`), `gridOrder.ts`, and `gridRuntime.ts` (ladder placement, rebalance, pause/resume, `trend_filter` withdraw/rebuild, strict cancel-before-close stop & `stop_out`, crash recovery from `"stopping"`, and durable fill-eviction-safe reload reconciliation). The item returns to `ready` between stages so stage 5 can claim it cleanly.
+
+Stage 5 review follow-up (2026-11-28): the paper position keeps the grid-owned amount and its entry basis separate when a permitted manual add nets into the same symbol/side. Grid review and stop use that share; the manual remainder stays open and gets its own journal entry.
 
 Stage 3 gives `PaperOrder` the four attribution fields the position and the
 opening fill already carry (`origin`, `botId`, `ruleId`, `strategyHash`;

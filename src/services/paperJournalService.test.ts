@@ -76,6 +76,52 @@ const open = (qty: string, extra: Record<string, unknown> = {}) =>
 const close = (qty: string) =>
     trade({ side: "BUY", qty, reduceOnly: true, tradeSide: "CLOSE" });
 
+describe("paper journal — a bot share inside a netted position", () => {
+  const bot = {
+    origin: "bot",
+    botId: "grid-1",
+    ruleId: "grid-1",
+    strategyHash: "hash-1",
+  };
+
+  it("completes the bot entry on a bot-only close and opens a manual remainder", async () => {
+    await open("1", bot);
+    feed.BTCUSDT = new Decimal(60000);
+    await open("1");
+    feed.BTCUSDT = new Decimal(70000);
+    await trade({ side: "BUY", qty: "1", reduceOnly: true, tradeSide: "CLOSE", ...bot });
+
+    const positionId = paperState.positions[0].positionId;
+    paperJournalService.recordBotExit(positionId);
+    paperJournalService.reconcile();
+
+    const botEntry = journalState.entries.find((entry) => entry.origin === "bot");
+    expect(botEntry).toMatchObject({ status: "Won", exitOrigin: "bot" });
+    expect(botEntry?.positionSize?.toString()).toBe("1");
+    expect(botEntry?.totalNetProfit.toString()).toBe("20000");
+
+    const manualEntry = journalState.entries.find((entry) => entry.origin === "manual");
+    expect(manualEntry).toMatchObject({ status: "Open" });
+    expect(manualEntry?.positionSize?.toString()).toBe("1");
+    expect(manualEntry?.entryPrice.toString()).toBe("60000");
+  });
+
+  it("keeps the open bot entry at its own share after a manual add and partial bot close", async () => {
+    await open("2", bot);
+    feed.BTCUSDT = new Decimal(60000);
+    await open("1");
+    feed.BTCUSDT = new Decimal(70000);
+    await trade({ side: "BUY", qty: "1", reduceOnly: true, tradeSide: "CLOSE", ...bot });
+
+    expect(paperState.positions[0]).toMatchObject({ amount: "2", gridOwnedAmount: "1" });
+    const entry = journalState.entries.find((candidate) => candidate.origin === "bot");
+    expect(entry).toMatchObject({ status: "Open" });
+    expect(entry?.positionSize?.toString()).toBe("1");
+    expect(entry?.entryPrice.toString()).toBe("50000");
+    expect(entry?.realizedPnl?.toString()).toBe("20000");
+  });
+});
+
 describe("paper journal — opening", () => {
     it("writes an Open entry the moment the position exists", async () => {
         await open("1");

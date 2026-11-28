@@ -80,7 +80,7 @@ import { paperTradingService } from "../paperTradingService";
 import { tradeService } from "../tradeService";
 import { externalFeedStore } from "./externalFeedStore";
 import { RuleEvaluationLoop } from "./ruleEvaluationLoop";
-import { setGridBookChangeListener } from "./gridBookBus";
+import { isGridSlotReservedForOther, setGridBookChangeListener } from "./gridBookBus";
 import {
   gridRuntime,
   gridSlotCloseClientId,
@@ -227,6 +227,99 @@ afterEach(() => {
   setGridBookChangeListener(null);
   gridRuntime.configure(null);
   paperTradingService.destroy();
+});
+
+describe("FEAT-0820 — manual adds into a grid-owned position", () => {
+  function seedOwnedPosition(botId = "grid-1"): void {
+    saveGrid(makeGrid({ id: botId }));
+    patchGridState(botId, { status: "active" });
+    paperState.setPositions([
+      {
+        positionId: "paper-pos-owned",
+        symbol: "BTCUSDT",
+        side: "long",
+        amount: "1",
+        entryPrice: "50000",
+        leverage: "10",
+        marginMode: "cross",
+        realizedPnl: "0",
+        openedAt: Date.now(),
+        origin: "bot",
+        botId,
+        ruleId: botId,
+        strategyHash: "hash-1",
+        gridOwnedAmount: "1",
+        gridEntryPrice: "50000",
+      },
+    ]);
+  }
+
+  it("allows an add only into the grid's own position while the policy is on", () => {
+    seedOwnedPosition();
+    paperState.setConfig("allowManualAddsToGridPositions", true);
+
+    expect(
+      isGridSlotReservedForOther("BTCUSDT", "long", undefined, "paper-pos-owned"),
+    ).toBe(false);
+    expect(
+      isGridSlotReservedForOther("BTCUSDT", "long", undefined, "paper-pos-other"),
+    ).toBe(true);
+    expect(isGridSlotReservedForOther("BTCUSDT", "long")).toBe(true);
+  });
+
+  it("blocks the add when the policy is off, but never blocks the grid's own order", () => {
+    seedOwnedPosition();
+    paperState.setConfig("allowManualAddsToGridPositions", false);
+
+    expect(
+      isGridSlotReservedForOther("BTCUSDT", "long", undefined, "paper-pos-owned"),
+    ).toBe(true);
+    expect(isGridSlotReservedForOther("BTCUSDT", "long", "grid-1")).toBe(false);
+  });
+});
+
+describe("FEAT-0820 — stopping a grid with a manual remainder", () => {
+  it("closes only the grid-owned amount and records the bot exit", async () => {
+    saveGrid(makeGrid());
+    patchGridState("grid-1", { status: "active" });
+    paperState.setPositions([
+      {
+        positionId: "paper-pos-grid",
+        symbol: "BTCUSDT",
+        side: "long",
+        amount: "2",
+        entryPrice: "55000",
+        leverage: "10",
+        marginMode: "cross",
+        realizedPnl: "0",
+        openedAt: Date.now(),
+        origin: "bot",
+        botId: "grid-1",
+        ruleId: "grid-1",
+        strategyHash: "hash-1",
+        gridOwnedAmount: "1",
+        gridEntryPrice: "50000",
+      },
+    ]);
+    const closePosition = vi.fn(async () => {
+      paperState.setPositions([]);
+      return {};
+    });
+    const recordBotExit = vi.fn();
+    gridRuntime.configure(buildTestEnv({ closePosition, recordBotExit }));
+
+    await expect(gridRuntime.stopGrid("grid-1", "manual")).resolves.toEqual({ ok: true });
+    expect(closePosition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        symbol: "BTCUSDT",
+        positionSide: "long",
+        amount: new Decimal("1"),
+        origin: "bot",
+        attribution: expect.objectContaining({ botId: "grid-1", ruleId: "grid-1" }),
+      }),
+    );
+    expect(recordBotExit).toHaveBeenCalledWith("paper-pos-grid");
+  });
 });
 
 describe("FEAT-0819 — a failed resume leaves the grid paused", () => {
@@ -1142,11 +1235,12 @@ describe("gridRuntime (FEAT-0819 stage 4)", () => {
     expect(closeCalls).toBe(2);
     expect(recordExitSpy).not.toHaveBeenCalled();
 
-    // Once full close succeeds on manual stop, grid reaches closed (recordBotExit reserved for stop_out).
+    // Once the full grid share closes on a manual stop, the grid reaches closed
+    // and the exit is attributed to the bot (FEAT-0820 review fix).
     paperState.setConfig("failureMode", "none");
     expect(await gridRuntime.stopGrid("grid-b-small", "manual")).toEqual({ ok: true });
     expect(readGridState("grid-b-small")?.status).toBe("closed");
-    expect(recordExitSpy).not.toHaveBeenCalled();
+    expect(recordExitSpy).toHaveBeenCalledTimes(1);
   });
 
   it("blocks startGrid on active/paused/stopping grids and propagates resume/reconcile refusals", async () => {

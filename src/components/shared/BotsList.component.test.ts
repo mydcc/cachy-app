@@ -869,6 +869,8 @@ describe("FEAT-0819 stage 5 + FEAT-0820 — grid bot rows, controls, stop confir
                         amount: new Decimal("0.02"),
                         size: new Decimal("0.02"),
                         entryPrice: new Decimal("91000"),
+                        markPrice: new Decimal(93125),
+                        unpriced: false,
                         unrealizedPnl: new Decimal("42.5"),
                         leverage: new Decimal(1),
                         marginMode: "cross",
@@ -890,14 +892,17 @@ describe("FEAT-0819 stage 5 + FEAT-0820 — grid bot rows, controls, stop confir
         ).toContain("+42.5");
 
         // Pause -> Resume
-        activeRow.querySelector<HTMLElement>('[data-testid="grid-pause-toggle"]')!.click();
+        const pauseToggle = activeRow.querySelector<HTMLButtonElement>('[data-testid="grid-pause-toggle"]')!;
+        pauseToggle.click();
         await vi.waitFor(() => expect(pauseGridBotMock).toHaveBeenCalledWith("grid-1"));
+        await vi.waitFor(() => expect(pauseToggle.disabled).toBe(false));
 
         setGridState("grid-1", "paused", [0, 1]);
         flushSync();
         expect(chipOf(activeRow)).toBe("Paused");
-        activeRow.querySelector<HTMLElement>('[data-testid="grid-pause-toggle"]')!.click();
+        pauseToggle.click();
         await vi.waitFor(() => expect(resumeGridBotMock).toHaveBeenCalledWith("grid-1"));
+        await vi.waitFor(() => expect(pauseToggle.disabled).toBe(false));
 
         // Stop asks once naming resting order count (2) and owned position (LONG, 0.02 BTCUSDT)
         activeRow.querySelector<HTMLElement>('[data-testid="grid-stop"]')!.click();

@@ -743,10 +743,23 @@ class PaperExchange {
         const { origin, attribution } = readProvenance(payload);
         if (!closes) {
             const posSide: "long" | "short" = side === "BUY" ? "long" : "short";
-            if (isGridSlotReservedForOther(symbol, posSide, attribution?.botId)) {
+            if (
+                isGridSlotReservedForOther(
+                    symbol,
+                    posSide,
+                    attribution?.botId,
+                    typeof payload.positionId === "string" ? payload.positionId : undefined,
+                )
+            ) {
+                const target =
+                    typeof payload.positionId === "string"
+                        ? paperState.positions.find((p) => p.positionId === payload.positionId)
+                        : undefined;
                 throw new PaperExchangeError(
                     "PAPER_GRID_SLOT_RESERVED",
-                    "settings.automation.orderRefusedPositionOpen",
+                    target?.origin === "bot"
+                        ? "botsList.grid.refusal.manualAddBlocked"
+                        : "settings.automation.orderRefusedPositionOpen",
                 );
             }
         }
@@ -831,7 +844,7 @@ class PaperExchange {
         }
 
         const fill = closes
-            ? this.applyClose(symbol, side, qty, price)
+            ? this.applyClose(symbol, side, qty, price, true, origin, attribution)
             : this.applyOpen(
                   symbol,
                   side,
@@ -930,9 +943,10 @@ class PaperExchange {
             ...(context.tradeSide === "CLOSE" && context.exitBy !== undefined
                 ? { exitBy: context.exitBy }
                 : {}),
-            // FEAT-0806 — the opening fill is the audit record's attributable
-            // anchor; closing fills inherit by positionId.
-            ...(context.tradeSide === "OPEN" && context.origin !== undefined
+            // FEAT-0806 / FEAT-0820 — the opening fill anchors attribution;
+            // a bot close carries it too so a bot-only close of a netted
+            // position is distinguishable from a manual close of the remainder.
+            ...(context.origin !== undefined
                 ? { origin: context.origin, ...context.attribution }
                 : {}),
         };
@@ -1066,7 +1080,8 @@ class PaperExchange {
 
         let positionId: string;
         const accountSize = paperState.balance.toString();
-        if (index === -1) {
+        const existing = index === -1 ? undefined : positions[index];
+        if (existing === undefined) {
             positionId = paperState.takeId("paper-pos");
             positions.push({
                 positionId,
@@ -1086,6 +1101,10 @@ class PaperExchange {
                 // existing position never re-attributes it.
                 ...(origin !== undefined ? { origin } : {}),
                 ...(attribution ?? {}),
+                // FEAT-0820 — the bot-owned share starts at the opening fill.
+                ...(origin === "bot"
+                    ? { gridOwnedAmount: qty.toString(), gridEntryPrice: price.toString() }
+                    : {}),
             });
             // Capture entry metadata independently so it survives fill eviction.
             paperState.setPositionMetadata(positionId, {
@@ -1105,16 +1124,45 @@ class PaperExchange {
             // Weighted average entry, the way the exchange reports it after an
             // add — not a replacement, which would silently reset the trade's
             // basis and make every subsequent PnL figure wrong.
-            const existing = positions[index];
             positionId = existing.positionId;
             const oldQty = new Decimal(existing.amount);
             const oldEntry = new Decimal(existing.entryPrice);
             const newQty = oldQty.plus(qty);
             const newEntry = oldEntry.times(oldQty).plus(price.times(qty)).div(newQty);
+
+            let gridOwnedAmount = existing.gridOwnedAmount;
+            let gridEntryPrice = existing.gridEntryPrice;
+            if (origin === "bot" && attribution !== undefined) {
+                if (existing.origin !== "bot" || existing.botId !== attribution.botId) {
+                    // The slot reservation should have refused this before the
+                    // simulator. Fail closed rather than merge two bot owners.
+                    throw new PaperExchangeError(
+                        "PAPER_GRID_SLOT_RESERVED",
+                        "settings.automation.orderRefusedPositionOpen",
+                    );
+                }
+                const oldGridQty = gridOwnedAmount ? new Decimal(gridOwnedAmount) : oldQty;
+                const oldGridEntry = gridEntryPrice ? new Decimal(gridEntryPrice) : oldEntry;
+                const newGridQty = oldGridQty.plus(qty);
+                gridOwnedAmount = newGridQty.toString();
+                gridEntryPrice = oldGridEntry
+                    .times(oldGridQty)
+                    .plus(price.times(qty))
+                    .div(newGridQty)
+                    .toString();
+            } else if (existing.origin === "bot" && gridOwnedAmount === undefined) {
+                // Migrate a legacy bot position at the first manual add: before
+                // this fill the whole position was the bot's, so freeze that share.
+                gridOwnedAmount = existing.amount;
+                gridEntryPrice = existing.entryPrice;
+            }
+
             positions[index] = {
                 ...existing,
                 amount: newQty.toString(),
                 entryPrice: newEntry.toString(),
+                ...(gridOwnedAmount !== undefined ? { gridOwnedAmount } : {}),
+                ...(gridEntryPrice !== undefined ? { gridEntryPrice } : {}),
             };
         }
 
@@ -1129,6 +1177,8 @@ class PaperExchange {
         qty: Decimal,
         reference: Decimal,
         applySlippage = true,
+        origin?: "bot" | "manual",
+        attribution?: BotAttribution,
     ): FillResult {
         // Bitunix's close shape carries the *position's* side, not the
         // execution direction (see buildCloseOrderFields in tradeService), so
@@ -1147,20 +1197,43 @@ class PaperExchange {
 
         const position = positions[index];
         const held = new Decimal(position.amount);
-        const closing = Decimal.min(qty, held);
+        const entry = new Decimal(position.entryPrice);
+        const gridOwned = position.gridOwnedAmount
+            ? new Decimal(position.gridOwnedAmount)
+            : position.origin === "bot"
+                ? held
+                : new Decimal(0);
+        const gridEntry = position.gridEntryPrice
+            ? new Decimal(position.gridEntryPrice)
+            : entry;
+        const matchesBot =
+            origin === "bot" && attribution?.botId === position.botId && gridOwned.gt(0);
+        if (origin === "bot" && attribution?.botId === position.botId && !matchesBot) {
+            throw new PaperExchangeError(
+                "PAPER_NO_BOT_SHARE",
+                "botsList.grid.refusal.noOwnedPosition",
+            );
+        }
+
+        // A bot close is capped at its own share. A manual close reduces the
+        // netted position and the bot share proportionally.
+        const closing = matchesBot ? Decimal.min(qty, gridOwned) : Decimal.min(qty, held);
+        const entryForClose = matchesBot ? gridEntry : entry;
         const execSide: "BUY" | "SELL" = positionSide === "long" ? "SELL" : "BUY";
         // Closing a long sells into the book, so slippage points the other way.
         const price = applySlippage ? this.fillPrice(reference, execSide) : reference;
-        const entry = new Decimal(position.entryPrice);
 
         const gross =
             positionSide === "long"
-                ? price.minus(entry).times(closing)
-                : entry.minus(price).times(closing);
+                ? price.minus(entryForClose).times(closing)
+                : entryForClose.minus(price).times(closing);
         const fee = this.takerFee(price.times(closing));
         const net = gross.minus(fee);
 
         const remaining = held.minus(closing);
+        const remainingGrid = matchesBot
+            ? gridOwned.minus(closing)
+            : gridOwned.times(remaining).div(held);
         if (remaining.lte(0)) {
             positions.splice(index, 1);
             // A position that is gone cannot carry its own plans any more.
@@ -1173,10 +1246,37 @@ class PaperExchange {
             // Entry metadata is no longer needed once the position closes fully.
             paperState.deletePositionMetadata(position.positionId);
         } else {
+            // Remove the closed lot's cost basis from the netted position. For a
+            // bot close this recovers the manual remainder's own entry; for a
+            // manual close it leaves the combined entry unchanged.
+            const remainingEntry = entry
+                .times(held)
+                .minus(entryForClose.times(closing))
+                .div(remaining);
+            const botShareGone = matchesBot && remainingGrid.lte(0);
             positions[index] = {
                 ...position,
                 amount: remaining.toString(),
+                entryPrice: remainingEntry.toString(),
                 realizedPnl: new Decimal(position.realizedPnl).plus(net).toString(),
+                ...(botShareGone
+                    ? {
+                          origin: "manual" as const,
+                          botId: undefined,
+                          ruleId: undefined,
+                          strategyHash: undefined,
+                          gridOwnedAmount: undefined,
+                          gridEntryPrice: undefined,
+                      }
+                    : remainingGrid.gt(0)
+                        ? {
+                              gridOwnedAmount: remainingGrid.toString(),
+                              gridEntryPrice: gridEntry.toString(),
+                          }
+                        : {
+                              gridOwnedAmount: undefined,
+                              gridEntryPrice: undefined,
+                          }),
             };
         }
 
@@ -1397,7 +1497,16 @@ class PaperExchange {
             const { origin, attribution } = readProvenance(order);
             if (!closes) {
                 const posSide: "long" | "short" = order.side === "BUY" ? "long" : "short";
-                if (isGridSlotReservedForOther(order.symbol, posSide, attribution?.botId)) {
+                if (
+                    isGridSlotReservedForOther(
+                        order.symbol,
+                        posSide,
+                        attribution?.botId,
+                        order.positionId,
+                    )
+                ) {
+                    // A resting manual add that is no longer allowed is cancelled,
+                    // not filled into the grid-owned position.
                     changed = true;
                     continue;
                 }
@@ -1427,7 +1536,15 @@ class PaperExchange {
                               : Decimal.max(limitLevel, price);
                 }
                 const fill = closes
-                    ? this.applyClose(order.symbol, order.side, qty, fillRef, useSlippage)
+                    ? this.applyClose(
+                          order.symbol,
+                          order.side,
+                          qty,
+                          fillRef,
+                          useSlippage,
+                          origin,
+                          attribution,
+                      )
                     : this.applyOpen(
                           order.symbol,
                           order.side,

@@ -55,6 +55,9 @@ A grid surface built on the runtime from FEAT-0819:
       locales.
 - [x] Component tests cover start/pause/stop, the chart lines, the grouped
       orders and the empty state.
+- [x] Manual additions to a grid-owned position follow a persisted user policy
+      in the Bots tab. Grid review, PnL, stop confirmation and stop execution use
+      only the grid-owned share; a permitted manual remainder stays open.
 
 ## Out of scope
 
@@ -74,6 +77,16 @@ depends on FEAT-0819, and moves to `ready` once that runtime is done.
   summary.
 - The panel offers long or short only (ADR-0027 point 8), sizes by quote
   budget and shows the worst-case loss before start (point 10).
+
+- The "Stop all" action is scoped to rule bots. Its label and toast say so;
+  grids are stopped per grid or through a separate future fleet action.
+- ATR suggests the level count, not a price spacing. Once the count is set,
+  the range determines the spacing.
+- Manual additions to a grid-owned symbol/side are a user policy. The default
+  allows them and separates the grid-owned amount from the manual share in
+  review surfaces. The Bots tab exposes the toggle and persists it in the paper
+  settings; when off, the grid slot rejects the add. The order gate enforces the
+  policy. A grid stop closes only the grid-owned share, never the manual remainder.
 
 ## Links
 

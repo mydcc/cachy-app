@@ -96,6 +96,8 @@ import { recordBotGuard } from "../../../services/alertEngine/botGuardStore";
 import { alertState } from "../../../stores/alerts.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
 import { paperState } from "../../../stores/paperTrading.svelte";
+import { saveGrid } from "../../../services/alertEngine/gridStore";
+import type { GridDocument } from "../../../lib/rules/types";
 
 const alert: RuleDocument = {
   schema_version: 2,
@@ -523,6 +525,105 @@ describe("FEAT-0822 review — the guard history renders every row", () => {
     const rows = [...details!.querySelectorAll("li")];
     expect(rows).toHaveLength(3);
     expect(rows.filter((row) => row.textContent?.includes("×1"))).toHaveLength(3);
+  });
+});
+
+describe("FEAT-0820 — grid position policy", () => {
+  it("persists the manual-add toggle from the bots panel", () => {
+    localStorage.clear();
+    paperState.reloadFromStorage();
+    paperState.setEnabled(true);
+    paperState.setConfig("allowManualAddsToGridPositions", true);
+    render();
+
+    const toggle = host.querySelector<HTMLInputElement>("#grid-allow-manual-adds");
+    expect(toggle).not.toBeNull();
+    expect(toggle!.checked).toBe(true);
+
+    toggle!.checked = false;
+    toggle!.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    expect(paperState.config.allowManualAddsToGridPositions).toBe(false);
+
+    paperState.reloadFromStorage();
+    expect(paperState.config.allowManualAddsToGridPositions).toBe(false);
+  });
+
+  it("names the grid share in the stop confirmation and cancels without stopping", () => {
+    localStorage.clear();
+    paperState.reloadFromStorage();
+    paperState.setEnabled(true);
+    const grid: GridDocument = {
+      kind: "grid",
+      schema_version: 1,
+      id: "grid-test",
+      name: "Test Grid",
+      symbol: "BTCUSDT",
+      side: "long",
+      evaluation_timeframe: "1h",
+      lower_price: "40000",
+      upper_price: "44000",
+      level_count: 4,
+      spacing: "arithmetic",
+      sizing: { basis: "quote_budget", amount: "4000" },
+      stop_out: [
+        {
+          kind: "compare",
+          left: { kind: "price", field: "close" },
+          op: "lt",
+          right: { kind: "constant", value: "38000" },
+          timeframe: "1h",
+        },
+      ],
+      consequence_level: "simulate",
+      enabled: true,
+      provenance: { source: "human", created_at_ms: 1 },
+    };
+    saveGrid(grid);
+    paperState.setPositions([
+      {
+        positionId: "paper-pos-grid",
+        symbol: "BTCUSDT",
+        side: "long",
+        amount: "2",
+        entryPrice: "55000",
+        leverage: "10",
+        marginMode: "cross",
+        realizedPnl: "0",
+        openedAt: Date.now(),
+        origin: "bot",
+        botId: grid.id,
+        ruleId: grid.id,
+        strategyHash: "hash-1",
+        gridOwnedAmount: "1",
+        gridEntryPrice: "50000",
+      },
+    ]);
+    alertState.gridsVersion += 1;
+    render();
+
+    const row = host.querySelector<HTMLElement>('[data-testid="control-grid-row-grid-test"]');
+    expect(row).not.toBeNull();
+    const stop = [...row!.querySelectorAll("button")].find(
+      (candidate) => candidate.textContent?.trim() === "Stop",
+    );
+    expect(stop).toBeDefined();
+    stop!.click();
+    flushSync();
+
+    const dialog = host.querySelector<HTMLElement>(
+      '[data-testid="control-grid-stop-confirm-grid-test"]',
+    );
+    expect(dialog).not.toBeNull();
+    expect(dialog!.textContent).toContain("1 BTCUSDT");
+    expect(dialog!.textContent).not.toContain("2 BTCUSDT");
+    expect(dialog!.textContent).toContain("Any manual add stays open");
+
+    button("Keep running").click();
+    flushSync();
+    expect(
+      host.querySelector('[data-testid="control-grid-stop-confirm-grid-test"]'),
+    ).toBeNull();
   });
 });
 

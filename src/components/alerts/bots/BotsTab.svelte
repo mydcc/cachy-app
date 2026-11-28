@@ -73,7 +73,7 @@
     import { journalState } from "../../../stores/journal.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { formatDynamicDecimal } from "../../../utils/utils";
-    import { calculateLiveUnrealizedPnl } from "../../../services/mappers";
+
     import { botTrackRecords, entriesForTradeMode } from "../../../lib/botTrackRecord";
     import { logger } from "../../../services/logger";
     import {
@@ -94,6 +94,7 @@
     import BotEditor from "./BotEditor.svelte";
     import GridBotEditor from "./GridBotEditor.svelte";
     import { gridRefusalKey } from "../../shared/gridRefusalKey";
+    import { gridOwnedAmount, gridUnrealizedPnl } from "../../../lib/gridPositionShare";
 
     /**
      * What to tell the trader about the last failed promotion: the i18n key and
@@ -123,6 +124,7 @@
     let editingGridSnapshot = $state<GridDocument | null>(null);
     let gridStopConfirmId = $state<string | null>(null);
     let gridActionError = $state<Record<string, string>>({});
+    let pendingGridIds = $state(new Set<string>());
 
     /**
      * The rule set, re-read whenever it changes.
@@ -384,7 +386,7 @@
         mtmPnl: Decimal | null;
     }
 
-    let gridViews = $derived.by<ControlGridView[]>(() => {
+    let gridBaseViews = $derived.by<ControlGridView[]>(() => {
         const activeGrids = gridRead.grids.map((g) => ({
             grid: g,
             status: gridRead.states[g.id]?.status ?? ("armed" as const),
@@ -410,36 +412,34 @@
                 grid.level_count,
                 Math.max(rec?.openSlots?.length ?? 0, life.counterOrderCount),
             );
-            let unrealizedPnl: Decimal | null = new Decimal(0);
-            if (position) {
-                const symData = marketState.data[position.symbol];
-                const mark = symData?.markPrice ?? symData?.lastPrice;
-                if (mark instanceof Decimal && mark.gt(0)) {
-                    unrealizedPnl = calculateLiveUnrealizedPnl(
-                        position.side,
-                        new Decimal(position.entryPrice),
-                        mark,
-                        new Decimal(position.amount),
-                    );
-                } else {
-                    unrealizedPnl = null;
-                }
-            }
             const realizedPnl = gridRealizedById.get(grid.id) ?? new Decimal(0);
-            const mtmPnl =
-                unrealizedPnl !== null ? realizedPnl.plus(unrealizedPnl) : null;
             return {
                 grid,
                 status: life.status,
                 filledCount,
                 restingOrderCount,
                 position,
-                unrealizedPnl,
+                unrealizedPnl: null,
                 realizedPnl,
-                mtmPnl,
+                mtmPnl: null,
             };
         });
     });
+
+    /** Price ticks overlay PnL without re-deriving every grid's lifecycle. */
+    let gridViews = $derived.by<ControlGridView[]>(() =>
+        gridBaseViews.map((view) => {
+            if (!view.position) return view;
+            const symData = marketState.data[view.position.symbol];
+            const mark = symData?.markPrice ?? symData?.lastPrice;
+            const unrealizedPnl = gridUnrealizedPnl(view.position, mark);
+            return {
+                ...view,
+                unrealizedPnl,
+                mtmPnl: unrealizedPnl !== null ? view.realizedPnl.plus(unrealizedPnl) : null,
+            };
+        }),
+    );
 
     const GRID_STATE_KEY: Record<GridLifeStatus, TranslationKey> = {
         armed: "botsList.state.armed",
@@ -529,34 +529,52 @@
     }
 
     async function runGridStart(gridId: string): Promise<void> {
+        if (pendingGridIds.has(gridId)) return;
+        pendingGridIds.add(gridId);
         delete gridActionError[gridId];
-        const res = await startGridBot(gridId);
-        alertState.gridsVersion += 1;
-        if (!res.ok) {
-            gridActionError[gridId] = $_(gridRefusalKey(res.reason));
+        try {
+            const res = await startGridBot(gridId);
+            alertState.gridsVersion += 1;
+            if (!res.ok) {
+                gridActionError[gridId] = $_(gridRefusalKey(res.reason));
+            }
+        } finally {
+            pendingGridIds.delete(gridId);
         }
     }
 
     async function runGridPauseToggle(view: ControlGridView): Promise<void> {
         const gridId = view.grid.id;
+        if (pendingGridIds.has(gridId)) return;
+        pendingGridIds.add(gridId);
         delete gridActionError[gridId];
-        const res =
-            view.status === "paused"
-                ? await resumeGridBot(gridId)
-                : await pauseGridBot(gridId);
-        alertState.gridsVersion += 1;
-        if (!res.ok) {
-            gridActionError[gridId] = $_(gridRefusalKey(res.reason));
+        try {
+            const res =
+                view.status === "paused"
+                    ? await resumeGridBot(gridId)
+                    : await pauseGridBot(gridId);
+            alertState.gridsVersion += 1;
+            if (!res.ok) {
+                gridActionError[gridId] = $_(gridRefusalKey(res.reason));
+            }
+        } finally {
+            pendingGridIds.delete(gridId);
         }
     }
 
     async function confirmControlGridStop(gridId: string): Promise<void> {
+        if (pendingGridIds.has(gridId)) return;
+        pendingGridIds.add(gridId);
         gridStopConfirmId = null;
         delete gridActionError[gridId];
-        const res = await stopGridBot(gridId);
-        alertState.gridsVersion += 1;
-        if (!res.ok) {
-            gridActionError[gridId] = $_(gridRefusalKey(res.reason));
+        try {
+            const res = await stopGridBot(gridId);
+            alertState.gridsVersion += 1;
+            if (!res.ok) {
+                gridActionError[gridId] = $_(gridRefusalKey(res.reason));
+            }
+        } finally {
+            pendingGridIds.delete(gridId);
         }
     }
 
@@ -764,6 +782,25 @@
             {/if}
         </div>
 
+        <div class="flex items-start justify-between gap-3 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3">
+            <div class="flex flex-col gap-0.5">
+                <label for="grid-allow-manual-adds" class="text-sm text-[var(--text-primary)]">
+                    {$_("settings.automation.grid.allowManualAdds")}
+                </label>
+                <p class="text-xs text-[var(--text-secondary)]">
+                    {$_("settings.automation.grid.allowManualAddsDesc")}
+                </p>
+            </div>
+            <Toggle
+                id="grid-allow-manual-adds"
+                checked={paperState.config.allowManualAddsToGridPositions}
+                onchange={(e) => {
+                    const target = e.currentTarget as HTMLInputElement;
+                    paperState.setConfig("allowManualAddsToGridPositions", target.checked);
+                }}
+            />
+        </div>
+
         {#if gridRead.failure}
             <p class="text-sm text-[var(--danger-color)]" role="alert">
                 {$_(gridRead.failure as TranslationKey)}
@@ -840,6 +877,7 @@
                                         variant="accent"
                                         size="sm"
                                         onClick={() => void runGridStart(g.id)}
+                                        disabled={pendingGridIds.has(g.id)}
                                     >
                                         {$_("botsList.grid.start")}
                                     </Button>
@@ -851,6 +889,7 @@
                                             editingGridId = g.id;
                                             editingGridSnapshot = g;
                                         }}
+                                        disabled={pendingGridIds.has(g.id)}
                                     >
                                         {$_("settings.automation.edit")}
                                     </Button>
@@ -859,6 +898,7 @@
                                             variant="ghost-danger"
                                             size="sm"
                                             onClick={() => removeGrid(g.id)}
+                                            disabled={pendingGridIds.has(g.id)}
                                         >
                                             {$_("settings.automation.delete")}
                                         </Button>
@@ -869,6 +909,7 @@
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => void runGridPauseToggle(view)}
+                                        disabled={pendingGridIds.has(g.id)}
                                     >
                                         {view.status === "paused"
                                             ? $_("botsList.resume")
@@ -881,6 +922,7 @@
                                             variant="ghost-danger"
                                             size="sm"
                                             onClick={() => (gridStopConfirmId = g.id)}
+                                            disabled={pendingGridIds.has(g.id)}
                                         >
                                             {$_("botsList.stop")}
                                         </Button>
@@ -947,7 +989,7 @@
                                             values: {
                                                 orders: view.restingOrderCount,
                                                 side: view.position.side.toUpperCase(),
-                                                amount: formatDynamicDecimal(view.position.amount),
+                                                amount: formatDynamicDecimal(gridOwnedAmount(view.position).toString()),
                                                 symbol: g.symbol,
                                             },
                                         })}
@@ -964,6 +1006,7 @@
                                     variant="danger"
                                     size="sm"
                                     onClick={() => void confirmControlGridStop(g.id)}
+                                    disabled={pendingGridIds.has(g.id)}
                                 >
                                     {$_("botsList.grid.stopConfirmExecute")}
                                 </Button>
