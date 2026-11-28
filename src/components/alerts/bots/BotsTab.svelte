@@ -93,6 +93,7 @@
     import InfoTip from "../../shared/InfoTip.svelte";
     import BotEditor from "./BotEditor.svelte";
     import GridBotEditor from "./GridBotEditor.svelte";
+    import { gridRefusalKey } from "../../shared/gridRefusalKey";
 
     /**
      * What to tell the trader about the last failed promotion: the i18n key and
@@ -519,7 +520,7 @@
         const res = await startGridBot(draft.id);
         alertState.gridsVersion += 1;
         if (!res.ok) {
-            return $_("botsList.grid.actionRefused", { values: { reason: res.reason } });
+            return $_(gridRefusalKey(res.reason));
         }
         creatingGrid = false;
         editingGridId = null;
@@ -532,9 +533,7 @@
         const res = await startGridBot(gridId);
         alertState.gridsVersion += 1;
         if (!res.ok) {
-            gridActionError[gridId] = $_("botsList.grid.actionRefused", {
-                values: { reason: res.reason },
-            });
+            gridActionError[gridId] = $_(gridRefusalKey(res.reason));
         }
     }
 
@@ -547,9 +546,7 @@
                 : await pauseGridBot(gridId);
         alertState.gridsVersion += 1;
         if (!res.ok) {
-            gridActionError[gridId] = $_("botsList.grid.actionRefused", {
-                values: { reason: res.reason },
-            });
+            gridActionError[gridId] = $_(gridRefusalKey(res.reason));
         }
     }
 
@@ -559,9 +556,7 @@
         const res = await stopGridBot(gridId);
         alertState.gridsVersion += 1;
         if (!res.ok) {
-            gridActionError[gridId] = $_("botsList.grid.actionRefused", {
-                values: { reason: res.reason },
-            });
+            gridActionError[gridId] = $_(gridRefusalKey(res.reason));
         }
     }
 

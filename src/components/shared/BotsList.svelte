@@ -59,6 +59,7 @@
     stopGridBot,
   } from "../../stores/alerts.svelte";
   import { readBotGuards, BOT_GUARD_REASON_KEYS } from "../../services/alertEngine/botGuardStore";
+  import { gridRefusalKey } from "./gridRefusalKey";
   import { botsState } from "../../stores/botsState.svelte";
   import {
     PAPER_ACCOUNT,
@@ -546,9 +547,7 @@
     delete gridErrorById[row.id];
     const res = await startGridBot(row.id);
     if (!res.ok) {
-      gridErrorById[row.id] = $_("botsList.grid.actionRefused", {
-        values: { reason: res.reason },
-      });
+      gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
     }
   }
 
@@ -559,9 +558,7 @@
         ? await resumeGridBot(row.id)
         : await pauseGridBot(row.id);
     if (!res.ok) {
-      gridErrorById[row.id] = $_("botsList.grid.actionRefused", {
-        values: { reason: res.reason },
-      });
+      gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
     }
   }
 
@@ -574,9 +571,7 @@
     stopConfirmGridId = null;
     const res = await stopGridBot(row.id);
     if (!res.ok) {
-      gridErrorById[row.id] = $_("botsList.grid.actionRefused", {
-        values: { reason: res.reason },
-      });
+      gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
     }
   }
 

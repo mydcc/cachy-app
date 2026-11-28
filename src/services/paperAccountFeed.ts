@@ -45,6 +45,7 @@ import {
     type GridChartLevelDescriptor,
 } from "../lib/calculators/gridEditorPreview";
 import { readGrids, readGridStates, subscribeGridStore } from "./alertEngine/gridStore";
+import { logger } from "./logger";
 
 export { subscribeGridStore };
 
@@ -294,8 +295,11 @@ class PaperAccountFeed {
                     }),
                 );
             }
-        } catch {
-            // Degraded grid store renders no stale overlay lines.
+        } catch (e) {
+            // A degraded grid store renders no overlay lines rather than stale ones,
+            // but the cause must still reach the log.
+            logger.warn("alerts", "[PaperAccountFeed] Grid chart overlay unavailable", e);
+            return { levels: [], gridOrderIds: new Set<string>() };
         }
         return { levels, gridOrderIds };
     }

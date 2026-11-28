@@ -1124,7 +1124,16 @@
       "stopConfirmOrdersOnly": "{orders} ruhende Order(s) auf {symbol} stornieren? Keine offene Position zu schließen.",
       "stopConfirmExecute": "Grid stoppen",
       "stopConfirmCancel": "Weiterlaufen lassen",
-      "actionRefused": "Grid-Aktion abgelehnt: {reason}"
+      "refusal": {
+        "notFound": "Dieses Grid existiert nicht mehr.",
+        "changed": "Das Grid wurde während des Starts geändert. Es wurde nichts gestartet; bitte erneut versuchen.",
+        "balance": "Das freie Guthaben reicht nicht für das Budget dieses Grids.",
+        "paperOff": "Der Paper-Handel ist ausgeschaltet, daher ist dieses Grid eingefroren.",
+        "slotConflict": "Ein anderer Bot hält bereits dieses Symbol und diese Seite.",
+        "state": "Das Grid befindet sich in einem Zustand, der diese Aktion nicht erlaubt.",
+        "internal": "Unerwarteter Fehler. Die Details stehen im Log.",
+        "generic": "Die Grid-Aktion wurde abgelehnt."
+      }
     }
   },
   "journal": {

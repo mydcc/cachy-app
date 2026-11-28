@@ -87,7 +87,7 @@ import {
   gridSlotOpenClientId,
   type GridRuntimeEnvironment,
 } from "./gridRuntime";
-import { patchGridState, readGridState, saveGrid } from "./gridStore";
+import { deleteGrid, patchGridState, readGridState, saveGrid } from "./gridStore";
 
 const WASM_JS = pathToFileURL(resolve(process.cwd(), "static/wasm/technicals_wasm.js")).href;
 const WASM_BINARY = resolve(process.cwd(), "static/wasm/technicals_wasm_bg.wasm");
@@ -227,6 +227,94 @@ afterEach(() => {
   setGridBookChangeListener(null);
   gridRuntime.configure(null);
   paperTradingService.destroy();
+});
+
+describe("FEAT-0819 — a failed resume leaves the grid paused", () => {
+  it("reverts to paused and reports the failure when the reconcile throws", async () => {
+    saveGrid(makeGrid());
+    const started = await gridRuntime.startGrid("grid-1");
+    expect(started).toEqual({ ok: true });
+    expect((await gridRuntime.pauseGrid("grid-1")).ok).toBe(true);
+
+    // resume reads the metadata once; the reconcile that follows reads it again and throws.
+    let metaCalls = 0;
+    gridRuntime.configure(
+      buildTestEnv({
+        ensureSymbolMeta: async () => {
+          metaCalls += 1;
+          if (metaCalls >= 2) throw new Error("metadata unavailable mid-reconcile");
+        },
+      }),
+    );
+
+    await expect(gridRuntime.resumeGrid("grid-1")).resolves.toEqual({
+      ok: false,
+      reason: "resume-failed",
+    });
+    expect(readGridState("grid-1")?.status).toBe("paused");
+  });
+});
+
+describe("FEAT-0819 — a grid changed while its start is pending", () => {
+    /**
+   * Holds the start at its only await (symbol metadata). `reached` resolves once the
+   * start is genuinely pending there, so a test mutates the grid mid-start, not before
+   * the lock has even handed the start its document.
+   */
+  function pauseStartAtMetadata(): {
+    reached: Promise<void>;
+    release: () => void;
+    env: GridRuntimeEnvironment;
+  } {
+    let release = (): void => {};
+    let markReached = (): void => {};
+    const gate = new Promise<void>((resolveGate) => {
+      release = resolveGate;
+    });
+    const reached = new Promise<void>((resolveReached) => {
+      markReached = resolveReached;
+    });
+    return {
+      reached,
+      release,
+      env: buildTestEnv({
+        ensureSymbolMeta: async () => {
+          markReached();
+          await gate;
+        },
+      }),
+    };
+  }
+
+  it("refuses to start a grid that was deleted while the start was pending", async () => {
+    saveGrid(makeGrid());
+    const { reached, release, env } = pauseStartAtMetadata();
+    gridRuntime.configure(env);
+
+    const pending = gridRuntime.startGrid("grid-1");
+    await reached;
+    deleteGrid("grid-1");
+    release();
+
+    await expect(pending).resolves.toEqual({ ok: false, reason: "grid-not-found" });
+    expect(paperState.orders.filter((o) => o.origin === "bot")).toHaveLength(0);
+    expect(readGridState("grid-1")).toBeUndefined();
+  });
+
+  it("refuses to start with the old document when it was edited while the start was pending", async () => {
+    saveGrid(makeGrid());
+    const { reached, release, env } = pauseStartAtMetadata();
+    gridRuntime.configure(env);
+
+    const pending = gridRuntime.startGrid("grid-1");
+    await reached;
+    saveGrid(makeGrid({ level_count: 6 }));
+    release();
+
+    await expect(pending).resolves.toEqual({ ok: false, reason: "grid-changed" });
+    expect(paperState.orders.filter((o) => o.origin === "bot")).toHaveLength(0);
+    expect(readGridState("grid-1")).toBeUndefined();
+  });
 });
 
 describe("gridRuntime (FEAT-0819 stage 4)", () => {

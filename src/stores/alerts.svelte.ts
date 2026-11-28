@@ -806,7 +806,7 @@ export async function startGridBot(gridId: string): Promise<GridActionResult> {
         return await gridRuntime.startGrid(gridId);
     } catch (e) {
         logger.error("alerts", `[GridBot] startGridBot(${gridId}) failed`, e);
-        return { ok: false, reason: "not-configured" };
+        return { ok: false, reason: "internal-error" };
     }
 }
 
@@ -815,7 +815,7 @@ export async function pauseGridBot(gridId: string): Promise<GridActionResult> {
         return await gridRuntime.pauseGrid(gridId);
     } catch (e) {
         logger.error("alerts", `[GridBot] pauseGridBot(${gridId}) failed`, e);
-        return { ok: false, reason: "not-configured" };
+        return { ok: false, reason: "internal-error" };
     }
 }
 
@@ -824,7 +824,7 @@ export async function resumeGridBot(gridId: string): Promise<GridActionResult> {
         return await gridRuntime.resumeGrid(gridId);
     } catch (e) {
         logger.error("alerts", `[GridBot] resumeGridBot(${gridId}) failed`, e);
-        return { ok: false, reason: "not-configured" };
+        return { ok: false, reason: "internal-error" };
     }
 }
 
@@ -833,7 +833,7 @@ export async function stopGridBot(gridId: string): Promise<GridActionResult> {
         return await gridRuntime.stopGrid(gridId, "manual");
     } catch (e) {
         logger.error("alerts", `[GridBot] stopGridBot(${gridId}) failed`, e);
-        return { ok: false, reason: "not-configured" };
+        return { ok: false, reason: "internal-error" };
     }
 }
 

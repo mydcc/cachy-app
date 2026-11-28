@@ -33,6 +33,7 @@
 import { Decimal } from "decimal.js";
 
 import { logger } from "../logger";
+import type { BotAttribution } from "../orderGate";
 import type { BotExitFiring, OwnedBotPosition } from "./ruleEvaluationLoop";
 import { botAccountUnavailable, executingBotAccount } from "./botAccount";
 
@@ -54,6 +55,9 @@ export interface BotCloseParams {
   amount?: Decimal;
   /** Present exactly for a full close: the lane re-reads the size itself. */
   forceFullClose?: boolean;
+  /** Bot-owned close: carried on the intent so the provenance refusals apply. */
+  origin?: "bot";
+  attribution?: BotAttribution;
 }
 
 /**

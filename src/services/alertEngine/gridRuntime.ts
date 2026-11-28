@@ -460,6 +460,8 @@ export class GridRuntime {
     const accountErr = this.checkGridAccount(grid, env);
     if (accountErr) return accountErr;
 
+    // Set once the grid is persisted as active; a failure past this point must undo it.
+    let rollback: (() => void) | null = null;
     try {
       const canonical = ruleSchema.validateGrid(grid);
       let prevState: GridRuntimeRecord | undefined;
@@ -492,6 +494,17 @@ export class GridRuntime {
       }
 
       await env.ensureSymbolMeta?.(canonical.symbol);
+      // The await yields: a delete or an edit may have landed meanwhile.
+      // Start only the document that is still stored and matches what was validated.
+      const current = getGrid(canonical.id);
+      if (!current) return { ok: false, reason: "grid-not-found" };
+      // Compare the whole canonical document, not the strategy hash: the hash does not
+      // cover every field (level_count, for one), so it would miss a real edit.
+      if (
+        JSON.stringify(ruleSchema.validateGrid(current)) !== JSON.stringify(canonical)
+      ) {
+        return { ok: false, reason: "grid-changed" };
+      }
       const book = this.buildBook(env);
       const conflict = findGridSlotConflict(canonical.symbol, canonical.side, canonical.id, book);
       if (conflict !== null) {
@@ -521,6 +534,14 @@ export class GridRuntime {
         stopReason: undefined,
         openSlots: [],
       });
+      const restorePrevState = (): void => {
+        if (prevState) {
+          writeGridState(canonical.id, prevState);
+        } else {
+          clearGridState(canonical.id);
+        }
+      };
+      rollback = restorePrevState;
 
       const strategyHash = ruleSchema.gridContentHash(canonical);
       const placement = await this.placeMissingOrders(
@@ -537,11 +558,7 @@ export class GridRuntime {
             env.syncBook?.();
           });
         });
-        if (prevState) {
-          writeGridState(canonical.id, prevState);
-        } else {
-          clearGridState(canonical.id);
-        }
+        restorePrevState();
         return {
           ok: false,
           reason: placement.firstError ?? "start-order-refused",
@@ -550,6 +567,21 @@ export class GridRuntime {
       env.syncSubscriptions?.();
       return { ok: true };
     } catch (e) {
+      // Anything thrown after activation must not leave the grid persisted as active
+      // with orders that may already be placed. Cancel what it owns, then restore.
+      if (rollback !== null) {
+        try {
+          await this.runSelfMutation(() => {
+            this.runOwnSync(() => {
+              env.cancelOrdersOwnedBy(gridId);
+              env.syncBook?.();
+            });
+          });
+        } catch (cleanupErr) {
+          logger.error("alerts", `[GridRuntime] Start rollback failed for ${gridId}`, cleanupErr);
+        }
+        rollback();
+      }
       if (isRuleRefusedError(e)) {
         return { ok: false, reason: e.translationKey };
       }
@@ -611,7 +643,15 @@ export class GridRuntime {
         .orders()
         .filter((o) => o.origin === "bot" && o.botId === gridId && !isClosingOrder(o)).length;
       patchGridState(gridId, { status: "active" });
-      const reconcileRes = await this.reconcileGridUnlocked(canonical, env);
+      let reconcileRes: GridActionResult;
+      try {
+        reconcileRes = await this.reconcileGridUnlocked(canonical, env);
+      } catch (e) {
+        // A throw must take the same revert path as a refused reconcile, not leave
+        // the grid persisted as active while the caller is told it failed.
+        logger.error("alerts", `[GridRuntime] Reconcile failed on resume of ${gridId}`, e);
+        reconcileRes = { ok: false, reason: "resume-failed" };
+      }
       if (!reconcileRes.ok) {
         const openOrdersAfter = env
           .orders()
@@ -687,6 +727,14 @@ export class GridRuntime {
               symbol: owned.symbol,
               positionSide: owned.side,
               forceFullClose: true,
+              // Stamped like the ladder's close legs: a paper toggle that races this
+              // close is refused by the bot-provenance checks instead of going live.
+              origin: "bot",
+              attribution: {
+                botId: grid.id,
+                ruleId: grid.id,
+                strategyHash: ruleSchema.gridContentHash(grid),
+              },
             }),
           );
           this.runOwnSync(() => env.syncBook?.());

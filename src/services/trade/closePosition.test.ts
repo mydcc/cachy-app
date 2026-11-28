@@ -106,6 +106,35 @@ describe("closePosition lane", () => {
         expect(gatedRequest).not.toHaveBeenCalled();
     });
 
+    it("carries a bot origin and its attribution onto the close intent", async () => {
+        // A grid's own stop close must reach the gate stamped as bot-owned, or the
+        // bot-provenance refusals never see it and a paper toggle sends it live.
+        const gatedRequest = vi.fn().mockResolvedValue({ code: "0" });
+        const svc = createClosePositionService(ports({ gatedRequest }));
+        const attribution = { botId: "grid-1", ruleId: "grid-1", strategyHash: "hash-1" };
+
+        await svc.closePosition({
+            symbol: "BTCUSDT",
+            positionSide: "long",
+            forceFullClose: true,
+            origin: "bot",
+            attribution,
+        });
+
+        expect(gatedRequest).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: "reduce", origin: "bot", attribution }),
+        );
+    });
+
+    it("leaves a manual close unstamped", async () => {
+        const gatedRequest = vi.fn().mockResolvedValue({ code: "0" });
+        const svc = createClosePositionService(ports({ gatedRequest }));
+
+        await svc.closePosition({ symbol: "BTCUSDT", positionSide: "long", forceFullClose: true });
+
+        expect(gatedRequest.mock.calls[0][0].origin).toBeUndefined();
+    });
+
     it("treats naming the full amount explicitly as a full close", async () => {
         const seen: unknown[] = [];
         const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {

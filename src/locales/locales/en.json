@@ -1124,7 +1124,16 @@
       "stopConfirmOrdersOnly": "Cancel {orders} resting order(s) on {symbol}? No open position to close.",
       "stopConfirmExecute": "Stop grid",
       "stopConfirmCancel": "Keep running",
-      "actionRefused": "Grid action refused: {reason}"
+      "refusal": {
+        "notFound": "This grid no longer exists.",
+        "changed": "The grid was edited while it was starting. Nothing was started; try again.",
+        "balance": "Not enough free balance for this grid’s budget.",
+        "paperOff": "Paper trading is switched off, so this grid is frozen.",
+        "slotConflict": "Another bot already holds this symbol and side.",
+        "state": "The grid is not in a state that allows this action.",
+        "internal": "Unexpected error. The details are in the log.",
+        "generic": "The grid action was refused."
+      }
     }
   },
   "journal": {
