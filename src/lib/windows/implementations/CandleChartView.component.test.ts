@@ -201,6 +201,8 @@ const paperFeedMock = vi.hoisted(() => ({ current: null as null | {
 } }));
 vi.mock("../../../services/paperAccountFeed", () => ({
     paperAccountFeed: () => paperFeedMock.current,
+    // FEAT-0820: the chart re-renders grid ladder lines when the grid store changes.
+    subscribeGridStore: () => () => {},
 }));
 
 // FEAT-0247 drag-to-modify: the exchange adapter and toast surface are
@@ -1791,6 +1793,8 @@ describe("BUG-0565 — chart hydrates from the paper feed in paper mode", () => 
                     time: Date.now(),
                 },
             ],
+            // FEAT-0820: no grid ladder in this fixture, so the overlay is empty.
+            gridChartOverlay: () => ({ levels: [], gridOrderIds: new Set<string>() }),
         };
         // Keys configured: without the paper-first branch this would fetch.
         settingsState.accountFor("bitunix").keys = {
