@@ -39,6 +39,15 @@ import { Decimal } from "decimal.js";
 import { paperState, type PaperFill, type PaperOrder, type PaperPosition } from "../stores/paperTrading.svelte";
 import { marketState } from "../stores/market.svelte";
 import type { NormalizedOrder, NormalizedPosition } from "../types/exchange";
+import {
+    deriveGridChartLevels,
+    parseGridOrderClientId,
+    type GridChartLevelDescriptor,
+} from "../lib/calculators/gridEditorPreview";
+import { readGrids, readGridStates, subscribeGridStore } from "./alertEngine/gridStore";
+import { logger } from "./logger";
+
+export { subscribeGridStore };
 
 /** The `/api/account` field set, as `PositionsSidebar` reads it. */
 export interface PaperAccountInfo {
@@ -248,6 +257,51 @@ class PaperAccountFeed {
     /** The balance the calculator sizes against, as a plain string. */
     public balance(): string {
         return paperState.balance.toString();
+    }
+
+    /**
+     * FEAT-0820 — active/paused grid ladder levels for `normalizedSymbol` on the
+     * paper book, plus the resting order IDs owned by any grid so the chart does
+     * not draw duplicate generic pending-order lines over the grid overlay.
+     */
+    public gridChartOverlay(
+        normalizedSymbol: string,
+        priceStep?: Decimal,
+    ): { levels: GridChartLevelDescriptor[]; gridOrderIds: Set<string> } {
+        const gridOrderIds = new Set(
+            paperState.orders
+                .filter((o) => parseGridOrderClientId(o.clientOrderId) !== null)
+                .map((o) => o.orderId),
+        );
+        const levels: GridChartLevelDescriptor[] = [];
+        try {
+            const grids = readGrids();
+            const runtimeStates = readGridStates();
+            const restingClientIds = new Set(
+                paperState.orders
+                    .map((o) => o.clientOrderId)
+                    .filter((cid): cid is string => typeof cid === "string"),
+            );
+            for (const grid of grids) {
+                if (grid.symbol.trim().toUpperCase() !== normalizedSymbol) continue;
+                const rec = runtimeStates[grid.id];
+                levels.push(
+                    ...deriveGridChartLevels({
+                        grid,
+                        status: rec?.status ?? "armed",
+                        openSlots: rec?.openSlots,
+                        restingClientIds,
+                        priceStep,
+                    }),
+                );
+            }
+        } catch (e) {
+            // A degraded grid store renders no overlay lines rather than stale ones,
+            // but the cause must still reach the log.
+            logger.warn("alerts", "[PaperAccountFeed] Grid chart overlay unavailable", e);
+            return { levels: [], gridOrderIds: new Set<string>() };
+        }
+        return { levels, gridOrderIds };
     }
 }
 

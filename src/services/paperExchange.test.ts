@@ -75,6 +75,37 @@ function close(qty: string, side: "BUY" | "SELL" = "BUY") {
     });
 }
 
+function openBot(qty: string, botId = "grid-1") {
+    return paperExchange.handle("/api/orders", {
+        type: "place-order",
+        symbol: "BTCUSDT",
+        side: "BUY",
+        orderType: "MARKET",
+        qty,
+        leverage: "10",
+        origin: "bot",
+        botId,
+        ruleId: botId,
+        strategyHash: "hash-1",
+    });
+}
+
+function closeBot(qty: string, botId = "grid-1") {
+    return paperExchange.handle("/api/orders", {
+        type: "place-order",
+        symbol: "BTCUSDT",
+        side: "BUY",
+        orderType: "MARKET",
+        qty,
+        reduceOnly: true,
+        tradeSide: "CLOSE",
+        origin: "bot",
+        botId,
+        ruleId: botId,
+        strategyHash: "hash-1",
+    });
+}
+
 describe("paperExchange — opening", () => {
     it("opens a long and records it at the fill price", async () => {
         await open("0.5");
@@ -112,6 +143,78 @@ describe("paperExchange — opening", () => {
 
     it("refuses a non-positive quantity", async () => {
         await expect(open("0")).rejects.toBeInstanceOf(PaperExchangeError);
+    });
+});
+
+describe("paperExchange — a bot-owned share inside a netted position", () => {
+    it("keeps the bot share and its entry when a manual add merges into it", async () => {
+        await openBot("1");
+        feed.BTCUSDT = new Decimal(60000);
+        await open("1");
+
+        expect(paperState.positions[0]).toMatchObject({
+            amount: "2",
+            entryPrice: "55000",
+            origin: "bot",
+            botId: "grid-1",
+            gridOwnedAmount: "1",
+            gridEntryPrice: "50000",
+        });
+    });
+
+    it("closes only the bot share and leaves the manual remainder", async () => {
+        await openBot("1");
+        feed.BTCUSDT = new Decimal(60000);
+        await open("1");
+        feed.BTCUSDT = new Decimal(70000);
+
+        await closeBot("1");
+        expect(paperState.fills.at(-1)?.qty).toBe("1");
+        expect(paperState.positions).toHaveLength(1);
+        expect(paperState.positions[0]).toMatchObject({
+            amount: "1",
+            entryPrice: "60000",
+            origin: "manual",
+            realizedPnl: "20000",
+        });
+        expect(paperState.positions[0].botId).toBeUndefined();
+        expect(paperState.positions[0].gridOwnedAmount).toBeUndefined();
+        expect(paperState.fills.at(-1)).toMatchObject({
+            tradeSide: "CLOSE",
+            qty: "1",
+            realizedPnl: "20000",
+            origin: "bot",
+            botId: "grid-1",
+        });
+    });
+
+    it("never closes more than the bot share, even when the request names the netted size", async () => {
+        await openBot("1");
+        feed.BTCUSDT = new Decimal(60000);
+        await open("1");
+        feed.BTCUSDT = new Decimal(70000);
+
+        await closeBot("2");
+        expect(paperState.fills.at(-1)?.qty).toBe("1");
+        expect(paperState.positions[0]).toMatchObject({ amount: "1", origin: "manual" });
+    });
+
+    it("reduces the bot share proportionally on a manual partial close", async () => {
+        await openBot("1");
+        feed.BTCUSDT = new Decimal(60000);
+        await open("1");
+        feed.BTCUSDT = new Decimal(70000);
+
+        await close("1");
+        expect(paperState.positions[0]).toMatchObject({
+            amount: "1",
+            entryPrice: "55000",
+            origin: "bot",
+            botId: "grid-1",
+            gridOwnedAmount: "0.5",
+            gridEntryPrice: "50000",
+            realizedPnl: "15000",
+        });
     });
 });
 

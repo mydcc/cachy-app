@@ -198,9 +198,19 @@ vi.mock("../../appAuth", () => ({
 const paperFeedMock = vi.hoisted(() => ({ current: null as null | {
     positions: () => unknown[];
     pendingOrders: () => unknown[];
+    gridChartOverlay: () => {
+        levels: Array<{ id: string; price: Decimal; filled: boolean; title: string }>;
+        gridOrderIds: Set<string>;
+    };
 } }));
+const gridStoreMock = vi.hoisted(() => ({ listeners: new Set<() => void>() }));
 vi.mock("../../../services/paperAccountFeed", () => ({
     paperAccountFeed: () => paperFeedMock.current,
+    // FEAT-0820: tests drive the same store notification that redraws the ladder.
+    subscribeGridStore: (listener: () => void) => {
+        gridStoreMock.listeners.add(listener);
+        return () => gridStoreMock.listeners.delete(listener);
+    },
 }));
 
 // FEAT-0247 drag-to-modify: the exchange adapter and toast surface are
@@ -326,6 +336,7 @@ beforeEach(() => {
     settingsState.accountFor("bitunix").keys = { key: "", secret: "" };
     appFetchMock.mockReset();
     paperFeedMock.current = null;
+    gridStoreMock.listeners.clear();
     indicatorSettingsMock.json = "{}";
     indicatorLayerMock.throwOnRender = false;
     // `clearAllMocks` drops call history, not implementations — restated per
@@ -1762,6 +1773,40 @@ describe("FEAT-0395 — creating an alert from the chart", () => {
  * snapshot "live" and the paper book would measure against it, so the paper
  * seam answers first — same branch the PositionsSidebar siblings take.
  */
+describe("FEAT-0820 — grid ladder overlay wiring", () => {
+    it("draws the feed's grid levels and removes them when the store clears", async () => {
+        let levels = [
+            { id: "grid-1:0", price: new Decimal(40000), filled: false, title: "Grid level 0" },
+            { id: "grid-1:1", price: new Decimal(42000), filled: true, title: "Grid level 1" },
+        ];
+        const overlay = vi.fn(() => ({ levels, gridOrderIds: new Set<string>() }));
+        paperFeedMock.current = {
+            positions: () => [],
+            pendingOrders: () => [],
+            gridChartOverlay: overlay,
+        };
+        seedHistory();
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        expect(overlay).toHaveBeenCalled();
+        expect([...chart.priceLines.values()].map((line) => line.price)).toEqual(
+            expect.arrayContaining([40000, 42000]),
+        );
+
+        levels = [];
+        for (const listener of gridStoreMock.listeners) listener();
+        await settle();
+
+        expect(
+            [...chart.priceLines.values()].some((line) => line.price === 40000 || line.price === 42000),
+        ).toBe(false);
+    });
+});
+
 describe("BUG-0565 — chart hydrates from the paper feed in paper mode", () => {
     it("takes positions and orders from the feed and never reaches the network", async () => {
         paperFeedMock.current = {
@@ -1791,6 +1836,8 @@ describe("BUG-0565 — chart hydrates from the paper feed in paper mode", () => 
                     time: Date.now(),
                 },
             ],
+            // FEAT-0820: no grid ladder in this fixture, so the overlay is empty.
+            gridChartOverlay: () => ({ levels: [], gridOrderIds: new Set<string>() }),
         };
         // Keys configured: without the paper-first branch this would fetch.
         settingsState.accountFor("bitunix").keys = {

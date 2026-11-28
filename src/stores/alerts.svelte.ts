@@ -71,7 +71,11 @@ import {
 } from "../services/alertEngine/gridStore";
 import { reservedGridSlots } from "../services/alertEngine/gridState";
 import { setGridBookChangeListener } from "../services/alertEngine/gridBookBus";
-import { gridRuntime, type GridRuntimeEnvironment } from "../services/alertEngine/gridRuntime";
+import {
+    gridRuntime,
+    type GridActionResult,
+    type GridRuntimeEnvironment,
+} from "../services/alertEngine/gridRuntime";
 import { slotKey } from "../services/alertEngine/botState";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { isBot, readBots, setBotEnabled } from "../services/alertEngine/botStore";
@@ -796,6 +800,43 @@ export function stopAllBots(): number {
     return stopped;
 }
 
+/** FEAT-0820 — store-level grid lifecycle controls wired through `gridRuntime`. */
+export async function startGridBot(gridId: string): Promise<GridActionResult> {
+    try {
+        return await gridRuntime.startGrid(gridId);
+    } catch (e) {
+        logger.error("alerts", `[GridBot] startGridBot(${gridId}) failed`, e);
+        return { ok: false, reason: "internal-error" };
+    }
+}
+
+export async function pauseGridBot(gridId: string): Promise<GridActionResult> {
+    try {
+        return await gridRuntime.pauseGrid(gridId);
+    } catch (e) {
+        logger.error("alerts", `[GridBot] pauseGridBot(${gridId}) failed`, e);
+        return { ok: false, reason: "internal-error" };
+    }
+}
+
+export async function resumeGridBot(gridId: string): Promise<GridActionResult> {
+    try {
+        return await gridRuntime.resumeGrid(gridId);
+    } catch (e) {
+        logger.error("alerts", `[GridBot] resumeGridBot(${gridId}) failed`, e);
+        return { ok: false, reason: "internal-error" };
+    }
+}
+
+export async function stopGridBot(gridId: string): Promise<GridActionResult> {
+    try {
+        return await gridRuntime.stopGrid(gridId, "manual");
+    } catch (e) {
+        logger.error("alerts", `[GridBot] stopGridBot(${gridId}) failed`, e);
+        return { ok: false, reason: "internal-error" };
+    }
+}
+
 /**
  * BUG-0750 — the rule's channel vocabulary is snake_case, delivery's is
  * kebab-case, and this is the only place the two meet.
@@ -990,6 +1031,7 @@ export function gridRuntimeEnvironment(
 ): GridRuntimeEnvironment {
     return {
         paperEnabled: () => paperState.enabled,
+        allowManualGridAdds: () => paperState.config.allowManualAddsToGridPositions,
         bookUnreadable: () => paperState.bookUnreadable,
         availableBalance: () => paperState.balance,
         feeRate: () => paperState.numeric("takerFeeBps").div(10_000),

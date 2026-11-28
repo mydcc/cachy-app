@@ -219,13 +219,37 @@
                                 {money(record.totalPnl)}
                             </dd>
                         </div>
+                        {#if record.isGrid}
+                            <div class="metric">
+                                <dt>{$_("journal.bots.unrealizedPnl")}</dt>
+                                <dd
+                                    data-testid="metric-unrealized-pnl"
+                                    class={record.unrealizedPnl ? toneOf(record.unrealizedPnl) : "tone-flat"}
+                                >
+                                    {record.unrealizedPnl !== null && record.unrealizedPnl !== undefined
+                                        ? money(record.unrealizedPnl)
+                                        : $_("journal.bots.mtmUnpriced")}
+                                </dd>
+                            </div>
+                            <div class="metric">
+                                <dt>{$_("journal.bots.mtmEquity")}</dt>
+                                <dd
+                                    data-testid="metric-mtm-equity"
+                                    class={record.markToMarketPnl ? toneOf(record.markToMarketPnl) : "tone-flat"}
+                                >
+                                    {record.markToMarketPnl !== null && record.markToMarketPnl !== undefined
+                                        ? money(record.markToMarketPnl)
+                                        : $_("journal.bots.mtmUnpriced")}
+                                </dd>
+                            </div>
+                        {/if}
                         <div class="metric">
                             <dt>{$_("journal.bots.avgHolding")}</dt>
                             <dd data-testid="metric-avg-holding">{holding(record.avgHoldingMs)}</dd>
                         </div>
                     </dl>
 
-                    {#if record.equityCurve.length > 1}
+                    {#if record.equityCurve.length > 1 || (record.markToMarketCurve && record.markToMarketCurve.length > 1)}
                         <svg
                             class="sparkline"
                             viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}
@@ -233,7 +257,16 @@
                             aria-hidden="true"
                             data-testid="bot-sparkline"
                         >
-                            <polyline points={sparkline(record.equityCurve)} />
+                            {#if record.equityCurve.length > 1}
+                                <polyline points={sparkline(record.equityCurve)} />
+                            {/if}
+                            {#if record.markToMarketCurve && record.markToMarketCurve.length > 1}
+                                <polyline
+                                    class="sparkline-mtm"
+                                    data-testid="bot-mtm-sparkline"
+                                    points={sparkline(record.markToMarketCurve)}
+                                />
+                            {/if}
                         </svg>
                     {/if}
 
@@ -394,6 +427,11 @@
         stroke: var(--accent-color);
         stroke-width: 1.5;
         vector-effect: non-scaling-stroke;
+    }
+
+    .sparkline polyline.sparkline-mtm {
+        stroke: var(--warning-color);
+        stroke-dasharray: 3 2;
     }
 
     .side-row {

@@ -51,17 +51,28 @@ import { recordBotGuard } from "../../services/alertEngine/botGuardStore";
 const closeBotOwnedPositionsMock = vi.hoisted(() =>
     vi.fn().mockResolvedValue({ closed: 0, refused: [] as string[] }),
 );
+const startGridBotMock = vi.hoisted(() =>
+    vi.fn().mockResolvedValue({ ok: true }),
+);
+const pauseGridBotMock = vi.hoisted(() =>
+    vi.fn().mockResolvedValue({ ok: true }),
+);
+const resumeGridBotMock = vi.hoisted(() =>
+    vi.fn().mockResolvedValue({ ok: true }),
+);
+const stopGridBotMock = vi.hoisted(() =>
+    vi.fn().mockResolvedValue({ ok: true }),
+);
 vi.mock("../../stores/alerts.svelte", async (importOriginal) => {
     const actual =
         await importOriginal<typeof import("../../stores/alerts.svelte")>();
     return {
         ...actual,
-        // The kill switch's close lane would otherwise dynamically import the
-        // whole tradeService stack into this harness. What the row owes the
-        // trader — the entries stop, the close is *asked* for — is pinned
-        // here; the lane itself is pinned end to end against the real
-        // tradeService in botExitExecution.integration.test.ts.
         closeBotOwnedPositions: closeBotOwnedPositionsMock,
+        startGridBot: startGridBotMock,
+        pauseGridBot: pauseGridBotMock,
+        resumeGridBot: resumeGridBotMock,
+        stopGridBot: stopGridBotMock,
     };
 });
 
@@ -755,5 +766,174 @@ describe("FEAT-0822 — firing limits and the kill switch", () => {
         expect(line?.textContent?.trim()).toBe(
             `Last guard: ${lookup(en, "botsList.guard.confirmationAgainstDirection")} ×1`,
         );
+    });
+});
+
+describe("FEAT-0819 stage 5 + FEAT-0820 — grid bot rows, controls, stop confirmation, and account_unavailable", () => {
+    function seedGrid(id = "grid-1") {
+        const grid = {
+            kind: "grid" as const,
+            schema_version: 1,
+            id,
+            name: "BTC Range Grid",
+            symbol: "BTCUSDT",
+            side: "long" as const,
+            evaluation_timeframe: "1h" as const,
+            lower_price: "90000",
+            upper_price: "100000",
+            level_count: 5,
+            spacing: "arithmetic" as const,
+            sizing: { basis: "quote_budget" as const, amount: "1000" },
+            stop_out: [
+                {
+                    kind: "compare" as const,
+                    left: { kind: "price" as const, field: "close" as const },
+                    op: "lte" as const,
+                    right: { kind: "constant" as const, value: "85000" },
+                    timeframe: "1h" as const,
+                },
+            ],
+            consequence_level: "simulate" as const,
+            enabled: true,
+            provenance: { source: "human" as const, created_at_ms: 1700000000000 },
+        };
+        localStorage.setItem("cachy_grids_v1", JSON.stringify([grid]));
+        alertState.gridsVersion += 1;
+        return grid;
+    }
+
+    function setGridState(id: string, status: string, openSlots: number[] = []) {
+        localStorage.setItem(
+            "cachy_grid_state_v1",
+            JSON.stringify({ [id]: { status, openSlots } }),
+        );
+        alertState.gridsVersion += 1;
+    }
+
+    it("starts, pauses, resumes, shows filled/total & single-source PnL, and asks before stopping with resting order count and owned position", async () => {
+        seedGrid("grid-1");
+        render();
+
+        const row = host.querySelector<HTMLElement>('[data-testid="grid-row-grid-1"]');
+        expect(row).not.toBeNull();
+        expect(chipOf(row)).toBe(lookup(en, "botsList.state.armed"));
+
+        // Start grid
+        row!.querySelector<HTMLElement>('[data-testid="grid-start"]')!.click();
+        await vi.waitFor(() => expect(startGridBotMock).toHaveBeenCalledWith("grid-1"));
+
+        // Simulate active grid with 2 filled levels, 2 resting orders, and an owned position via paperExchange
+        setPaperPriceFeed(() => new Decimal(91000));
+        await openAs("grid-1");
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "SELL",
+            orderType: "LIMIT",
+            qty: "0.01",
+            price: "95000",
+            reduceOnly: true,
+            tradeSide: "CLOSE",
+            clientId: "grid:grid-1:s0:close",
+            origin: "bot",
+            botId: "grid-1",
+            ruleId: "grid-1",
+            strategyHash: HASH,
+        });
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "LIMIT",
+            qty: "0.01",
+            price: "89000",
+            reduceOnly: false,
+            tradeSide: "OPEN",
+            clientId: "grid:grid-1:s2:open",
+            origin: "bot",
+            botId: "grid-1",
+            ruleId: "grid-1",
+            strategyHash: HASH,
+        });
+        setGridState("grid-1", "active", [0, 1]);
+        const ownedPosId = paperState.positions[0]!.positionId;
+        unmount(component!);
+        component = mount(BotsList, {
+            target: host,
+            props: {
+                pricedPositions: [
+                    {
+                        positionId: ownedPosId,
+                        symbol: "BTCUSDT",
+                        side: "long",
+                        amount: new Decimal("0.02"),
+                        size: new Decimal("0.02"),
+                        entryPrice: new Decimal("91000"),
+                        markPrice: new Decimal(93125),
+                        unpriced: false,
+                        unrealizedPnl: new Decimal("42.5"),
+                        leverage: new Decimal(1),
+                        marginMode: "cross",
+                        liquidationPrice: new Decimal(0),
+                        margin: new Decimal(1820),
+                    },
+                ],
+            },
+        });
+        flushSync();
+
+        const activeRow = host.querySelector<HTMLElement>('[data-testid="grid-row-grid-1"]')!;
+        expect(chipOf(activeRow)).toBe("Active");
+        expect(
+            activeRow.querySelector('[data-testid="grid-level-progress"]')!.textContent,
+        ).toContain("2 / 5 levels filled");
+        expect(
+            activeRow.querySelector('[data-testid="grid-position-pnl"]')!.textContent,
+        ).toContain("+42.5");
+
+        // Pause -> Resume
+        const pauseToggle = activeRow.querySelector<HTMLButtonElement>('[data-testid="grid-pause-toggle"]')!;
+        pauseToggle.click();
+        await vi.waitFor(() => expect(pauseGridBotMock).toHaveBeenCalledWith("grid-1"));
+        await vi.waitFor(() => expect(pauseToggle.disabled).toBe(false));
+
+        setGridState("grid-1", "paused", [0, 1]);
+        flushSync();
+        expect(chipOf(activeRow)).toBe("Paused");
+        pauseToggle.click();
+        await vi.waitFor(() => expect(resumeGridBotMock).toHaveBeenCalledWith("grid-1"));
+        await vi.waitFor(() => expect(pauseToggle.disabled).toBe(false));
+
+        // Stop asks once naming resting order count (2) and owned position (LONG, 0.02 BTCUSDT)
+        activeRow.querySelector<HTMLElement>('[data-testid="grid-stop"]')!.click();
+        flushSync();
+        expect(stopGridBotMock).not.toHaveBeenCalled();
+
+        const confirmBanner = activeRow.querySelector<HTMLElement>('[data-testid="grid-stop-confirm"]');
+        expect(confirmBanner).not.toBeNull();
+        expect(confirmBanner!.textContent).toContain("2");
+        expect(confirmBanner!.textContent).toContain("LONG");
+        expect(confirmBanner!.textContent).toContain("0.02");
+        expect(confirmBanner!.textContent).toContain("BTCUSDT");
+
+        confirmBanner!
+            .querySelector<HTMLElement>('[data-testid="grid-stop-confirm-execute"]')!
+            .click();
+        await vi.waitFor(() => expect(stopGridBotMock).toHaveBeenCalledWith("grid-1"));
+    });
+
+    it("reads account_unavailable when paper trading is off and states both ladder and stop-out are frozen", () => {
+        seedGrid("grid-frozen");
+        setGridState("grid-frozen", "active", [0]);
+        paperState.setEnabled(false);
+        render();
+
+        const row = host.querySelector<HTMLElement>('[data-testid="grid-row-grid-frozen"]');
+        expect(row).not.toBeNull();
+        expect(chipOf(row)).toBe(lookup(en, "botsList.state.account_unavailable"));
+        const copy = row!.querySelector<HTMLElement>('[data-testid="grid-account-unavailable"]');
+        expect(copy).not.toBeNull();
+        expect(copy!.textContent).toContain("frozen with the paper book");
+        expect(copy!.textContent).toContain("stop-out");
     });
 });

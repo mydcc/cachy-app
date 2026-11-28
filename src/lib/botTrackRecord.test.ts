@@ -329,3 +329,89 @@ describe("FEAT-0825 — the bot cards follow the journal's account switch", () =
         expect(entriesForTradeMode([paper, live], "all")).toEqual([paper, live]);
     });
 });
+
+describe("FEAT-0819 stage 5 — grid mark-to-market equity alongside realized closed trades", () => {
+    it("combines realized closed trades with live unrealized PnL and extends the mark-to-market curve", () => {
+        const closed1 = botTrade({
+            botId: "grid-1",
+            strategyHash: HASH_A,
+            netProfit: "15",
+            exitDate: "2026-01-01T02:00:00.000Z",
+        });
+        const closed2 = botTrade({
+            botId: "grid-1",
+            strategyHash: HASH_A,
+            netProfit: "10",
+            exitDate: "2026-01-01T04:00:00.000Z",
+        });
+        const gridMarks = new Map([
+            [
+                "grid-1",
+                {
+                    strategyHash: HASH_A,
+                    hasOpenPosition: true,
+                    unrealizedPnl: new Decimal("-40"),
+                },
+            ],
+        ]);
+
+        const [record] = botTrackRecords([closed1, closed2], { gridMarks });
+        expect(record.isGrid).toBe(true);
+        expect(record.totalPnl.toString()).toBe("25");
+        expect(record.unrealizedPnl?.toString()).toBe("-40");
+        expect(record.markToMarketPnl?.toString()).toBe("-15");
+        expect(record.equityCurve.map((d) => d.toString())).toEqual(["15", "25"]);
+        expect(record.markToMarketCurve?.map((d) => d.toString())).toEqual(["15", "25", "-15"]);
+    });
+
+    it("applies a null-hash mark to one bucket only", () => {
+        const older = botTrade({
+            botId: "grid-1",
+            strategyHash: HASH_A,
+            netProfit: "10",
+            exitDate: "2026-01-01T02:00:00.000Z",
+        });
+        const newer = botTrade({
+            botId: "grid-1",
+            strategyHash: HASH_B,
+            netProfit: "20",
+            exitDate: "2026-01-02T02:00:00.000Z",
+        });
+        const gridMarks = new Map([
+            [
+                "grid-1",
+                {
+                    strategyHash: null,
+                    hasOpenPosition: true,
+                    unrealizedPnl: new Decimal("5"),
+                },
+            ],
+        ]);
+
+        const records = botTrackRecords([older, newer], { gridMarks });
+        expect(records).toHaveLength(3);
+        expect(records.filter((record) => record.unrealizedPnl?.eq(5))).toHaveLength(1);
+        expect(records.find((record) => record.strategyHash === null)?.unrealizedPnl?.toString()).toBe("5");
+    });
+
+    it("surfaces a grid holding open inventory even before its first closed trade", () => {
+        const gridMarks = new Map([
+            [
+                "grid-open-only",
+                {
+                    strategyHash: HASH_A,
+                    hasOpenPosition: true,
+                    unrealizedPnl: new Decimal("-12.5"),
+                    startedAtMs: 1700000000000,
+                },
+            ],
+        ]);
+        const [record] = botTrackRecords([], { gridMarks });
+        expect(record.botId).toBe("grid-open-only");
+        expect(record.trades).toBe(0);
+        expect(record.openTrades).toBe(1);
+        expect(record.totalPnl.toString()).toBe("0");
+        expect(record.markToMarketPnl?.toString()).toBe("-12.5");
+        expect(record.markToMarketCurve?.map((d) => d.toString())).toEqual(["0", "-12.5"]);
+    });
+});

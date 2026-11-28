@@ -30,6 +30,7 @@ import { logger } from "../logger";
 import { TRADE_ERRORS } from "./tradeErrors";
 import { buildCloseOrderFields } from "./flashClose";
 import type { PartialIntent } from "./payloadCodec";
+import type { BotAttribution } from "../orderGate";
 import type { TradingPairInfo } from "../../stores/market/types";
 import type { OMSPosition } from "../omsTypes";
 import type { TpSlVenue } from "./tpSlService";
@@ -39,6 +40,13 @@ export interface ClosePositionParams {
     positionSide: "long" | "short";
     amount?: Decimal;
     forceFullClose?: boolean;
+    /**
+     * A bot-owned close stamps its intent, so the provenance refusals apply to it
+     * (paper-only at the gate and at transmit, BUG-0494). Without it a stop that
+     * races a paper toggle would reach the live account as an ordinary manual close.
+     */
+    origin?: "bot";
+    attribution?: BotAttribution;
 }
 
 export interface ClosePositionPorts {
@@ -118,6 +126,8 @@ export function createClosePositionService(ports: ClosePositionPorts) {
         return ports.gatedRequest({
             kind: "reduce",
             endpoint: "/api/orders",
+            origin: params.origin,
+            attribution: params.attribution,
             payload: {
                 type: "place-order",
                 symbol,

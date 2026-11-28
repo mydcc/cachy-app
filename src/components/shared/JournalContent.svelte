@@ -51,14 +51,20 @@
     import JournalDeepDive from "./journal/JournalDeepDive.svelte";
     import JournalBotCards from "./journal/JournalBotCards.svelte";
     import {
-        botTrackRecords,
+        applyGridMarks,
+        botTrackRecordsBase,
         entriesForTradeMode,
         matchesOriginFilter,
         modeForBot,
         unattributedClosedCount,
+        type GridMarkInput,
         type JournalOriginFilter,
     } from "../../lib/botTrackRecord";
     import { readBots } from "../../services/alertEngine/botStore";
+    import { readGrids, readGridStates } from "../../services/alertEngine/gridStore";
+    import { alertState } from "../../stores/alerts.svelte";
+    import { marketState } from "../../stores/market.svelte";
+    import { gridOwnedAmount, gridUnrealizedPnl } from "../../lib/gridPositionShare";
     import TradeDetailDrawer from "./journal/TradeDetailDrawer.svelte";
 
   import Button from "./Button.svelte";
@@ -436,9 +442,42 @@
      * the account switch is not a slice of the table but the boundary the
      * item draws, so a `live` journal shows no paper bot's record.
      */
-    let botRecords = $derived(
-        botTrackRecords(entriesForTradeMode(journalState.entries, tradeMode)),
+    let gridMarks = $derived.by(() => {
+        const map = new Map<string, GridMarkInput>();
+        if (tradeMode === "live") return map;
+        void alertState.gridsVersion;
+        let grids: ReturnType<typeof readGrids>;
+        let runtimeStates: ReturnType<typeof readGridStates>;
+        try {
+            grids = readGrids();
+            runtimeStates = readGridStates();
+        } catch {
+            return map;
+        }
+        for (const grid of grids) {
+            const owned = paperState.positions.find(
+                (p) => p.origin === "bot" && p.botId === grid.id,
+            );
+            let unrealizedPnl: Decimal | null = new Decimal(0);
+            if (owned) {
+                const symData = marketState.data[owned.symbol];
+                const mark = symData?.markPrice ?? symData?.lastPrice;
+                unrealizedPnl = gridUnrealizedPnl(owned, mark);
+            }
+            map.set(grid.id, {
+                strategyHash: owned?.strategyHash ?? null,
+                hasOpenPosition: Boolean(owned && gridOwnedAmount(owned).gt(0)),
+                unrealizedPnl,
+                startedAtMs: runtimeStates[grid.id]?.startedAt ?? grid.provenance.created_at_ms,
+            });
+        }
+        return map;
+    });
+
+    let botRecordsBase = $derived(
+        botTrackRecordsBase(entriesForTradeMode(journalState.entries, tradeMode)),
     );
+    let botRecords = $derived(applyGridMarks(botRecordsBase, gridMarks));
 
     let unattributedTrades = $derived(
         unattributedClosedCount(journalState.entries),
@@ -469,20 +508,29 @@
     }
 
     function readBotNames(): Map<string, string | null> {
+        const names = new Map<string, string | null>();
         try {
-            return new Map(
-                readBots().map((bot) => [bot.id, bot.name ?? null] as const),
-            );
+            for (const bot of readBots()) {
+                names.set(bot.id, bot.name ?? null);
+            }
         } catch {
-            return new Map();
+            // degraded rule store leaves single-entry labels empty
         }
+        try {
+            for (const grid of readGrids()) {
+                names.set(grid.id, grid.name ?? null);
+            }
+        } catch {
+            // degraded grid store leaves grid labels empty
+        }
+        return names;
     }
 
     let botNames = $derived.by(() => {
         const names = new Map<string, string | null>();
-        // Re-read when the journal moves: a new bot trade can introduce an
-        // owner this map has never seen.
+        // Re-read when the journal or grid store moves.
         void journalState.entries.length;
+        void alertState.gridsVersion;
         const known = readBotNames();
         for (const record of botRecords) {
             names.set(record.botId, known.get(record.botId) ?? null);

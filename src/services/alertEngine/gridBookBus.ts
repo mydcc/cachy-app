@@ -26,6 +26,8 @@ export type GridSlotReservationCheck = (
   symbol: string,
   side: "long" | "short",
   botId?: string,
+  /** Present on an add: the policy may allow it only into its own grid position. */
+  positionId?: string,
 ) => boolean;
 
 let listener: GridBookChangeListener | null = null;
@@ -56,6 +58,7 @@ export function isGridSlotReservedForOther(
   symbol: string,
   side: "long" | "short",
   botId?: string,
+  positionId?: string,
 ): boolean {
-  return slotReservationCheck ? slotReservationCheck(symbol, side, botId) : false;
+  return slotReservationCheck ? slotReservationCheck(symbol, side, botId, positionId) : false;
 }

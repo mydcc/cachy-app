@@ -46,7 +46,7 @@
     import { activeAccountLabel } from "../../../stores/settings/activeAccount";
     import { keysForActiveAccount } from "../../../stores/settings/accounts";
     import { accountState } from "../../../stores/account.svelte";
-    import { paperAccountFeed } from "../../../services/paperAccountFeed";
+    import { paperAccountFeed, subscribeGridStore } from "../../../services/paperAccountFeed";
 import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/accountReadOrder";
     import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
@@ -89,8 +89,10 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
     import type { NormalizedPosition, NormalizedOrder } from "../../../types/exchange";
     import {
         PriceLineManager,
+        type GridLevelLineInput,
         type TpSlKind,
     } from "../../../services/chart/priceLineManager";
+    import { parseGridOrderClientId } from "../../calculators/gridEditorPreview";
     import { stripLegSuffix } from "../../../services/tpslNormalize";
     import type { WindowBase } from "../WindowBase.svelte";
     // FEAT-0395 -- creating an alert from the chart.
@@ -362,6 +364,13 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
 
     // FEAT-0247: position and TP/SL price lines
     let priceLineManager: PriceLineManager | null = null;
+    /** FEAT-0820 — reactive tick bumped whenever the local grid store updates. */
+    let gridOverlayTick = $state(0);
+    $effect(() => {
+        return subscribeGridStore(() => {
+            gridOverlayTick += 1;
+        });
+    });
     /** FEAT-0480: persistent drawings — the primitive paints, the manager drives. */
     let drawingPrimitive: DrawingPrimitive | null = null;
     let drawingManager: DrawingManager | null = null;
@@ -1563,11 +1572,27 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         const normalized = normalizeSymbol(symbol, "bitunix");
         const position = accountState.positions.find((p) => p.symbol === normalized);
         const plans = tpSlState.plansFor(normalized);
-        // Bitunix lets a bracket TP/SL be attached at order placement, before
-        // the entry order fills into a position — those live on the order
-        // itself (tpPrice/slPrice), not in tpSlState, which only tracks
-        // plans against an already-open position.
-        const matchingOrders = accountState.openOrders.filter((o) => o.symbol === normalized && o.type === "limit");
+        // FEAT-0820 — track grid store updates and read paper grid levels via the
+        // paperAccountFeed seam so no extra uphill module edges are introduced.
+        void gridOverlayTick;
+        const meta = marketState?.symbolMeta?.[normalized];
+        const overlayPriceStep =
+            meta?.quotePrecision !== undefined
+                ? new Decimal(10).pow(-meta.quotePrecision)
+                : undefined;
+        const paperFeed = paperAccountFeed();
+        const gridOverlay = paperFeed
+            ? paperFeed.gridChartOverlay(normalized, overlayPriceStep)
+            : { levels: [], gridOrderIds: new Set<string>() };
+        // Exclude resting limit orders belonging to a grid ladder from generic
+        // pending-order lines so the chart renders the grid overlay cleanly once.
+        const matchingOrders = accountState.openOrders.filter(
+            (o) =>
+                o.symbol === normalized &&
+                o.type === "limit" &&
+                !gridOverlay.gridOrderIds.has(o.orderId) &&
+                parseGridOrderClientId(o.clientId) === null,
+        );
         // FEAT-0247 diagnostic: bracket TP/SL on a resting order was
         // reported as invisible even though the exchange has it set. Log
         // the raw tpPrice/slPrice this component actually sees on each
@@ -1613,7 +1638,6 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             }
             return lines;
         });
-        const meta = marketState?.symbolMeta?.[normalized];
         // Read outside the reactive graph: tracking the kline array would
         // re-run this whole price-lines effect on every live tick. The
         // fallback only needs a reasonably fresh close to estimate the tick.
@@ -1641,6 +1665,18 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             sellLimit: $_("chart.lines.sellLimit"),
         };
 
+        const gridLevels: GridLevelLineInput[] = gridOverlay.levels.map((desc) => {
+            const priceText = desc.price.toFixed();
+            return {
+                id: desc.id,
+                price: desc.price,
+                filled: desc.filled,
+                title: desc.filled
+                    ? $_("chart.lines.gridLevelFilled", { values: { price: priceText } })
+                    : $_("chart.lines.gridLevel", { values: { price: priceText } }),
+            };
+        });
+
         untrack(() => {
             void tpSlState.ensureFresh();
             priceLineManager?.update({
@@ -1660,6 +1696,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                     ? { orderId: plans.loss.orderId, triggerPrice: new Decimal(plans.loss.triggerPrice) }
                     : null,
                 pendingOrders,
+                gridLevels,
                 tickSize,
                 readOnly,
                 labels,
@@ -1676,6 +1713,8 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                     takeProfit: getVar("--success-color") || "#26a69a",
                     stopLoss: getVar("--danger-color") || "#ef5350",
                     pendingOrder: getVar("--text-secondary") || "#787b86",
+                    gridResting: getVar("--text-secondary"),
+                    gridFilled: getVar("--accent-color"),
                 },
             });
         });

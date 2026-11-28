@@ -36,6 +36,7 @@ const mocks = vi.hoisted(() => ({
   createBotDraft: vi.fn(),
   readRuleStore: vi.fn(),
   validate: vi.fn(),
+  validateGrid: vi.fn((doc: unknown) => doc),
 }));
 
 vi.mock("../../../services/alertEngine/armRule", () => ({
@@ -66,7 +67,7 @@ vi.mock("../../../services/alertEngine/botStore", () => ({
 
 vi.mock("../../../lib/rules/ruleSchema", () => ({
   isRuleRefusedError: (error: unknown) => error instanceof Error && error.name === "RuleRefusedError",
-  ruleSchema: { validate: mocks.validate },
+  ruleSchema: { validate: mocks.validate, validateGrid: mocks.validateGrid },
 }));
 
 vi.mock("../../../services/logger", () => ({
@@ -95,6 +96,8 @@ import { recordBotGuard } from "../../../services/alertEngine/botGuardStore";
 import { alertState } from "../../../stores/alerts.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
 import { paperState } from "../../../stores/paperTrading.svelte";
+import { saveGrid } from "../../../services/alertEngine/gridStore";
+import type { GridDocument } from "../../../lib/rules/types";
 
 const alert: RuleDocument = {
   schema_version: 2,
@@ -525,6 +528,105 @@ describe("FEAT-0822 review — the guard history renders every row", () => {
   });
 });
 
+describe("FEAT-0820 — grid position policy", () => {
+  it("persists the manual-add toggle from the bots panel", () => {
+    localStorage.clear();
+    paperState.reloadFromStorage();
+    paperState.setEnabled(true);
+    paperState.setConfig("allowManualAddsToGridPositions", true);
+    render();
+
+    const toggle = host.querySelector<HTMLInputElement>("#grid-allow-manual-adds");
+    expect(toggle).not.toBeNull();
+    expect(toggle!.checked).toBe(true);
+
+    toggle!.checked = false;
+    toggle!.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+    expect(paperState.config.allowManualAddsToGridPositions).toBe(false);
+
+    paperState.reloadFromStorage();
+    expect(paperState.config.allowManualAddsToGridPositions).toBe(false);
+  });
+
+  it("names the grid share in the stop confirmation and cancels without stopping", () => {
+    localStorage.clear();
+    paperState.reloadFromStorage();
+    paperState.setEnabled(true);
+    const grid: GridDocument = {
+      kind: "grid",
+      schema_version: 1,
+      id: "grid-test",
+      name: "Test Grid",
+      symbol: "BTCUSDT",
+      side: "long",
+      evaluation_timeframe: "1h",
+      lower_price: "40000",
+      upper_price: "44000",
+      level_count: 4,
+      spacing: "arithmetic",
+      sizing: { basis: "quote_budget", amount: "4000" },
+      stop_out: [
+        {
+          kind: "compare",
+          left: { kind: "price", field: "close" },
+          op: "lt",
+          right: { kind: "constant", value: "38000" },
+          timeframe: "1h",
+        },
+      ],
+      consequence_level: "simulate",
+      enabled: true,
+      provenance: { source: "human", created_at_ms: 1 },
+    };
+    saveGrid(grid);
+    paperState.setPositions([
+      {
+        positionId: "paper-pos-grid",
+        symbol: "BTCUSDT",
+        side: "long",
+        amount: "2",
+        entryPrice: "55000",
+        leverage: "10",
+        marginMode: "cross",
+        realizedPnl: "0",
+        openedAt: Date.now(),
+        origin: "bot",
+        botId: grid.id,
+        ruleId: grid.id,
+        strategyHash: "hash-1",
+        gridOwnedAmount: "1",
+        gridEntryPrice: "50000",
+      },
+    ]);
+    alertState.gridsVersion += 1;
+    render();
+
+    const row = host.querySelector<HTMLElement>('[data-testid="control-grid-row-grid-test"]');
+    expect(row).not.toBeNull();
+    const stop = [...row!.querySelectorAll("button")].find(
+      (candidate) => candidate.textContent?.trim() === "Stop",
+    );
+    expect(stop).toBeDefined();
+    stop!.click();
+    flushSync();
+
+    const dialog = host.querySelector<HTMLElement>(
+      '[data-testid="control-grid-stop-confirm-grid-test"]',
+    );
+    expect(dialog).not.toBeNull();
+    expect(dialog!.textContent).toContain("1 BTCUSDT");
+    expect(dialog!.textContent).not.toContain("2 BTCUSDT");
+    expect(dialog!.textContent).toContain("Any manual add stays open");
+
+    button("Keep running").click();
+    flushSync();
+    expect(
+      host.querySelector('[data-testid="control-grid-stop-confirm-grid-test"]'),
+    ).toBeNull();
+  });
+});
+
 describe("FEAT-0811 — direct bot creation", () => {
   it("mounts the empty editor from the Create-a-bot button and closes it on save", () => {
     render();
@@ -562,5 +664,37 @@ describe("FEAT-0811 — direct bot creation", () => {
     expect(fields.name).toBe("RSI dip bot");
     expect(mocks.promoteAlertToBot).not.toHaveBeenCalled();
     expect(host.querySelector("#bot-create-name")).toBeNull();
+  });
+
+  it("creates a grid bot from the control panel, shows mark-to-market summary, and renders account_unavailable when paper is off", () => {
+    localStorage.clear();
+    paperState.setEnabled(true);
+    render();
+
+    button(translation(en as Record<string, unknown>, "settings.automation.grid.createButton")).click();
+    flushSync();
+
+    setInput(host.querySelector("#grid-create-name") as HTMLInputElement, "ETH Ladder");
+    setInput(host.querySelector("#grid-create-symbol") as HTMLInputElement, "ETHUSDT");
+    setInput(host.querySelector("#grid-create-lower") as HTMLInputElement, "2500");
+    setInput(host.querySelector("#grid-create-upper") as HTMLInputElement, "3000");
+    setInput(host.querySelector("#grid-create-levels") as HTMLInputElement, "5");
+    setInput(host.querySelector("#grid-create-budget") as HTMLInputElement, "500");
+    setInput(host.querySelector("#grid-create-stopout-0-value") as HTMLInputElement, "2300");
+
+    host.querySelector<HTMLButtonElement>('[data-testid="grid-editor-save"]')!.click();
+    flushSync();
+
+    expect(mocks.validateGrid).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('[data-testid="grid-bot-editor"]')).toBeNull();
+    expect(host.textContent).toContain("ETH Ladder");
+    expect(host.textContent).toContain("Mark-to-market:");
+
+    // Turning paper trading off shows the frozen ladder + stop-out account_unavailable notice
+    paperState.setEnabled(false);
+    flushSync();
+    const banner = host.querySelector<HTMLElement>('[data-testid="grids-account-unavailable"]');
+    expect(banner).not.toBeNull();
+    expect(banner!.textContent).toContain("frozen with the paper book");
   });
 });

@@ -85,6 +85,31 @@ export interface BotTrackRecord {
     openTrades: number;
     /** Latest activity (close, else entry date) in epoch ms — the sort key. */
     lastActivityMs: number;
+    /** FEAT-0819 — true when this record belongs to a grid bot. */
+    isGrid?: boolean;
+    /** FEAT-0819 — live mark-to-market unrealized PnL of the grid's open inventory, or null when unpriced. */
+    unrealizedPnl?: Decimal | null;
+    /** FEAT-0819 — mark-to-market net equity (`totalPnl + unrealizedPnl`), or null when unpriced. */
+    markToMarketPnl?: Decimal | null;
+    /** FEAT-0819 — mark-to-market equity curve shown alongside realized closed trades. */
+    markToMarketCurve?: Decimal[];
+}
+
+/**
+ * FEAT-0819 stage 5 — live mark-to-market inventory snapshot for one grid bot,
+ * supplied by the caller so `botTrackRecord.ts` stays pure and store-free.
+ */
+export interface GridMarkInput {
+    strategyHash: string | null;
+    hasOpenPosition: boolean;
+    /** Live unrealized PnL in quote currency, or `null` when mark price is unavailable. */
+    unrealizedPnl: Decimal | null;
+    startedAtMs?: number;
+}
+
+export interface BotTrackRecordOptions {
+    /** Grid bots keyed by `gridId`, so grid review surfaces always include mark-to-market equity. */
+    gridMarks?: ReadonlyMap<string, GridMarkInput>;
 }
 
 /** Which population of the journal a view wants. */
@@ -214,7 +239,19 @@ interface Bucket {
  * attribution — a record built over "probably this bot's" would be worse than
  * no record, because it reads exactly as authoritative.
  */
-export function botTrackRecords(entries: JournalEntry[]): BotTrackRecord[] {
+export function botTrackRecords(
+    entries: JournalEntry[],
+    options?: BotTrackRecordOptions,
+): BotTrackRecord[] {
+    return applyGridMarks(botTrackRecordsBase(entries), options?.gridMarks);
+}
+
+/**
+ * The journal-only aggregation. This does not read market data, so callers that
+ * update live marks on every tick can keep this result stable and apply the
+ * marks to the existing records instead of re-reading the whole journal.
+ */
+export function botTrackRecordsBase(entries: JournalEntry[]): BotTrackRecord[] {
     const buckets = new Map<string, Bucket>();
 
     for (const entry of entries) {
@@ -249,6 +286,88 @@ export function botTrackRecords(entries: JournalEntry[]): BotTrackRecord[] {
     }
 
     const records = [...buckets.values()].map(summarise);
+    sortRecords(records);
+    return records;
+}
+
+/** Overlay live grid inventory without recomputing the journal aggregation. */
+export function applyGridMarks(
+    records: readonly BotTrackRecord[],
+    gridMarks?: BotTrackRecordOptions["gridMarks"],
+): BotTrackRecord[] {
+    const next = [...records];
+    if (gridMarks) {
+        for (const [gridId, mark] of gridMarks) {
+            const exists = next.some(
+                (record) =>
+                    record.botId === gridId && record.strategyHash === mark.strategyHash,
+            );
+            if (!exists && mark.hasOpenPosition) {
+                next.push(
+                    summarise({
+                        botId: gridId,
+                        strategyHash: mark.strategyHash,
+                        counted: [],
+                        manualExits: [],
+                        openTrades: 1,
+                        lastActivityMs: mark.startedAtMs ?? 0,
+                    }),
+                );
+            }
+        }
+    }
+
+    const overlaid = next.map((summary) => {
+        const gridMark = gridMarks?.get(summary.botId);
+        if (!gridMark) return summary;
+        // A mark belongs to exactly one strategy bucket. A missing hash is its
+        // own bucket (created above), not a wildcard that would count the same
+        // open inventory once per historical version.
+        const matchesActiveVersion = gridMark.strategyHash === summary.strategyHash;
+        if (!matchesActiveVersion) {
+            return {
+                ...summary,
+                isGrid: true,
+                unrealizedPnl: ZERO,
+                markToMarketPnl: summary.totalPnl,
+                markToMarketCurve:
+                    summary.equityCurve.length >= 2
+                        ? [...summary.equityCurve]
+                        : [ZERO, summary.totalPnl],
+            };
+        }
+        const openCount =
+            gridMark.hasOpenPosition && summary.openTrades === 0
+                ? 1
+                : summary.openTrades;
+        if (gridMark.unrealizedPnl === null) {
+            return {
+                ...summary,
+                openTrades: openCount,
+                isGrid: true,
+                unrealizedPnl: null,
+                markToMarketPnl: null,
+                markToMarketCurve: [],
+            };
+        }
+        const unrealized = gridMark.unrealizedPnl;
+        const mtmTotal = summary.totalPnl.plus(unrealized);
+        const baseCurve =
+            summary.equityCurve.length > 0 ? summary.equityCurve : [ZERO];
+        return {
+            ...summary,
+            openTrades: openCount,
+            isGrid: true,
+            unrealizedPnl: unrealized,
+            markToMarketPnl: mtmTotal,
+            markToMarketCurve: [...baseCurve, mtmTotal],
+        };
+    });
+    sortRecords(overlaid);
+    return overlaid;
+}
+
+function sortRecords(records: BotTrackRecord[]): void {
     // Most recently active first; the bot id breaks ties so the order of two
     // records that closed in the same millisecond does not depend on the
     // journal's internal order.
@@ -256,7 +375,6 @@ export function botTrackRecords(entries: JournalEntry[]): BotTrackRecord[] {
         (a, b) =>
             b.lastActivityMs - a.lastActivityMs || a.botId.localeCompare(b.botId),
     );
-    return records;
 }
 
 function summarise(bucket: Bucket): BotTrackRecord {

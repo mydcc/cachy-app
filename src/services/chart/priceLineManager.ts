@@ -50,7 +50,13 @@ export interface PriceLineHostSeries {
 }
 
 export interface PriceLineHandle {
-    applyOptions(options: { price?: number; title?: string }): void;
+    applyOptions(options: {
+        price?: number;
+        title?: string;
+        color?: string;
+        lineWidth?: 1 | 2 | 3 | 4;
+        lineStyle?: number;
+    }): void;
     options(): { price: number; title: string };
 }
 
@@ -108,12 +114,22 @@ interface PriceLineLabels {
     sellLimit: string;
 }
 
+/** FEAT-0820 — one read-only horizontal grid ladder level on the chart. */
+export interface GridLevelLineInput {
+    id: string;
+    price: Decimal;
+    filled: boolean;
+    title: string;
+}
+
 export interface PriceLineUpdateInput {
     position: PositionLinesInput | null;
     takeProfit: TpSlLineInput | null;
     stopLoss: TpSlLineInput | null;
     /** Resting limit orders not yet filled into a position — read-only, no drag/drop. */
     pendingOrders?: PendingOrderLineInput[];
+    /** FEAT-0820 — active/paused grid ladder levels for this symbol (read-only). */
+    gridLevels?: GridLevelLineInput[];
     /** Smallest price increment for this symbol; drags snap to it. */
     tickSize: Decimal;
     /** `supports.tpSl === false` on the active exchange — lines are shown but not draggable. */
@@ -128,6 +144,8 @@ export interface PriceLineUpdateInput {
         takeProfit: string;
         stopLoss: string;
         pendingOrder: string;
+        gridResting?: string;
+        gridFilled?: string;
     };
 }
 
@@ -149,8 +167,12 @@ const COLORS = {
     takeProfit: "#26a69a",
     stopLoss: "#ef5350",
     pendingOrder: "#787b86",
+    gridResting: undefined,
+    gridFilled: undefined,
 } as const;
 
+const LINE_STYLE_SOLID = 0;
+const LINE_STYLE_DOTTED = 1;
 const LINE_STYLE_DASHED = 2;
 const HIT_TEST_PX = 6;
 
@@ -214,6 +236,8 @@ export class PriceLineManager {
     private stopLossLine: PriceLineHandle | null = null;
     /** Keyed by orderId — unlike the singleton lines above, there can be several resting limit orders at once. */
     private pendingOrderLines = new Map<string, PriceLineHandle>();
+    /** Keyed by grid level id — read-only horizontal overlay lines for active/paused grids (FEAT-0820). */
+    private gridLevelLines = new Map<string, PriceLineHandle>();
 
     private lastInput: PriceLineUpdateInput | null = null;
 
@@ -314,6 +338,53 @@ export class PriceLineManager {
         }
 
         this.syncPendingOrders(input.pendingOrders ?? [], colors, input.labels);
+        this.syncGridLevels(input.gridLevels ?? [], {
+            resting: colors.gridResting || colors.pendingOrder,
+            filled: colors.gridFilled || colors.takeProfit,
+        });
+    }
+
+    /** Diffs read-only grid level lines: distinguishes filled vs resting levels and removes stopped ones. */
+    private syncGridLevels(
+        levels: GridLevelLineInput[],
+        colors: { resting: string; filled: string },
+    ): void {
+        const seen = new Set<string>();
+        for (const level of levels) {
+            seen.add(level.id);
+            const priceNum = level.price.toNumber();
+            const color = level.filled ? colors.filled : colors.resting;
+            const lineWidth: 1 | 2 = level.filled ? 2 : 1;
+            const lineStyle = level.filled ? LINE_STYLE_SOLID : LINE_STYLE_DOTTED;
+            const existing = this.gridLevelLines.get(level.id);
+            if (existing) {
+                existing.applyOptions({
+                    price: priceNum,
+                    title: level.title,
+                    color,
+                    lineWidth,
+                    lineStyle,
+                });
+            } else {
+                this.gridLevelLines.set(
+                    level.id,
+                    this.series.createPriceLine({
+                        price: priceNum,
+                        color,
+                        lineWidth,
+                        lineStyle,
+                        axisLabelVisible: true,
+                        title: level.title,
+                    }),
+                );
+            }
+        }
+        for (const [id, line] of this.gridLevelLines) {
+            if (!seen.has(id)) {
+                this.series.removePriceLine(line);
+                this.gridLevelLines.delete(id);
+            }
+        }
     }
 
     /** Diffs the resting-order set against the previous render: creates new lines, updates moved ones, removes filled/cancelled ones. */
@@ -371,6 +442,7 @@ export class PriceLineManager {
         // available. A null lastInput means update() never ran, which means
         // there are no pending-order lines to clear either.
         if (this.lastInput) this.syncPendingOrders([], COLORS, this.lastInput.labels);
+        this.syncGridLevels([], { resting: COLORS.pendingOrder, filled: COLORS.takeProfit });
         this.lastInput = null;
     }
 

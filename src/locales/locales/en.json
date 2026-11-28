@@ -192,7 +192,16 @@
     "marketActivity": "Market Activity",
     "positions": "Positions",
     "openOrders": {
-      "viewDetails": "View order details for {symbol}, {time}"
+      "viewDetails": "View order details for {symbol}, {time}",
+      "gridGroup": {
+        "summary": "{name} · {symbol} · {count} levels",
+        "expandNamed": "Expand orders for grid {name} ({count} levels)",
+        "collapseNamed": "Collapse orders for grid {name} ({count} levels)",
+        "owner": "Owner: {name}",
+        "level": "Level {price}",
+        "legOpen": "Entry",
+        "legClose": "Counter"
+      }
     },
     "orders": "Orders",
     "bots": "Bots",
@@ -1053,7 +1062,9 @@
       "blocked": "Blocked",
       "expired": "Expired",
       "limit_reached": "Limit reached",
-      "awaiting_confirmation": "Awaiting confirmation"
+      "awaiting_confirmation": "Awaiting confirmation",
+      "active": "Active",
+      "stopping": "Stopping"
     },
     "empty": "No bots yet. The control center creates them from your alerts.",
     "rulesUnreadable": "The bot list could not be read. Nothing was changed.",
@@ -1096,7 +1107,38 @@
     "viewPositionSymbol": "Show the {symbol} position",
     "timeframe": "Timeframe",
     "lingeringTitle": "Position from a deleted bot",
-    "lingeringHint": "The bot that opened this position no longer exists. The position stays until it is closed."
+    "lingeringHint": "The bot that opened this position no longer exists. The position stays until it is closed.",
+    "grid": {
+      "badge": "Grid",
+      "sideLong": "Long",
+      "sideShort": "Short",
+      "range": "{lower} – {upper} · {spacing}",
+      "spacingArithmetic": "arithmetic",
+      "spacingGeometric": "geometric",
+      "progress": "{filled} / {total} levels filled",
+      "pnl": "PnL",
+      "start": "Start",
+      "startNamed": "Start {name}",
+      "accountUnavailable": "Paper trading is switched off: this grid’s ladder and its stop-out are frozen with the paper book.",
+      "allowManualAdds": "Manual adds to grid positions",
+      "allowManualAddsDesc": "On: adds stay allowed; grid PnL and grid stop affect only the grid’s share. Off: adds in the same direction are blocked while the grid holds the slot.",
+      "stopConfirmWithPosition": "Cancel {orders} resting order(s) and close the grid’s {side} share ({amount} {symbol})? Any manual add stays open.",
+      "stopConfirmOrdersOnly": "Cancel {orders} resting order(s) on {symbol}? No open position to close.",
+      "stopConfirmExecute": "Stop grid",
+      "stopConfirmCancel": "Keep running",
+      "refusal": {
+        "notFound": "This grid no longer exists.",
+        "changed": "The grid was edited while it was starting. Nothing was started; try again.",
+        "balance": "Not enough free balance for this grid’s budget.",
+        "paperOff": "Paper trading is switched off, so this grid is frozen.",
+        "slotConflict": "Another bot already holds this symbol and side.",
+        "state": "The grid is not in a state that allows this action.",
+        "internal": "Unexpected error. The details are in the log.",
+        "manualAddBlocked": "Manual adds to this grid position are blocked. Enable “Manual adds to grid positions” in the bots panel to allow them.",
+        "noOwnedPosition": "This grid no longer owns a share of the position.",
+        "generic": "The grid action was refused."
+      }
+    }
   },
   "journal": {
     "title": "Trade Journal",
@@ -1244,7 +1286,10 @@
       "deletedBot": "deleted",
       "selectBot": "Show only this bot's trades",
       "clearSelection": "Show all trades",
-      "unattributed": "closed trades carry no bot attribution and are left out of every record. They were written before a trade recorded who opened it."
+      "unattributed": "closed trades carry no bot attribution and are left out of every record. They were written before a trade recorded who opened it.",
+      "unrealizedPnl": "Unrealized PnL",
+      "mtmEquity": "Mark-to-market",
+      "mtmUnpriced": "unpriced"
     },
     "filters": {
       "quickToday": "Today",
@@ -3073,7 +3118,7 @@
       "intro": "A bot is one of your alerts promoted to act rather than announce. It watches the same conditions, on the same data, evaluated by the same engine.",
       "simulateOnly": "Bots propose orders into the simulated account only. Nothing here reaches an exchange — live execution is a separate feature with its own order gate and confirmation.",
       "yourBots": "Your bots",
-      "stopAll": "Stop all bots",
+      "stopAll": "Stop rule bots",
       "guardHistory": "Guard history ({count} entries)",
       "noBots": "No bots yet. Promote one of your alerts below to get started.",
       "accountInactive": "Bots on the paper account: {count}. While a live account is active they do not trade, and the paper book stands still: open paper positions, stops and take-profits are not simulated further. Turn on Paper Trading (Settings → Trading & Market → Paper Trading) to see and edit them. New bots always run on the paper account.",
@@ -3122,7 +3167,7 @@
       "simulateOnlyShort": "Bots simulate only — nothing from this page reaches an exchange.",
       "promoteHintShort": "The alert stays armed; promoting adds a bot.",
       "orderRefusedBookUnreadable": "The position book could not be read, so the limits {name} set on itself cannot bind — nothing was entered.",
-      "stopAllDone": "Stopped {count} bots: no new entries until you resume one.",
+      "stopAllDone": "Stopped {count} rule bots: no new entries until you resume one. Grids are unaffected.",
       "editor": {
         "createButton": "Create a bot",
         "createTitle": "Create a bot",
@@ -3169,6 +3214,52 @@
         "readbackEntriesDay": "up to {count} entries a day",
         "readbackRisk": "at most {amount} at risk per entry",
         "readbackBudget": "{amount} total risk budget"
+      },
+      "grid": {
+        "sectionTitle": "Grid bots",
+        "createButton": "Create grid bot",
+        "createTitle": "Create a grid bot",
+        "editTitle": "Edit grid bot",
+        "hint": "Places a ladder of resting paper limit orders across a price range and re-places counter-orders on fills. Paper account only.",
+        "noGrids": "No grid bots yet. Create one to run a paper order ladder.",
+        "name": "Name",
+        "symbol": "Symbol",
+        "side": "Direction",
+        "sideLong": "Long (buy low, sell high)",
+        "sideShort": "Short (sell high, buy low)",
+        "timeframe": "Evaluation timeframe",
+        "lowerPrice": "Lower price",
+        "upperPrice": "Upper price",
+        "levelCount": "Levels (2–100)",
+        "spacing": "Spacing",
+        "spacingArithmetic": "Arithmetic (equal step)",
+        "spacingGeometric": "Geometric (equal %)",
+        "quoteBudget": "Quote budget (USDT)",
+        "atrSuggestion": "ATR({period}) is {atr}: {levels} levels (~{step} per step).",
+        "atrApply": "Apply ATR suggestion",
+        "stepRoundingNotice": "Price tick rounded the range inward to {lower} – {upper} so no order rests outside your stated bounds.",
+        "feeWarning": "Narrowest level spacing ({narrowest}%) does not exceed the round-trip taker fee — minimum viable spacing is {minViable}%.",
+        "prestartTitle": "Pre-start budget & risk",
+        "estimatedBudget": "Estimated reserve: {reserve} USDT ({notional} notional + {openFees} opening fees; {roundTripFees} round-trip fees per full cycle).",
+        "worstCaseWithShare": "Worst-case loss at stop-out ({stopPrice}): {loss} USDT ({share}% of paper account, fees on both legs included).",
+        "worstCaseNoShare": "Worst-case loss at stop-out ({stopPrice}): {loss} USDT (fees on both legs included).",
+        "worstCaseNonPrice": "Worst-case loss requires a constant price stop-out threshold to pre-compute before start.",
+        "trendFilterTitle": "Optional trend filter",
+        "trendFilterHint": "While false, resting unfilled opening orders are withdrawn; counter-orders and stop-out keep running.",
+        "trendFilterAdd": "Add trend filter",
+        "trendFilterRemove": "Remove trend filter",
+        "stopOutTitle": "Mandatory stop-out rules",
+        "stopOutHint": "Any rule holding cancels the ladder first and closes the owned position through the OrderGate.",
+        "stopOutAdd": "Add stop-out condition",
+        "stopOutRemove": "Remove",
+        "saveAndStart": "Save & start",
+        "stopOutRequired": "At least one stop-out condition is required.",
+        "rangeInvalid": "Upper price must be greater than lower price, with 2 to 100 whole levels and a positive budget.",
+        "levelsCollapse": "The range is too narrow for {levels} levels at this market’s tick size — levels would collapse onto one price.",
+        "slotBelowStep": "Quote budget per level is smaller than one minimum quantity step on this market.",
+        "accountUnavailableBanner": "Grid bots on the paper account ({count}): Paper trading is off — each grid reads account unavailable, and both its ladder and its stop-out are frozen with the paper book.",
+        "mtmSummary": "Realized: {realized} USDT · Unrealized: {unrealized} USDT · Mark-to-market: {mtm} USDT",
+        "mtmUnpriced": "Realized: {realized} USDT · Mark-to-market: waiting for mark price"
       }
     },
     "densityTitle": "Density",
@@ -5177,7 +5268,9 @@
       "takeProfit": "TP",
       "stopLoss": "SL",
       "buyLimit": "Buy Limit",
-      "sellLimit": "Sell Limit"
+      "sellLimit": "Sell Limit",
+      "gridLevel": "Grid {price}",
+      "gridLevelFilled": "Grid {price} (filled)"
     },
     "pane": {
       "collapse": "Collapse pane",

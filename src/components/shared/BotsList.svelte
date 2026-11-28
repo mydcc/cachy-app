@@ -44,34 +44,48 @@
     renderOrderSentence,
     type SentenceTranslator,
   } from "../../lib/rules/ruleSentence";
-  import type { RuleDocument } from "../../lib/rules/types";
+  import type { GridDocument, RuleDocument } from "../../lib/rules/types";
   import type { BotLifeState } from "../../services/alertEngine/botState";
+  import type { GridLifeState, GridLifeStatus } from "../../services/alertEngine/gridState";
   import { readBots, setBotEnabled } from "../../services/alertEngine/botStore";
+  import { readGrids, readGridStates } from "../../services/alertEngine/gridStore";
   import { readRuleStates } from "../../services/alertEngine/ruleStateStore";
-  import { alertState, closeBotOwnedPositions } from "../../stores/alerts.svelte";
+  import {
+    alertState,
+    closeBotOwnedPositions,
+    pauseGridBot,
+    resumeGridBot,
+    startGridBot,
+    stopGridBot,
+  } from "../../stores/alerts.svelte";
   import { readBotGuards, BOT_GUARD_REASON_KEYS } from "../../services/alertEngine/botGuardStore";
+  import { gridRefusalKey } from "./gridRefusalKey";
+  import { gridOwnedAmount, gridUnrealizedPnl } from "../../lib/gridPositionShare";
   import { botsState } from "../../stores/botsState.svelte";
   import {
     PAPER_ACCOUNT,
     isBotAccountExecuting,
   } from "../../services/alertEngine/botAccount";
   import { paperState, type PaperPosition } from "../../stores/paperTrading.svelte";
+  import { paperAccountFeed } from "../../services/paperAccountFeed";
+  import type { OMSPosition } from "../../services/omsTypes";
+  import { formatDynamicDecimal, parseDecimal } from "../../utils/utils";
+  import type { Decimal } from "decimal.js";
 
   interface Props {
     /**
      * FEAT-0808 — switches the sidebar to the Positions tab and highlights
      * the row this bot owns.
-     *
-     * Absent when the Positions tab is not showing the paper book (paper mode
-     * off): the link would resolve to a list that does not contain the row,
-     * and a dead link is how a surface learns to be ignored. The bot row
-     * still shows the position's facts — they come from the book, not from
-     * the tab.
      */
     onshowposition?: (positionId: string) => void;
+    /**
+     * FEAT-0820 — the Positions tab's live priced rows so grid rows display
+     * PnL from the single money source without duplicating PnL math.
+     */
+    pricedPositions?: readonly OMSPosition[];
   }
 
-  let { onshowposition }: Props = $props();
+  let { onshowposition, pricedPositions }: Props = $props();
 
   /**
    * The projection's clock tick. The sidebar owns it while this tab is
@@ -129,7 +143,33 @@
     position: PaperPosition;
   }
 
-  type Row = BotRow | LingeringRow;
+  interface GridRow {
+    kind: "grid";
+    id: string;
+    name: string;
+    symbol: string;
+    side: "long" | "short";
+    lowerPrice: string;
+    upperPrice: string;
+    spacing: "arithmetic" | "geometric";
+    levelCount: number;
+    filledCount: number;
+    restingOrderCount: number;
+    life: GridLifeState;
+    position: PaperPosition | null;
+    pnl: Decimal | null;
+  }
+
+  type Row = BotRow | GridRow | LingeringRow;
+
+  const GRID_STATE_RANK: Record<GridLifeStatus, number> = {
+    active: 0,
+    stopping: 2,
+    armed: 3,
+    paused: 4,
+    account_unavailable: 5,
+    closed: 9,
+  };
 
   /**
    * Sort order by state (spec proposal): in position first, then the
@@ -166,7 +206,7 @@
    * `guardsVersion` is what keeps the newest guard event (FEAT-0822) from
    * going stale: the ledger it reads is localStorage, not a rune.
    */
-  let rows = $derived.by<Row[]>(() => {
+  let baseRows = $derived.by<Row[]>(() => {
     const states = botsState.states;
     const degraded = botsState.degraded;
     const positions = paperState.positions;
@@ -238,7 +278,58 @@
     // The lingering rows: positions the book stamps as bot-owned whose bot
     // the states map has no entry for. The states map above was keyed off
     // the same rule read, so "no entry" is settled, not racy.
-    const ownedIds = new Set(botRows.map((row) => row.id));
+    const gridStates = botsState.gridStates;
+    let storedGrids: GridDocument[] = [];
+    let runtimeRecords: ReturnType<typeof readGridStates> = {};
+    if (!botsState.gridDegraded.grids) {
+      try {
+        storedGrids = readGrids();
+        runtimeRecords = readGridStates();
+      } catch {
+        storedGrids = [];
+      }
+    }
+
+    const gridRows: GridRow[] = [];
+    for (const grid of storedGrids) {
+      if (typeof grid.id !== "string") continue;
+      const life = gridStates.get(grid.id);
+      if (!life) continue;
+      // When paper trading is off, closed grids stay out of the unavailable view;
+      // non-closed grids render their `account_unavailable` row per FEAT-0819 AC 17.
+      if (executing !== PAPER_ACCOUNT && life.status === "closed") continue;
+      const position =
+        positions.find((p) => p.origin === "bot" && p.botId === grid.id) ?? null;
+      const restingOrderCount = paperState.orders.filter(
+        (o) => o.origin === "bot" && o.botId === grid.id && o.planGroupId === undefined,
+      ).length;
+      const openSlotsCount = runtimeRecords[grid.id]?.openSlots?.length ?? 0;
+      const filledCount = Math.min(
+        grid.level_count,
+        Math.max(openSlotsCount, life.counterOrderCount),
+      );
+      gridRows.push({
+        kind: "grid",
+        id: grid.id,
+        name: grid.name,
+        symbol: grid.symbol,
+        side: grid.side,
+        lowerPrice: grid.lower_price,
+        upperPrice: grid.upper_price,
+        spacing: grid.spacing,
+        levelCount: grid.level_count,
+        filledCount,
+        restingOrderCount,
+        life,
+        position,
+        pnl: null,
+      });
+    }
+
+    const ownedIds = new Set([
+      ...botRows.map((row) => row.id),
+      ...storedGrids.map((g) => g.id),
+    ]);
     const lingering: LingeringRow[] = [];
     // The lingering rows live on the paper book, so they follow the paper
     // account: listed only while it executes.
@@ -256,9 +347,43 @@
       if (symbol !== 0) return symbol;
       return a.name.localeCompare(b.name);
     });
+    gridRows.sort((a, b) => {
+      const rank = GRID_STATE_RANK[a.life.status] - GRID_STATE_RANK[b.life.status];
+      if (rank !== 0) return rank;
+      const symbol = a.symbol.localeCompare(b.symbol);
+      if (symbol !== 0) return symbol;
+      return a.name.localeCompare(b.name);
+    });
     lingering.sort((a, b) => a.position.symbol.localeCompare(b.position.symbol));
 
-    return [...botRows, ...lingering];
+    return [...gridRows, ...botRows, ...lingering];
+  });
+
+  /**
+   * Price ticks only overlay grid PnL. The static rows above keep their store
+   * reads and guard-ledger parsing off this hot path.
+   */
+  let rows = $derived.by<Row[]>(() => {
+    if (botsState.executingAccount !== PAPER_ACCOUNT) return baseRows;
+    const pricedById = new Map(
+      (pricedPositions ?? []).map((position) => [position.positionId, position]),
+    );
+    const feedById = new Map(
+      (pricedPositions === undefined ? (paperAccountFeed()?.positions() ?? []) : []).map(
+        (position) => [position.positionId, position],
+      ),
+    );
+    return baseRows.map((row) => {
+      if (row.kind !== "grid" || !row.position) return row;
+      const position = row.position;
+      const omsMatch = pricedById.get(position.positionId);
+      const pnl = omsMatch
+        ? omsMatch.unpriced
+          ? null
+          : gridUnrealizedPnl(position, omsMatch.markPrice)
+        : gridUnrealizedPnl(position, parseDecimal(feedById.get(position.positionId)?.markPrice));
+      return { ...row, pnl };
+    });
   });
 
   /** Nothing can be listed while the rule store refuses to be read. */
@@ -297,8 +422,13 @@
   let hiddenLingeringCount = $derived.by(() => {
     if (botsState.executingAccount === PAPER_ACCOUNT) return 0;
     const states = botsState.states;
+    const gridStates = botsState.gridStates;
     return paperState.positions.filter(
-      (p) => p.origin === "bot" && p.botId !== undefined && !states.has(p.botId),
+      (p) =>
+        p.origin === "bot" &&
+        p.botId !== undefined &&
+        !states.has(p.botId) &&
+        !gridStates.has(p.botId),
     ).length;
   });
 
@@ -408,6 +538,77 @@
   function cancelKill(): void {
     killArmedId = null;
   }
+
+  const GRID_STATE_KEY: Record<GridLifeStatus, TranslationKey> = {
+    armed: "botsList.state.armed",
+    active: "botsList.state.active",
+    paused: "botsList.state.paused",
+    stopping: "botsList.state.stopping",
+    closed: "botsList.state.closed",
+    account_unavailable: "botsList.state.account_unavailable",
+  };
+
+  function gridStateLabel(status: GridLifeStatus): string {
+    return $_(GRID_STATE_KEY[status]);
+  }
+
+  let stopConfirmGridId = $state<string | null>(null);
+  let gridErrorById = $state<Record<string, string>>({});
+  let pendingGridIds = $state(new Set<string>());
+
+  async function handleStartGrid(row: GridRow): Promise<void> {
+    if (pendingGridIds.has(row.id)) return;
+    pendingGridIds.add(row.id);
+    delete gridErrorById[row.id];
+    try {
+      const res = await startGridBot(row.id);
+      if (!res.ok) {
+        gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+      }
+    } finally {
+      pendingGridIds.delete(row.id);
+    }
+  }
+
+  async function handleTogglePauseGrid(row: GridRow): Promise<void> {
+    if (pendingGridIds.has(row.id)) return;
+    pendingGridIds.add(row.id);
+    delete gridErrorById[row.id];
+    try {
+      const res =
+        row.life.status === "paused"
+          ? await resumeGridBot(row.id)
+          : await pauseGridBot(row.id);
+      if (!res.ok) {
+        gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+      }
+    } finally {
+      pendingGridIds.delete(row.id);
+    }
+  }
+
+  function requestStopGrid(row: GridRow): void {
+    delete gridErrorById[row.id];
+    stopConfirmGridId = row.id;
+  }
+
+  async function confirmStopGrid(row: GridRow): Promise<void> {
+    if (pendingGridIds.has(row.id)) return;
+    pendingGridIds.add(row.id);
+    stopConfirmGridId = null;
+    try {
+      const res = await stopGridBot(row.id);
+      if (!res.ok) {
+        gridErrorById[row.id] = $_(gridRefusalKey(res.reason));
+      }
+    } finally {
+      pendingGridIds.delete(row.id);
+    }
+  }
+
+  function cancelStopGrid(): void {
+    stopConfirmGridId = null;
+  }
 </script>
 
 <div
@@ -424,7 +625,7 @@
     >
       {$_("botsList.rulesUnreadable")}
     </p>
-  {:else if hiddenBotCount > 0 || hiddenLingeringCount > 0}
+  {:else if (hiddenBotCount > 0 || hiddenLingeringCount > 0) && rows.length === 0}
     {#if bookUnreadable}
       <!-- An unreadable book leaves paper trading off by its safe default
            (`paperState.load`), so this branch is where that case lands. The
@@ -471,9 +672,214 @@
         {$_("botsList.bookUnreadable")}
       </p>
     {/if}
+    {#if hiddenBotCount > 0 || hiddenLingeringCount > 0}
+      <p
+        class="text-xs text-[var(--warning-color)] p-2 text-center"
+        role="status"
+        data-testid="bots-account-inactive"
+      >
+        {$_("botsList.accountInactive", { values: { count: hiddenBotCount } })}
+        {#if hiddenLingeringCount > 0}
+          {$_("botsList.accountInactiveLingering", { values: { count: hiddenLingeringCount } })}
+        {/if}
+      </p>
+    {/if}
     <ul class="flex flex-col gap-2">
-      {#each rows as row (row.kind === "bot" ? row.id : `lingering:${row.position.positionId}`)}
-        {#if row.kind === "bot"}
+      {#each rows as row (row.kind === "bot" ? row.id : row.kind === "grid" ? `grid:${row.id}` : `lingering:${row.position.positionId}`)}
+        {#if row.kind === "grid"}
+          <li
+            class="bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] p-2 flex flex-col gap-1"
+            data-testid="grid-row-{row.id}"
+            data-grid-id={row.id}
+          >
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="px-1 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-accent-paired">
+                  {$_("botsList.grid.badge")}
+                </span>
+                <span class="font-bold text-sm text-[var(--text-primary)] truncate">
+                  {row.name}
+                </span>
+                <span class="text-xs text-[var(--text-secondary)]">
+                  {row.symbol}
+                  {row.side === "long" ? $_("botsList.grid.sideLong") : $_("botsList.grid.sideShort")}
+                </span>
+                <span
+                  class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider border border-[var(--border-color)]"
+                  class:bg-success-paired={row.life.status === "active"}
+                  class:bg-warning-paired={row.life.status === "stopping"}
+                  class:bg-accent-paired={row.life.status === "armed"}
+                  class:bg-danger-paired={row.life.status === "account_unavailable"}
+                  class:bg-[var(--bg-secondary)]={row.life.status === "paused" || row.life.status === "closed"}
+                  data-testid="bot-state-chip"
+                >
+                  {gridStateLabel(row.life.status)}
+                </span>
+              </div>
+
+              {#if row.life.status !== "account_unavailable"}
+                <div class="flex items-center gap-1">
+                  {#if row.life.status === "armed" || row.life.status === "closed"}
+                    <button
+                      type="button"
+                      class="py-1 px-2 text-[10px] bg-accent-paired hover-bg-accent-paired rounded transition-colors"
+                      data-testid="grid-start"
+                      aria-label={$_("botsList.grid.startNamed", { values: { name: row.name } })}
+                      onclick={() => void handleStartGrid(row)}
+                      disabled={pendingGridIds.has(row.id)}
+                    >
+                      {$_("botsList.grid.start")}
+                    </button>
+                  {/if}
+                  {#if row.life.status === "active" || row.life.status === "paused"}
+                    <button
+                      type="button"
+                      class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                      data-testid="grid-pause-toggle"
+                      aria-label={row.life.status === "paused"
+                        ? $_("botsList.resumeNamed", { values: { name: row.name } })
+                        : $_("botsList.pauseNamed", { values: { name: row.name } })}
+                      onclick={() => void handleTogglePauseGrid(row)}
+                      disabled={pendingGridIds.has(row.id)}
+                    >
+                      {row.life.status === "paused" ? $_("botsList.resume") : $_("botsList.pause")}
+                    </button>
+                  {/if}
+                  {#if row.life.status === "active" || row.life.status === "paused" || row.restingOrderCount > 0 || row.position !== null}
+                    <button
+                      type="button"
+                      class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                      data-testid="grid-stop"
+                      aria-label={$_("botsList.stopNamed", { values: { name: row.name } })}
+                      onclick={() => requestStopGrid(row)}
+                      disabled={pendingGridIds.has(row.id)}
+                    >
+                      {$_("botsList.stop")}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+
+            {#if stopConfirmGridId === row.id}
+              <p
+                class="text-xs text-[var(--warning-color)] flex items-center gap-2 flex-wrap"
+                data-testid="grid-stop-confirm"
+                role="alert"
+              >
+                {#if row.position}
+                  {$_("botsList.grid.stopConfirmWithPosition", {
+                    values: {
+                      orders: row.restingOrderCount,
+                      side: row.position.side.toUpperCase(),
+                      amount: formatDynamicDecimal(gridOwnedAmount(row.position).toString()),
+                      symbol: row.symbol,
+                    },
+                  })}
+                {:else}
+                  {$_("botsList.grid.stopConfirmOrdersOnly", {
+                    values: {
+                      orders: row.restingOrderCount,
+                      symbol: row.symbol,
+                    },
+                  })}
+                {/if}
+                <button
+                  type="button"
+                  class="py-0.5 px-2 text-[10px] bg-[var(--danger-color)] text-[var(--text-on-danger)] rounded border border-[var(--border-color)]"
+                  data-testid="grid-stop-confirm-execute"
+                  onclick={() => void confirmStopGrid(row)}
+                  disabled={pendingGridIds.has(row.id)}
+                >
+                  {$_("botsList.grid.stopConfirmExecute")}
+                </button>
+                <button
+                  type="button"
+                  class="py-0.5 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)]"
+                  data-testid="grid-stop-confirm-cancel"
+                  onclick={cancelStopGrid}
+                >
+                  {$_("botsList.grid.stopConfirmCancel")}
+                </button>
+              </p>
+            {/if}
+
+            <div class="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)] flex-wrap">
+              <span>
+                {$_("botsList.grid.range", {
+                  values: {
+                    lower: row.lowerPrice,
+                    upper: row.upperPrice,
+                    spacing:
+                      row.spacing === "geometric"
+                        ? $_("botsList.grid.spacingGeometric")
+                        : $_("botsList.grid.spacingArithmetic"),
+                  },
+                })}
+              </span>
+              <span class="font-mono text-[var(--text-primary)]" data-testid="grid-level-progress">
+                {$_("botsList.grid.progress", {
+                  values: { filled: row.filledCount, total: row.levelCount },
+                })}
+              </span>
+            </div>
+
+            {#if row.life.status === "account_unavailable"}
+              <p
+                class="text-xs text-[var(--warning-color)]"
+                role="status"
+                data-testid="grid-account-unavailable"
+              >
+                {$_("botsList.grid.accountUnavailable")}
+              </p>
+            {/if}
+
+            {#if gridErrorById[row.id]}
+              <p class="text-xs text-[var(--danger-color)]" role="alert">
+                {gridErrorById[row.id]}
+              </p>
+            {/if}
+
+            {#if row.position}
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <p class="text-xs text-[var(--text-secondary)]" data-testid="grid-position-facts">
+                  {$_("botsList.entry")}
+                  <span class="font-mono text-[var(--text-primary)]">
+                    {formatDynamicDecimal(row.position.entryPrice)}
+                  </span>
+                  ·
+                  <span class="font-mono text-[var(--text-primary)]">
+                    {formatDynamicDecimal(gridOwnedAmount(row.position).toString())}
+                  </span>
+                  {#if row.pnl !== null}
+                    · {$_("botsList.grid.pnl")}
+                    <span
+                      class="font-mono"
+                      class:text-[var(--success-color)]={row.pnl.gt(0)}
+                      class:text-[var(--danger-color)]={row.pnl.isNegative()}
+                      class:text-[var(--text-primary)]={row.pnl.isZero()}
+                      data-testid="grid-position-pnl"
+                    >
+                      {row.pnl.gt(0) ? "+" : ""}{formatDynamicDecimal(row.pnl)}
+                    </span>
+                  {/if}
+                </p>
+                {#if onshowposition}
+                  <button
+                    type="button"
+                    class="py-1 px-2 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                    data-testid="bot-view-position"
+                    aria-label={$_("botsList.viewPositionNamed", { values: { name: row.name } })}
+                    title={$_("botsList.viewPositionHint")}
+                    onclick={() => onshowposition?.(row.position!.positionId)}
+                  >
+                    {$_("botsList.viewPosition")}
+                  </button>
+                {/if}
+              </div>
+            {/if}
+          </li>
+        {:else if row.kind === "bot"}
           <li
             class="bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] p-2 flex flex-col gap-1"
             data-testid="bot-row-{row.id}"
