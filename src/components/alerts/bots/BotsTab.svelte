@@ -785,10 +785,10 @@
         <div class="flex items-start justify-between gap-3 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] p-3">
             <div class="flex flex-col gap-0.5">
                 <label for="grid-allow-manual-adds" class="text-sm text-[var(--text-primary)]">
-                    {$_("settings.automation.grid.allowManualAdds")}
+                    {$_("botsList.grid.allowManualAdds")}
                 </label>
                 <p class="text-xs text-[var(--text-secondary)]">
-                    {$_("settings.automation.grid.allowManualAddsDesc")}
+                    {$_("botsList.grid.allowManualAddsDesc")}
                 </p>
             </div>
             <Toggle

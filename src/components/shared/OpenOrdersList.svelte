@@ -415,7 +415,7 @@
                         class:bg-success-paired={order.side === "BUY"}
                         class:bg-danger-paired={order.side === "SELL"}
                       >
-                        {order.side === "BUY" ? $_("common.buy") : $_("common.sell")}
+                        {order.side === "BUY" ? $_("dashboard.orderHistory.side.buy") : $_("dashboard.orderHistory.side.sell")}
                         ·
                         {item.leg === "close"
                           ? $_("dashboard.openOrders.gridGroup.legClose")
@@ -496,7 +496,7 @@
                   title={$_("common.orderType", { values: { type: order.type || $_("common.unknown") } })}
                 >
                   {getTypeLabel(order.type)}
-                  {order.side === "BUY" ? $_("common.buy") : $_("common.sell")}
+                  {order.side === "BUY" ? $_("dashboard.orderHistory.side.buy") : $_("dashboard.orderHistory.side.sell")}
                 </span>
               </div>
 
